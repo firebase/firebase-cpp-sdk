@@ -13,11 +13,13 @@
 // limitations under the License.
 
 #include "app/src/app_android.h"
+#include "app/src/jni/collection.h"
 #include "app/src/jni/string.h"
 #include "app/src/jni/exception.h"
 #include "storage/src/android/storage_reference_android.h"
 
 #include <jni.h>
+#include "app/src/jni/declaration.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -47,241 +49,86 @@ namespace internal {
 #define STORAGE_REFERENCE_METHODS(X)                                           \
   X(Child, "child",                                                            \
     "(Ljava/lang/String;)"                                                     \
-    "Lcom/google/firebase/storage/StorageReference;"),                         \
+    "Lcom/google/firebase/storage/StorageReference;") \
   X(GetParent, "getParent",                                                    \
-    "()Lcom/google/firebase/storage/StorageReference;"),                       \
+    "()Lcom/google/firebase/storage/StorageReference;") \
   X(GetRoot, "getRoot",                                                        \
-    "()Lcom/google/firebase/storage/StorageReference;"),                       \
+    "()Lcom/google/firebase/storage/StorageReference;") \
   X(GetName, "getName",                                                        \
-    "()Ljava/lang/String;"),                                                   \
+    "()Ljava/lang/String;") \
   X(GetPath, "getPath",                                                        \
-    "()Ljava/lang/String;"),                                                   \
+    "()Ljava/lang/String;") \
   X(GetBucket, "getBucket",                                                    \
-    "()Ljava/lang/String;"),                                                   \
+    "()Ljava/lang/String;") \
   X(GetStorage, "getStorage",                                                  \
-    "()Lcom/google/firebase/storage/FirebaseStorage;"),                        \
+    "()Lcom/google/firebase/storage/FirebaseStorage;") \
   X(PutStream, "putStream",                                                    \
-    "(Ljava/io/InputStream;)Lcom/google/firebase/storage/UploadTask;"),        \
+    "(Ljava/io/InputStream;)Lcom/google/firebase/storage/UploadTask;") \
   X(PutStreamWithMetadata, "putStream",                                        \
     "(Ljava/io/InputStream;Lcom/google/firebase/storage/StorageMetadata;)"     \
-    "Lcom/google/firebase/storage/UploadTask;"),                               \
+    "Lcom/google/firebase/storage/UploadTask;") \
   X(PutFile, "putFile",                                                        \
     "(Landroid/net/Uri;)"                                                      \
-    "Lcom/google/firebase/storage/UploadTask;"),                               \
+    "Lcom/google/firebase/storage/UploadTask;") \
   X(PutFileWithMetadata, "putFile",                                            \
     "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;)"         \
-    "Lcom/google/firebase/storage/UploadTask;"),                               \
+    "Lcom/google/firebase/storage/UploadTask;") \
   X(PutFileWithMetadataAndUri, "putFile",                                      \
     "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;"          \
-    "Landroid/net/Uri;)Lcom/google/firebase/storage/UploadTask;"),             \
+    "Landroid/net/Uri;)Lcom/google/firebase/storage/UploadTask;") \
   X(GetActiveUploadTasks, "getActiveUploadTasks",                              \
-    "()Ljava/util/List;"),                                                     \
+    "()Ljava/util/List;") \
   X(GetActiveDownloadTasks, "getActiveDownloadTasks",                          \
-    "()Ljava/util/List;"),                                                     \
+    "()Ljava/util/List;") \
   X(GetMetadata, "getMetadata",                                                \
-    "()Lcom/google/android/gms/tasks/Task;"),                                  \
+    "()Lcom/google/android/gms/tasks/Task;") \
   X(GetDownloadUrl, "getDownloadUrl",                                          \
-    "()Lcom/google/android/gms/tasks/Task;"),                                  \
+    "()Lcom/google/android/gms/tasks/Task;") \
   X(UpdateMetadata, "updateMetadata",                                          \
     "(Lcom/google/firebase/storage/StorageMetadata;)"                          \
-    "Lcom/google/android/gms/tasks/Task;"),                                    \
+    "Lcom/google/android/gms/tasks/Task;") \
   X(GetStream, "getStream",                                                    \
     "(Lcom/google/firebase/storage/StreamDownloadTask$StreamProcessor;)"       \
-    "Lcom/google/firebase/storage/StreamDownloadTask;"),                       \
+    "Lcom/google/firebase/storage/StreamDownloadTask;") \
   X(GetFileUri, "getFile",                                                     \
     "(Landroid/net/Uri;)"                                                      \
-    "Lcom/google/firebase/storage/FileDownloadTask;"),                         \
+    "Lcom/google/firebase/storage/FileDownloadTask;") \
   X(GetFile, "getFile",                                                        \
     "(Ljava/io/File;)"                                                         \
-    "Lcom/google/firebase/storage/FileDownloadTask;"),                         \
+    "Lcom/google/firebase/storage/FileDownloadTask;") \
   X(Delete, "delete",                                                          \
-    "()Lcom/google/android/gms/tasks/Task;"),                                  \
+    "()Lcom/google/android/gms/tasks/Task;") \
   X(List, "list",                                                              \
-    "(I)Lcom/google/android/gms/tasks/Task;"),                                 \
+    "(I)Lcom/google/android/gms/tasks/Task;") \
   X(ListWithToken, "list",                                                     \
-    "(ILjava/lang/String;)Lcom/google/android/gms/tasks/Task;"),                \
+    "(ILjava/lang/String;)Lcom/google/android/gms/tasks/Task;") \
   X(ListAll, "listAll",                                                        \
-    "()Lcom/google/android/gms/tasks/Task;"),                                  \
+    "()Lcom/google/android/gms/tasks/Task;") \
   X(ToString, "toString",                                                      \
     "()Ljava/lang/String;")
 // clang-format on
 
-namespace storage_reference {
-  enum Method {
-    kChild,
-    kGetParent,
-    kGetRoot,
-    kGetName,
-    kGetPath,
-    kGetBucket,
-    kGetStorage,
-    kPutStream,
-    kPutStreamWithMetadata,
-    kPutFile,
-    kPutFileWithMetadata,
-    kPutFileWithMetadataAndUri,
-    kGetActiveUploadTasks,
-    kGetActiveDownloadTasks,
-    kGetMetadata,
-    kGetDownloadUrl,
-    kUpdateMetadata,
-    kGetStream,
-    kGetFileUri,
-    kGetFile,
-    kDelete,
-    kList,
-    kListWithToken,
-    kListAll,
-    kToString,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace storage_reference {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StorageReference"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kChild] = env->GetMethodID(g_class.get(), "child", "(Ljava/lang/String;)Lcom/google/firebase/storage/StorageReference;");
-    if (!g_method_ids[kChild]) return false;
-    g_method_ids[kGetParent] = env->GetMethodID(g_class.get(), "getParent", "()Lcom/google/firebase/storage/StorageReference;");
-    if (!g_method_ids[kGetParent]) return false;
-    g_method_ids[kGetRoot] = env->GetMethodID(g_class.get(), "getRoot", "()Lcom/google/firebase/storage/StorageReference;");
-    if (!g_method_ids[kGetRoot]) return false;
-    g_method_ids[kGetName] = env->GetMethodID(g_class.get(), "getName", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetName]) return false;
-    g_method_ids[kGetPath] = env->GetMethodID(g_class.get(), "getPath", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetPath]) return false;
-    g_method_ids[kGetBucket] = env->GetMethodID(g_class.get(), "getBucket", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetBucket]) return false;
-    g_method_ids[kGetStorage] = env->GetMethodID(g_class.get(), "getStorage", "()Lcom/google/firebase/storage/FirebaseStorage;");
-    if (!g_method_ids[kGetStorage]) return false;
-    g_method_ids[kPutStream] = env->GetMethodID(g_class.get(), "putStream", "(Ljava/io/InputStream;)Lcom/google/firebase/storage/UploadTask;");
-    if (!g_method_ids[kPutStream]) return false;
-    g_method_ids[kPutStreamWithMetadata] = env->GetMethodID(g_class.get(), "putStream", "(Ljava/io/InputStream;Lcom/google/firebase/storage/StorageMetadata;)Lcom/google/firebase/storage/UploadTask;");
-    if (!g_method_ids[kPutStreamWithMetadata]) return false;
-    g_method_ids[kPutFile] = env->GetMethodID(g_class.get(), "putFile", "(Landroid/net/Uri;)Lcom/google/firebase/storage/UploadTask;");
-    if (!g_method_ids[kPutFile]) return false;
-    g_method_ids[kPutFileWithMetadata] = env->GetMethodID(g_class.get(), "putFile", "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;)Lcom/google/firebase/storage/UploadTask;");
-    if (!g_method_ids[kPutFileWithMetadata]) return false;
-    g_method_ids[kPutFileWithMetadataAndUri] = env->GetMethodID(g_class.get(), "putFile", "(Landroid/net/Uri;Lcom/google/firebase/storage/StorageMetadata;Landroid/net/Uri;)Lcom/google/firebase/storage/UploadTask;");
-    if (!g_method_ids[kPutFileWithMetadataAndUri]) return false;
-    g_method_ids[kGetActiveUploadTasks] = env->GetMethodID(g_class.get(), "getActiveUploadTasks", "()Ljava/util/List;");
-    if (!g_method_ids[kGetActiveUploadTasks]) return false;
-    g_method_ids[kGetActiveDownloadTasks] = env->GetMethodID(g_class.get(), "getActiveDownloadTasks", "()Ljava/util/List;");
-    if (!g_method_ids[kGetActiveDownloadTasks]) return false;
-    g_method_ids[kGetMetadata] = env->GetMethodID(g_class.get(), "getMetadata", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kGetMetadata]) return false;
-    g_method_ids[kGetDownloadUrl] = env->GetMethodID(g_class.get(), "getDownloadUrl", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kGetDownloadUrl]) return false;
-    g_method_ids[kUpdateMetadata] = env->GetMethodID(g_class.get(), "updateMetadata", "(Lcom/google/firebase/storage/StorageMetadata;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kUpdateMetadata]) return false;
-    g_method_ids[kGetStream] = env->GetMethodID(g_class.get(), "getStream", "(Lcom/google/firebase/storage/StreamDownloadTask$StreamProcessor;)Lcom/google/firebase/storage/StreamDownloadTask;");
-    if (!g_method_ids[kGetStream]) return false;
-    g_method_ids[kGetFileUri] = env->GetMethodID(g_class.get(), "getFile", "(Landroid/net/Uri;)Lcom/google/firebase/storage/FileDownloadTask;");
-    if (!g_method_ids[kGetFileUri]) return false;
-    g_method_ids[kGetFile] = env->GetMethodID(g_class.get(), "getFile", "(Ljava/io/File;)Lcom/google/firebase/storage/FileDownloadTask;");
-    if (!g_method_ids[kGetFile]) return false;
-    g_method_ids[kDelete] = env->GetMethodID(g_class.get(), "delete", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kDelete]) return false;
-    g_method_ids[kList] = env->GetMethodID(g_class.get(), "list", "(I)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kList]) return false;
-    g_method_ids[kListWithToken] = env->GetMethodID(g_class.get(), "list", "(ILjava/lang/String;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kListWithToken]) return false;
-    g_method_ids[kListAll] = env->GetMethodID(g_class.get(), "listAll", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kListAll]) return false;
-    g_method_ids[kToString] = env->GetMethodID(g_class.get(), "toString", "()Ljava/lang/String;");
-    if (!g_method_ids[kToString]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(storage_reference, STORAGE_REFERENCE_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/storage/StorageReference")
 
 
 // clang-format off
 #define LIST_RESULT_METHODS(X)                                                 \
-  X(GetItems, "getItems", "()Ljava/util/List;"),                               \
-  X(GetPrefixes, "getPrefixes", "()Ljava/util/List;"),                         \
+  X(GetItems, "getItems", "()Ljava/util/List;") \
+  X(GetPrefixes, "getPrefixes", "()Ljava/util/List;") \
   X(GetPageToken, "getPageToken", "()Ljava/lang/String;")
 // clang-format on
 
-namespace list_result {
-  enum Method {
-    kGetItems,
-    kGetPrefixes,
-    kGetPageToken,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
+JNI_METHOD_LOOKUP_DECLARATION(list_result, LIST_RESULT_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/storage/ListResult")
 
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
+static jobject ParseUriString(JNIEnv* env, const char* uri_string) {
+  jstring uri_jstring = env->NewStringUTF(uri_string);
+  jclass uri_class = env->FindClass("android/net/Uri");
+  jmethodID parse_method = env->GetStaticMethodID(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;");
+  jobject uri = env->CallStaticObjectMethod(uri_class, parse_method, uri_jstring);
+  env->DeleteLocalRef(uri_jstring);
+  env->DeleteLocalRef(uri_class);
+  return uri;
 }
-
-namespace list_result {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/ListResult"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetItems] = env->GetMethodID(g_class.get(), "getItems", "()Ljava/util/List;");
-    if (!g_method_ids[kGetItems]) return false;
-    g_method_ids[kGetPrefixes] = env->GetMethodID(g_class.get(), "getPrefixes", "()Ljava/util/List;");
-    if (!g_method_ids[kGetPrefixes]) return false;
-    g_method_ids[kGetPageToken] = env->GetMethodID(g_class.get(), "getPageToken", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetPageToken]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
 
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
@@ -723,18 +570,18 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     } else {
       data->impl->Complete(data->handle, code, message.c_str());
     }
-  } else if (result && env->IsInstanceOf(result, util::string::GetClass())) {
+  } else if (result && env->IsInstanceOf(result, ::firebase::jni::j_string::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a String.");
     // Complete a Future<std::string> from a Java String object.
     data->impl->CompleteWithResult<std::string>(
         data->handle, kErrorNone, status_message,
         jni::JStringToString(env, result));
-  } else if (result && env->IsInstanceOf(result, util::uri::GetClass())) {
+  } else if (result && env->IsInstanceOf(result, ::firebase::jni::uri::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a URI.");
     // Complete a Future<std::string> from a Java URI object.
     data->impl->CompleteWithResult<std::string>(
         data->handle, kErrorNone, status_message,
-        util::JniUriToString(env, env->NewLocalRef(result)));
+        ::firebase::jni::JniUriToString(env, env->NewLocalRef(result)));
   } else if (result &&
              env->IsInstanceOf(
                  result, stream_download_task_task_snapshot::GetClass())) {
@@ -749,12 +596,12 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
         data->handle, kErrorNone, status_message,
         [num_bytes](size_t* size) { *size = static_cast<size_t>(num_bytes); });
   } else if (result &&
-             env->IsInstanceOf(result, storage_metadata::GetClass())) {
+             env->IsInstanceOf(result, GetStorageMetadataClass())) {
     // Complete a Future<Metadata> from a Java StorageMetadata object.
     LogDebug("FutureCallback: Completing a Future from a StorageMetadata.");
     data->impl->Complete<Metadata>(
         data->handle, kErrorNone, status_message,
-        [data, result](Metadata* metadata) {
+        [env, data, result](Metadata* metadata) {
           *metadata = Metadata(StorageMetadataToMetadata(env, result, data->storage));
         });
   } else if (result &&
@@ -770,7 +617,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     }
     data->impl->Complete<Metadata>(
         data->handle, kErrorNone, status_message,
-        [data, metadata_obj](Metadata* metadata) {
+        [env, data, metadata_obj](Metadata* metadata) {
           *metadata = metadata_obj
                           ? Metadata(StorageMetadataToMetadata(env, metadata_obj, data->storage))
                           : Metadata(nullptr);
@@ -809,11 +656,11 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
                             std::vector<StorageReference>& out_vec) {
       if (list_obj) {
         int size = env->CallIntMethod(
-            list_obj, env->GetMethodID(env->GetObjectClass(list), "size", "()I"));
+            list_obj, env->GetMethodID(env->GetObjectClass(list_obj), "size", "()I"));
         if (!jni::CheckAndClearException(env)) {
           for (int i = 0; i < size; ++i) {
             jobject ref_obj = env->CallObjectMethod(
-                list_obj, env->GetMethodID(env->GetObjectClass(list), "get", "(I)Ljava/lang/Object;"), i);
+                list_obj, env->GetMethodID(env->GetObjectClass(list_obj), "get", "(I)Ljava/lang/Object;"), i);
             if (!jni::CheckAndClearException(env) && ref_obj) {
               out_vec.push_back(StorageReference(
                   new StorageReferenceInternal(data->storage, ref_obj)));
@@ -914,7 +761,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
                           "File path cannot be null or empty.");
     return GetFileLastResult();
   }
-  jobject uri = util::ParseUriString(env, path);
+  jobject uri = ParseUriString(env, path);
   if (jni::CheckAndClearException(env) || !uri) {
     if (uri) env->DeleteLocalRef(uri);
     if (controller_out) *controller_out = Controller();
@@ -1149,7 +996,6 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
                                     Metadata(nullptr));
     return UpdateMetadataLastResult();
   }
-  metadata->internal_->CommitCustomMetadata();
   jobject meta_obj = MetadataToStorageMetadata(env, *metadata->internal_);
   jobject task =
       meta_obj
@@ -1314,7 +1160,6 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   }
   jobject meta_obj = nullptr;
   if (metadata && metadata->is_valid()) {
-    metadata->internal_->CommitCustomMetadata();
     meta_obj = MetadataToStorageMetadata(env, *metadata->internal_);
   }
 
@@ -1407,10 +1252,9 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   }
   jobject meta_obj = nullptr;
   if (metadata && metadata->is_valid()) {
-    metadata->internal_->CommitCustomMetadata();
     meta_obj = MetadataToStorageMetadata(env, *metadata->internal_);
   }
-  jobject uri = util::ParseUriString(env, path);
+  jobject uri = ParseUriString(env, path);
   if (jni::CheckAndClearException(env) || !uri) {
     if (uri) env->DeleteLocalRef(uri);
     if (meta_obj) env->DeleteLocalRef(meta_obj);

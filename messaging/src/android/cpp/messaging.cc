@@ -169,7 +169,7 @@ static bool g_intent_message_fired = false;
       "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;"),              \
     X(GetInstance, "getInstance",                                              \
       "()Lcom/google/firebase/messaging/FirebaseMessaging;",                   \
-      firebase::util::kMethodTypeStatic),                                      \
+      firebase::jni::kMethodTypeStatic),                                      \
     X(DeliveryMetricsExportToBigQueryEnabled,                                  \
       "deliveryMetricsExportToBigQueryEnabled", "()Z"),                        \
     X(SetDeliveryMetricsExportToBigQuery,                                      \

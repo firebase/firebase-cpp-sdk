@@ -48,7 +48,7 @@ const char kApiIdentifier[] = "Database";
 #define LOGGER_LEVEL_METHODS(X)                                         \
   X(ValueOf, "valueOf",                                                 \
     "(Ljava/lang/String;)Lcom/google/firebase/database/Logger$Level;",  \
-    util::kMethodTypeStatic)
+    jni::kMethodTypeStatic)
 // clang-format on
 namespace logger_level {
 
@@ -94,11 +94,11 @@ void ReleaseClass(JNIEnv* env) {
   X(GetInstance, "getInstance",                                         \
     "(Lcom/google/firebase/FirebaseApp;)"                               \
     "Lcom/google/firebase/database/FirebaseDatabase;",                  \
-    util::kMethodTypeStatic),                                           \
+    jni::kMethodTypeStatic),                                           \
   X(GetInstanceFromUrl, "getInstance",                                  \
     "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"             \
     "Lcom/google/firebase/database/FirebaseDatabase;",                  \
-    util::kMethodTypeStatic),                                           \
+    jni::kMethodTypeStatic),                                           \
   X(GetApp, "getApp", "()Lcom/google/firebase/FirebaseApp;"),           \
   X(GetRootReference, "getReference",                                   \
     "()Lcom/google/firebase/database/DatabaseReference;"),              \
@@ -115,7 +115,7 @@ void ReleaseClass(JNIEnv* env) {
     "(Lcom/google/firebase/database/Logger$Level;)V"),                  \
   X(SetPersistenceEnabled, "setPersistenceEnabled", "(Z)V"),            \
   X(GetSdkVersion, "getSdkVersion", "()Ljava/lang/String;",             \
-    util::kMethodTypeStatic)
+    jni::kMethodTypeStatic)
 // clang-format on
 
 namespace firebase_database {
@@ -195,23 +195,23 @@ void ReleaseClass(JNIEnv* env) {
     X(GetMessage, "getMessage", "()Ljava/lang/String;"),                       \
     X(FromException, "fromException",                                          \
       "(Ljava/lang/Throwable;)Lcom/google/firebase/database/DatabaseError;",   \
-      util::kMethodTypeStatic, util::kMethodOptional)
+      jni::kMethodTypeStatic, jni::kMethodOptional)
 // clang-format on
 
 // clang-format off
 #define DATABASE_ERROR_FIELDS(X)                                               \
-    X(Disconnected, "DISCONNECTED", "I", util::kFieldTypeStatic),              \
-    X(ExpiredToken, "EXPIRED_TOKEN", "I", util::kFieldTypeStatic),             \
-    X(InvalidToken, "INVALID_TOKEN", "I", util::kFieldTypeStatic),             \
-    X(MaxRetries, "MAX_RETRIES", "I", util::kFieldTypeStatic),                 \
-    X(NetworkError, "NETWORK_ERROR", "I", util::kFieldTypeStatic),             \
-    X(OperationFailed, "OPERATION_FAILED", "I", util::kFieldTypeStatic),       \
-    X(OverriddenBySet, "OVERRIDDEN_BY_SET", "I", util::kFieldTypeStatic),      \
-    X(PermissionDenied, "PERMISSION_DENIED", "I", util::kFieldTypeStatic),     \
-    X(Unavailable, "UNAVAILABLE", "I", util::kFieldTypeStatic),                \
-    X(UnknownError, "UNKNOWN_ERROR", "I", util::kFieldTypeStatic),             \
-    X(UserCodeException, "USER_CODE_EXCEPTION", "I", util::kFieldTypeStatic),  \
-    X(WriteCanceled, "WRITE_CANCELED", "I", util::kFieldTypeStatic)
+    X(Disconnected, "DISCONNECTED", "I", jni::kFieldTypeStatic)              \
+    X(ExpiredToken, "EXPIRED_TOKEN", "I", jni::kFieldTypeStatic)             \
+    X(InvalidToken, "INVALID_TOKEN", "I", jni::kFieldTypeStatic)             \
+    X(MaxRetries, "MAX_RETRIES", "I", jni::kFieldTypeStatic)                 \
+    X(NetworkError, "NETWORK_ERROR", "I", jni::kFieldTypeStatic)             \
+    X(OperationFailed, "OPERATION_FAILED", "I", jni::kFieldTypeStatic)       \
+    X(OverriddenBySet, "OVERRIDDEN_BY_SET", "I", jni::kFieldTypeStatic)      \
+    X(PermissionDenied, "PERMISSION_DENIED", "I", jni::kFieldTypeStatic)     \
+    X(Unavailable, "UNAVAILABLE", "I", jni::kFieldTypeStatic)                \
+    X(UnknownError, "UNKNOWN_ERROR", "I", jni::kFieldTypeStatic)             \
+    X(UserCodeException, "USER_CODE_EXCEPTION", "I", jni::kFieldTypeStatic)  \
+    X(WriteCanceled, "WRITE_CANCELED", "I", jni::kFieldTypeStatic)
 // clang-format on
 
 namespace database_error {

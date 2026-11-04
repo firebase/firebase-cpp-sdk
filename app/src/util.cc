@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "app/src/app_android.h"
 #include "app/src/include/firebase/util.h"
 
 #include <assert.h>
@@ -32,6 +31,7 @@
 #if FIREBASE_PLATFORM_ANDROID
 #include "app/src/google_play_services/availability_android.h"
 #include "app/src/include/google_play_services/availability.h"
+#include "app/src/app_android.h"
 #endif  // FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"

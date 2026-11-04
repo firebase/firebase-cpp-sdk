@@ -1,3 +1,4 @@
+#include "app/src/cleanup_notifier.h"
 /*
  * Copyright 2023 Google LLC
  *

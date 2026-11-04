@@ -889,4 +889,9 @@ inline EnableForReference<U, void> Array<T>::Set(Env& env, size_t i,
 }  // namespace jni
 }  // namespace firebase
 
+namespace firebase {
+namespace util {
+  JNIEnv* GetThreadsafeJNIEnv(JavaVM* java_vm);
+}
+}
 #endif  // FIREBASE_APP_SRC_JNI_ENV_H_

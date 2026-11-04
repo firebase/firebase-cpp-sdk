@@ -30,13 +30,13 @@ namespace auth {
 // clang-format off
 #define AUTH_RESULT_METHODS(X)                                                 \
   X(GetUser, "getUser", "()Lcom/google/firebase/auth/FirebaseUser;",           \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetAdditionalUserInfo, "getAdditionalUserInfo",                            \
     "()Lcom/google/firebase/auth/AdditionalUserInfo;",                         \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetCredential, "getCredential",                                            \
     "()Lcom/google/firebase/auth/AuthCredential;",                             \
-    util::kMethodTypeInstance)
+    jni::kMethodTypeInstance)
 // clang-format on
 namespace authresult {
   enum Method {
@@ -180,9 +180,12 @@ inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
   info->provider_id = ::firebase::jni::JStringToString(env, j_provider_id);
   info->user_name = ::firebase::jni::JStringToString(env, j_user_name);
   info->is_new_user = (j_is_new_user != JNI_FALSE);
-  if (j_profile) util::JavaMapToVariantMap(env, &info->profile, j_profile);
+  if (j_profile) {
+    firebase::Variant v = firebase::util::JavaObjectToVariant(env, j_profile);
+    if (v.is_map()) info->profile = v.map();
+  }
 
-  // Release local references. Note that JniStringToString releases for us.
+  // Release local references. Note that jni::JniStringToStringAndReleaseLocalRef releases for us.
   env->DeleteLocalRef(j_profile);
 }
 
@@ -234,7 +237,7 @@ void ReleaseUserClasses(JNIEnv* env);
 // Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheCredentialMethodIds(
     JNIEnv* env, jobject activity,
-    const std::vector<internal::EmbeddedFile>& embedded_files);
+    const std::vector<::firebase::internal::EmbeddedFile>& embedded_files);
 // Release credential classes cached by CacheCredentialMethodIds().
 void ReleaseCredentialClasses(JNIEnv* env);
 

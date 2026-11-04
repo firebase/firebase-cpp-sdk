@@ -1,3 +1,4 @@
+#include "app/src/jni/declaration.h"
 // Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,58 +64,12 @@ namespace app_check_provider {
 // clang-format off
 #define APP_CHECK_TOKEN_METHODS(X)                                                        \
   X(GetToken, "getToken",                                                          \
-    "()Ljava/lang/String;"),                                                        \
+    "()Ljava/lang/String;") \
   X(GetExpireTimeMillis, "getExpireTimeMillis",                                                          \
     "()J")
 // clang-format on
 
-namespace app_check_token {
-  enum Method {
-    kGetToken,
-    kGetExpireTimeMillis,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace app_check_token {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/appcheck/AppCheckToken"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetToken]) return false;
-    g_method_ids[kGetExpireTimeMillis] = env->GetMethodID(g_class.get(), "getExpireTimeMillis", "()J");
-    if (!g_method_ids[kGetExpireTimeMillis]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(app_check_token, APP_CHECK_TOKEN_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/appcheck/AppCheckToken")
 
 
 bool CacheCommonAndroidMethodIds(JNIEnv* env, jobject activity) {

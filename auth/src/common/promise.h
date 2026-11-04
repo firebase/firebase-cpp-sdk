@@ -62,6 +62,7 @@ class PromiseBase {
   }
 
   Future<ResultT> future() { return future_; }
+  SafeFutureHandle<ResultT> handle() const { return handle_; }
 
  protected:
   PromiseBase(ReferenceCountedFutureImpl* const future_manager,

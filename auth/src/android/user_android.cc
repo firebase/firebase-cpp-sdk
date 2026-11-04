@@ -1,3 +1,5 @@
+#include "app/src/jni/declaration.h"
+#include "app/src/jni/collection.h"
 /*
  * Copyright 2016 Google LLC
  *
@@ -23,383 +25,90 @@
 namespace firebase {
 namespace auth {
 
-using util::CharsToJniUri;
+
 using ::firebase::jni::JStringToString;
-using util::JniUriToString;
+
 
 // clang-format off
 #define TOKEN_RESULT_METHODS(X)                                                \
-    X(GetToken, "getToken", "()Ljava/lang/String;"),                           \
-    X(GetExpirationTimestamp, "getExpirationTimestamp", "()J"),                \
-    X(GetAuthTimestamp, "getAuthTimestamp", "()J"),                            \
-    X(GetIssuedAtTimestamp, "getIssuedAtTimestamp", "()J"),                    \
-    X(GetSignInProvider, "getSignInProvider", "()Ljava/lang/String;"),         \
-    X(GetSignInSecondFactor, "getSignInSecondFactor", "()Ljava/lang/String;"), \
+    X(GetToken, "getToken", "()Ljava/lang/String;") \
+    X(GetExpirationTimestamp, "getExpirationTimestamp", "()J") \
+    X(GetAuthTimestamp, "getAuthTimestamp", "()J") \
+    X(GetIssuedAtTimestamp, "getIssuedAtTimestamp", "()J") \
+    X(GetSignInProvider, "getSignInProvider", "()Ljava/lang/String;") \
+    X(GetSignInSecondFactor, "getSignInSecondFactor", "()Ljava/lang/String;") \
     X(GetClaims, "getClaims", "()Ljava/util/Map;")
 // clang-format on
-namespace tokenresult {
-  enum Method {
-    kGetToken,
-    kGetTokenExpirationTimestamp,
-    kGetTokenCreationTimestamp,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace tokenresult {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/GetTokenResult"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetToken]) return false;
-    g_method_ids[kGetTokenExpirationTimestamp] = env->GetMethodID(g_class.get(), "getTokenExpirationTimestamp", "()J");
-    ::firebase::jni::CheckAndClearException(env);
-    g_method_ids[kGetTokenCreationTimestamp] = env->GetMethodID(g_class.get(), "getTokenCreationTimestamp", "()J");
-    ::firebase::jni::CheckAndClearException(env);
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(tokenresult, TOKEN_RESULT_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/GetTokenResult")
 
 
 // clang-format off
 #define USER_METHODS(X)                                                        \
-    X(IsAnonymous, "isAnonymous", "()Z"),                                      \
-    X(Token, "getIdToken", "(Z)Lcom/google/android/gms/tasks/Task;"),          \
-    X(ProviderData, "getProviderData", "()Ljava/util/List;"),                  \
+    X(IsAnonymous, "isAnonymous", "()Z") \
+    X(Token, "getIdToken", "(Z)Lcom/google/android/gms/tasks/Task;") \
+    X(ProviderData, "getProviderData", "()Ljava/util/List;") \
     X(VerifyBeforeUpdateEmail, "verifyBeforeUpdateEmail",                      \
-      "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;"),              \
+      "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;") \
     X(UpdatePassword, "updatePassword", "(Ljava/lang/String;)"                 \
-      "Lcom/google/android/gms/tasks/Task;"),                                  \
+      "Lcom/google/android/gms/tasks/Task;") \
     X(UpdateUserProfile, "updateProfile",                                      \
       "(Lcom/google/firebase/auth/UserProfileChangeRequest;)"                  \
-      "Lcom/google/android/gms/tasks/Task;"),                                  \
+      "Lcom/google/android/gms/tasks/Task;") \
     X(LinkWithCredential, "linkWithCredential",                                \
       "(Lcom/google/firebase/auth/AuthCredential;)"                            \
-      "Lcom/google/android/gms/tasks/Task;"),                                  \
+      "Lcom/google/android/gms/tasks/Task;") \
     X(Unlink, "unlink", "(Ljava/lang/String;)"                                 \
-      "Lcom/google/android/gms/tasks/Task;"),                                  \
+      "Lcom/google/android/gms/tasks/Task;") \
     X(UpdatePhoneNumberCredential, "updatePhoneNumber",                        \
       "(Lcom/google/firebase/auth/PhoneAuthCredential;)"                       \
-      "Lcom/google/android/gms/tasks/Task;"),                                  \
-    X(Reload, "reload", "()Lcom/google/android/gms/tasks/Task;"),              \
+      "Lcom/google/android/gms/tasks/Task;") \
+    X(Reload, "reload", "()Lcom/google/android/gms/tasks/Task;") \
     X(Reauthenticate, "reauthenticate",                                        \
       "(Lcom/google/firebase/auth/AuthCredential;)"                            \
-      "Lcom/google/android/gms/tasks/Task;"),                                  \
+      "Lcom/google/android/gms/tasks/Task;") \
     X(ReauthenticateAndRetrieveData, "reauthenticateAndRetrieveData",          \
       "(Lcom/google/firebase/auth/AuthCredential;)"                            \
-      "Lcom/google/android/gms/tasks/Task;"),                                  \
-    X(Delete, "delete", "()Lcom/google/android/gms/tasks/Task;"),              \
+      "Lcom/google/android/gms/tasks/Task;") \
+    X(Delete, "delete", "()Lcom/google/android/gms/tasks/Task;") \
     X(SendEmailVerification, "sendEmailVerification",                          \
-      "()Lcom/google/android/gms/tasks/Task;"),                                \
+      "()Lcom/google/android/gms/tasks/Task;") \
     X(GetMetadata, "getMetadata",                                              \
       "()Lcom/google/firebase/auth/FirebaseUserMetadata;")
 // clang-format on
-namespace user {
-  enum Method {
-    kIsAnonymous,
-    kToken,
-    kProviderData,
-    kVerifyBeforeUpdateEmail,
-    kUpdatePassword,
-    kUpdateUserProfile,
-    kLinkWithCredential,
-    kUnlink,
-    kUpdatePhoneNumberCredential,
-    kReload,
-    kReauthenticate,
-    kReauthenticateAndRetrieveData,
-    kDelete,
-    kSendEmailVerification,
-    kGetMetadata,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace user {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseUser"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kIsAnonymous] = env->GetMethodID(g_class.get(), "isAnonymous", "()Z");
-    if (!g_method_ids[kIsAnonymous]) return false;
-    g_method_ids[kToken] = env->GetMethodID(g_class.get(), "getIdToken", "(Z)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kToken]) return false;
-    g_method_ids[kProviderData] = env->GetMethodID(g_class.get(), "getProviderData", "()Ljava/util/List;");
-    if (!g_method_ids[kProviderData]) return false;
-    g_method_ids[kVerifyBeforeUpdateEmail] = env->GetMethodID(g_class.get(), "verifyBeforeUpdateEmail", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kVerifyBeforeUpdateEmail]) return false;
-    g_method_ids[kUpdatePassword] = env->GetMethodID(g_class.get(), "updatePassword", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kUpdatePassword]) return false;
-    g_method_ids[kUpdateUserProfile] = env->GetMethodID(g_class.get(), "updateProfile", "(Lcom/google/firebase/auth/UserProfileChangeRequest;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kUpdateUserProfile]) return false;
-    g_method_ids[kLinkWithCredential] = env->GetMethodID(g_class.get(), "linkWithCredential", "(Lcom/google/firebase/auth/AuthCredential;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kLinkWithCredential]) return false;
-    g_method_ids[kUnlink] = env->GetMethodID(g_class.get(), "unlink", "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kUnlink]) return false;
-    g_method_ids[kUpdatePhoneNumberCredential] = env->GetMethodID(g_class.get(), "updatePhoneNumber", "(Lcom/google/firebase/auth/PhoneAuthCredential;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kUpdatePhoneNumberCredential]) return false;
-    g_method_ids[kReload] = env->GetMethodID(g_class.get(), "reload", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kReload]) return false;
-    g_method_ids[kReauthenticate] = env->GetMethodID(g_class.get(), "reauthenticate", "(Lcom/google/firebase/auth/AuthCredential;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kReauthenticate]) return false;
-    g_method_ids[kReauthenticateAndRetrieveData] = env->GetMethodID(g_class.get(), "reauthenticateAndRetrieveData", "(Lcom/google/firebase/auth/AuthCredential;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kReauthenticateAndRetrieveData]) return false;
-    g_method_ids[kDelete] = env->GetMethodID(g_class.get(), "delete", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kDelete]) return false;
-    g_method_ids[kSendEmailVerification] = env->GetMethodID(g_class.get(), "sendEmailVerification", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kSendEmailVerification]) return false;
-    g_method_ids[kGetMetadata] = env->GetMethodID(g_class.get(), "getMetadata", "()Lcom/google/firebase/auth/FirebaseUserMetadata;");
-    if (!g_method_ids[kGetMetadata]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(user, USER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseUser")
 
 
 // clang-format off
 #define USER_INFO_METHODS(X)                                                   \
-    X(GetUid, "getUid", "()Ljava/lang/String;"),                               \
-    X(GetProviderId, "getProviderId", "()Ljava/lang/String;"),                 \
-    X(GetDisplayName, "getDisplayName", "()Ljava/lang/String;"),               \
-    X(GetPhoneNumber, "getPhoneNumber", "()Ljava/lang/String;"),               \
-    X(GetPhotoUrl, "getPhotoUrl", "()Landroid/net/Uri;"),                      \
-    X(GetEmail, "getEmail", "()Ljava/lang/String;"),                           \
+    X(GetUid, "getUid", "()Ljava/lang/String;") \
+    X(GetProviderId, "getProviderId", "()Ljava/lang/String;") \
+    X(GetDisplayName, "getDisplayName", "()Ljava/lang/String;") \
+    X(GetPhoneNumber, "getPhoneNumber", "()Ljava/lang/String;") \
+    X(GetPhotoUrl, "getPhotoUrl", "()Landroid/net/Uri;") \
+    X(GetEmail, "getEmail", "()Ljava/lang/String;") \
     X(IsEmailVerified, "isEmailVerified", "()Z")
 // clang-format on
-namespace userinfo {
-  enum Method {
-    kGetUid,
-    kGetProviderId,
-    kGetDisplayName,
-    kGetPhoneNumber,
-    kGetPhotoUrl,
-    kGetEmail,
-    kIsEmailVerified,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace userinfo {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/UserInfo"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetUid] = env->GetMethodID(g_class.get(), "getUid", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetUid]) return false;
-    g_method_ids[kGetProviderId] = env->GetMethodID(g_class.get(), "getProviderId", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetProviderId]) return false;
-    g_method_ids[kGetDisplayName] = env->GetMethodID(g_class.get(), "getDisplayName", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetDisplayName]) return false;
-    g_method_ids[kGetPhoneNumber] = env->GetMethodID(g_class.get(), "getPhoneNumber", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetPhoneNumber]) return false;
-    g_method_ids[kGetPhotoUrl] = env->GetMethodID(g_class.get(), "getPhotoUrl", "()Landroid/net/Uri;");
-    if (!g_method_ids[kGetPhotoUrl]) return false;
-    g_method_ids[kGetEmail] = env->GetMethodID(g_class.get(), "getEmail", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetEmail]) return false;
-    g_method_ids[kIsEmailVerified] = env->GetMethodID(g_class.get(), "isEmailVerified", "()Z");
-    if (!g_method_ids[kIsEmailVerified]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(userinfo, USER_INFO_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/UserInfo")
 
 
 // clang-format off
 #define METADATA_METHODS(X)                                                    \
-    X(GetLastSignInTimestamp, "getLastSignInTimestamp", "()J"),                \
+    X(GetLastSignInTimestamp, "getLastSignInTimestamp", "()J") \
     X(GetCreationTimestamp, "getCreationTimestamp", "()J")
 // clang-format on
-namespace metadata {
-  enum Method {
-    kGetLastSignInTimestamp,
-    kGetCreationTimestamp,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace metadata {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseUserMetadata"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetLastSignInTimestamp] = env->GetMethodID(g_class.get(), "getLastSignInTimestamp", "()J");
-    if (!g_method_ids[kGetLastSignInTimestamp]) return false;
-    g_method_ids[kGetCreationTimestamp] = env->GetMethodID(g_class.get(), "getCreationTimestamp", "()J");
-    if (!g_method_ids[kGetCreationTimestamp]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(metadata, METADATA_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseUserMetadata")
 
 
 // clang-format off
 #define USER_PROFILE_BUILDER_METHODS(X)                                        \
-    X(Constructor, "<init>", "()V"),                                           \
+    X(Constructor, "<init>", "()V") \
     X(SetDisplayName, "setDisplayName", "(Ljava/lang/String;)"                 \
-      "Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;"),          \
+      "Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;") \
     X(SetPhotoUri, "setPhotoUri", "(Landroid/net/Uri;)"                        \
-      "Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;"),          \
+      "Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;") \
     X(Build, "build", "()Lcom/google/firebase/auth/UserProfileChangeRequest;")
 // clang-format on
-namespace userprofilebuilder {
-  enum Method {
-    kConstructor,
-    kSetDisplayName,
-    kSetPhotoUri,
-    kBuild,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace userprofilebuilder {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/UserProfileChangeRequest$Builder"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "()V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kSetDisplayName] = env->GetMethodID(g_class.get(), "setDisplayName", "(Ljava/lang/String;)Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;");
-    if (!g_method_ids[kSetDisplayName]) return false;
-    g_method_ids[kSetPhotoUri] = env->GetMethodID(g_class.get(), "setPhotoUri", "(Landroid/net/Uri;)Lcom/google/firebase/auth/UserProfileChangeRequest$Builder;");
-    if (!g_method_ids[kSetPhotoUri]) return false;
-    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/auth/UserProfileChangeRequest;");
-    if (!g_method_ids[kBuild]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(userprofilebuilder, USER_PROFILE_BUILDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/UserProfileChangeRequest$Builder")
 
 
 bool CacheUserMethodIds(JNIEnv* env, jobject activity) {
@@ -434,10 +143,10 @@ static std::string GetUserProperty(AuthData* auth_data, jobject impl,
     return std::string();
   }
   if (type == kPropertyTypeUri) {
-    return JniUriToString(env, property);
+    return ::firebase::jni::JniUriToString(env, property);
   } else {
     // type == kPropertyTypeString
-    return JniStringToString(env, property);
+    return jni::JniStringToStringAndReleaseLocalRef(env, property);
   }
 }
 
@@ -564,7 +273,7 @@ static void ReadTokenResultImpl(jobject result,
       if (j_token) env->DeleteLocalRef(j_token);
       j_token = nullptr;
     }
-    *data = JniStringToString(env, j_token);
+    *data = jni::JniStringToStringAndReleaseLocalRef(env, j_token);
     if (force_refresh &&
         d->auth_data->ShouldTriggerIdTokenListenerCallback()) {
       RecordPretriggeredIdTokenCallback(d->auth_data);
@@ -591,7 +300,7 @@ static void ReadTokenResultForced(jobject result,
 
 void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refresh) {
   if (!ValidUser(auth_data)) {
-    return Future<std::string>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   JNIEnv* env = Env(auth_data);
 
@@ -603,7 +312,7 @@ void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refr
     if (force_refresh) {
       auth_data->SetExpectIdTokenListenerCallback(false);
     }
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kToken), force_refresh);
@@ -653,17 +362,18 @@ static void ReadIdTokenResultImpl(jobject result,
         result, tokenresult::GetMethodId(tokenresult::kGetClaims));
     jni::CheckAndClearException(env);
 
-    // Note that JniStringToString releases local references for us.
-    data->token = JniStringToString(env, j_token);
+    // Note that jni::JniStringToStringAndReleaseLocalRef releases local references for us.
+    data->token = jni::JniStringToStringAndReleaseLocalRef(env, j_token);
     data->expiration_timestamp = static_cast<uint64_t>(expiration_timestamp);
     data->auth_timestamp = static_cast<uint64_t>(auth_timestamp);
     data->issued_at_timestamp = static_cast<uint64_t>(issued_at_timestamp);
-    data->sign_in_provider = JniStringToString(env, j_sign_in_provider);
+    data->sign_in_provider = jni::JniStringToStringAndReleaseLocalRef(env, j_sign_in_provider);
     data->sign_in_second_factor =
-        JniStringToString(env, j_sign_in_second_factor);
+        jni::JniStringToStringAndReleaseLocalRef(env, j_sign_in_second_factor);
     data->claims.clear();
     if (j_claims != nullptr) {
-      util::JavaMapToVariantMap(env, &data->claims, j_claims);
+      firebase::Variant v = firebase::util::JavaObjectToVariant(env, j_claims);
+      if (v.is_map()) data->claims = v.map();
       env->DeleteLocalRef(j_claims);
     }
     if (force_refresh &&
@@ -692,7 +402,7 @@ static void ReadIdTokenResultForced(jobject result,
 
 void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool force_refresh) {
   if (!ValidUser(auth_data)) {
-    return Future<IdTokenResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   JNIEnv* env = Env(auth_data);
 
@@ -704,7 +414,7 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool 
     if (force_refresh) {
       auth_data->SetExpectIdTokenListenerCallback(false);
     }
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kToken), force_refresh);
@@ -767,17 +477,17 @@ std::vector<UserInfoInterface> User::provider_data() const {
 
 void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* password) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   if (!password) {
-    futures.Complete(promise.handle(), kAuthErrorMissingPassword,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingPassword,
                      "Password must be provided.");
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jstring j_password = env->NewStringUTF(password);
   jobject pending_result = env->CallObjectMethod(
@@ -791,9 +501,9 @@ void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* pass
   }
 }
 
-void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserProfile& profile) {
+void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::UserProfile& profile) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   JNIEnv* env = Env(auth_data);
 
@@ -830,7 +540,7 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserPro
   if (error == kAuthErrorNone && profile.photo_url != nullptr) {
     jobject j_uri = nullptr;
     if (strlen(profile.photo_url) > 0) {
-      j_uri = CharsToJniUri(env, profile.photo_url);
+      j_uri = ::firebase::jni::CharsToJniUri(env, profile.photo_url);
       error = CheckAndClearJniAuthExceptions(env, &exception_error_message);
       if (j_uri == nullptr && error == kAuthErrorNone) {
         error = kAuthErrorFailure;
@@ -869,7 +579,7 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserPro
     // Call FirebaseUser.updateProfile.
     jobject user_local = AcquireUserLocalRef(env, auth_data);
     if (user_local == nullptr) {
-      futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+      auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
     } else {
       jobject pending_result = env->CallObjectMethod(
           user_local, user::GetMethodId(user::kUpdateUserProfile),
@@ -882,7 +592,7 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserPro
       }
     }
   } else {
-    futures.Complete(promise.handle(), error, exception_error_message.c_str());
+    auth_data->future_impl.Complete(promise.handle(), error, exception_error_message.c_str());
   }
   if (j_user_profile_request) {
     env->DeleteLocalRef(j_user_profile_request);
@@ -894,24 +604,24 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserPro
 
 void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
-  if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(promise.handle(), credential.error_code_,
-                     credential.error_message_.c_str());
+  if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
+    auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
+                     internal::CredentialAccess::GetErrorMessage(credential).c_str());
   } else if (!credential.is_valid()) {
-    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kLinkWithCredential),
-      CredentialFromImpl(credential.impl_));
+      CredentialFromImpl(::firebase::auth::internal::CredentialAccess::GetImpl(credential)));
   env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
@@ -922,25 +632,25 @@ void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const 
 
 void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
-  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Link(auth_data);
+  FIREBASE_ASSERT_RETURN_VOID(provider);
+  provider->Link(auth_data);
 }
 
 void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provider) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   if (!provider || strlen(provider) == 0) {
-    futures.Complete(promise.handle(), kAuthErrorInvalidProviderId,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidProviderId,
                      "Provider ID must be provided.");
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jstring j_provider = env->NewStringUTF(provider);
   jobject pending_result = env->CallObjectMethod(
@@ -956,23 +666,23 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provid
 
 void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential& credential) {
   if (!ValidUser(auth_data)) {
-    return Future<User>();
+    return;
   }
-  if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(promise.handle(), credential.error_code_,
-                     credential.error_message_.c_str());
+  if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
+    auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
+                     internal::CredentialAccess::GetErrorMessage(credential).c_str());
   } else if (!credential.is_valid()) {
-    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
   }
   JNIEnv* env = Env(auth_data);
 
-  jobject j_credential = CredentialFromImpl(credential.impl_);
+  jobject j_credential = CredentialFromImpl(::firebase::auth::internal::CredentialAccess::GetImpl(credential));
   if (j_credential != nullptr &&
       env->IsInstanceOf(j_credential, phonecredential::GetClass())) {
     jobject user_local = AcquireUserLocalRef(env, auth_data);
     if (user_local == nullptr) {
-      futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+      auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
     }
     jobject pending_result = env->CallObjectMethod(
         user_local, user::GetMethodId(user::kUpdatePhoneNumberCredential),
@@ -995,20 +705,20 @@ void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, con
       env->DeleteLocalRef(pending_result);
     }
   } else {
-    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Credential is not a phone credential.");
   }
 }
 
 void Reload(AuthData* auth_data, Promise<void> promise) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kReload));
@@ -1022,24 +732,24 @@ void Reload(AuthData* auth_data, Promise<void> promise) {
 
 void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential& credential) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
-  if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(promise.handle(), credential.error_code_,
-                     credential.error_message_.c_str());
+  if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
+    auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
+                     internal::CredentialAccess::GetErrorMessage(credential).c_str());
   } else if (!credential.is_valid()) {
-    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kReauthenticate),
-      CredentialFromImpl(credential.impl_));
+      CredentialFromImpl(::firebase::auth::internal::CredentialAccess::GetImpl(credential)));
   env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
@@ -1050,24 +760,24 @@ void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential
 
 void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
-  if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(promise.handle(), credential.error_code_,
-                     credential.error_message_.c_str());
+  if (internal::CredentialAccess::GetErrorCode(credential) != kAuthErrorNone) {
+    auth_data->future_impl.Complete(promise.handle(), internal::CredentialAccess::GetErrorCode(credential),
+                     internal::CredentialAccess::GetErrorMessage(credential).c_str());
   } else if (!credential.is_valid()) {
-    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kReauthenticateAndRetrieveData),
-      CredentialFromImpl(credential.impl_));
+      CredentialFromImpl(::firebase::auth::internal::CredentialAccess::GetImpl(credential)));
   env->DeleteLocalRef(user_local);
 
   if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
@@ -1078,21 +788,21 @@ void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> prom
 
 void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
   if (!ValidUser(auth_data)) {
-    return Future<AuthResult>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
-  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Reauthenticate(auth_data);
+  FIREBASE_ASSERT_RETURN_VOID(provider);
+  provider->Reauthenticate(auth_data);
 }
 
 void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kSendEmailVerification));
@@ -1106,17 +816,17 @@ void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
 
 void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   if (!email || strlen(email) == 0) {
-    futures.Complete(promise.handle(), kAuthErrorMissingEmail,
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingEmail,
                      "Email must be provided.");
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jstring j_email = env->NewStringUTF(email);
   jobject pending_result = env->CallObjectMethod(
@@ -1132,13 +842,13 @@ void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void>
 
 void Delete(AuthData* auth_data, Promise<void> promise) {
   if (!ValidUser(auth_data)) {
-    return Future<void>();
+    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
   }
   JNIEnv* env = Env(auth_data);
 
   jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
+    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kDelete));

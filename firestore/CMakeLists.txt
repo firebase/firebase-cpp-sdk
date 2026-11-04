@@ -97,6 +97,8 @@ set(android_SRCS
     src/android/exception_android.h
     src/android/field_path_android.cc
     src/android/field_path_android.h
+    src/android/field_path_portable.cc
+    src/android/field_path_portable.h
     src/android/field_value_android.cc
     src/android/field_value_android.h
     src/android/filter_android.cc
@@ -106,6 +108,7 @@ set(android_SRCS
     src/android/firestore_exceptions_android.h
     src/android/geo_point_android.cc
     src/android/geo_point_android.h
+    src/android/geo_point_portable.cc
     src/android/jni_runnable_android.cc
     src/android/jni_runnable_android.h
     src/android/lambda_event_listener.h
@@ -136,6 +139,7 @@ set(android_SRCS
     src/android/source_android.h
     src/android/timestamp_android.cc
     src/android/timestamp_android.h
+    src/android/timestamp_portable.cc
     src/android/transaction_android.cc
     src/android/transaction_android.h
     src/android/transaction_options_android.cc

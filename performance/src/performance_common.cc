@@ -1,3 +1,4 @@
+#include "app/src/cleanup_notifier.h"
 // Copyright 2021 Google LLC
 
 #include "performance/src/performance_common.h"

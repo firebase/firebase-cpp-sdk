@@ -16,6 +16,7 @@
 #include "storage/src/android/storage_android.h"
 
 #include <jni.h>
+#include "app/src/jni/declaration.h"
 
 #include <cassert>
 #include <cmath>
@@ -28,6 +29,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/util.h"
+#include "app/src/jni/collection.h"
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_reference_android.h"
@@ -60,353 +62,65 @@ bool SecondsToMillisClamped(double seconds, jlong* millis_out) {
   X(GetInstance, "getInstance",                                         \
     "(Lcom/google/firebase/FirebaseApp;)"                               \
     "Lcom/google/firebase/storage/FirebaseStorage;",                    \
-    firebase::util::kMethodTypeStatic),                                           \
+    firebase::jni::kMethodTypeStatic) \
   X(GetInstanceWithUrl, "getInstance",                                  \
     "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"             \
     "Lcom/google/firebase/storage/FirebaseStorage;",                    \
-    firebase::util::kMethodTypeStatic),                                           \
+    firebase::jni::kMethodTypeStatic) \
   X(GetMaxDownloadRetryTimeMillis, "getMaxDownloadRetryTimeMillis",     \
-    "()J"),                                                             \
+    "()J") \
   X(SetMaxDownloadRetryTimeMillis, "setMaxDownloadRetryTimeMillis",     \
-    "(J)V"),                                                            \
+    "(J)V") \
   X(GetMaxUploadRetryTimeMillis, "getMaxUploadRetryTimeMillis",         \
-    "()J"),                                                             \
+    "()J") \
   X(SetMaxUploadRetryTimeMillis, "setMaxUploadRetryTimeMillis",         \
-    "(J)V"),                                                            \
+    "(J)V") \
   X(GetMaxOperationRetryTimeMillis, "getMaxOperationRetryTimeMillis",   \
-    "()J"),                                                             \
+    "()J") \
   X(SetMaxOperationRetryTimeMillis, "setMaxOperationRetryTimeMillis",   \
-    "(J)V"),                                                            \
+    "(J)V") \
   X(GetRootReference, "getReference",                                   \
-    "()Lcom/google/firebase/storage/StorageReference;"),                \
+    "()Lcom/google/firebase/storage/StorageReference;") \
   X(GetReferenceFromUrl, "getReferenceFromUrl",                         \
     "(Ljava/lang/String;)"                                              \
-    "Lcom/google/firebase/storage/StorageReference;"),                  \
+    "Lcom/google/firebase/storage/StorageReference;") \
   X(GetReferenceFromPath, "getReference",                               \
     "(Ljava/lang/String;)"                                              \
-    "Lcom/google/firebase/storage/StorageReference;"),                  \
+    "Lcom/google/firebase/storage/StorageReference;") \
   X(UseEmulator, "useEmulator",                                         \
     "(Ljava/lang/String;I)V")
 // clang-format on
 
-namespace firebase_storage {
-  enum Method {
-    kGetInstance,
-    kGetInstanceWithUrl,
-    kGetMaxDownloadRetryTimeMillis,
-    kSetMaxDownloadRetryTimeMillis,
-    kGetMaxUploadRetryTimeMillis,
-    kSetMaxUploadRetryTimeMillis,
-    kGetMaxOperationRetryTimeMillis,
-    kSetMaxOperationRetryTimeMillis,
-    kGetRootReference,
-    kGetReferenceFromUrl,
-    kGetReferenceFromPath,
-    kUseEmulator,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace firebase_storage {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/FirebaseStorage"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/storage/FirebaseStorage;");
-    if (!g_method_ids[kGetInstance]) return false;
-    g_method_ids[kGetInstanceWithUrl] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)Lcom/google/firebase/storage/FirebaseStorage;");
-    if (!g_method_ids[kGetInstanceWithUrl]) return false;
-    g_method_ids[kGetMaxDownloadRetryTimeMillis] = env->GetMethodID(g_class.get(), "getMaxDownloadRetryTimeMillis", "()J");
-    if (!g_method_ids[kGetMaxDownloadRetryTimeMillis]) return false;
-    g_method_ids[kSetMaxDownloadRetryTimeMillis] = env->GetMethodID(g_class.get(), "setMaxDownloadRetryTimeMillis", "(J)V");
-    if (!g_method_ids[kSetMaxDownloadRetryTimeMillis]) return false;
-    g_method_ids[kGetMaxUploadRetryTimeMillis] = env->GetMethodID(g_class.get(), "getMaxUploadRetryTimeMillis", "()J");
-    if (!g_method_ids[kGetMaxUploadRetryTimeMillis]) return false;
-    g_method_ids[kSetMaxUploadRetryTimeMillis] = env->GetMethodID(g_class.get(), "setMaxUploadRetryTimeMillis", "(J)V");
-    if (!g_method_ids[kSetMaxUploadRetryTimeMillis]) return false;
-    g_method_ids[kGetMaxOperationRetryTimeMillis] = env->GetMethodID(g_class.get(), "getMaxOperationRetryTimeMillis", "()J");
-    if (!g_method_ids[kGetMaxOperationRetryTimeMillis]) return false;
-    g_method_ids[kSetMaxOperationRetryTimeMillis] = env->GetMethodID(g_class.get(), "setMaxOperationRetryTimeMillis", "(J)V");
-    if (!g_method_ids[kSetMaxOperationRetryTimeMillis]) return false;
-    g_method_ids[kGetRootReference] = env->GetMethodID(g_class.get(), "getReference", "()Lcom/google/firebase/storage/StorageReference;");
-    if (!g_method_ids[kGetRootReference]) return false;
-    g_method_ids[kGetReferenceFromUrl] = env->GetMethodID(g_class.get(), "getReferenceFromUrl", "(Ljava/lang/String;)Lcom/google/firebase/storage/StorageReference;");
-    if (!g_method_ids[kGetReferenceFromUrl]) return false;
-    g_method_ids[kGetReferenceFromPath] = env->GetMethodID(g_class.get(), "getReference", "(Ljava/lang/String;)Lcom/google/firebase/storage/StorageReference;");
-    if (!g_method_ids[kGetReferenceFromPath]) return false;
-    g_method_ids[kUseEmulator] = env->GetMethodID(g_class.get(), "useEmulator", "(Ljava/lang/String;I)V");
-    if (!g_method_ids[kUseEmulator]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(firebase_storage, FIREBASE_STORAGE_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/storage/FirebaseStorage")
 
 
 // clang-format off
 #define STORAGE_EXCEPTION_FIELDS(X)                                           \
-  X(Unknown, "ERROR_UNKNOWN", "I", util::kFieldTypeStatic),                   \
-  X(ObjectNotFound, "ERROR_OBJECT_NOT_FOUND", "I", util::kFieldTypeStatic),   \
-  X(BucketNotFound, "ERROR_BUCKET_NOT_FOUND", "I", util::kFieldTypeStatic),   \
-  X(ProjectNotFound, "ERROR_PROJECT_NOT_FOUND", "I", util::kFieldTypeStatic), \
-  X(QuotaExceeded, "ERROR_QUOTA_EXCEEDED", "I", util::kFieldTypeStatic),      \
+  X(Unknown, "ERROR_UNKNOWN", "I", jni::kFieldTypeStatic)                   \
+  X(ObjectNotFound, "ERROR_OBJECT_NOT_FOUND", "I", jni::kFieldTypeStatic)   \
+  X(BucketNotFound, "ERROR_BUCKET_NOT_FOUND", "I", jni::kFieldTypeStatic)   \
+  X(ProjectNotFound, "ERROR_PROJECT_NOT_FOUND", "I", jni::kFieldTypeStatic) \
+  X(QuotaExceeded, "ERROR_QUOTA_EXCEEDED", "I", jni::kFieldTypeStatic)      \
   X(NotAuthenticated, "ERROR_NOT_AUTHENTICATED", "I",                         \
-    util::kFieldTypeStatic),                                                  \
-  X(NotAuthorized, "ERROR_NOT_AUTHORIZED", "I", util::kFieldTypeStatic),      \
-  X(InvalidChecksum, "ERROR_INVALID_CHECKSUM", "I", util::kFieldTypeStatic),  \
-  X(Canceled, "ERROR_CANCELED", "I", util::kFieldTypeStatic),                 \
+    jni::kFieldTypeStatic)                                                  \
+  X(NotAuthorized, "ERROR_NOT_AUTHORIZED", "I", jni::kFieldTypeStatic)      \
+  X(InvalidChecksum, "ERROR_INVALID_CHECKSUM", "I", jni::kFieldTypeStatic)  \
+  X(Canceled, "ERROR_CANCELED", "I", jni::kFieldTypeStatic)                 \
   X(RetryLimitExceeded, "ERROR_RETRY_LIMIT_EXCEEDED", "I",                    \
-      util::kFieldTypeStatic)
+      jni::kFieldTypeStatic)
 // clang-format on
 
 // clang-format off
 #define STORAGE_EXCEPTION_METHODS(X)                                    \
-  X(GetCause, "getCause", "()Ljava/lang/Throwable;"),                   \
-  X(GetMessage, "getMessage", "()Ljava/lang/String;"),                  \
+  X(GetCause, "getCause", "()Ljava/lang/Throwable;") \
+  X(GetMessage, "getMessage", "()Ljava/lang/String;") \
   X(GetErrorCode, "getErrorCode", "()I")
 // clang-format on
 
-namespace storage_exception {
-  enum Method {
-    kGetCause,
-    kGetMessage,
-    kGetErrorCode,
-    kMethodCount
-  };
-  enum Field {
-    kUnknown,
-    kObjectNotFound,
-    kBucketNotFound,
-    kProjectNotFound,
-    kQuotaExceeded,
-    kNotAuthenticated,
-    kNotAuthorized,
-    kInvalidChecksum,
-    kCanceled,
-    kRetryLimitExceeded,
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace storage_exception {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/StorageException"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCause] = env->GetMethodID(g_class.get(), "getCause", "()Ljava/lang/Throwable;");
-    if (!g_method_ids[kGetCause]) return false;
-    g_method_ids[kGetMessage] = env->GetMethodID(g_class.get(), "getMessage", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetMessage]) return false;
-    g_method_ids[kGetErrorCode] = env->GetMethodID(g_class.get(), "getErrorCode", "()I");
-    if (!g_method_ids[kGetErrorCode]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    g_field_ids[kUnknown] = env->GetStaticFieldID(g_class.get(), "ERROR_UNKNOWN", "I");
-    if (!g_field_ids[kUnknown]) return false;
-    g_field_ids[kObjectNotFound] = env->GetStaticFieldID(g_class.get(), "ERROR_OBJECT_NOT_FOUND", "I");
-    if (!g_field_ids[kObjectNotFound]) return false;
-    g_field_ids[kBucketNotFound] = env->GetStaticFieldID(g_class.get(), "ERROR_BUCKET_NOT_FOUND", "I");
-    if (!g_field_ids[kBucketNotFound]) return false;
-    g_field_ids[kProjectNotFound] = env->GetStaticFieldID(g_class.get(), "ERROR_PROJECT_NOT_FOUND", "I");
-    if (!g_field_ids[kProjectNotFound]) return false;
-    g_field_ids[kQuotaExceeded] = env->GetStaticFieldID(g_class.get(), "ERROR_QUOTA_EXCEEDED", "I");
-    if (!g_field_ids[kQuotaExceeded]) return false;
-    g_field_ids[kNotAuthenticated] = env->GetStaticFieldID(g_class.get(), "ERROR_NOT_AUTHENTICATED", "I");
-    if (!g_field_ids[kNotAuthenticated]) return false;
-    g_field_ids[kNotAuthorized] = env->GetStaticFieldID(g_class.get(), "ERROR_NOT_AUTHORIZED", "I");
-    if (!g_field_ids[kNotAuthorized]) return false;
-    g_field_ids[kInvalidChecksum] = env->GetStaticFieldID(g_class.get(), "ERROR_INVALID_CHECKSUM", "I");
-    if (!g_field_ids[kInvalidChecksum]) return false;
-    g_field_ids[kCanceled] = env->GetStaticFieldID(g_class.get(), "ERROR_CANCELED", "I");
-    if (!g_field_ids[kCanceled]) return false;
-    g_field_ids[kRetryLimitExceeded] = env->GetStaticFieldID(g_class.get(), "ERROR_RETRY_LIMIT_EXCEEDED", "I");
-    if (!g_field_ids[kRetryLimitExceeded]) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(storage_exception, STORAGE_EXCEPTION_METHODS, STORAGE_EXCEPTION_FIELDS, "com/google/firebase/storage/StorageException")
 
 
-namespace index_out_of_bounds_exception {
-  enum Method {
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace index_out_of_bounds_exception {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("java/lang/IndexOutOfBoundsException"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
-
-namespace cpp_storage_listener {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/internal/cpp/CppStorageListener"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
-    if (!g_method_ids[kDiscardPointers]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
-
-namespace cpp_byte_downloader {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/internal/cpp/CppByteDownloader"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJ)V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
-    if (!g_method_ids[kDiscardPointers]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
-
-
-namespace cpp_byte_uploader {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/storage/internal/cpp/CppByteUploader"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(JJJ)V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kDiscardPointers] = env->GetMethodID(g_class.get(), "discardPointers", "()V");
-    if (!g_method_ids[kDiscardPointers]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(index_out_of_bounds_exception, STORAGE_EXCEPTION_METHODS, FIELD_LOOKUP_NONE, "java/lang/IndexOutOfBoundsException")
 
 
 Mutex StorageInternal::init_mutex_;  // NOLINT
@@ -512,7 +226,7 @@ bool StorageInternal::Initialize(App* app) {
         firebase_storage::CacheMethodIds(env, activity) &&
         storage_exception::CacheMethodIds(env, activity) &&
         storage_exception::CacheFieldIds(env, activity) &&
-        index_out_of_bounds_exception::CacheClass(env, activity);
+        index_out_of_bounds_exception::CacheMethodIds(env, activity) && ::firebase::jni::throwable::CacheMethodIds(env, activity) && ::firebase::jni::j_string::CacheMethodIds(env, activity);
     const bool ref_ok =
         own_classes_ok && StorageReferenceInternal::Initialize(app);
     const bool meta_ok = ref_ok && InitializeMetadataConverter(app);
@@ -570,25 +284,19 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
   // Terminate() handles tearing this down.
   // Load embedded classes.
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-       util::CacheEmbeddedFiles(
+       jni::CacheEmbeddedFiles(
           env, app->activity(),
           firebase::internal::EmbeddedFile::ToVector(
               firebase_storage_resources::storage_resources_filename,
               firebase_storage_resources::storage_resources_data,
               firebase_storage_resources::storage_resources_size));
-  if (!(cpp_byte_downloader::CacheClassFromFiles(env, app->activity(),
-                                                 &embedded_files) &&
-        cpp_byte_uploader::CacheClassFromFiles(env, app->activity(),
-                                               &embedded_files) &&
-        cpp_storage_listener::CacheClassFromFiles(env, app->activity(),
-                                                  &embedded_files) &&
+  if (!(cpp_storage_listener::CacheMethodIds(env, app->activity()) &&
         cpp_storage_listener::RegisterNatives(
             env, kCppStorageListener,
             FIREBASE_ARRAYSIZE(kCppStorageListener)) &&
         cpp_byte_downloader::CacheMethodIds(env, app->activity()) &&
         cpp_byte_downloader::RegisterNatives(
             env, kCppByteDownloader, FIREBASE_ARRAYSIZE(kCppByteDownloader)) &&
-        cpp_storage_listener::CacheMethodIds(env, app->activity()) &&
         cpp_byte_uploader::CacheMethodIds(env, app->activity()) &&
         cpp_byte_uploader::RegisterNatives(
             env, kCppByteUploader, FIREBASE_ARRAYSIZE(kCppByteUploader)))) {
@@ -648,10 +356,10 @@ Error StorageInternal::ErrorFromJavaStorageException(
   if (java_exception != nullptr) {
     if (!env->IsInstanceOf(java_exception, storage_exception::GetClass())) {
       if (error_message != nullptr &&
-          env->IsInstanceOf(java_exception, util::throwable::GetClass())) {
+          env->IsInstanceOf(java_exception, ::firebase::jni::throwable::GetClass())) {
         jobject msg_obj = env->CallObjectMethod(
             java_exception,
-            util::throwable::GetMethodId(util::throwable::kGetMessage));
+            ::firebase::jni::throwable::GetMethodId(::firebase::jni::throwable::kGetMessage));
         if (jni::CheckAndClearException(env)) {
           if (msg_obj != nullptr) env->DeleteLocalRef(msg_obj);
         } else if (msg_obj != nullptr) {
@@ -698,7 +406,7 @@ Error StorageInternal::ErrorFromJavaStorageException(
           if (error_message != nullptr) {
             jobject cause_msg = env->CallObjectMethod(
                 cause,
-                util::throwable::GetMethodId(util::throwable::kGetMessage));
+                ::firebase::jni::throwable::GetMethodId(::firebase::jni::throwable::kGetMessage));
             if (jni::CheckAndClearException(env)) {
               if (cause_msg != nullptr) env->DeleteLocalRef(cause_msg);
             } else if (cause_msg != nullptr) {

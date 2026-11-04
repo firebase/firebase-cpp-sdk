@@ -8,6 +8,7 @@ namespace storage {
 namespace internal {
 bool InitializeMetadataConverter(App* app);
 void TerminateMetadataConverter(App* app);
+jclass GetStorageMetadataClass();
 jobject MetadataToStorageMetadata(JNIEnv* env, const MetadataInternal& metadata);
 MetadataInternal* StorageMetadataToMetadata(JNIEnv* env, jobject storage_metadata, StorageInternal* storage);
 }

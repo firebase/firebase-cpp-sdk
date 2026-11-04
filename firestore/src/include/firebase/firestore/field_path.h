@@ -25,11 +25,17 @@
 namespace firebase {
 namespace firestore {
 
+#if !defined(__ANDROID__)
 
 namespace model {
 class FieldPath;
 }  // namespace model
 
+#else
+
+class FieldPathPortable;
+
+#endif  // !defined(__ANDROID__)
 
 /**
  * @brief A FieldPath refers to a field in a document.
@@ -147,7 +153,11 @@ class FieldPath final {
  private:
   // The type of the internal object that implements the public interface.
 #if !defined(SWIG)
+#if !defined(__ANDROID__)
   using FieldPathInternal = ::firebase::firestore::model::FieldPath;
+#else
+  using FieldPathInternal = ::firebase::firestore::FieldPathPortable;
+#endif  // !defined(__ANDROID__)
 #endif  // !defined(SWIG)
 
   friend bool operator==(const FieldPath& lhs, const FieldPath& rhs);

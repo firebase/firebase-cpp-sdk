@@ -35,7 +35,7 @@ void CallAfterEnsureMethodsCached(JNIEnv* env, jobject activity,
 
 namespace util {
 
-JNIEnv* GetThreadsafeJNIEnv(JavaVM* vm);
+
 JNIEnv* GetJNIEnvFromApp();
 void RunOnMainThread(JNIEnv* env, jobject activity, void (*callback)(void*), void* data);
 void CancelRunOnMainThread(void* data);

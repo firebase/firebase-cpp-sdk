@@ -19,6 +19,7 @@
 #include <limits>
 
 #include "app/src/assert.h"
+#include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 

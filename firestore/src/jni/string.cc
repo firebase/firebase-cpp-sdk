@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include "app/src/log.h"
+#include "app/src/util_android.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/class.h"
 #include "firestore/src/jni/env.h"

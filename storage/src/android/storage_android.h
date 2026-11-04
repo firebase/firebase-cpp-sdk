@@ -37,75 +37,22 @@ namespace internal {
 
 // clang-format off
 #define CPP_STORAGE_LISTENER_METHODS(X)                                    \
-    X(Constructor, "<init>", "(JJ)V"),                                     \
+    X(Constructor, "<init>", "(JJ)V")                                     \
     X(DiscardPointers, "discardPointers", "()V")
 // clang-format on
-namespace cpp_storage_listener {
-  enum Method {
-    kConstructor,
-    kDiscardPointers,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
+JNI_METHOD_LOOKUP_DECLARATION(cpp_storage_listener, CPP_STORAGE_LISTENER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/storage/internal/cpp/CppStorageListener")
 
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-
-// clang-format off
 #define CPP_BYTE_DOWNLOADER_METHODS(X)                                    \
-    X(Constructor, "<init>", "(JJ)V"),                                    \
+    X(Constructor, "<init>", "(JJ)V")                                    \
     X(DiscardPointers, "discardPointers", "()V")
 // clang-format on
-namespace cpp_byte_downloader {
-  enum Method {
-    kConstructor,
-    kDiscardPointers,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
+JNI_METHOD_LOOKUP_DECLARATION(cpp_byte_downloader, CPP_BYTE_DOWNLOADER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/storage/internal/cpp/CppByteDownloader")
 
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-
-// clang-format off
 #define CPP_BYTE_UPLOADER_METHODS(X)                                      \
-    X(Constructor, "<init>", "(JJJ)V"),                                   \
+    X(Constructor, "<init>", "(JJJ)V")                                   \
     X(DiscardPointers, "discardPointers", "()V")
 // clang-format on
-namespace cpp_byte_uploader {
-  enum Method {
-    kConstructor,
-    kDiscardPointers,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
+JNI_METHOD_LOOKUP_DECLARATION(cpp_byte_uploader, CPP_BYTE_UPLOADER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/storage/internal/cpp/CppByteUploader")
 
 class StorageInternal {
  public:

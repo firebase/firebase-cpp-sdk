@@ -332,9 +332,9 @@ target_include_directories(firebase_app
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
     ${FIREBASE_GEN_FILE_DIR}
-  PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
     ${FLATBUFFERS_SOURCE_DIR}/include
+  PRIVATE
     ${LIBSECRET_INCLUDE_DIRS}
 )
 

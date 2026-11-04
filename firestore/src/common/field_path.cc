@@ -20,8 +20,12 @@
 #include <ostream>
 #include <utility>
 
+#if defined(__ANDROID__)
+#include "firestore/src/android/field_path_portable.h"
+#else
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/util/hashing.h"
+#endif  // defined(__ANDROID__)
 
 namespace firebase {
 namespace firestore {
@@ -114,9 +118,21 @@ bool operator!=(const FieldPath& lhs, const FieldPath& rhs) {
 }  // namespace firebase
 
 namespace std {
+#if defined(__ANDROID__)
+size_t hash<firebase::firestore::FieldPath>::operator()(
+    const firebase::firestore::FieldPath& field_path) const {
+  if (!field_path.internal_) return 0;
+  size_t hash = 1;
+  for (const auto& segment : *field_path.internal_) {
+    hash = 31 * hash + std::hash<std::string>{}(segment);
+  }
+  return hash;
+}
+#else
 size_t hash<firebase::firestore::FieldPath>::operator()(
     const firebase::firestore::FieldPath& field_path) const {
   if (!field_path.internal_) return 0;
   return firebase::firestore::util::Hash(*field_path.internal_);
 }
+#endif  // defined(__ANDROID__)
 }  // namespace std

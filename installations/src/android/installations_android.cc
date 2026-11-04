@@ -1,3 +1,4 @@
+#include "app/src/jni/declaration.h"
 // Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,135 +35,31 @@ namespace internal {
 // Methods of FirebaseInstallations
 // clang-format off
 #define INSTALLATIONS_METHODS(X)                                               \
-  X(GetId, "getId", "()Lcom/google/android/gms/tasks/Task;"),                  \
-  X(Delete, "delete", "()Lcom/google/android/gms/tasks/Task;"),                \
-  X(GetToken, "getToken", "(Z)Lcom/google/android/gms/tasks/Task;"),           \
+  X(GetId, "getId", "()Lcom/google/android/gms/tasks/Task;") \
+  X(Delete, "delete", "()Lcom/google/android/gms/tasks/Task;") \
+  X(GetToken, "getToken", "(Z)Lcom/google/android/gms/tasks/Task;") \
   X(AddIdListener, "addFidListener",                                           \
     "(Lcom/google/firebase/installations/internal/FidListener;)"               \
     "Lcom/google/firebase/installations/internal/FidListenerHandle;",          \
-    firebase::util::kMethodTypeInstance, firebase::util::kMethodOptional),     \
+    firebase::jni::kMethodTypeInstance, firebase::jni::kMethodOptional) \
   X(GetInstance, "getInstance", "(Lcom/google/firebase/FirebaseApp;)"          \
     "Lcom/google/firebase/installations/FirebaseInstallations;",               \
-    firebase::util::kMethodTypeStatic)
+    firebase::jni::kMethodTypeStatic)
 // clang-format on
 
-namespace installations {
-  enum Method {
-    kGetId,
-    kDelete,
-    kGetToken,
-    kAddIdListener,
-    kGetInstance,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace installations {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/installations/FirebaseInstallations"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetId] = env->GetMethodID(g_class.get(), "getId", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kGetId]) return false;
-    g_method_ids[kDelete] = env->GetMethodID(g_class.get(), "delete", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kDelete]) return false;
-    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "(Z)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kGetToken]) return false;
-    g_method_ids[kAddIdListener] = env->GetMethodID(g_class.get(), "addFidListener", "(Lcom/google/firebase/installations/internal/FidListener;)Lcom/google/firebase/installations/internal/FidListenerHandle;");
-    ::firebase::jni::CheckAndClearException(env);
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/installations/FirebaseInstallations;");
-    if (!g_method_ids[kGetInstance]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(installations, INSTALLATIONS_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/installations/FirebaseInstallations")
 
 
 // Methods of InstallationTokenResult
 // clang-format off
 #define TOKEN_RESULT_METHODS(X)                                                \
-  X(GetToken, "getToken", "()Ljava/lang/String;"),                             \
+  X(GetToken, "getToken", "()Ljava/lang/String;") \
   X(GetTokenExpirationTimestamp, "getTokenExpirationTimestamp", "()J",         \
-    firebase::util::kMethodTypeInstance, firebase::util::kMethodOptional),     \
+    firebase::jni::kMethodTypeInstance, firebase::jni::kMethodOptional) \
   X(GetTokenCreationTimestamp, "getTokenCreationTimestamp", "()J",             \
-    firebase::util::kMethodTypeInstance, firebase::util::kMethodOptional)
+    firebase::jni::kMethodTypeInstance, firebase::jni::kMethodOptional)
 // clang-format on
-namespace token_result {
-  enum Method {
-    kGetToken,
-    kGetTokenExpirationTimestamp,
-    kGetTokenCreationTimestamp,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace token_result {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/installations/InstallationTokenResult"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetToken] = env->GetMethodID(g_class.get(), "getToken", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetToken]) return false;
-    g_method_ids[kGetTokenExpirationTimestamp] = env->GetMethodID(g_class.get(), "getTokenExpirationTimestamp", "()J");
-    ::firebase::jni::CheckAndClearException(env);
-    g_method_ids[kGetTokenCreationTimestamp] = env->GetMethodID(g_class.get(), "getTokenCreationTimestamp", "()J");
-    ::firebase::jni::CheckAndClearException(env);
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(token_result, TOKEN_RESULT_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/installations/InstallationTokenResult")
 
 
 using firebase::internal::ReferenceCount;

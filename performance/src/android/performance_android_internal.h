@@ -22,7 +22,7 @@ namespace internal {
   X(GetEnabled, "isPerformanceCollectionEnabled", "()Z"),                     \
   X(GetInstance, "getInstance",                                               \
       "()Lcom/google/firebase/perf/FirebasePerformance;",                     \
-      firebase::util::kMethodTypeStatic),                                     \
+      firebase::jni::kMethodTypeStatic),                                     \
   X(NewTrace, "newTrace",                                                     \
       "(Ljava/lang/String;)Lcom/google/firebase/perf/metrics/Trace;"),        \
   X(NewHttpMetric, "newHttpMetric",                                           \

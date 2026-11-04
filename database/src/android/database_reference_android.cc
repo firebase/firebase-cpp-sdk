@@ -49,8 +49,8 @@ namespace internal {
     "()Lcom/google/firebase/database/OnDisconnect;"),                          \
   X(RunTransaction, "runTransaction",                                          \
     "(Lcom/google/firebase/database/Transaction$Handler;Z)V"),                 \
-  X(GoOffline, "goOffline", "()V", util::kMethodTypeStatic),                   \
-  X(GoOnline, "goOnline", "()V", util::kMethodTypeStatic),                     \
+  X(GoOffline, "goOffline", "()V", jni::kMethodTypeStatic),                   \
+  X(GoOnline, "goOnline", "()V", jni::kMethodTypeStatic),                     \
   X(GetDatabase, "getDatabase",                                                \
     "()Lcom/google/firebase/database/FirebaseDatabase;"),                      \
   X(ToString, "toString", "()Ljava/lang/String;"),                             \

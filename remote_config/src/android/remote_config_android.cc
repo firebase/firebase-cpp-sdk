@@ -1,3 +1,4 @@
+#include "app/src/jni/declaration.h"
 // Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,6 +33,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/time.h"
 #include "app/src/util.h"
+#include "app/src/jni/collection.h"
 #include "remote_config/remote_config_resources.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/config_update_listener_registration_internal.h"
@@ -47,449 +49,107 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
   X(GetInstance, "getInstance",                                            \
     "(Lcom/google/firebase/FirebaseApp;)"                                  \
     "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfig;",             \
-    firebase::util::kMethodTypeStatic),                                              \
+    firebase::jni::kMethodTypeStatic) \
   X(EnsureInitialized, "ensureInitialized",                                \
-    "()Lcom/google/android/gms/tasks/Task;"),                              \
+    "()Lcom/google/android/gms/tasks/Task;") \
   X(Activate, "activate",                                                  \
-    "()Lcom/google/android/gms/tasks/Task;"),                              \
+    "()Lcom/google/android/gms/tasks/Task;") \
   X(FetchAndActivate, "fetchAndActivate",                                  \
-    "()Lcom/google/android/gms/tasks/Task;"),                              \
+    "()Lcom/google/android/gms/tasks/Task;") \
   X(SetDefaultsAsync, "setDefaultsAsync",                                  \
-    "(I)Lcom/google/android/gms/tasks/Task;"),                             \
+    "(I)Lcom/google/android/gms/tasks/Task;") \
   X(SetDefaultsUsingMapAsync, "setDefaultsAsync",                          \
     "(Ljava/util/Map;)"                                                    \
-    "Lcom/google/android/gms/tasks/Task;"),                                \
+    "Lcom/google/android/gms/tasks/Task;") \
   X(SetConfigSettingsAsync, "setConfigSettingsAsync",                      \
     "(Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;)"    \
-    "Lcom/google/android/gms/tasks/Task;"),                                \
+    "Lcom/google/android/gms/tasks/Task;") \
   X(SetCustomSignalsAsync, "setCustomSignals",                             \
     "(Lcom/google/firebase/remoteconfig/CustomSignals;)"                   \
-    "Lcom/google/android/gms/tasks/Task;"),                                \
+    "Lcom/google/android/gms/tasks/Task;") \
   X(GetValue, "getValue",                                                  \
     "(Ljava/lang/String;)"                                                 \
-    "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigValue;"),       \
-  X(GetAll, "getAll", "()Ljava/util/Map;"),                                \
+    "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigValue;") \
+  X(GetAll, "getAll", "()Ljava/util/Map;") \
   X(GetKeysByPrefix, "getKeysByPrefix",                                    \
-    "(Ljava/lang/String;)Ljava/util/Set;"),                                \
+    "(Ljava/lang/String;)Ljava/util/Set;") \
   X(GetInfo, "getInfo",                                                    \
-    "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;"),      \
-  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;"),             \
+    "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;") \
+  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;") \
   X(AddOnConfigUpdateListener, "addOnConfigUpdateListener",                \
     "(Lcom/google/firebase/remoteconfig/ConfigUpdateListener;)"            \
     "Lcom/google/firebase/remoteconfig/ConfigUpdateListenerRegistration;")
 // clang-format on
 
-namespace config {
-  enum Method {
-    kGetInstance,
-    kEnsureInitialized,
-    kActivate,
-    kFetchAndActivate,
-    kSetDefaultsAsync,
-    kSetDefaultsUsingMapAsync,
-    kSetConfigSettingsAsync,
-    kSetCustomSignalsAsync,
-    kGetValue,
-    kGetAll,
-    kGetKeysByPrefix,
-    kGetInfo,
-    kFetch,
-    kAddOnConfigUpdateListener,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace config {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/FirebaseRemoteConfig"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/FirebaseApp;)Lcom/google/firebase/remoteconfig/FirebaseRemoteConfig;");
-    if (!g_method_ids[kGetInstance]) return false;
-    g_method_ids[kEnsureInitialized] = env->GetMethodID(g_class.get(), "ensureInitialized", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kEnsureInitialized]) return false;
-    g_method_ids[kActivate] = env->GetMethodID(g_class.get(), "activate", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kActivate]) return false;
-    g_method_ids[kFetchAndActivate] = env->GetMethodID(g_class.get(), "fetchAndActivate", "()Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kFetchAndActivate]) return false;
-    g_method_ids[kSetDefaultsAsync] = env->GetMethodID(g_class.get(), "setDefaultsAsync", "(I)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kSetDefaultsAsync]) return false;
-    g_method_ids[kSetDefaultsUsingMapAsync] = env->GetMethodID(g_class.get(), "setDefaultsAsync", "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kSetDefaultsUsingMapAsync]) return false;
-    g_method_ids[kSetConfigSettingsAsync] = env->GetMethodID(g_class.get(), "setConfigSettingsAsync", "(Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kSetConfigSettingsAsync]) return false;
-    g_method_ids[kSetCustomSignalsAsync] = env->GetMethodID(g_class.get(), "setCustomSignals", "(Lcom/google/firebase/remoteconfig/CustomSignals;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kSetCustomSignalsAsync]) return false;
-    g_method_ids[kGetValue] = env->GetMethodID(g_class.get(), "getValue", "(Ljava/lang/String;)Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigValue;");
-    if (!g_method_ids[kGetValue]) return false;
-    g_method_ids[kGetAll] = env->GetMethodID(g_class.get(), "getAll", "()Ljava/util/Map;");
-    if (!g_method_ids[kGetAll]) return false;
-    g_method_ids[kGetKeysByPrefix] = env->GetMethodID(g_class.get(), "getKeysByPrefix", "(Ljava/lang/String;)Ljava/util/Set;");
-    if (!g_method_ids[kGetKeysByPrefix]) return false;
-    g_method_ids[kGetInfo] = env->GetMethodID(g_class.get(), "getInfo", "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;");
-    if (!g_method_ids[kGetInfo]) return false;
-    g_method_ids[kFetch] = env->GetMethodID(g_class.get(), "fetch", "(J)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kFetch]) return false;
-    g_method_ids[kAddOnConfigUpdateListener] = env->GetMethodID(g_class.get(), "addOnConfigUpdateListener", "(Lcom/google/firebase/remoteconfig/ConfigUpdateListener;)Lcom/google/firebase/remoteconfig/ConfigUpdateListenerRegistration;");
-    if (!g_method_ids[kAddOnConfigUpdateListener]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(config, REMOTE_CONFIG_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/FirebaseRemoteConfig")
 
 
 // Methods of FirebaseRemoteConfigValue
 // clang-format off
 #define REMOTE_CONFIG_VALUE_METHODS(X)                              \
-  X(AsLong, "asLong", "()J"),                                       \
-  X(AsDouble, "asDouble", "()D"),                                   \
-  X(AsString, "asString", "()Ljava/lang/String;"),                  \
-  X(AsByteArray, "asByteArray", "()[B"),                            \
-  X(AsBoolean,  "asBoolean", "()Z"),                                \
+  X(AsLong, "asLong", "()J") \
+  X(AsDouble, "asDouble", "()D") \
+  X(AsString, "asString", "()Ljava/lang/String;") \
+  X(AsByteArray, "asByteArray", "()[B") \
+  X(AsBoolean,  "asBoolean", "()Z") \
   X(GetSource, "getSource", "()I")
 // clang-format on
-namespace config_value {
-  enum Method {
-    kAsLong,
-    kAsDouble,
-    kAsString,
-    kAsByteArray,
-    kAsBoolean,
-    kGetSource,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace config_value {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/FirebaseRemoteConfigValue"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kAsLong] = env->GetMethodID(g_class.get(), "asLong", "()J");
-    if (!g_method_ids[kAsLong]) return false;
-    g_method_ids[kAsDouble] = env->GetMethodID(g_class.get(), "asDouble", "()D");
-    if (!g_method_ids[kAsDouble]) return false;
-    g_method_ids[kAsString] = env->GetMethodID(g_class.get(), "asString", "()Ljava/lang/String;");
-    if (!g_method_ids[kAsString]) return false;
-    g_method_ids[kAsByteArray] = env->GetMethodID(g_class.get(), "asByteArray", "()[B");
-    if (!g_method_ids[kAsByteArray]) return false;
-    g_method_ids[kAsBoolean] = env->GetMethodID(g_class.get(), "asBoolean", "()Z");
-    if (!g_method_ids[kAsBoolean]) return false;
-    g_method_ids[kGetSource] = env->GetMethodID(g_class.get(), "getSource", "()I");
-    if (!g_method_ids[kGetSource]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(config_value, REMOTE_CONFIG_VALUE_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/FirebaseRemoteConfigValue")
 
 
 // Methods of FirebaseRemoteConfigInfo
 // clang-format off
 #define REMOTE_CONFIG_INFO_METHODS(X) \
-  X(GetFetchTimeMillis, "getFetchTimeMillis", "()J"), \
-  X(GetLastFetchStatus, "getLastFetchStatus", "()I"), \
+  X(GetFetchTimeMillis, "getFetchTimeMillis", "()J") \
+  X(GetLastFetchStatus, "getLastFetchStatus", "()I") \
   X(GetConfigSettings, "getConfigSettings", \
     "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;")
 // clang-format on
-namespace config_info {
-  enum Method {
-    kGetFetchTimeMillis,
-    kGetLastFetchStatus,
-    kGetConfigSettings,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace config_info {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/FirebaseRemoteConfigInfo"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetFetchTimeMillis] = env->GetMethodID(g_class.get(), "getFetchTimeMillis", "()J");
-    if (!g_method_ids[kGetFetchTimeMillis]) return false;
-    g_method_ids[kGetLastFetchStatus] = env->GetMethodID(g_class.get(), "getLastFetchStatus", "()I");
-    if (!g_method_ids[kGetLastFetchStatus]) return false;
-    g_method_ids[kGetConfigSettings] = env->GetMethodID(g_class.get(), "getConfigSettings", "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;");
-    if (!g_method_ids[kGetConfigSettings]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(config_info, REMOTE_CONFIG_INFO_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/FirebaseRemoteConfigInfo")
 
 
 // Methods of FirebaseRemoteConfigSettings
 // clang-format off
 #define REMOTE_CONFIG_SETTINGS_METHODS(X) \
-  X(GetFetchTimeoutInSeconds, "getFetchTimeoutInSeconds", "()J"),              \
+  X(GetFetchTimeoutInSeconds, "getFetchTimeoutInSeconds", "()J") \
   X(GetMinimumFetchIntervalInSeconds, "getMinimumFetchIntervalInSeconds", "()J")
 // clang-format on
-namespace config_settings {
-  enum Method {
-    kGetFetchTimeoutInSeconds,
-    kGetMinimumFetchIntervalInSeconds,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace config_settings {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/FirebaseRemoteConfigSettings"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetFetchTimeoutInSeconds] = env->GetMethodID(g_class.get(), "getFetchTimeoutInSeconds", "()J");
-    if (!g_method_ids[kGetFetchTimeoutInSeconds]) return false;
-    g_method_ids[kGetMinimumFetchIntervalInSeconds] = env->GetMethodID(g_class.get(), "getMinimumFetchIntervalInSeconds", "()J");
-    if (!g_method_ids[kGetMinimumFetchIntervalInSeconds]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(config_settings, REMOTE_CONFIG_SETTINGS_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/FirebaseRemoteConfigSettings")
 
 
 // Methods of FirebaseRemoveConfigSettings.Build
 // clang-format off
 #define REMOTE_CONFIG_SETTINGS_BUILDER_METHODS(X)                         \
-  X(Constructor, "<init>", "()V"),                                        \
+  X(Constructor, "<init>", "()V") \
   X(Build, "build",                                                       \
-    "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;"), \
+    "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;") \
   X(SetFetchTimeoutInSeconds, "setFetchTimeoutInSeconds",                 \
     "(J)Lcom/google/firebase/remoteconfig/"                               \
-    "FirebaseRemoteConfigSettings$Builder;"),                             \
+    "FirebaseRemoteConfigSettings$Builder;") \
   X(SetMinimumFetchIntervalInSeconds, "setMinimumFetchIntervalInSeconds", \
     "(J)Lcom/google/firebase/remoteconfig/"                               \
     "FirebaseRemoteConfigSettings$Builder;")
 // clang-format on
-namespace config_settings_builder {
-  enum Method {
-    kConstructor,
-    kBuild,
-    kSetFetchTimeoutInSeconds,
-    kSetMinimumFetchIntervalInSeconds,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace config_settings_builder {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/FirebaseRemoteConfigSettings$Builder"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "()V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;");
-    if (!g_method_ids[kBuild]) return false;
-    g_method_ids[kSetFetchTimeoutInSeconds] = env->GetMethodID(g_class.get(), "setFetchTimeoutInSeconds", "(J)Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings$Builder;");
-    if (!g_method_ids[kSetFetchTimeoutInSeconds]) return false;
-    g_method_ids[kSetMinimumFetchIntervalInSeconds] = env->GetMethodID(g_class.get(), "setMinimumFetchIntervalInSeconds", "(J)Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings$Builder;");
-    if (!g_method_ids[kSetMinimumFetchIntervalInSeconds]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(config_settings_builder, REMOTE_CONFIG_SETTINGS_BUILDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/FirebaseRemoteConfigSettings$Builder")
 
 
 // Methods of CustomSignals.Builder
 // clang-format off
 #define CUSTOM_SIGNALS_BUILDER_METHODS(X)                                 \
-  X(Constructor, "<init>", "()V"),                                        \
+  X(Constructor, "<init>", "()V") \
   X(PutString, "put",                                                     \
     "(Ljava/lang/String;Ljava/lang/String;)"                              \
-    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;"),          \
+    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;") \
   X(PutLong, "put",                                                       \
     "(Ljava/lang/String;J)"                                               \
-    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;"),          \
+    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;") \
   X(PutDouble, "put",                                                     \
     "(Ljava/lang/String;D)"                                               \
-    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;"),          \
+    "Lcom/google/firebase/remoteconfig/CustomSignals$Builder;") \
   X(Build, "build",                                                       \
     "()Lcom/google/firebase/remoteconfig/CustomSignals;")
 // clang-format on
-namespace custom_signals_builder {
-  enum Method {
-    kConstructor,
-    kPutString,
-    kPutLong,
-    kPutDouble,
-    kBuild,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace custom_signals_builder {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/CustomSignals$Builder"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "()V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kPutString] = env->GetMethodID(g_class.get(), "put", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/remoteconfig/CustomSignals$Builder;");
-    if (!g_method_ids[kPutString]) return false;
-    g_method_ids[kPutLong] = env->GetMethodID(g_class.get(), "put", "(Ljava/lang/String;J)Lcom/google/firebase/remoteconfig/CustomSignals$Builder;");
-    if (!g_method_ids[kPutLong]) return false;
-    g_method_ids[kPutDouble] = env->GetMethodID(g_class.get(), "put", "(Ljava/lang/String;D)Lcom/google/firebase/remoteconfig/CustomSignals$Builder;");
-    if (!g_method_ids[kPutDouble]) return false;
-    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/remoteconfig/CustomSignals;");
-    if (!g_method_ids[kBuild]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(custom_signals_builder, CUSTOM_SIGNALS_BUILDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/CustomSignals$Builder")
 
 
 // Methods of FirebaseRemoteConfigFetchThrottledException.
@@ -497,50 +157,7 @@ namespace custom_signals_builder {
 #define REMOTE_CONFIG_THROTTLED_EXCEPTION_METHODS(X)     \
   X(GetThrottleEndTimeMillis, "getThrottleEndTimeMillis", "()J")
 // clang-format on
-namespace throttled_exception {
-  enum Method {
-    kGetThrottleEndTimeMillis,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace throttled_exception {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/FirebaseRemoteConfigFetchThrottledException"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetThrottleEndTimeMillis] = env->GetMethodID(g_class.get(), "getThrottleEndTimeMillis", "()J");
-    if (!g_method_ids[kGetThrottleEndTimeMillis]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(throttled_exception, REMOTE_CONFIG_THROTTLED_EXCEPTION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/FirebaseRemoteConfigFetchThrottledException")
 
 
 // Methods of JniConfigUpdateListener
@@ -549,50 +166,7 @@ namespace throttled_exception {
   X(Constructor, "<init>", "(J)V")
 // clang-format on
 
-namespace jni_config_update_listener {
-  enum Method {
-    kConstructor,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace jni_config_update_listener {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/internal/cpp/JniConfigUpdateListener"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(J)V");
-    if (!g_method_ids[kConstructor]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(jni_config_update_listener, JNI_CONFIG_UPDATE_LISTENER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/internal/cpp/JniConfigUpdateListener")
 
 
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
@@ -615,50 +189,7 @@ static const JNINativeMethod kNativeJniConfigUpdateListenerMethods[] = {
   X(GetUpdatedKeys, "getUpdatedKeys", "()Ljava/util/Set;")
 // clang-format on
 
-namespace config_update {
-  enum Method {
-    kGetUpdatedKeys,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace config_update {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/ConfigUpdate"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetUpdatedKeys] = env->GetMethodID(g_class.get(), "getUpdatedKeys", "()Ljava/util/Set;");
-    if (!g_method_ids[kGetUpdatedKeys]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(config_update, CONFIG_UPDATE_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/ConfigUpdate")
 
 
 // Methods of ConfigUpdateRegistration
@@ -667,50 +198,7 @@ namespace config_update {
   X(Remove, "remove", "()V")
 // clang-format on
 
-namespace config_update_listener_registration {
-  enum Method {
-    kRemove,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace config_update_listener_registration {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/remoteconfig/ConfigUpdateListenerRegistration"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kRemove] = env->GetMethodID(g_class.get(), "remove", "()V");
-    if (!g_method_ids[kRemove]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(config_update_listener_registration, CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/remoteconfig/ConfigUpdateListenerRegistration")
 
 
 using firebase::internal::ReferenceCount;
@@ -773,8 +261,8 @@ static jobject ConfigKeyValueArrayToHashMap(
     out_keys->clear();
   }
   jobject hash_map =
-      env->NewObject(util::hash_map::GetClass(),
-                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
+      env->NewObject(jni::hash_map::GetClass(),
+                     jni::hash_map::GetMethodId(jni::hash_map::kConstructor));
   if (jni::CheckAndClearException(env) || !hash_map) {
     return nullptr;
   }
@@ -784,7 +272,7 @@ static jobject ConfigKeyValueArrayToHashMap(
   if (out_keys) {
     out_keys->reserve(number_of_defaults);
   }
-  jmethodID put_method = util::map::GetMethodId(util::map::kPut);
+  jmethodID put_method = jni::map::GetMethodId(jni::map::kPut);
   for (size_t i = 0; i < number_of_defaults; ++i) {
     if (!defaults[i].key || !defaults[i].value) {
       LogWarning("Remote Config: Ignoring null key or value in SetDefaults().");
@@ -816,18 +304,18 @@ static jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
   jobject result = nullptr;
   if (variant.is_int64()) {
     result = env->NewObject(
-        util::long_class::GetClass(),
-        util::long_class::GetMethodId(util::long_class::kConstructor),
+        jni::long_class::GetClass(),
+        jni::long_class::GetMethodId(jni::long_class::kConstructor),
         variant.int64_value());
   } else if (variant.is_double()) {
     result = env->NewObject(
-        util::double_class::GetClass(),
-        util::double_class::GetMethodId(util::double_class::kConstructor),
+        jni::double_class::GetClass(),
+        jni::double_class::GetMethodId(jni::double_class::kConstructor),
         variant.double_value());
   } else if (variant.is_bool()) {
     result = env->NewObject(
-        util::boolean_class::GetClass(),
-        util::boolean_class::GetMethodId(util::boolean_class::kConstructor),
+        jni::boolean_class::GetClass(),
+        jni::boolean_class::GetMethodId(jni::boolean_class::kConstructor),
         variant.bool_value());
   } else if (variant.is_string()) {
     const char* str_val = variant.string_value();
@@ -842,7 +330,7 @@ static jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
       return nullptr;
     }
     result = static_cast<jobject>(
-        util::ByteBufferToJavaByteArray(env, blob_data, blob_size));
+        ::firebase::jni::ByteBufferToJavaByteArray(env, blob_data, blob_size));
   }
   if (jni::CheckAndClearException(env)) {
     return nullptr;
@@ -859,8 +347,8 @@ static jobject ConfigKeyValueVariantArrayToHashMap(
     out_keys->clear();
   }
   jobject hash_map =
-      env->NewObject(util::hash_map::GetClass(),
-                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
+      env->NewObject(jni::hash_map::GetClass(),
+                     jni::hash_map::GetMethodId(jni::hash_map::kConstructor));
   if (jni::CheckAndClearException(env) || !hash_map) {
     return nullptr;
   }
@@ -870,7 +358,7 @@ static jobject ConfigKeyValueVariantArrayToHashMap(
   if (out_keys) {
     out_keys->reserve(number_of_defaults);
   }
-  jmethodID put_method = util::map::GetMethodId(util::map::kPut);
+  jmethodID put_method = jni::map::GetMethodId(jni::map::kPut);
   for (size_t i = 0; i < number_of_defaults; ++i) {
     if (!defaults[i].key) {
       LogWarning("Remote Config: Ignoring null key in SetDefaults().");
@@ -1210,7 +698,7 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
 
     // Cache embedded files and load embedded classes.
     const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-        util::CacheEmbeddedFiles(
+        jni::CacheEmbeddedFiles(
             env, activity,
             firebase::internal::EmbeddedFile::ToVector(
                 firebase_remote_config::remote_config_resources_filename,
@@ -1899,30 +1387,30 @@ static void JavaMapToStringVariantMap(JNIEnv* env,
                                       jobject from) {
   if (!from || !to) return;
   jobject key_set =
-      env->CallObjectMethod(from, env->GetMethodID(env->GetObjectClass(map), "keySet", "()Ljava/util/Set;"));
+      env->CallObjectMethod(from, jni::map::GetMethodId(jni::map::kKeySet));
   if (jni::CheckAndClearException(env) || !key_set) {
     return;
   }
   jobject iter = env->CallObjectMethod(
-      key_set, env->GetMethodID(env->GetObjectClass(set), "iterator", "()Ljava/util/Iterator;"));
+      key_set, jni::set::GetMethodId(jni::set::kIterator));
   if (jni::CheckAndClearException(env) || !iter) {
     env->DeleteLocalRef(key_set);
     return;
   }
   while (env->CallBooleanMethod(
-      iter, env->GetMethodID(env->GetObjectClass(iterator), "hasNext", "()Z"))) {
+      iter, jni::iterator::GetMethodId(jni::iterator::kHasNext))) {
     if (jni::CheckAndClearException(env)) {
       break;
     }
     jobject key_object = env->CallObjectMethod(
-        iter, env->GetMethodID(env->GetObjectClass(iterator), "next", "()Ljava/lang/Object;"));
+        iter, jni::iterator::GetMethodId(jni::iterator::kNext));
     if (jni::CheckAndClearException(env)) {
       key_object = nullptr;
     }
     jobject value_object = nullptr;
     if (key_object) {
       value_object = env->CallObjectMethod(
-          from, env->GetMethodID(env->GetObjectClass(map), "get", "(Ljava/lang/Object;)Ljava/lang/Object;"), key_object);
+          from, jni::map::GetMethodId(jni::map::kGet), key_object);
       if (jni::CheckAndClearException(env)) {
         value_object = nullptr;
       } else {
@@ -2018,7 +1506,7 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
             UnregisterAndDeleteListenerWrapper(listener_id);
           });
   // Delete the internal registration when RemoteConfigInternal is cleaned up.
-  cleanup_notifier().RegisterObject(
+  CleanupNotifier::FindByOwner(const_cast<firebase::App*>(&app_))->RegisterObject(
       registration_internal, [](void* registration) {
         delete reinterpret_cast<ConfigUpdateListenerRegistrationInternal*>(
             registration);

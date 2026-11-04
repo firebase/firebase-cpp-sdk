@@ -21,6 +21,7 @@
 
 #include <atomic>
 #include <vector>
+#include "app/src/embedded_file.h"
 
 #include "firebase/internal/mutex.h"
 #include "ump/src/common/consent_info_internal.h"

@@ -758,6 +758,8 @@ class YahooAuthProvider {
 
 namespace internal {
 struct CredentialAccess {
+    static AuthError GetErrorCode(const Credential& credential) { return credential.error_code_; }
+    static const std::string& GetErrorMessage(const Credential& credential) { return credential.error_message_; }
   static void* GetImpl(const Credential& credential) {
     return credential.impl_;
   }

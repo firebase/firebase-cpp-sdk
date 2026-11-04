@@ -26,6 +26,8 @@ bool InitializeMetadataConverter(App* app) {
   return false;
 }
 
+jclass GetStorageMetadataClass() { return storage_metadata::GetClass(); }
+
 void TerminateMetadataConverter(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   storage_metadata_builder::ReleaseClass(env);

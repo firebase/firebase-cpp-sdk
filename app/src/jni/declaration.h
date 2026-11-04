@@ -23,6 +23,39 @@
 
 #include "app/src/jni/ownership.h"
 
+#include <map>
+#include <vector>
+#include <string>
+
+#include "app/src/embedded_file.h"
+namespace firebase {
+namespace jni {
+  inline std::vector<::firebase::internal::EmbeddedFile> CacheEmbeddedFiles(
+      JNIEnv* env, jobject activity, const std::vector<::firebase::internal::EmbeddedFile>& files) {
+    return files;
+  }
+}
+}
+
+
+
+namespace firebase {
+namespace jni {
+  enum MethodType {
+    kMethodTypeInstance = 0,
+    kMethodTypeStatic = 1,
+    kMethodOptional = 2,
+    kMethodTypeStaticOptional = 3,
+  };
+  enum FieldType {
+    kFieldTypeInstance = 0,
+    kFieldTypeStatic = 1,
+    kFieldOptional = 2,
+    kFieldTypeStaticOptional = 3,
+  };
+}
+}
+
 namespace firebase {
 namespace jni {
 
@@ -335,5 +368,134 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
 
 }  // namespace jni
 }  // namespace firebase
+
+
+// -------------------------------------------------------------------------
+// Boilerplate reduction macro for JNI class/method lookup
+
+#define METHOD_LOOKUP_NONE(X)
+#define FIELD_LOOKUP_NONE(X)
+
+#define JNI_METHOD_LOOKUP_DECLARATION(NAMESPACE, METHODS_MACRO, FIELDS_MACRO, CLASS_NAME) \
+  namespace NAMESPACE { \
+    enum Method { \
+      METHODS_MACRO(JNI_METHOD_ENUM) \
+      kMethodCount \
+    }; \
+    enum Field { \
+      FIELDS_MACRO(JNI_FIELD_ENUM) \
+      kFieldCount \
+    }; \
+    inline jclass GetClass(); \
+    inline jmethodID GetMethodId(Method method); \
+    inline jfieldID GetFieldId(Field field); \
+    bool CacheMethodIds(JNIEnv* env, jobject activity = nullptr); \
+    bool CacheFieldIds(JNIEnv* env, jobject activity = nullptr); \
+    inline void ReleaseClass(JNIEnv* env); \
+    jclass CacheClassFromFiles(JNIEnv* env, jobject activity = nullptr, const void* embedded_files = nullptr); \
+    inline bool RegisterNatives(JNIEnv* env, const JNINativeMethod* methods, size_t num_methods); \
+  } \
+  namespace NAMESPACE { \
+    inline ::firebase::jni::Global<jclass> g_class; \
+    inline jmethodID g_method_ids[kMethodCount > 0 ? kMethodCount : 1]; \
+    inline jfieldID g_field_ids[kFieldCount > 0 ? kFieldCount : 1]; \
+    inline jclass GetClass() { return g_class.get(); } \
+    inline jmethodID GetMethodId(Method method) { return g_method_ids[method]; } \
+    inline jfieldID GetFieldId(Field field) { return g_field_ids[field]; } \
+    inline bool CacheMethodIds(JNIEnv* env, jobject activity) { \
+      if (g_class) return true; \
+      jclass local_clazz = env->FindClass(CLASS_NAME); \
+      if (!local_clazz) { \
+        (void)::firebase::jni::CheckAndClearException(env); \
+        return false; \
+      } \
+      g_class = ::firebase::jni::Global<jclass>(env, local_clazz); \
+      env->DeleteLocalRef(local_clazz); \
+      struct MethodData { int id; const char* name; const char* sig; int type; }; \
+      static const MethodData kMethods[] = { \
+        METHODS_MACRO(JNI_METHOD_DATA) \
+        {-1, nullptr, nullptr, 0} \
+      }; \
+      for (const auto& m : kMethods) { \
+        if (m.id == -1) break; \
+        if (m.type == 1 || m.type == 3) { \
+          g_method_ids[m.id] = env->GetStaticMethodID(g_class.get(), m.name, m.sig); \
+        } else { \
+          g_method_ids[m.id] = env->GetMethodID(g_class.get(), m.name, m.sig); \
+        } \
+        if (!g_method_ids[m.id]) { \
+          if (m.type == 2 || m.type == 3) { \
+            (void)::firebase::jni::CheckAndClearException(env); \
+          } else { \
+            return false; \
+          } \
+        } \
+      } \
+      return CacheFieldIds(env, activity); \
+    } \
+    inline bool CacheFieldIds(JNIEnv* env, jobject activity) { \
+      if (!g_class) return false; \
+      struct FieldData { int id; const char* name; const char* sig; int type; }; \
+      static const FieldData kFields[] = { \
+        FIELDS_MACRO(JNI_FIELD_DATA) \
+        {-1, nullptr, nullptr, 0} \
+      }; \
+      for (const auto& f : kFields) { \
+        if (f.id == -1) break; \
+        if (f.type == 1 || f.type == 3) { \
+          g_field_ids[f.id] = env->GetStaticFieldID(g_class.get(), f.name, f.sig); \
+        } else { \
+          g_field_ids[f.id] = env->GetFieldID(g_class.get(), f.name, f.sig); \
+        } \
+        if (!g_field_ids[f.id]) { \
+          if (f.type == 2 || f.type == 3) { \
+            (void)::firebase::jni::CheckAndClearException(env); \
+          } else { \
+            return false; \
+          } \
+        } \
+      } \
+      return true; \
+    } \
+    inline void ReleaseClass(JNIEnv* env) { \
+      g_class.reset(env); \
+    } \
+    inline jclass CacheClassFromFiles(JNIEnv* env, jobject activity, const void* embedded_files) { \
+      if (g_class) return g_class.get(); \
+      jclass local_clazz = env->FindClass(CLASS_NAME); \
+      if (!local_clazz) { \
+        (void)::firebase::jni::CheckAndClearException(env); \
+        return nullptr; \
+      } \
+      g_class = ::firebase::jni::Global<jclass>(env, local_clazz); \
+      env->DeleteLocalRef(local_clazz); \
+      return g_class.get(); \
+    } \
+    inline bool RegisterNatives(JNIEnv* env, const JNINativeMethod* methods, size_t num_methods) { \
+      if (!g_class) return false; \
+      if (env->RegisterNatives(g_class.get(), methods, num_methods) != 0) { \
+        (void)::firebase::jni::CheckAndClearException(env); \
+        return false; \
+      } \
+      return true; \
+    } \
+  }
+
+#define JNI_METHOD_ENUM(Name, ...) k##Name,
+#define JNI_FIELD_ENUM(Name, ...) k##Name,
+
+#define JNI_METHOD_DATA_IMPL(Name, StringName, Signature, MethodType, ...) \
+  {k##Name, StringName, Signature, MethodType},
+
+#define JNI_METHOD_DATA_EXPAND(...) JNI_METHOD_DATA_IMPL(__VA_ARGS__)
+#define JNI_METHOD_DATA(Name, StringName, Signature, ...) \
+  JNI_METHOD_DATA_EXPAND(Name, StringName, Signature, ##__VA_ARGS__, 0, 0)
+
+#define JNI_FIELD_DATA_IMPL(Name, StringName, Signature, FieldType, ...) \
+  {k##Name, StringName, Signature, FieldType},
+
+#define JNI_FIELD_DATA_EXPAND(...) JNI_FIELD_DATA_IMPL(__VA_ARGS__)
+#define JNI_FIELD_DATA(Name, StringName, Signature, ...) \
+  JNI_FIELD_DATA_EXPAND(Name, StringName, Signature, ##__VA_ARGS__, 0, 0)
 
 #endif  // FIREBASE_APP_SRC_JNI_DECLARATION_H_

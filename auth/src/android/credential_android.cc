@@ -1,3 +1,5 @@
+#include "app/src/jni/env.h"
+#include "app/src/jni/collection.h"
 /*
  * Copyright 2016 Google LLC
  *
@@ -17,6 +19,7 @@
 #include "app/src/jni/string.h"
 #include "app/src/jni/exception.h"
 #include <jni.h>
+#include "app/src/jni/declaration.h"
 
 #include <algorithm>
 #include <atomic>
@@ -40,567 +43,113 @@ using ::firebase::jni::JStringToString;
 #define CREDENTIAL_METHODS(X)                                                  \
     X(GetSignInMethod, "getSignInMethod", "()Ljava/lang/String;")
 // clang-format on
-namespace credential {
-  enum Method {
-    kGetSignInMethod,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace credential {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/AuthCredential"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetSignInMethod] = env->GetMethodID(g_class.get(), "getSignInMethod", "()Ljava/lang/String;");
-    if (!g_method_ids[kGetSignInMethod]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(credential, CREDENTIAL_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/AuthCredential")
 
 
 // clang-format off
 #define EMAIL_CRED_METHODS(X)                                                  \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;Ljava/lang/String;)"                                 \
-      "Lcom/google/firebase/auth/AuthCredential;", firebase::util::kMethodTypeStatic)
+      "Lcom/google/firebase/auth/AuthCredential;", firebase::jni::kMethodTypeStatic)
 
 // clang-format on
-namespace emailcred {
-  enum Method {
-    kGetCredential,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace emailcred {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/EmailAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;");
-    if (!g_method_ids[kGetCredential]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(emailcred, EMAIL_CRED_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/EmailAuthProvider")
 
 
 // clang-format off
 #define FACEBOOK_CRED_METHODS(X)                                               \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;",         \
-      firebase::util::kMethodTypeStatic)
+      firebase::jni::kMethodTypeStatic)
 // clang-format on
-namespace facebookcred {
-  enum Method {
-    kGetCredential,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace facebookcred {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FacebookAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;");
-    if (!g_method_ids[kGetCredential]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(facebookcred, FACEBOOK_CRED_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FacebookAuthProvider")
 
 
 // clang-format off
 #define GIT_HUB_CRED_METHODS(X)                                                \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;",         \
-      firebase::util::kMethodTypeStatic)
+      firebase::jni::kMethodTypeStatic)
 // clang-format on
-namespace githubcred {
-  enum Method {
-    kGetCredential,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace githubcred {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/GithubAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;");
-    if (!g_method_ids[kGetCredential]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(githubcred, GIT_HUB_CRED_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/GithubAuthProvider")
 
 
 // clang-format off
 #define GOOGLE_CRED_METHODS(X)                                                 \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;Ljava/lang/String;)"                                 \
-      "Lcom/google/firebase/auth/AuthCredential;", firebase::util::kMethodTypeStatic)
+      "Lcom/google/firebase/auth/AuthCredential;", firebase::jni::kMethodTypeStatic)
 // clang-format on
-namespace googlecred {
-  enum Method {
-    kGetCredential,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace googlecred {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/GoogleAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;");
-    if (!g_method_ids[kGetCredential]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(googlecred, GOOGLE_CRED_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/GoogleAuthProvider")
 
 
 // clang-format off
 #define PLAY_GAMES_CRED_METHODS(X)                                             \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;",         \
-      firebase::util::kMethodTypeStatic, util::kMethodOptional)
+      firebase::jni::kMethodTypeStatic, jni::kMethodOptional)
 // clang-format on
-namespace playgamescred {
-  enum Method {
-    kGetCredential,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace playgamescred {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/PlayGamesAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;");
-    ::firebase::jni::CheckAndClearException(env);
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(playgamescred, PLAY_GAMES_CRED_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/PlayGamesAuthProvider")
 
 
 // clang-format off
 #define TWITTER_CRED_METHODS(X)                                                \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;Ljava/lang/String;)"                                 \
-      "Lcom/google/firebase/auth/AuthCredential;", firebase::util::kMethodTypeStatic)
+      "Lcom/google/firebase/auth/AuthCredential;", firebase::jni::kMethodTypeStatic)
 // clang-format on
-namespace twittercred {
-  enum Method {
-    kGetCredential,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace twittercred {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/TwitterAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;");
-    if (!g_method_ids[kGetCredential]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(twittercred, TWITTER_CRED_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/TwitterAuthProvider")
 
 
 // clang-format off
 #define OAUTHPROVIDER_METHODS(X)                                               \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)"               \
-      "Lcom/google/firebase/auth/AuthCredential;", firebase::util::kMethodTypeStatic),   \
+      "Lcom/google/firebase/auth/AuthCredential;", firebase::jni::kMethodTypeStatic) \
     X(NewBuilder, "newBuilder",                                                \
       "(Ljava/lang/String;Lcom/google/firebase/auth/FirebaseAuth;)"            \
       "Lcom/google/firebase/auth/OAuthProvider$Builder;",                      \
-      firebase::util::kMethodTypeStatic),                                                \
+      firebase::jni::kMethodTypeStatic) \
     X(NewCredentialBuilder, "newCredentialBuilder",                            \
       "(Ljava/lang/String;)"                                                   \
       "Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;",            \
-      firebase::util::kMethodTypeStatic)
+      firebase::jni::kMethodTypeStatic)
 
 // clang-format on
-namespace oauthprovider {
-  enum Method {
-    kGetCredential,
-    kNewBuilder,
-    kNewCredentialBuilder,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace oauthprovider {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/OAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;");
-    if (!g_method_ids[kGetCredential]) return false;
-    g_method_ids[kNewBuilder] = env->GetStaticMethodID(g_class.get(), "newBuilder", "(Ljava/lang/String;Lcom/google/firebase/auth/FirebaseAuth;)Lcom/google/firebase/auth/OAuthProvider$Builder;");
-    if (!g_method_ids[kNewBuilder]) return false;
-    g_method_ids[kNewCredentialBuilder] = env->GetStaticMethodID(g_class.get(), "newCredentialBuilder", "(Ljava/lang/String;)Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;");
-    if (!g_method_ids[kNewCredentialBuilder]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(oauthprovider, OAUTHPROVIDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/OAuthProvider")
 
 
 // clang-format off
 #define TIME_UNIT_FIELDS(X)                                                    \
     X(Milliseconds, "MILLISECONDS", "Ljava/util/concurrent/TimeUnit;",         \
-      util::kFieldTypeStatic)
+      jni::kFieldTypeStatic)
 // clang-format on
-namespace timeunit {
-  enum Method {
-    kMethodCount
-  };
-  enum Field {
-    kMilliseconds,
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace timeunit {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("java/util/concurrent/TimeUnit"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    g_field_ids[kMilliseconds] = env->GetStaticFieldID(g_class.get(), "MILLISECONDS", "Ljava/util/concurrent/TimeUnit;");
-    if (!g_field_ids[kMilliseconds]) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(timeunit, OAUTHPROVIDER_METHODS, TIME_UNIT_FIELDS, "java/util/concurrent/TimeUnit")
 
 
 // clang-format off
 #define PHONE_AUTH_OPTIONS_BUILDER_METHODS(X)                                  \
   X(Constructor, "<init>",                                                     \
-    "(Lcom/google/firebase/auth/FirebaseAuth;)V"),                             \
+    "(Lcom/google/firebase/auth/FirebaseAuth;)V") \
   X(Build, "build",                                                            \
-    "()Lcom/google/firebase/auth/PhoneAuthOptions;"),                          \
+    "()Lcom/google/firebase/auth/PhoneAuthOptions;") \
   X(SetActivity, "setActivity", "(Landroid/app/Activity;)"                     \
-    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;") \
   X(SetCallbacks, "setCallbacks",                                              \
     "(Lcom/google/firebase/auth/PhoneAuthProvider$"                            \
       "OnVerificationStateChangedCallbacks;)"                                  \
-      "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                  \
+      "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;") \
   X(SetForceResendingToken, "setForceResendingToken",                          \
     "(Lcom/google/firebase/auth/PhoneAuthProvider$ForceResendingToken;)"       \
-    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;") \
   X(SetPhoneNumber, "setPhoneNumber", "(Ljava/lang/String;)"                   \
-    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;") \
   X(SetTimeout, "setTimeout",                                                  \
     "(Ljava/lang/Long;Ljava/util/concurrent/TimeUnit;)"                        \
     "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;")
 
 // clang-format on
-namespace phone_auth_options_builder {
-  enum Method {
-    kConstructor,
-    kBuild,
-    kSetActivity,
-    kSetCallbacks,
-    kSetForceResendingToken,
-    kSetPhoneNumber,
-    kSetTimeout,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-;
-namespace phone_auth_options_builder {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/PhoneAuthOptions$Builder"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(Lcom/google/firebase/auth/FirebaseAuth;)V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/auth/PhoneAuthOptions;");
-    if (!g_method_ids[kBuild]) return false;
-    g_method_ids[kSetActivity] = env->GetMethodID(g_class.get(), "setActivity", "(Landroid/app/Activity;)Lcom/google/firebase/auth/PhoneAuthOptions$Builder;");
-    if (!g_method_ids[kSetActivity]) return false;
-    g_method_ids[kSetCallbacks] = env->GetMethodID(g_class.get(), "setCallbacks", "(Lcom/google/firebase/auth/PhoneAuthProvider$OnVerificationStateChangedCallbacks;)Lcom/google/firebase/auth/PhoneAuthOptions$Builder;");
-    if (!g_method_ids[kSetCallbacks]) return false;
-    g_method_ids[kSetForceResendingToken] = env->GetMethodID(g_class.get(), "setForceResendingToken", "(Lcom/google/firebase/auth/PhoneAuthProvider$ForceResendingToken;)Lcom/google/firebase/auth/PhoneAuthOptions$Builder;");
-    if (!g_method_ids[kSetForceResendingToken]) return false;
-    g_method_ids[kSetPhoneNumber] = env->GetMethodID(g_class.get(), "setPhoneNumber", "(Ljava/lang/String;)Lcom/google/firebase/auth/PhoneAuthOptions$Builder;");
-    if (!g_method_ids[kSetPhoneNumber]) return false;
-    g_method_ids[kSetTimeout] = env->GetMethodID(g_class.get(), "setTimeout", "(Ljava/lang/Long;Ljava/util/concurrent/TimeUnit;)Lcom/google/firebase/auth/PhoneAuthOptions$Builder;");
-    if (!g_method_ids[kSetTimeout]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(phone_auth_options_builder, PHONE_AUTH_OPTIONS_BUILDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/PhoneAuthOptions$Builder")
 
 
 // clang-format off
@@ -608,195 +157,45 @@ namespace phone_auth_options_builder {
     X(GetInstance, "getInstance",                                              \
       "(Lcom/google/firebase/auth/FirebaseAuth;)"                              \
       "Lcom/google/firebase/auth/PhoneAuthProvider;",                          \
-      firebase::util::kMethodTypeStatic),                                                \
+      firebase::jni::kMethodTypeStatic) \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;Ljava/lang/String;)"                                 \
       "Lcom/google/firebase/auth/PhoneAuthCredential;",                        \
-      firebase::util::kMethodTypeStatic),                                                \
+      firebase::jni::kMethodTypeStatic) \
     X(VerifyPhoneNumber, "verifyPhoneNumber",                                  \
       "(Lcom/google/firebase/auth/PhoneAuthOptions;)V",                        \
-      firebase::util::kMethodTypeStatic)
+      firebase::jni::kMethodTypeStatic)
 // clang-format on
-namespace phoneauthprovider {
-  enum Method {
-    kGetInstance,
-    kGetCredential,
-    kVerifyPhoneNumber,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace phoneauthprovider {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/PhoneAuthProvider"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "(Lcom/google/firebase/auth/FirebaseAuth;)Lcom/google/firebase/auth/PhoneAuthProvider;");
-    if (!g_method_ids[kGetInstance]) return false;
-    g_method_ids[kGetCredential] = env->GetStaticMethodID(g_class.get(), "getCredential", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/auth/PhoneAuthCredential;");
-    if (!g_method_ids[kGetCredential]) return false;
-    g_method_ids[kVerifyPhoneNumber] = env->GetStaticMethodID(g_class.get(), "verifyPhoneNumber", "(Lcom/google/firebase/auth/PhoneAuthOptions;)V");
-    if (!g_method_ids[kVerifyPhoneNumber]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(phoneauthprovider, PHONE_AUTH_PROVIDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/PhoneAuthProvider")
 
 
 // clang-format off
 #define OAUTHPROVIDER_BUILDER_METHODS(X)                                       \
   X(AddCustomParameters, "addCustomParameters",                                \
-    "(Ljava/util/Map;)Lcom/google/firebase/auth/OAuthProvider$Builder;"),      \
+    "(Ljava/util/Map;)Lcom/google/firebase/auth/OAuthProvider$Builder;") \
   X(SetScopes, "setScopes",                                                    \
-    "(Ljava/util/List;)Lcom/google/firebase/auth/OAuthProvider$Builder;"),     \
+    "(Ljava/util/List;)Lcom/google/firebase/auth/OAuthProvider$Builder;") \
   X(Build, "build", "()Lcom/google/firebase/auth/OAuthProvider;")
 // clang-format on
 
-namespace oauthprovider_builder {
-  enum Method {
-    kAddCustomParameters,
-    kSetScopes,
-    kBuild,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace oauthprovider_builder {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/OAuthProvider$Builder"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kAddCustomParameters] = env->GetMethodID(g_class.get(), "addCustomParameters", "(Ljava/util/Map;)Lcom/google/firebase/auth/OAuthProvider$Builder;");
-    if (!g_method_ids[kAddCustomParameters]) return false;
-    g_method_ids[kSetScopes] = env->GetMethodID(g_class.get(), "setScopes", "(Ljava/util/List;)Lcom/google/firebase/auth/OAuthProvider$Builder;");
-    if (!g_method_ids[kSetScopes]) return false;
-    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/auth/OAuthProvider;");
-    if (!g_method_ids[kBuild]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(oauthprovider_builder, OAUTHPROVIDER_BUILDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/OAuthProvider$Builder")
 
 
 // clang-format off
 #define OAUTHPROVIDER_CREDENTIALBUILDER_METHODS(X)                             \
   X(SetAccessToken, "setAccessToken",                                          \
     "(Ljava/lang/String;)"                                                     \
-    "Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;"),             \
+    "Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;") \
   X(SetIdToken, "setIdToken",                                                  \
     "(Ljava/lang/String;)"                                                     \
-    "Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;"),             \
+    "Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;") \
   X(SetIdTokenWithRawNonce, "setIdTokenWithRawNonce",                          \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
-    "Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;"),             \
+    "Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;") \
   X(Build, "build", "()Lcom/google/firebase/auth/AuthCredential;")
 // clang-format on
 
-namespace oauthprovider_credentialbuilder {
-  enum Method {
-    kSetAccessToken,
-    kSetIdToken,
-    kSetIdTokenWithRawNonce,
-    kBuild,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace oauthprovider_credentialbuilder {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/OAuthProvider$CredentialBuilder"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kSetAccessToken] = env->GetMethodID(g_class.get(), "setAccessToken", "(Ljava/lang/String;)Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;");
-    if (!g_method_ids[kSetAccessToken]) return false;
-    g_method_ids[kSetIdToken] = env->GetMethodID(g_class.get(), "setIdToken", "(Ljava/lang/String;)Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;");
-    if (!g_method_ids[kSetIdToken]) return false;
-    g_method_ids[kSetIdTokenWithRawNonce] = env->GetMethodID(g_class.get(), "setIdTokenWithRawNonce", "(Ljava/lang/String;Ljava/lang/String;)Lcom/google/firebase/auth/OAuthProvider$CredentialBuilder;");
-    if (!g_method_ids[kSetIdTokenWithRawNonce]) return false;
-    g_method_ids[kBuild] = env->GetMethodID(g_class.get(), "build", "()Lcom/google/firebase/auth/AuthCredential;");
-    if (!g_method_ids[kBuild]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(oauthprovider_credentialbuilder, OAUTHPROVIDER_CREDENTIALBUILDER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/OAuthProvider$CredentialBuilder")
 
 
 // clang-format off
@@ -805,164 +204,29 @@ namespace oauthprovider_credentialbuilder {
     "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)" \
     "Lcom/google/android/gms/tasks/Task;")
 // clang-format on
-namespace auth_idp {
-  enum Method {
-    kStartActivityForSignInWithProvider,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace auth_idp {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseAuth"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kStartActivityForSignInWithProvider] = env->GetMethodID(g_class.get(), "startActivityForSignInWithProvider", "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kStartActivityForSignInWithProvider]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(auth_idp, AUTH_IDP_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuth")
 
 
 // clang-format off
 #define USER_IDP_METHODS(X)                                                    \
   X(StartActivityForLinkWithProvider, "startActivityForLinkWithProvider",      \
     "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)" \
-    "Lcom/google/android/gms/tasks/Task;"),                                    \
+    "Lcom/google/android/gms/tasks/Task;") \
   X(StartActivityForReauthenticateWithProvider,                                \
     "startActivityForReauthenticateWithProvider",                              \
     "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)" \
     "Lcom/google/android/gms/tasks/Task;")
 
 // clang-format on
-namespace user_idp {
-  enum Method {
-    kStartActivityForLinkWithProvider,
-    kStartActivityForReauthenticateWithProvider,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace user_idp {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/FirebaseUser"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kStartActivityForLinkWithProvider] = env->GetMethodID(g_class.get(), "startActivityForLinkWithProvider", "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kStartActivityForLinkWithProvider]) return false;
-    g_method_ids[kStartActivityForReauthenticateWithProvider] = env->GetMethodID(g_class.get(), "startActivityForReauthenticateWithProvider", "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)Lcom/google/android/gms/tasks/Task;");
-    if (!g_method_ids[kStartActivityForReauthenticateWithProvider]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(user_idp, USER_IDP_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseUser")
 
 
 // clang-format off
 #define JNI_PHONE_LISTENER_CALLBACK_METHODS(X)                                 \
-  X(Constructor, "<init>", "(J)V"),                                            \
+  X(Constructor, "<init>", "(J)V") \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
-namespace jniphone {
-  enum Method {
-    kConstructor,
-    kDisconnect,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace jniphone {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<::firebase::jni::Class> local_clazz(env, env->FindClass("com/google/firebase/auth/internal/cpp/JniAuthPhoneListener"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kConstructor] = env->GetMethodID(g_class.get(), "<init>", "(J)V");
-    if (!g_method_ids[kConstructor]) return false;
-    g_method_ids[kDisconnect] = env->GetMethodID(g_class.get(), "disconnect", "()V");
-    if (!g_method_ids[kDisconnect]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(jniphone, JNI_PHONE_LISTENER_CALLBACK_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/internal/cpp/JniAuthPhoneListener")
 
 
 namespace phonecredential {
@@ -1076,19 +340,15 @@ static bool CacheCredentialClassesAndMethodsLocked(JNIEnv* env,
 
 bool CacheCredentialMethodIds(
     JNIEnv* env, jobject activity,
-    const std::vector<internal::EmbeddedFile>& embedded_files) {
+    const std::vector<::firebase::internal::EmbeddedFile>& embedded_files) {
   CacheJavaVm(env);
   std::lock_guard<std::mutex> lock(g_credential_methods_mutex);
-  // Cache the JniAuthPhoneListener class and register the native callback
-  // methods.
-  if (!(jniphone::CacheClassFromFiles(env, activity, &embedded_files) &&
-        jniphone::CacheMethodIds(env, activity) &&
+  if (!(jniphone::CacheMethodIds(env, activity) &&
         jniphone::RegisterNatives(
             env, kNativeJniAuthPhoneListenerMethods,
             FIREBASE_ARRAYSIZE(kNativeJniAuthPhoneListenerMethods)))) {
     return false;
   }
-
   return CacheCredentialClassesAndMethodsLocked(env, activity);
 }
 
@@ -1210,7 +470,7 @@ std::string Credential::provider() const {
   if (jni::CheckAndClearException(env) || !j_provider) {
     return std::string();
   }
-  return JniStringToString(env, j_provider);
+  return JStringToString(env, j_provider);
 }
 
 bool Credential::is_valid() const { return impl_ != nullptr; }
@@ -1305,7 +565,7 @@ std::string PhoneAuthCredential::sms_code() const {
   if (jni::CheckAndClearException(env) || !j_sms_code) {
     return std::string();
   }
-  return JniStringToString(env, j_sms_code);
+  return JStringToString(env, j_sms_code);
 }
 
 //
@@ -1964,8 +1224,8 @@ void PhoneAuthProvider::VerifyPhoneNumber(
 
   // timeout
   jobject timeout = env->NewObject(
-      util::long_class::GetClass(),
-      util::long_class::GetMethodId(util::long_class::kConstructor),
+      jni::long_class::GetClass(),
+      jni::long_class::GetMethodId(jni::long_class::kConstructor),
       static_cast<jlong>(options.timeout_milliseconds));
   if (jni::CheckAndClearException(env) || timeout == nullptr) {
     if (timeout) env->DeleteLocalRef(timeout);
@@ -2272,8 +1532,8 @@ jobject ConstructOAuthProvider(
 
   if (!provider_data.custom_parameters.empty()) {
     jobject custom_parameters_map = env->NewObject(
-        util::hash_map::GetClass(),
-        util::hash_map::GetMethodId(util::hash_map::kConstructor));
+        jni::hash_map::GetClass(),
+        jni::hash_map::GetMethodId(jni::hash_map::kConstructor));
     if (env->ExceptionCheck() || custom_parameters_map == nullptr) {
       AuthError err = CheckAndClearJniAuthExceptions(env, out_error_message);
       if (out_error_code) {

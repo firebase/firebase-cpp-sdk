@@ -1,3 +1,4 @@
+#include "app/src/jni/env.h"
 /*
  * Copyright 2016 Google LLC
  *
@@ -19,6 +20,7 @@
 #include "app/src/google_play_services/availability_android.h"
 
 #include <jni.h>
+#include "app/src/jni/declaration.h"
 
 #include <iterator>
 #include <memory>
@@ -48,114 +50,22 @@ using firebase::MutexLock;
   X(GetInstance,                                                               \
     "getInstance",                                                             \
     "()Lcom/google/android/gms/common/GoogleApiAvailability;",                 \
-    ::firebase::util::kMethodTypeStatic, ::firebase::util::kMethodOptional),   \
+    ::firebase::jni::kMethodTypeStatic, ::firebase::jni::kMethodOptional) \
   X(IsGooglePlayServicesAvailable, "isGooglePlayServicesAvailable",            \
-    "(Landroid/content/Context;)I", ::firebase::util::kMethodTypeInstance,     \
-    ::firebase::util::kMethodOptional)
+    "(Landroid/content/Context;)I", ::firebase::jni::kMethodTypeInstance,     \
+    ::firebase::jni::kMethodOptional)
 // clang-format on
-namespace googleapiavailability {
-  enum Method {
-    kGetInstance,
-    kIsGooglePlayServicesAvailable,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace googleapiavailability {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<jclass> local_clazz(env, env->FindClass("com/google/android/gms/common/GoogleApiAvailability"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kGetInstance] = env->GetStaticMethodID(g_class.get(), "getInstance", "()Lcom/google/android/gms/common/GoogleApiAvailability;");
-    ::firebase::jni::CheckAndClearException(env);
-    g_method_ids[kIsGooglePlayServicesAvailable] = env->GetMethodID(g_class.get(), "isGooglePlayServicesAvailable", "(Landroid/content/Context;)I");
-    ::firebase::jni::CheckAndClearException(env);
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(googleapiavailability, GOOGLE_API_AVAILABILITY_METHODS, FIELD_LOOKUP_NONE, "com/google/android/gms/common/GoogleApiAvailability")
 
 
 // clang-format off
 #define GOOGLE_API_AVAILABILITY_HELPER_METHODS(X)                              \
   X(StopCallbacks, "stopCallbacks", "()V",                                     \
-    ::firebase::util::kMethodTypeStatic),                                      \
+    ::firebase::jni::kMethodTypeStatic) \
   X(MakeGooglePlayServicesAvailable, "makeGooglePlayServicesAvailable",        \
-    "(Landroid/app/Activity;)Z", ::firebase::util::kMethodTypeStatic)
+    "(Landroid/app/Activity;)Z", ::firebase::jni::kMethodTypeStatic)
 // clang-format on
-namespace googleapiavailabilityhelper {
-  enum Method {
-    kStopCallbacks,
-    kMakeGooglePlayServicesAvailable,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-namespace googleapiavailabilityhelper {
-  ::firebase::jni::Global<jclass> g_class;
-  jmethodID g_method_ids[kMethodCount];
-  jfieldID g_field_ids[kFieldCount];
-  jclass GetClass() { return g_class.get(); }
-  jmethodID GetMethodId(Method method) { return g_method_ids[method]; }
-  jfieldID GetFieldId(Field field) { return g_field_ids[field]; }
-  bool CacheMethodIds(JNIEnv* env, jobject activity) {
-    if (g_class) return true;
-    ::firebase::jni::Local<jclass> local_clazz(env, env->FindClass("com/google/firebase/app/internal/cpp/GoogleApiAvailabilityHelper"));
-    if (!local_clazz) {
-      ::firebase::jni::CheckAndClearException(env);
-      return false;
-    }
-    g_class = local_clazz;
-    g_method_ids[kStopCallbacks] = env->GetStaticMethodID(g_class.get(), "stopCallbacks", "()V");
-    if (!g_method_ids[kStopCallbacks]) return false;
-    g_method_ids[kMakeGooglePlayServicesAvailable] = env->GetStaticMethodID(g_class.get(), "makeGooglePlayServicesAvailable", "(Landroid/app/Activity;)Z");
-    if (!g_method_ids[kMakeGooglePlayServicesAvailable]) return false;
-    return CacheFieldIds(env, activity);
-  }
-  bool CacheFieldIds(JNIEnv* env, jobject activity) {
-    if (!g_class) return false;
-    return true;
-  }
-  void ReleaseClass(JNIEnv* env) {
-    g_class = ::firebase::jni::Global<jclass>();
-  }
-}
+JNI_METHOD_LOOKUP_DECLARATION(googleapiavailabilityhelper, GOOGLE_API_AVAILABILITY_HELPER_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/app/internal/cpp/GoogleApiAvailabilityHelper")
 
 
 // Enum from the Java side. These numbers won't change according to comments

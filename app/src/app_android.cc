@@ -76,23 +76,23 @@ class AppInternal : public jni::Global<jobject> {
   X(InitializeApp, "initializeApp",                                            \
     "(Landroid/content/Context;Lcom/google/firebase/FirebaseOptions;"          \
     "Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;",                    \
-    firebase::util::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic),                                                  \
   X(InitializeDefaultApp, "initializeApp",                                     \
     "(Landroid/content/Context;Lcom/google/firebase/FirebaseOptions;)"         \
     "Lcom/google/firebase/FirebaseApp;",                                       \
-    firebase::util::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic),                                                  \
   X(GetInstance, "getInstance", "()Lcom/google/firebase/FirebaseApp;",         \
-    firebase::util::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic),                                                  \
   X(GetInstanceByName, "getInstance",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;",                   \
-    firebase::util::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic),                                                  \
   X(GetOptions, "getOptions", "()Lcom/google/firebase/FirebaseOptions;",       \
-    util::kMethodTypeInstance),                                                \
-  X(Delete, "delete", "()V", util::kMethodTypeInstance),                       \
+    jni::kMethodTypeInstance),                                                \
+  X(Delete, "delete", "()V", jni::kMethodTypeInstance),                       \
   X(IsDataCollectionDefaultEnabled, "isDataCollectionDefaultEnabled",          \
-    "()Z", util::kMethodTypeInstance, util::kMethodOptional),                  \
+    "()Z", jni::kMethodTypeInstance, jni::kMethodOptional),                  \
   X(SetDataCollectionDefaultEnabled, "setDataCollectionDefaultEnabled",        \
-    "(Z)V", util::kMethodTypeInstance, util::kMethodOptional)
+    "(Z)V", jni::kMethodTypeInstance, jni::kMethodOptional)
 // clang-format on
 
 namespace app {
@@ -164,28 +164,28 @@ namespace app {
 
 // clang-format off
 #define FIREBASE_OPTIONS_BUILDER_METHODS(X)                                    \
-  X(Constructor, "<init>", "()V", util::kMethodTypeInstance),                  \
+  X(Constructor, "<init>", "()V", jni::kMethodTypeInstance),                  \
   X(SetApiKey, "setApiKey",                                                    \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(SetDatabaseUrl, "setDatabaseUrl",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(SetApplicationId, "setApplicationId",                                      \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(SetGcmSenderId, "setGcmSenderId",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(SetStorageBucket, "setStorageBucket",                                      \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(SetProjectId, "setProjectId",                                              \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    util::kMethodTypeInstance, util::kMethodOptional),                         \
+    jni::kMethodTypeInstance, jni::kMethodOptional),                         \
   X(SetGaTrackingId, "setGaTrackingId",                                        \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseOptions$Builder;",       \
-    util::kMethodTypeInstance, util::kMethodOptional),                         \
+    jni::kMethodTypeInstance, jni::kMethodOptional),                         \
   X(Build, "build",                                                            \
     "()Lcom/google/firebase/FirebaseOptions;")
 // clang-format on
@@ -264,21 +264,21 @@ namespace options_builder {
 #define FIREBASE_OPTIONS_METHODS(X)                                            \
   X(FromResource, "fromResource",                                              \
     "(Landroid/content/Context;)Lcom/google/firebase/FirebaseOptions;",        \
-    firebase::util::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic),                                                  \
   X(GetApiKey, "getApiKey", "()Ljava/lang/String;",                            \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetApplicationId, "getApplicationId", "()Ljava/lang/String;",              \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetDatabaseUrl, "getDatabaseUrl", "()Ljava/lang/String;",                  \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetGcmSenderId, "getGcmSenderId", "()Ljava/lang/String;",                  \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetStorageBucket, "getStorageBucket", "()Ljava/lang/String;",              \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetProjectId, "getProjectId", "()Ljava/lang/String;",                      \
-    util::kMethodTypeInstance),                                                \
+    jni::kMethodTypeInstance),                                                \
   X(GetGaTrackingId, "getGaTrackingId", "()Ljava/lang/String;",                \
-    util::kMethodTypeInstance, util::kMethodOptional)
+    jni::kMethodTypeInstance, jni::kMethodOptional)
 // clang-format on
 
 namespace options {
@@ -352,10 +352,10 @@ namespace options {
 #define GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS(X)                             \
   X(GetInstance, "getInstance",                                                \
     "()Lcom/google/firebase/platforminfo/GlobalLibraryVersionRegistrar;",      \
-    firebase::util::kMethodTypeStatic),                                                  \
+    firebase::jni::kMethodTypeStatic),                                                  \
   X(RegisterVersion, "registerVersion",                                        \
     "(Ljava/lang/String;Ljava/lang/String;)V",                                 \
-    util::kMethodTypeInstance)
+    jni::kMethodTypeInstance)
 // clang-format on
 
 namespace version_registrar {
