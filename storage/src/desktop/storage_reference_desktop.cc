@@ -41,7 +41,7 @@
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/curl_requests.h"
 #include "storage/src/desktop/listener_desktop.h"
-#include "storage/src/desktop/metadata_desktop.h"
+#include "storage/src/common/metadata_internal.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"
@@ -59,30 +59,14 @@ std::atomic<bool> g_retry_all_errors_for_testing{false};
 // retry thread, or chained OnCompletion callback references it.
 struct FutureApiOwner {
   explicit FutureApiOwner(StorageInternal* storage)
-      : storage_token(storage ? storage->lifetime_token() : nullptr) {
-    if (storage) {
-      storage->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
-      api = storage->future_manager().GetFutureApi(this);
-    }
-  }
-
-  ~FutureApiOwner() {
-    // Keep the StorageInternal alive through an active-user scope rather than
-    // by holding storage_token->mutex: ReleaseFutureApi() may destroy future
-    // results (e.g. Metadata holding StorageReference handles) whose
-    // destructors acquire storage_token->mutex themselves.
-    StorageLifetimeScope scope(storage_token,
-                               StorageLifetimeScope::Mode::kAllowShutdown);
-    if (scope) {
-      scope.storage()->future_manager().ReleaseFutureApi(this);
-    }
-  }
-
+      : storage_token(storage ? storage->lifetime_token() : nullptr) {}
+  ~FutureApiOwner() {}
   FutureApiOwner(const FutureApiOwner&) = delete;
   FutureApiOwner& operator=(const FutureApiOwner&) = delete;
 
   std::shared_ptr<StorageInternal::LifetimeToken> storage_token;
-  ReferenceCountedFutureImpl* api = nullptr;
+  ReferenceCountedFutureImpl api_impl{kStorageReferenceFnCount};
+  ReferenceCountedFutureImpl* api = &api_impl;
 };
 
 // Registers the calling thread as an active user of the StorageInternal behind
@@ -364,7 +348,7 @@ void StorageReferenceInternal::SetupMetadataChain(
     // The upload succeeded. Now try setting the metadata of the object we just
     // created.
     Future<Metadata> metadata_future =
-        data->storage_ref.internal_->UpdateMetadata(&data->metadata);
+        data->storage_ref.UpdateMetadata(data->metadata);
     data->inner_future = metadata_future;
 
     metadata_future.OnCompletion([data](const Future<Metadata>& update_result) {
@@ -389,29 +373,39 @@ void StorageReferenceInternal::SetupMetadataChain(
 }
 
 // Deletes the object at the current path.
-Future<void> StorageReferenceInternal::Delete() {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle = future_api->SafeAlloc<void>(kStorageReferenceFnDelete);
-  StorageReference self_ref = AsStorageReference();
 
+template <class FutureType, class PrepareFunc>
+void StorageReferenceInternal::RunAsyncOp(SafeFutureHandle<FutureType> final_handle, double max_retry_time, Controller* controller_out, PrepareFunc prepare_func) {
+  std::shared_ptr<FutureApiOwner> owner = future_api_owner_;
+  if (!owner || !owner->api || !storage_) {
+    if (controller_out) *controller_out = Controller();
+    CompleteFinalFutureCancelled(owner, final_handle);
+    return;
+  }
+  StorageReference self_ref = AsStorageReference();
   auto send_request_funct =
-      [self_ref, owner](Controller* attempt_controller_out) -> RequestAttempt {
+      [self_ref, owner, prepare_func](Controller* attempt_controller_out) mutable -> RequestAttempt {
     RequestAttempt attempt;
     attempt.http_status =
         std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
     StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
     if (!self_ref.is_valid() || !storage_scope) {
       attempt.local_failure = true;
       return attempt;
     }
-    auto internal_handle = owner->api->SafeAlloc<void>();
-    attempt.future = Future<void>(owner->api, internal_handle.get());
-    auto* response = new EmptyResponse(internal_handle, owner->api);
-    response->set_http_status_out(attempt.http_status);
+    prepare_func(attempt, attempt_controller_out, self_ref, owner->api);
+    return attempt;
+  };
+  SendRequestWithRetry(std::move(send_request_funct), final_handle, max_retry_time, controller_out);
+}
 
+void StorageReferenceInternal::DeleteImpl(SafeFutureHandle<void> handle, ReferenceCountedFutureImpl* api) {
+  RunAsyncOp(handle, storage_->max_operation_retry_time(), nullptr,
+      [](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<void>();
+    attempt.future = Future<void>(api, internal_handle.get());
+    auto* response = new EmptyResponse(internal_handle, api);
+    response->set_http_status_out(attempt.http_status);
     auto* request = new storage::internal::Request();
     self_ref.internal_->PrepareRequestBlocking(
         request, self_ref.internal_->storage_uri_.AsHttpMetadataUrl().c_str(),
@@ -419,17 +413,10 @@ Future<void> StorageReferenceInternal::Delete() {
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, nullptr,
                                  attempt_controller_out);
-    return attempt;
-  };
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_operation_retry_time());
-  return DeleteLastResult();
+  });
 }
 
-Future<void> StorageReferenceInternal::DeleteLastResult() const {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kStorageReferenceFnDelete));
-}
+
 
 // The timeout time to wait for the App Check token.
 const int kAppCheckTokenTimeoutMs = 10000;
@@ -482,107 +469,52 @@ void StorageReferenceInternal::PrepareRequestBlocking(
 }
 
 // Asynchronously downloads the object from this StorageReference.
-Future<size_t> StorageReferenceInternal::GetFile(const char* path,
-                                                 Listener* listener,
-                                                 Controller* controller_out) {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
-  std::string final_path = StripProtocol(path);
-  if (path == nullptr || path[0] == '\0' || final_path.empty()) {
-    if (controller_out) *controller_out = Controller();
-    future_api->Complete(handle, kErrorInvalidArgument,
-                         "File path cannot be null or empty.");
-    return GetFileLastResult();
-  }
-  StorageReference self_ref = AsStorageReference();
+void StorageReferenceInternal::GetFileImpl(const char* path, Listener* listener, Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api) {
   std::shared_ptr<ListenerSharedState> listener_state =
       (listener && listener->impl_) ? listener->impl_->shared_state() : nullptr;
-  auto send_request_funct =
-      [self_ref, owner, final_path,
-       listener_state](Controller* attempt_controller_out) -> RequestAttempt {
-    RequestAttempt attempt;
-    attempt.http_status =
-        std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
-    StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
-    if (!self_ref.is_valid() || !storage_scope) {
-      attempt.local_failure = true;
-      return attempt;
-    }
-    auto internal_handle = owner->api->SafeAlloc<size_t>();
-    attempt.future = Future<size_t>(owner->api, internal_handle.get());
+  std::string path_str = path ? path : "";
+  RunAsyncOp(handle, storage_->max_download_retry_time(), controller_out,
+      [path_str, listener_state](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<size_t>();
+    attempt.future = Future<size_t>(api, internal_handle.get());
     auto* request = new storage::internal::Request();
     self_ref.internal_->PrepareRequestBlocking(
-        request, self_ref.internal_->storage_uri_.AsHttpUrl().c_str(),
-        rest::util::kGet);
-    auto* response =
-        new GetFileResponse(final_path.c_str(), internal_handle, owner->api);
+        request, self_ref.internal_->storage_uri_.AsHttpUrl().c_str(), "GET");
+    auto* response = new GetFileResponse(
+        path_str.c_str(), internal_handle, api);
     response->set_http_status_out(attempt.http_status);
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, listener_state,
                                  attempt_controller_out);
-    return attempt;
-  };
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_download_retry_time(), controller_out);
-
-  return GetFileLastResult();
+  });
 }
 
-Future<size_t> StorageReferenceInternal::GetFileLastResult() const {
-  return static_cast<const Future<size_t>&>(
-      future()->LastResult(kStorageReferenceFnGetFile));
-}
+
 
 // Asynchronously downloads the object from this StorageReference.
-Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
-                                                  size_t buffer_size,
-                                                  Listener* listener,
-                                                  Controller* controller_out) {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
+void StorageReferenceInternal::GetBytesImpl(void* buffer, size_t buffer_size, Listener* listener, Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api) {
   if (buffer == nullptr && buffer_size > 0) {
     if (controller_out) *controller_out = Controller();
-    future_api->Complete(handle, kErrorInvalidArgument,
+    api->Complete(handle, kErrorInvalidArgument,
                          "Buffer cannot be null when buffer_size > 0.");
-    return GetBytesLastResult();
+    return;
   }
-  StorageReference self_ref = AsStorageReference();
   std::shared_ptr<ListenerSharedState> listener_state =
       (listener && listener->impl_) ? listener->impl_->shared_state() : nullptr;
-  auto send_request_funct =
-      [self_ref, owner, buffer, buffer_size,
-       listener_state](Controller* attempt_controller_out) -> RequestAttempt {
-    RequestAttempt attempt;
-    attempt.http_status =
-        std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
-    StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
-    if (!self_ref.is_valid() || !storage_scope) {
-      attempt.local_failure = true;
-      return attempt;
-    }
-    auto internal_handle = owner->api->SafeAlloc<size_t>();
-    attempt.future = Future<size_t>(owner->api, internal_handle.get());
+  RunAsyncOp(handle, storage_->max_download_retry_time(), controller_out,
+      [buffer, buffer_size, listener_state](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<size_t>();
+    attempt.future = Future<size_t>(api, internal_handle.get());
     auto* request = new storage::internal::Request();
     self_ref.internal_->PrepareRequestBlocking(
-        request, self_ref.internal_->storage_uri_.AsHttpUrl().c_str(),
-        rest::util::kGet);
-    auto* response =
-        new GetBytesResponse(buffer, buffer_size, internal_handle, owner->api);
+        request, self_ref.internal_->storage_uri_.AsHttpUrl().c_str(), "GET");
+    auto* response = new GetBytesResponse(
+        buffer, buffer_size, internal_handle, api);
     response->set_http_status_out(attempt.http_status);
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, listener_state,
                                  attempt_controller_out);
-    return attempt;
-  };
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_download_retry_time(), controller_out);
-  return GetBytesLastResult();
+  });
 }
 
 // Prepares and sends the request, and retries failures, on a separate thread.
@@ -836,423 +768,210 @@ bool StorageReferenceInternal::IsRetryableFailure(int http_status,
 }
 
 // Returns the result of the most recent call to GetBytes();
-Future<size_t> StorageReferenceInternal::GetBytesLastResult() const {
-  return static_cast<const Future<size_t>&>(
-      future()->LastResult(kStorageReferenceFnGetBytes));
-}
+
 
 // Asynchronously uploads data to the currently specified StorageReference,
 // without additional metadata.
-Future<Metadata> StorageReferenceInternal::PutBytes(
-    const void* buffer, size_t buffer_size, Listener* listener,
-    Controller* controller_out) {
-  return PutBytes(buffer, buffer_size, nullptr, listener, controller_out);
+void StorageReferenceInternal::PutBytesImpl(const void* buffer, size_t buffer_size, Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  PutBytesImpl(buffer, buffer_size, nullptr, listener, controller_out, handle, api);
 }
 
-Future<Metadata> StorageReferenceInternal::PutBytesInternal(
-    const void* buffer, size_t buffer_size, Listener* listener,
-    Controller* controller_out, const char* content_type) {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
-  if (buffer == nullptr && buffer_size > 0) {
-    if (controller_out) *controller_out = Controller();
-    future_api->Complete(handle, kErrorInvalidArgument,
-                         "Buffer cannot be null when buffer_size > 0.");
-    return PutBytesLastResult();
-  }
-
+void StorageReferenceInternal::PutBytesInternalImpl(const void* buffer, size_t buffer_size, Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api, const char* content_type) {
   std::string content_type_str = content_type ? content_type : "";
-  StorageReference self_ref = AsStorageReference();
   std::shared_ptr<ListenerSharedState> listener_state =
       (listener && listener->impl_) ? listener->impl_->shared_state() : nullptr;
-  auto send_request_funct =
-      [self_ref, owner, content_type_str, buffer, buffer_size,
-       listener_state](Controller* attempt_controller_out) -> RequestAttempt {
-    RequestAttempt attempt;
-    attempt.http_status =
-        std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
-    StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
-    if (!self_ref.is_valid() || !storage_scope) {
-      attempt.local_failure = true;
-      return attempt;
-    }
-    auto internal_handle = owner->api->SafeAlloc<Metadata>();
-    attempt.future = Future<Metadata>(owner->api, internal_handle.get());
-
-    auto* request = new storage::internal::RequestBinary(
-        static_cast<const char*>(buffer), buffer_size);
+  RunAsyncOp(handle, storage_->max_upload_retry_time(), controller_out,
+      [content_type_str, buffer, buffer_size, listener_state](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<Metadata>();
+    attempt.future = Future<Metadata>(api, internal_handle.get());
+    auto* request = new storage::internal::Request();
     self_ref.internal_->PrepareRequestBlocking(
         request, self_ref.internal_->storage_uri_.AsHttpUrl().c_str(),
-        rest::util::kPost, content_type_str.c_str());
+        rest::util::kPost);
+    request->set_post_fields(static_cast<const char*>(buffer), buffer_size);
+    if (!content_type_str.empty()) {
+      request->add_header("Content-Type", content_type_str.c_str());
+    }
     auto* response =
-        new ReturnedMetadataResponse(internal_handle, owner->api, self_ref);
+        new ReturnedMetadataResponse(internal_handle, api, self_ref);
     response->set_http_status_out(attempt.http_status);
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, listener_state,
                                  attempt_controller_out);
-    return attempt;
-  };
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_upload_retry_time(), controller_out);
-  return PutBytesLastResult();
+  });
 }
 
 // Asynchronously uploads data to the currently specified StorageReference,
 // with metadata included.
-Future<Metadata> StorageReferenceInternal::PutBytes(
-    const void* buffer, size_t buffer_size, const Metadata* metadata,
-    Listener* listener, Controller* controller_out) {
+void StorageReferenceInternal::PutBytesImpl(const void* buffer, size_t buffer_size, const Metadata* metadata, Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
   if (buffer == nullptr && buffer_size > 0) {
-    auto* future_api = future();
-    auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
     if (controller_out) *controller_out = Controller();
-    future_api->Complete(handle, kErrorInvalidArgument,
+    api->Complete(handle, kErrorInvalidArgument,
                          "Buffer cannot be null when buffer_size > 0.");
-    return PutBytesLastResult();
+    return;
   }
   if (metadata == nullptr) {
-    return PutBytesInternal(buffer, buffer_size, listener, controller_out,
-                            "application/octet-stream");
+    PutBytesInternalImpl(buffer, buffer_size, listener, controller_out, handle, api, "application/octet-stream");
+    return;
   }
-  // This is the handle for the actual future returned to the user.
   auto owner = future_api_owner_;
-  auto handle = owner->api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
   auto data = std::make_shared<MetadataChainData>(
       handle, metadata, AsStorageReference(), owner);
-  // This is the future to do the actual putbytes.  Note that it is on a
-  // different storage reference than the original, so the caller of this
-  // function can't access it via PutBytesLastResult.
-  Future<Metadata> putbytes_internal =
-      data->storage_ref.internal_->PutBytesInternal(
-          buffer, buffer_size, listener, controller_out,
-          data->metadata.content_type());
-
+  auto internal_handle = api->SafeAlloc<Metadata>();
+  data->storage_ref.internal_->PutBytesInternalImpl(
+      buffer, buffer_size, listener, controller_out, internal_handle, api,
+      data->metadata.content_type());
+  Future<Metadata> putbytes_internal(api, internal_handle.get());
   SetupMetadataChain(putbytes_internal, data);
-
-  return PutBytesLastResult();
 }
 
-Future<Metadata> StorageReferenceInternal::PutBytesLastResult() const {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnPutBytes));
-}
+
 
 // Asynchronously uploads data to the currently specified StorageReference,
 // without additional metadata.
 // Currently not terribly efficient about it.
 // TODO(b/69434445): Make this more efficient. b/69434445
-Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
-                                                   Listener* listener,
-                                                   Controller* controller_out) {
-  return PutFile(path, nullptr, listener, controller_out);
+void StorageReferenceInternal::PutFileImpl(const char* path, Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  PutFileImpl(path, nullptr, listener, controller_out, handle, api);
 }
 
-Future<Metadata> StorageReferenceInternal::PutFileInternal(
-    const char* path, Listener* listener, Controller* controller_out,
-    const char* content_type) {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
-  std::string final_path = StripProtocol(path);
-  if (path == nullptr || path[0] == '\0' || final_path.empty()) {
-    if (controller_out) *controller_out = Controller();
-    future_api->Complete(handle, kErrorInvalidArgument,
-                         "File path cannot be null or empty.");
-    return PutFileLastResult();
-  }
-
+void StorageReferenceInternal::PutFileInternalImpl(const char* path, Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api, const char* content_type) {
   std::string content_type_str = content_type ? content_type : "";
-  StorageReference self_ref = AsStorageReference();
   std::shared_ptr<ListenerSharedState> listener_state =
       (listener && listener->impl_) ? listener->impl_->shared_state() : nullptr;
-  auto send_request_funct =
-      [self_ref, owner, final_path, content_type_str,
-       listener_state](Controller* attempt_controller_out) -> RequestAttempt {
-    RequestAttempt attempt;
-    attempt.http_status =
-        std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
-    StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
-    if (!self_ref.is_valid() || !storage_scope) {
-      attempt.local_failure = true;
-      return attempt;
-    }
-    auto internal_handle = owner->api->SafeAlloc<Metadata>();
-    attempt.future = Future<Metadata>(owner->api, internal_handle.get());
-
-    // Open the file, calculate the length.
-    auto* request = new storage::internal::RequestFile(final_path.c_str(), 0);
+  std::string path_str = path ? path : "";
+  RunAsyncOp(handle, storage_->max_upload_retry_time(), controller_out,
+      [content_type_str, path_str, listener_state](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<Metadata>();
+    attempt.future = Future<Metadata>(api, internal_handle.get());
+    auto* request = new storage::internal::RequestFile(path_str.c_str(), 0);
     if (!request->IsFileOpen()) {
       delete request;
       if (attempt_controller_out) {
         *attempt_controller_out = Controller();
       }
       attempt.local_failure = true;
-      owner->api->Complete(internal_handle, kErrorUnknown,
+      api->Complete(internal_handle, kErrorUnknown,
                            "Could not read file.");
-      return attempt;
+      return;
     }
-
-    // Everything is good. Fire off the request.
-    auto* response =
-        new ReturnedMetadataResponse(internal_handle, owner->api, self_ref);
-    response->set_http_status_out(attempt.http_status);
-
     self_ref.internal_->PrepareRequestBlocking(
         request, self_ref.internal_->storage_uri_.AsHttpUrl().c_str(),
         rest::util::kPost, content_type_str.c_str());
+    auto* response =
+        new ReturnedMetadataResponse(internal_handle, api, self_ref);
+    response->set_http_status_out(attempt.http_status);
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, listener_state,
                                  attempt_controller_out);
-    return attempt;
-  };
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_upload_retry_time(), controller_out);
-  return PutFileLastResult();
+  });
 }
 
 // Asynchronously uploads data to the currently specified StorageReference,
 // with additional metadata.
-Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
-                                                   const Metadata* metadata,
-                                                   Listener* listener,
-                                                   Controller* controller_out) {
-  std::string final_path = StripProtocol(path);
-  if (path == nullptr || path[0] == '\0' || final_path.empty()) {
-    auto* future_api = future();
-    auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
-    if (controller_out) *controller_out = Controller();
-    future_api->Complete(handle, kErrorInvalidArgument,
-                         "File path cannot be null or empty.");
-    return PutFileLastResult();
-  }
+void StorageReferenceInternal::PutFileImpl(const char* path, const Metadata* metadata, Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
   if (metadata == nullptr) {
-    return PutFileInternal(path, listener, controller_out,
-                           "application/octet-stream");
+    PutFileInternalImpl(path, listener, controller_out, handle, api, "application/octet-stream");
+    return;
   }
-  // This is the handle for the actual future returned to the user.
   auto owner = future_api_owner_;
-  auto handle = owner->api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
   auto data = std::make_shared<MetadataChainData>(
       handle, metadata, AsStorageReference(), owner);
-  // This is the future to do the actual putfile.  Note that it is on a
-  // different storage reference than the original, so the caller of this
-  // function can't access it via PutFileLastResult.
-  Future<Metadata> putfile_internal =
-      data->storage_ref.internal_->PutFileInternal(
-          path, listener, controller_out, data->metadata.content_type());
-
+  auto internal_handle = api->SafeAlloc<Metadata>();
+  data->storage_ref.internal_->PutFileInternalImpl(
+      path, listener, controller_out, internal_handle, api,
+      data->metadata.content_type());
+  Future<Metadata> putfile_internal(api, internal_handle.get());
   SetupMetadataChain(putfile_internal, data);
-
-  return PutFileLastResult();
 }
 
 // Returns the result of the most recent call to PutFile();
-Future<Metadata> StorageReferenceInternal::PutFileLastResult() const {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnPutFile));
-}
+
 
 // Retrieves metadata associated with an object at this StorageReference.
-Future<Metadata> StorageReferenceInternal::GetMetadata() {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadata);
-  StorageReference self_ref = AsStorageReference();
-
-  auto send_request_funct =
-      [self_ref, owner](Controller* attempt_controller_out) -> RequestAttempt {
-    RequestAttempt attempt;
-    attempt.http_status =
-        std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
-    StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
-    if (!self_ref.is_valid() || !storage_scope) {
-      attempt.local_failure = true;
-      return attempt;
-    }
-    auto internal_handle = owner->api->SafeAlloc<Metadata>();
-    attempt.future = Future<Metadata>(owner->api, internal_handle.get());
+void StorageReferenceInternal::GetMetadataImpl(SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  RunAsyncOp(handle, storage_->max_operation_retry_time(), nullptr,
+      [](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<Metadata>();
+    attempt.future = Future<Metadata>(api, internal_handle.get());
     auto* response =
-        new ReturnedMetadataResponse(internal_handle, owner->api, self_ref);
+        new ReturnedMetadataResponse(internal_handle, api, self_ref);
     response->set_http_status_out(attempt.http_status);
-
     auto* request = new storage::internal::Request();
     self_ref.internal_->PrepareRequestBlocking(
         request, self_ref.internal_->storage_uri_.AsHttpMetadataUrl().c_str(),
-        rest::util::kGet);
-
+        "GET");
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, nullptr,
                                  attempt_controller_out);
-
-    return attempt;
-  };
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_operation_retry_time());
-  return GetMetadataLastResult();
+  });
 }
 
 // Returns the result of the most recent call to GetMetadata();
-Future<Metadata> StorageReferenceInternal::GetMetadataLastResult() const {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnGetMetadata));
-}
+
 
 // Updates the metadata associated with this StorageReference.
-Future<Metadata> StorageReferenceInternal::UpdateMetadata(
-    const Metadata* metadata) {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle =
-      future_api->SafeAlloc<Metadata>(kStorageReferenceFnUpdateMetadata);
-  if (!metadata || !metadata->is_valid()) {
-    future_api->Complete(handle, kErrorInvalidArgument,
-                         "Metadata cannot be null or invalid.");
-    return UpdateMetadataLastResult();
-  }
-
-  std::string metadata_json = metadata->internal_->ExportAsJson();
-  StorageReference self_ref = AsStorageReference();
-  auto send_request_funct =
-      [self_ref, owner,
-       metadata_json](Controller* attempt_controller_out) -> RequestAttempt {
-    RequestAttempt attempt;
-    attempt.http_status =
-        std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
-    StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
-    if (!self_ref.is_valid() || !storage_scope) {
-      attempt.local_failure = true;
-      return attempt;
-    }
-    auto internal_handle = owner->api->SafeAlloc<Metadata>();
-    attempt.future = Future<Metadata>(owner->api, internal_handle.get());
-
-    auto* response =
-        new ReturnedMetadataResponse(internal_handle, owner->api, self_ref);
-    response->set_http_status_out(attempt.http_status);
-
+void StorageReferenceInternal::UpdateMetadataImpl(const Metadata* metadata, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  std::string metadata_json_str = metadata->internal_->ExportAsJson();
+  RunAsyncOp(handle, storage_->max_operation_retry_time(), nullptr,
+      [metadata_json_str](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<Metadata>();
+    attempt.future = Future<Metadata>(api, internal_handle.get());
     auto* request = new storage::internal::Request();
     self_ref.internal_->PrepareRequestBlocking(
         request, self_ref.internal_->storage_uri_.AsHttpMetadataUrl().c_str(),
-        "PATCH", "application/json");
-
-    request->set_post_fields(metadata_json.c_str(), metadata_json.length());
-
+        "PATCH");
+    request->add_header("Content-Type", "application/json");
+    request->set_post_fields(metadata_json_str.c_str(), metadata_json_str.length());
+    auto* response =
+        new ReturnedMetadataResponse(internal_handle, api, self_ref);
+    response->set_http_status_out(attempt.http_status);
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, nullptr,
                                  attempt_controller_out);
-    return attempt;
-  };
-
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_operation_retry_time());
-  return UpdateMetadataLastResult();
+  });
 }
 
 // Returns the result of the most recent call to UpdateMetadata();
-Future<Metadata> StorageReferenceInternal::UpdateMetadataLastResult() const {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnUpdateMetadata));
-}
+
 
 // List items (files) and prefixes (folders) under this StorageReference.
-Future<StorageListResult> StorageReferenceInternal::List(
-    int max_results_per_page, const char* page_token) {
-  auto owner = future_api_owner_;
-  auto* future_api = owner->api;
-  auto handle =
-      future_api->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
-  if (max_results_per_page <= 0 || max_results_per_page > 1000) {
-    future_api->Complete(
-        handle, kErrorInvalidArgument,
-        "max_results_per_page must be between 1 and 1000 inclusive.");
-    return ListLastResult();
-  }
-
+void StorageReferenceInternal::ListImpl(int max_results_per_page, const char* page_token, SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api) {
   std::string page_token_str = page_token ? page_token : "";
-  StorageReference self_ref = AsStorageReference();
-  auto send_request_funct =
-      [self_ref, owner, max_results_per_page,
-       page_token_str](Controller* attempt_controller_out) -> RequestAttempt {
-    RequestAttempt attempt;
-    attempt.http_status =
-        std::make_shared<std::atomic<int>>(rest::util::HttpInvalid);
-    // Keeps self_ref's StorageInternal alive while this attempt is prepared
-    // and started (PrepareRequestBlocking, get_scheme(), RestCall, ...).
-    StorageUseScope storage_scope(owner, StorageUseMode::kRejectShutdown);
-    if (!self_ref.is_valid() || !storage_scope) {
-      attempt.local_failure = true;
-      return attempt;
-    }
-    auto internal_handle = owner->api->SafeAlloc<StorageListResult>();
-    attempt.future =
-        Future<StorageListResult>(owner->api, internal_handle.get());
-
-    auto* response = new ReturnedListResponse(internal_handle, owner->api,
-                                              self_ref.internal_->storage_);
+  RunAsyncOp(handle, storage_->max_operation_retry_time(), nullptr,
+      [max_results_per_page, page_token_str](RequestAttempt& attempt, Controller* attempt_controller_out, StorageReference& self_ref, ReferenceCountedFutureImpl* api) {
+    auto internal_handle = api->SafeAlloc<StorageListResult>();
+    attempt.future = Future<StorageListResult>(api, internal_handle.get());
+    auto* response =
+        new ReturnedListResponse(internal_handle, api, self_ref.internal_->storage_);
     response->set_http_status_out(attempt.http_status);
-
     auto* request = new storage::internal::Request();
-
-    // For listing, we need the bucket URL:
-    // [scheme]://[host]:[port]/v0/b/[bucket]/o. We cannot use
-    // storage_uri_.AsHttpMetadataUrl() directly because it appends the encoded
-    // path.
-    std::string url = self_ref.internal_->storage_->get_scheme();
-    url += "://";
-    url += self_ref.internal_->storage_->get_host();
-    url += ":";
-    url += std::to_string(self_ref.internal_->storage_->get_port());
-    url += "/v0/b/";
-    url += rest::util::EncodeUrl(self_ref.internal_->bucket());
-    url += "/o";
-
-    // The prefix must end with a slash to be treated as a directory by the
-    // REST API.
+    std::string url = self_ref.internal_->storage_uri_.AsHttpUrl();
     std::string prefix = self_ref.internal_->storage_uri_.GetPath().str();
-    if (!prefix.empty() && prefix.back() != '/') {
-      prefix += "/";
-    }
-
-    // Append query parameters
-    url += "?delimiter=/";
     if (!prefix.empty()) {
-      url += "&prefix=" + rest::util::EncodeUrl(prefix);
+      url += "?prefix=";
+      url += rest::util::EncodeUrl(prefix + "/");
     }
+    std::string delimiter = prefix.empty() ? "?" : "&";
+    url += delimiter;
+    url += "delimiter=/";
     if (max_results_per_page > 0) {
-      url += "&maxResults=" + std::to_string(max_results_per_page);
+      url += "&maxResults=";
+      url += std::to_string(max_results_per_page);
     }
     if (!page_token_str.empty()) {
-      url += "&pageToken=" + rest::util::EncodeUrl(page_token_str);
+      url += "&pageToken=";
+      url += rest::util::EncodeUrl(page_token_str);
     }
-
-    self_ref.internal_->PrepareRequestBlocking(request, url.c_str(),
-                                               rest::util::kGet);
-
+    self_ref.internal_->PrepareRequestBlocking(request, url.c_str(), "GET");
     self_ref.internal_->RestCall(request, request->notifier(), response,
                                  internal_handle.get(), nullptr, nullptr,
                                  attempt_controller_out);
-    return attempt;
-  };
-
-  SendRequestWithRetry(std::move(send_request_funct), handle,
-                       storage_->max_operation_retry_time());
-  return ListLastResult();
+  });
 }
 
 // Returns the result of the most recent call to List();
-Future<StorageListResult> StorageReferenceInternal::ListLastResult() const {
-  return static_cast<const Future<StorageListResult>&>(
-      future()->LastResult(kStorageReferenceFnList));
-}
+
 
 struct ListAllChainData {
   ListAllChainData(SafeFutureHandle<StorageListResult> handle_,
@@ -1296,9 +1015,9 @@ void StorageReferenceInternal::ContinueListAll(
     data->items.insert(data->items.end(), page.items().begin(),
                        page.items().end());
     if (!page.next_page_token().empty()) {
-      Future<StorageListResult> next_page =
-          data->storage_ref.internal_->List(
-              1000, page.next_page_token().c_str());
+      auto handle = data->future_api_owner->api->SafeAlloc<StorageListResult>();
+      data->storage_ref.internal_->ListImpl(1000, page.next_page_token().c_str(), handle, data->future_api_owner->api);
+      Future<StorageListResult> next_page(data->future_api_owner->api, handle.get());
       ContinueListAll(next_page, data);
     } else {
       StorageListResult final_result =
@@ -1312,30 +1031,21 @@ void StorageReferenceInternal::ContinueListAll(
   });
 }
 
-Future<StorageListResult> StorageReferenceInternal::ListAll() {
+void StorageReferenceInternal::ListAllImpl(SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api) {
   auto owner = future_api_owner_;
-  auto handle =
-      owner->api->SafeAlloc<StorageListResult>(kStorageReferenceFnListAll);
-  auto data =
-      std::make_shared<ListAllChainData>(handle, AsStorageReference(), owner);
-  Future<StorageListResult> first_page =
-      data->storage_ref.internal_->List(1000, nullptr);
-  ContinueListAll(first_page, data);
-  return ListAllLastResult();
+  auto data = std::make_shared<ListAllChainData>(
+      handle, AsStorageReference(), owner);
+  auto internal_handle = api->SafeAlloc<StorageListResult>();
+  data->storage_ref.internal_->ListImpl(0, "", internal_handle, api);
+  Future<StorageListResult> list_internal(api, internal_handle.get());
+  ContinueListAll(list_internal, data);
 }
 
-Future<StorageListResult> StorageReferenceInternal::ListAllLastResult() const {
-  return static_cast<const Future<StorageListResult>&>(
-      future()->LastResult(kStorageReferenceFnListAll));
-}
+
 
 // Asynchronously retrieves a long lived download URL with a revokable token.
-Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
-  // TODO(b/78908154): Re-implement this function without use of GetMetadata()
+void StorageReferenceInternal::GetDownloadUrlImpl(SafeFutureHandle<std::string> handle, ReferenceCountedFutureImpl* api) {
   auto owner = future_api_owner_;
-  auto handle =
-      owner->api->SafeAlloc<std::string>(kStorageReferenceFnGetDownloadUrl);
-
   struct GetUrlOnCompletionData {
     GetUrlOnCompletionData(std::shared_ptr<FutureApiOwner> future_api_owner_,
                            SafeFutureHandle<std::string> handle_,
@@ -1352,47 +1062,34 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
     Future<Metadata> metadata_future;
     Future<std::string> final_future_ref;
   };
-
-  auto data = std::make_shared<GetUrlOnCompletionData>(owner, handle,
-                                                       AsStorageReference());
-  data->metadata_future = data->storage_ref.internal_->GetMetadata();
-
-  // Set the Metadata Callback.  The callback we return to the user is
-  // separate from the metadata one, and we just mark the returned future
-  // complete in the metadata onCompletion handler.
+  auto data = std::make_shared<GetUrlOnCompletionData>(owner, handle, AsStorageReference());
+  auto internal_handle = api->SafeAlloc<Metadata>();
+  data->storage_ref.internal_->GetMetadataImpl(internal_handle, api);
+  data->metadata_future = Future<Metadata>(api, internal_handle.get());
   data->metadata_future.OnCompletion([data](const Future<Metadata>& result) {
-    StorageUseScope scope(data->future_api_owner,
-                          StorageUseMode::kAllowShutdown);
-    if (!scope) {
-      return;
-    }
+    StorageUseScope scope(data->future_api_owner, StorageUseMode::kAllowShutdown);
+    if (!scope) return;
     if (result.error() != 0) {
-      data->future_api_owner->api->Complete(data->handle, result.error(),
-                                            result.error_message());
+      data->future_api_owner->api->Complete(data->handle, result.error(), result.error_message());
     } else {
-      const char* url_cstr =
-          (result.result() && result.result()->internal_)
-              ? result.result()->internal_->download_url()
-              : nullptr;
-      std::string download_url = url_cstr ? url_cstr : "";
+      std::string download_url;
+      if (result.result() && !result.result()->internal_->download_tokens().empty()) {
+        std::string bucket(result.result()->internal_->bucket());
+        std::string path(result.result()->internal_->path());
+        std::string http_url = StoragePath(data->storage_ref.internal_->storage_internal(), "gs://" + bucket + "/" + path).AsHttpUrl();
+        download_url = http_url + "?alt=media&token=" + result.result()->internal_->download_tokens().front();
+      }
       if (download_url.empty()) {
-        data->future_api_owner->api->Complete(
-            data->handle, kErrorUnknown, "Could not retrieve download URL.");
+        data->future_api_owner->api->Complete(data->handle, kErrorUnknown, "Could not retrieve download URL.");
       } else {
-        data->future_api_owner->api->CompleteWithResult(
-            data->handle, kErrorNone, download_url);
+        data->future_api_owner->api->CompleteWithResult(data->handle, kErrorNone, download_url);
       }
     }
   });
-
-  return GetDownloadUrlLastResult();
 }
 
 // Returns the result of the most recent call to GetDownloadUrl();
-Future<std::string> StorageReferenceInternal::GetDownloadUrlLastResult() const {
-  return static_cast<const Future<std::string>&>(
-      future()->LastResult(kStorageReferenceFnGetDownloadUrl));
-}
+
 
 // Returns the short name of this object.
 std::string StorageReferenceInternal::name() const {
@@ -1409,7 +1106,7 @@ StorageReferenceInternal* StorageReferenceInternal::GetParent() const {
 }
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() const {
-  return future_api_owner_ ? future_api_owner_->api : nullptr;
+  return const_cast<ReferenceCountedFutureImpl*>(&future_api_);
 }
 
 }  // namespace firebase::storage::internal

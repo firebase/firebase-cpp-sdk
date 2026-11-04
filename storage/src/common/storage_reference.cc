@@ -174,7 +174,7 @@ class StorageReferenceInternalCommon {
   }
 
   // Releases and deletes the internal owned by `handle`, if any.
-  static void Release(StorageReference* handle) {
+    static void Release(StorageReference* handle) {
     StorageReferenceInternal* internal = nullptr;
     StorageInternal* storage = nullptr;
     StorageToken token;
@@ -198,13 +198,9 @@ class StorageReferenceInternalCommon {
       // While the StorageInternal is alive no cleanup callback is in flight,
       // so UnregisterObject() does not block. If it is tearing down, its
       // cleanup callback owns the orphaned `internal`: do not touch it.
-      const bool unregistered = RunWhileStorageAlive(
-          token, storage, [internal](StorageInternal& alive_storage) {
-            alive_storage.cleanup().UnregisterObject(internal);
-          });
-      if (!unregistered) {
-        return;
-      }
+      RunWhileStorageAlive(token, storage, [&](StorageInternal& alive) {
+        alive.cleanup().UnregisterObject(internal);
+      });
       std::lock_guard<std::mutex> lock(HandleMutex());
       Owners().erase(internal);
     }
@@ -300,11 +296,16 @@ StorageReference StorageReference::Child(const char* path) const {
 }
 
 Future<void> StorageReference::Delete() {
-  return internal_ ? internal_->Delete() : Future<void>();
+  if (!internal_) return Future<void>();
+  auto handle = internal_->future()->SafeAlloc<void>(internal::kStorageReferenceFnDelete);
+  internal_->DeleteImpl(handle, internal_->future());
+  return Future<void>(internal_->future(), handle.get());
 }
 
 Future<void> StorageReference::DeleteLastResult() const {
-  return internal_ ? internal_->DeleteLastResult() : Future<void>();
+  if (!internal_) return Future<void>();
+  return static_cast<const Future<void>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnDelete));
 }
 
 std::string StorageReference::bucket() const {
@@ -321,13 +322,20 @@ Future<size_t> StorageReference::GetFile(const char* path, Listener* listener,
     if (controller_out) *controller_out = Controller();
     return Future<size_t>();
   }
-  // A null/empty `path` is validated by every platform implementation,
-  // which completes the returned Future with kErrorInvalidArgument.
-  return internal_->GetFile(path, listener, controller_out);
+  auto handle = internal_->future()->SafeAlloc<size_t>(internal::kStorageReferenceFnGetFile);
+  if (!path || path[0] == '\0') {
+    if (controller_out) *controller_out = Controller();
+    internal_->future()->Complete(handle, kErrorInvalidArgument, "File path cannot be null or empty.");
+    return Future<size_t>(internal_->future(), handle.get());
+  }
+  internal_->GetFileImpl(path, listener, controller_out, handle, internal_->future());
+  return Future<size_t>(internal_->future(), handle.get());
 }
 
 Future<size_t> StorageReference::GetFileLastResult() const {
-  return internal_ ? internal_->GetFileLastResult() : Future<size_t>();
+  if (!internal_) return Future<size_t>();
+  return static_cast<const Future<size_t>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetFile));
 }
 
 Future<size_t> StorageReference::GetBytes(void* buffer, size_t buffer_size,
@@ -337,39 +345,54 @@ Future<size_t> StorageReference::GetBytes(void* buffer, size_t buffer_size,
     if (controller_out) *controller_out = Controller();
     return Future<size_t>();
   }
-  return internal_->GetBytes(buffer, buffer_size, listener, controller_out);
+  auto handle = internal_->future()->SafeAlloc<size_t>(internal::kStorageReferenceFnGetBytes);
+  internal_->GetBytesImpl(buffer, buffer_size, listener, controller_out, handle, internal_->future());
+  return Future<size_t>(internal_->future(), handle.get());
 }
 
 Future<size_t> StorageReference::GetBytesLastResult() const {
-  return internal_ ? internal_->GetBytesLastResult() : Future<size_t>();
+  if (!internal_) return Future<size_t>();
+  return static_cast<const Future<size_t>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetBytes));
 }
 
 Future<std::string> StorageReference::GetDownloadUrl() {
-  return internal_ ? internal_->GetDownloadUrl() : Future<std::string>();
+  if (!internal_) return Future<std::string>();
+  auto handle = internal_->future()->SafeAlloc<std::string>(internal::kStorageReferenceFnGetDownloadUrl);
+  internal_->GetDownloadUrlImpl(handle, internal_->future());
+  return Future<std::string>(internal_->future(), handle.get());
 }
 
 Future<std::string> StorageReference::GetDownloadUrlLastResult() const {
-  return internal_ ? internal_->GetDownloadUrlLastResult()
-                   : Future<std::string>();
+  if (!internal_) return Future<std::string>();
+  return static_cast<const Future<std::string>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetDownloadUrl));
 }
 
 Future<Metadata> StorageReference::GetMetadata() {
-  return internal_ ? internal_->GetMetadata() : Future<Metadata>();
+  if (!internal_) return Future<Metadata>();
+  auto handle = internal_->future()->SafeAlloc<Metadata>(internal::kStorageReferenceFnGetMetadata);
+  internal_->GetMetadataImpl(handle, internal_->future());
+  return Future<Metadata>(internal_->future(), handle.get());
 }
 
 Future<Metadata> StorageReference::GetMetadataLastResult() const {
-  return internal_ ? internal_->GetMetadataLastResult() : Future<Metadata>();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetMetadata));
 }
 
 Future<Metadata> StorageReference::UpdateMetadata(const Metadata& metadata) {
-  if (!internal_ || !CheckMetadataIsValid(metadata)) {
-    return Future<Metadata>();
-  }
-  return internal_->UpdateMetadata(&metadata);
+  if (!internal_ || !CheckMetadataIsValid(metadata)) return Future<Metadata>();
+  auto handle = internal_->future()->SafeAlloc<Metadata>(internal::kStorageReferenceFnUpdateMetadata);
+  internal_->UpdateMetadataImpl(&metadata, handle, internal_->future());
+  return Future<Metadata>(internal_->future(), handle.get());
 }
 
 Future<Metadata> StorageReference::UpdateMetadataLastResult() const {
-  return internal_ ? internal_->UpdateMetadataLastResult() : Future<Metadata>();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnUpdateMetadata));
 }
 
 std::string StorageReference::name() const {
@@ -413,32 +436,30 @@ bool StorageReference::is_root() const {
   return NormalizeStoragePath(full_path()).empty();
 }
 
-Future<Metadata> StorageReference::PutBytes(const void* buffer,
-                                            size_t buffer_size,
-                                            Listener* listener,
-                                            Controller* controller_out) {
+Future<Metadata> StorageReference::PutBytes(const void* buffer, size_t buffer_size, Listener* listener, Controller* controller_out) {
   if (!internal_) {
     if (controller_out) *controller_out = Controller();
     return Future<Metadata>();
   }
-  return internal_->PutBytes(buffer, buffer_size, listener, controller_out);
+  auto handle = internal_->future()->SafeAlloc<Metadata>(internal::kStorageReferenceFnPutBytes);
+  internal_->PutBytesImpl(buffer, buffer_size, listener, controller_out, handle, internal_->future());
+  return Future<Metadata>(internal_->future(), handle.get());
 }
 
-Future<Metadata> StorageReference::PutBytes(const void* buffer,
-                                            size_t buffer_size,
-                                            const Metadata& metadata,
-                                            Listener* listener,
-                                            Controller* controller_out) {
+Future<Metadata> StorageReference::PutBytes(const void* buffer, size_t buffer_size, const Metadata& metadata, Listener* listener, Controller* controller_out) {
   if (!internal_ || !CheckMetadataIsValid(metadata)) {
     if (controller_out) *controller_out = Controller();
     return Future<Metadata>();
   }
-  return internal_->PutBytes(buffer, buffer_size, &metadata, listener,
-                             controller_out);
+  auto handle = internal_->future()->SafeAlloc<Metadata>(internal::kStorageReferenceFnPutBytes);
+  internal_->PutBytesImpl(buffer, buffer_size, &metadata, listener, controller_out, handle, internal_->future());
+  return Future<Metadata>(internal_->future(), handle.get());
 }
 
 Future<Metadata> StorageReference::PutBytesLastResult() const {
-  return internal_ ? internal_->PutBytesLastResult() : Future<Metadata>();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnPutBytes));
 }
 
 Future<Metadata> StorageReference::PutFile(const char* path, Listener* listener,
@@ -447,9 +468,14 @@ Future<Metadata> StorageReference::PutFile(const char* path, Listener* listener,
     if (controller_out) *controller_out = Controller();
     return Future<Metadata>();
   }
-  // A null/empty `path` is validated by every platform implementation,
-  // which completes the returned Future with kErrorInvalidArgument.
-  return internal_->PutFile(path, listener, controller_out);
+  auto handle = internal_->future()->SafeAlloc<Metadata>(internal::kStorageReferenceFnPutFile);
+  if (!path || path[0] == '\0') {
+    if (controller_out) *controller_out = Controller();
+    internal_->future()->Complete(handle, kErrorInvalidArgument, "File path cannot be null or empty.");
+    return Future<Metadata>(internal_->future(), handle.get());
+  }
+  internal_->PutFileImpl(path, listener, controller_out, handle, internal_->future());
+  return Future<Metadata>(internal_->future(), handle.get());
 }
 
 Future<Metadata> StorageReference::PutFile(const char* path,
@@ -460,32 +486,51 @@ Future<Metadata> StorageReference::PutFile(const char* path,
     if (controller_out) *controller_out = Controller();
     return Future<Metadata>();
   }
-  // A null/empty `path` is validated by every platform implementation,
-  // which completes the returned Future with kErrorInvalidArgument.
-  return internal_->PutFile(path, &metadata, listener, controller_out);
+  auto handle = internal_->future()->SafeAlloc<Metadata>(internal::kStorageReferenceFnPutFile);
+  if (!path || path[0] == '\0') {
+    if (controller_out) *controller_out = Controller();
+    internal_->future()->Complete(handle, kErrorInvalidArgument, "File path cannot be null or empty.");
+    return Future<Metadata>(internal_->future(), handle.get());
+  }
+  internal_->PutFileImpl(path, &metadata, listener, controller_out, handle, internal_->future());
+  return Future<Metadata>(internal_->future(), handle.get());
 }
 
 Future<Metadata> StorageReference::PutFileLastResult() const {
-  return internal_ ? internal_->PutFileLastResult() : Future<Metadata>();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnPutFile));
 }
 
 Future<StorageListResult> StorageReference::List(int max_results_per_page,
                                                  const char* page_token) {
-  return internal_ ? internal_->List(max_results_per_page, page_token)
-                   : Future<StorageListResult>();
+  if (!internal_) return Future<StorageListResult>();
+  auto handle = internal_->future()->SafeAlloc<StorageListResult>(internal::kStorageReferenceFnList);
+  if (max_results_per_page <= 0 || max_results_per_page > 1000) {
+    internal_->future()->Complete(handle, kErrorInvalidArgument, "max_results_per_page must be > 0 and <= 1000.");
+    return Future<StorageListResult>(internal_->future(), handle.get());
+  }
+  internal_->ListImpl(max_results_per_page, page_token, handle, internal_->future());
+  return Future<StorageListResult>(internal_->future(), handle.get());
 }
 
 Future<StorageListResult> StorageReference::ListLastResult() const {
-  return internal_ ? internal_->ListLastResult() : Future<StorageListResult>();
+  if (!internal_) return Future<StorageListResult>();
+  return static_cast<const Future<StorageListResult>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnList));
 }
 
 Future<StorageListResult> StorageReference::ListAll() {
-  return internal_ ? internal_->ListAll() : Future<StorageListResult>();
+  if (!internal_) return Future<StorageListResult>();
+  auto handle = internal_->future()->SafeAlloc<StorageListResult>(internal::kStorageReferenceFnListAll);
+  internal_->ListAllImpl(handle, internal_->future());
+  return Future<StorageListResult>(internal_->future(), handle.get());
 }
 
 Future<StorageListResult> StorageReference::ListAllLastResult() const {
-  return internal_ ? internal_->ListAllLastResult()
-                   : Future<StorageListResult>();
+  if (!internal_) return Future<StorageListResult>();
+  return static_cast<const Future<StorageListResult>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnListAll));
 }
 
 bool StorageReference::is_valid() const { return internal_ != nullptr; }
@@ -520,7 +565,9 @@ Storage* StorageReference::storage() {
   return static_cast<const StorageReference*>(this)->storage();
 }
 Future<void> StorageReference::DeleteLastResult() {
-  return static_cast<const StorageReference*>(this)->DeleteLastResult();
+  if (!internal_) return Future<void>();
+  return static_cast<const Future<void>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnDelete));
 }
 std::string StorageReference::bucket() {
   return static_cast<const StorageReference*>(this)->bucket();
@@ -529,22 +576,34 @@ std::string StorageReference::full_path() {
   return static_cast<const StorageReference*>(this)->full_path();
 }
 Future<size_t> StorageReference::GetFileLastResult() {
-  return static_cast<const StorageReference*>(this)->GetFileLastResult();
+  if (!internal_) return Future<size_t>();
+  return static_cast<const Future<size_t>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetFile));
 }
 Future<size_t> StorageReference::GetBytesLastResult() {
-  return static_cast<const StorageReference*>(this)->GetBytesLastResult();
+  if (!internal_) return Future<size_t>();
+  return static_cast<const Future<size_t>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetBytes));
 }
 Future<std::string> StorageReference::GetDownloadUrlLastResult() {
-  return static_cast<const StorageReference*>(this)->GetDownloadUrlLastResult();
+  if (!internal_) return Future<std::string>();
+  return static_cast<const Future<std::string>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetDownloadUrl));
 }
 Future<Metadata> StorageReference::GetMetadataLastResult() {
-  return static_cast<const StorageReference*>(this)->GetMetadataLastResult();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnGetMetadata));
 }
 Future<Metadata> StorageReference::UpdateMetadataLastResult() {
-  return static_cast<const StorageReference*>(this)->UpdateMetadataLastResult();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnUpdateMetadata));
 }
 Future<StorageListResult> StorageReference::ListLastResult() {
-  return static_cast<const StorageReference*>(this)->ListLastResult();
+  if (!internal_) return Future<StorageListResult>();
+  return static_cast<const Future<StorageListResult>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnList));
 }
 std::string StorageReference::name() {
   return static_cast<const StorageReference*>(this)->name();
@@ -553,10 +612,14 @@ StorageReference StorageReference::GetParent() {
   return static_cast<const StorageReference*>(this)->GetParent();
 }
 Future<Metadata> StorageReference::PutBytesLastResult() {
-  return static_cast<const StorageReference*>(this)->PutBytesLastResult();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnPutBytes));
 }
 Future<Metadata> StorageReference::PutFileLastResult() {
-  return static_cast<const StorageReference*>(this)->PutFileLastResult();
+  if (!internal_) return Future<Metadata>();
+  return static_cast<const Future<Metadata>&>(
+      internal_->future()->LastResult(internal::kStorageReferenceFnPutFile));
 }
 #endif  // defined(FIREBASE_STORAGE_BUILDING_SDK)
 

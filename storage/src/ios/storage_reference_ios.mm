@@ -14,6 +14,62 @@
 
 #include "storage/src/ios/storage_reference_ios.h"
 
+#define IOS_ASYNC_COMPLETION(RESULT_TYPE, CONVERT_RESULT_EXPR, ERROR_FALLBACK, TASK_EXEC_EXPR) \
+  @autoreleasepool { \
+    ReferenceCountedFutureImpl* future_impl = api; \
+    FIRStorageReference* my_impl = impl(); \
+    if (!my_impl || !storage_) { \
+      if (controller_out) *controller_out = Controller(); \
+      future_impl->Complete(handle, kErrorUnknown, GetErrorMessage(kErrorUnknown)); \
+      return; \
+    } \
+    if (controller_out && controller_out->internal_ == nullptr) controller_out->internal_ = new ControllerInternal(); \
+    if (controller_out && controller_out->internal_) controller_out->internal_->set_pending_valid(true); \
+    std::shared_ptr<ControllerInternal> local_controller = std::make_shared<ControllerInternal>(); \
+    firebase::util::SafeReference<ListenerInternal> listener_ref = (listener && listener->impl_) ? listener->impl_->safe_reference() : firebase::util::SafeReference<ListenerInternal>(); \
+    std::shared_ptr<ControllerInternal::LifetimeHandle> controller_handle = (controller_out && controller_out->internal_) ? controller_out->internal_->lifetime_handle() : nullptr; \
+    std::shared_ptr<StorageInternal::LifetimeToken> storage_token = storage_->lifetime_token(); \
+    __block BOOL completed = NO; \
+    auto completion = ^(id first_arg, NSError* error) { \
+      if (storage_token) { \
+        MutexLock lock(storage_token->mutex); \
+        if (completed) return; \
+        completed = YES; \
+        if (storage_token->futures_alive) { \
+          StorageInternal* alive_storage = storage_token->storage; \
+          Error error_code = NSErrorToErrorCode(error); \
+          std::string error_string = GetNSErrorMessage(error, error_code); \
+          if (error == nil && alive_storage != nullptr) { \
+            RESULT_TYPE result = (CONVERT_RESULT_EXPR); \
+            if constexpr (std::is_same_v<RESULT_TYPE, void*>) { \
+              future_impl->Complete(handle, kErrorNone, ""); \
+            } else { \
+              future_impl->CompleteWithResult(handle, kErrorNone, "", result); \
+            } \
+          } else { \
+            Error fallback_error = (error_code != kErrorNone) ? error_code : (alive_storage == nullptr ? kErrorCancelled : kErrorUnknown); \
+            const char* fallback_message = (error != nil) ? error_string.c_str() : GetErrorMessage(fallback_error); \
+            future_impl->Complete(handle, fallback_error, fallback_message); \
+          } \
+        } \
+      } \
+      SafeDetachListener(listener_ref); \
+    }; \
+    id task_obj = (TASK_EXEC_EXPR); \
+    if ([task_obj isKindOfClass:[FIRStorageObservableTask class]]) { \
+      FIRStorageObservableTask* task = (FIRStorageObservableTask*)task_obj; \
+      local_controller->set_task(task); \
+      if (controller_handle) controller_handle->AssignTask(controller_handle, storage_, task); \
+      dispatch_async(dispatch_get_main_queue(), ^{ \
+        if (storage_token) { \
+          MutexLock lock(storage_token->mutex); \
+          if (!completed && storage_token->alive && listener_ref.is_valid()) SafeAttachListener(listener_ref, task); \
+        } \
+      }); \
+    } \
+  }
+
+
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -97,19 +153,7 @@ MetadataInternal* FIRStorageMetadataToMetadata(FIRStorageMetadata* fir_meta, Sto
   return meta;
 }
 
-enum StorageReferenceFn {
-  kStorageReferenceFnDelete = 0,
-  kStorageReferenceFnGetBytes,
-  kStorageReferenceFnGetFile,
-  kStorageReferenceFnGetDownloadUrl,
-  kStorageReferenceFnGetMetadata,
-  kStorageReferenceFnUpdateMetadata,
-  kStorageReferenceFnPutBytes,
-  kStorageReferenceFnPutFile,
-  kStorageReferenceFnList,
-  kStorageReferenceFnListAll,
-  kStorageReferenceFnCount,
-};
+
 
 namespace {
 
@@ -184,13 +228,13 @@ StorageReferenceInternal::StorageReferenceInternal(
     StorageInternal* storage, std::unique_ptr<FIRStorageReferencePointer> impl)
     : storage_(storage), impl_(std::move(impl)) {
   if (storage_) {
-    storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+    
   }
 }
 
 StorageReferenceInternal::~StorageReferenceInternal() {
   if (storage_) {
-    storage_->future_manager().ReleaseFutureApi(this);
+    
   }
 }
 
@@ -199,7 +243,7 @@ StorageReferenceInternal::StorageReferenceInternal(
     : storage_(other.storage_),
       impl_(std::make_unique<FIRStorageReferencePointer>(other.impl())) {
   if (storage_) {
-    storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+    
   }
 }
 
@@ -212,11 +256,11 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   // reference starts with a fresh Future API: always release the futures that
   // belonged to the old location, even when both share the same storage_.
   if (storage_) {
-    storage_->future_manager().ReleaseFutureApi(this);
+    
   }
   storage_ = other.storage_;
   if (storage_) {
-    storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+    
   }
   impl_ = std::make_unique<FIRStorageReferencePointer>(other.impl());
   return *this;
@@ -227,7 +271,6 @@ StorageReferenceInternal::StorageReferenceInternal(
     : storage_(other.storage_), impl_(std::move(other.impl_)) {
   other.storage_ = nullptr;
   if (storage_) {
-    storage_->future_manager().MoveFutureApi(&other, this);
   }
 }
 
@@ -240,13 +283,12 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   // other.storage_: MoveFutureApi() below re-keys other's Future API to
   // `this`, which would otherwise orphan the futures previously owned here.
   if (storage_) {
-    storage_->future_manager().ReleaseFutureApi(this);
+    
   }
   storage_ = other.storage_;
   impl_ = std::move(other.impl_);
   other.storage_ = nullptr;
   if (storage_) {
-    storage_->future_manager().MoveFutureApi(&other, this);
   }
   return *this;
 }
@@ -284,84 +326,74 @@ StorageReferenceInternal* StorageReferenceInternal::Child(
   }
 }
 
-Future<void> StorageReferenceInternal::Delete() {
-  @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      return Future<void>();
+
+template <typename FutureType, typename CompletionBlockT, typename TaskBlockT>
+void RunIosTask(
+    StorageInternal* storage_,
+    SafeFutureHandle<FutureType> handle,
+    ReferenceCountedFutureImpl* future_impl,
+    internal::StorageReferenceFn fn,
+    FIRStorageReference* my_impl,
+    Listener* listener,
+    Controller* controller_out,
+    CompletionBlockT make_completion,
+    TaskBlockT execute_task) {
+  if (!my_impl || !storage_) {
+    if (controller_out) *controller_out = Controller();
+    future_impl->Complete(handle, kErrorUnknown, GetErrorMessage(kErrorUnknown));
+    return;
+  }
+  if (controller_out && controller_out->internal_ == nullptr) controller_out->internal_ = new ControllerInternal();
+  if (controller_out && controller_out->internal_) controller_out->internal_->set_pending_valid(true);
+  
+  std::shared_ptr<ControllerInternal> local_controller = std::make_shared<ControllerInternal>();
+  firebase::util::SafeReference<ListenerInternal> listener_ref =
+      (listener && listener->impl_) ? listener->impl_->safe_reference() : firebase::util::SafeReference<ListenerInternal>();
+  std::shared_ptr<ControllerInternal::LifetimeHandle> controller_handle =
+      (controller_out && controller_out->internal_) ? controller_out->internal_->lifetime_handle() : nullptr;
+  std::shared_ptr<StorageInternal::LifetimeToken> storage_token = storage_->lifetime_token();
+
+  __block BOOL completed = NO;
+  auto completion = make_completion(storage_token, completed, local_controller, listener_ref);
+  
+  FIRStorageObservableTask* task = execute_task(my_impl, completion);
+  
+  if (task != nil) {
+    local_controller->set_task(task);
+    if (controller_handle) {
+      controller_handle->AssignTask(controller_handle, storage_, task);
     }
-    SafeFutureHandle<void> handle =
-        future_impl->SafeAlloc<void>(kStorageReferenceFnDelete);
-    FIRStorageReference* my_impl = impl();
-    if (!my_impl || !storage_) {
-      future_impl->Complete(handle, kErrorUnknown,
-                            GetErrorMessage(kErrorUnknown));
-      return DeleteLastResult();
-    }
-    Future<void> retained_future = DeleteLastResult();
-    std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
-        storage_->lifetime_token();
-    // Set once the future has been completed. Only read or written with
-    // storage_token->mutex held: the completion block and the main-queue
-    // block below may run on different threads.
-    __block BOOL completed = NO;
-    FIRStorageVoidError completion = ^(NSError* error) {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (completed) return;
-      completed = YES;
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      Error error_code = NSErrorToErrorCode(error);
-      std::string error_string = GetNSErrorMessage(error, error_code);
-      if (error == nil && alive_storage != nullptr) {
-        future_impl->Complete(handle, kErrorNone, "");
-      } else {
-        Error fallback_error =
-            (error_code != kErrorNone)
-                ? error_code
-                : (alive_storage == nullptr ? kErrorCancelled : kErrorUnknown);
-        const char* fallback_message =
-            (error != nil) ? error_string.c_str()
-                           : GetErrorMessage(fallback_error);
-        future_impl->Complete(handle, fallback_error, fallback_message);
-      }
-    };
-    util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        if (!completed) {
-          completed = YES;
-          future_impl->Complete(handle, kErrorCancelled,
-                                GetErrorMessage(kErrorCancelled));
+    // Main queue for listener attachment
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (storage_token) {
+        MutexLock lock(storage_token->mutex);
+        if (!completed && storage_token->alive) {
+          if (listener_ref.is_valid()) {
+            SafeAttachListener(listener_ref, task);
+          }
         }
-        return;
       }
-      [my_impl deleteWithCompletion:completion];
     });
-    return retained_future;
+  } else {
+    // If task is nil, immediately complete with error if not already completed
+    if (storage_token) {
+      MutexLock lock(storage_token->mutex);
+      if (!completed && storage_token->futures_alive) {
+        completed = YES;
+        future_impl->Complete(handle, kErrorUnknown, GetErrorMessage(kErrorUnknown));
+      }
+    }
+    SafeDetachListener(listener_ref);
   }
 }
 
-Future<void> StorageReferenceInternal::DeleteLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl ? static_cast<const Future<void>&>(
-                           future_impl->LastResult(kStorageReferenceFnDelete))
-                     : Future<void>();
+void StorageReferenceInternal::DeleteImpl(SafeFutureHandle<void> handle, ReferenceCountedFutureImpl* api) {
+  Listener* listener = nullptr; Controller* controller_out = nullptr;
+  IOS_ASYNC_COMPLETION(void*, nullptr, kErrorUnknown,
+      [my_impl deleteWithCompletion:^(NSError* err){ ((FIRStorageVoidError)completion)(nil, err); }]);
 }
+
+
 
 std::string StorageReferenceInternal::bucket() const {
   @autoreleasepool {
@@ -389,36 +421,30 @@ std::string StorageReferenceInternal::full_path() const {
   }
 }
 
-Future<size_t> StorageReferenceInternal::GetFile(const char* path,
+void StorageReferenceInternal::GetFileImpl(const char* path,
                                                  Listener* listener,
-                                                 Controller* controller_out) {
+                                                 Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api) {
   @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      if (controller_out) *controller_out = Controller();
-      return Future<size_t>();
-    }
-    SafeFutureHandle<size_t> handle =
-        future_impl->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
+  ReferenceCountedFutureImpl* future_impl = api;
     if (!path || path[0] == '\0') {
       if (controller_out) *controller_out = Controller();
       future_impl->Complete(handle, kErrorInvalidArgument,
                             "Path cannot be null or empty.");
-      return GetFileLastResult();
+      return;
     }
     NSURL* local_file_url = ParseLocalPathToFileUrl(path);
     if (local_file_url == nil) {
       if (controller_out) *controller_out = Controller();
       future_impl->Complete(handle, kErrorInvalidArgument,
                             "Unable to convert provided path to valid URL");
-      return GetFileLastResult();
+      return;
     }
     FIRStorageReference* my_impl = impl();
     if (!my_impl || !storage_) {
       if (controller_out) *controller_out = Controller();
       future_impl->Complete(handle, kErrorUnknown,
                             GetErrorMessage(kErrorUnknown));
-      return GetFileLastResult();
+      return;
     }
 
     if (controller_out && controller_out->internal_ == nullptr) {
@@ -429,8 +455,6 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
     if (controller_out && controller_out->internal_) {
       controller_out->internal_->set_pending_valid(true);
     }
-
-    Future<size_t> retained_future = GetFileLastResult();
     std::shared_ptr<ControllerInternal> local_controller =
         std::make_shared<ControllerInternal>();
     firebase::util::SafeReference<ListenerInternal> listener_ref =
@@ -449,7 +473,6 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
     // block below may run on different threads.
     __block BOOL completed = NO;
     FIRStorageVoidURLError completion = ^(NSURL* /*url*/, NSError* error) {
-      (void)retained_future;
       if (storage_token) {
         MutexLock lock(storage_token->mutex);
         if (completed) return;
@@ -480,7 +503,6 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
     };
 
     util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
       if (!storage_token) {
         SafeResetPendingController(controller_handle);
         return;
@@ -510,44 +532,33 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
   }
 }
 
-Future<size_t> StorageReferenceInternal::GetFileLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl ? static_cast<const Future<size_t>&>(
-                           future_impl->LastResult(kStorageReferenceFnGetFile))
-                     : Future<size_t>();
-}
 
-Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
+
+void StorageReferenceInternal::GetBytesImpl(void* buffer,
                                                   size_t buffer_size,
                                                   Listener* listener,
-                                                  Controller* controller_out) {
+                                                  Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api) {
   @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      if (controller_out) *controller_out = Controller();
-      return Future<size_t>();
-    }
-    SafeFutureHandle<size_t> handle =
-        future_impl->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
+  ReferenceCountedFutureImpl* future_impl = api;
     if (!buffer) {
       if (controller_out) *controller_out = Controller();
       future_impl->Complete(handle, kErrorInvalidArgument,
                             "Buffer cannot be null.");
-      return GetBytesLastResult();
+      return;
     }
     if (buffer_size > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
       if (controller_out) *controller_out = Controller();
       future_impl->Complete(
           handle, kErrorInvalidArgument,
           "buffer_size exceeds maximum supported download size.");
-      return GetBytesLastResult();
+      return;
     }
     FIRStorageReference* my_impl = impl();
     if (!my_impl || !storage_) {
       if (controller_out) *controller_out = Controller();
       future_impl->Complete(handle, kErrorUnknown,
                             GetErrorMessage(kErrorUnknown));
-      return GetBytesLastResult();
+      return;
     }
 
     if (controller_out && controller_out->internal_ == nullptr) {
@@ -558,8 +569,6 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
     if (controller_out && controller_out->internal_) {
       controller_out->internal_->set_pending_valid(true);
     }
-
-    Future<size_t> retained_future = GetBytesLastResult();
     firebase::util::SafeReference<ListenerInternal> listener_ref =
         (listener && listener->impl_)
             ? listener->impl_->safe_reference()
@@ -577,7 +586,6 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
     __block BOOL completed = NO;
     FIRStorageVoidDataError completion =
         ^(NSData* _Nullable data, NSError* _Nullable error) {
-          (void)retained_future;
           if (storage_token) {
             MutexLock lock(storage_token->mutex);
             if (completed) return;
@@ -616,7 +624,6 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
 
     const int64_t max_download_size = static_cast<int64_t>(buffer_size);
     util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
       if (!storage_token) {
         SafeResetPendingController(controller_handle);
         return;
@@ -645,293 +652,32 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
   }
 }
 
-Future<size_t> StorageReferenceInternal::GetBytesLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl ? static_cast<const Future<size_t>&>(
-                           future_impl->LastResult(kStorageReferenceFnGetBytes))
-                     : Future<size_t>();
+
+
+void StorageReferenceInternal::GetDownloadUrlImpl(SafeFutureHandle<std::string> handle, ReferenceCountedFutureImpl* api) {
+  Listener* listener = nullptr; Controller* controller_out = nullptr;
+  IOS_ASYNC_COMPLETION(std::string, std::string([[((NSURL*)first_arg) absoluteString] UTF8String]), kErrorUnknown,
+      [my_impl downloadURLWithCompletion:(FIRStorageVoidURLError)completion]);
 }
 
-Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
-  @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      return Future<std::string>();
-    }
-    SafeFutureHandle<std::string> handle =
-        future_impl->SafeAlloc<std::string>(kStorageReferenceFnGetDownloadUrl);
-    FIRStorageReference* my_impl = impl();
-    if (!my_impl || !storage_) {
-      future_impl->Complete(handle, kErrorUnknown,
-                            GetErrorMessage(kErrorUnknown));
-      return GetDownloadUrlLastResult();
-    }
-    Future<std::string> retained_future = GetDownloadUrlLastResult();
-    std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
-        storage_->lifetime_token();
-    // Set once the future has been completed. Only read or written with
-    // storage_token->mutex held: the completion block and the main-queue
-    // block below may run on different threads.
-    __block BOOL completed = NO;
-    FIRStorageVoidURLError completion = ^(NSURL* url, NSError* error) {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (completed) return;
-      completed = YES;
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      Error error_code = NSErrorToErrorCode(error);
-      std::string error_string = GetNSErrorMessage(error, error_code);
-      // Keep the NSString in a strong local while its UTF-8 buffer is in use.
-      NSString* url_string = url ? url.absoluteString : nil;
-      const char* url_utf8 = url_string ? url_string.UTF8String : nullptr;
-      if (error == nil && url_utf8 != nullptr && alive_storage != nullptr) {
-        future_impl->CompleteWithResult(handle, kErrorNone, "",
-                                        std::string(url_utf8));
-      } else {
-        Error fallback_error =
-            (error_code != kErrorNone)
-                ? error_code
-                : (alive_storage == nullptr ? kErrorCancelled : kErrorUnknown);
-        const char* fallback_message =
-            (error != nil) ? error_string.c_str()
-                           : GetErrorMessage(fallback_error);
-        future_impl->Complete(handle, fallback_error, fallback_message);
-      }
-    };
-    util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        if (!completed) {
-          completed = YES;
-          future_impl->Complete(handle, kErrorCancelled,
-                                GetErrorMessage(kErrorCancelled));
-        }
-        return;
-      }
-      [my_impl downloadURLWithCompletion:completion];
-    });
-    return retained_future;
-  }
+
+
+void StorageReferenceInternal::GetMetadataImpl(SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  Listener* listener = nullptr; Controller* controller_out = nullptr;
+  IOS_ASYNC_COMPLETION(Metadata, Metadata(new internal::MetadataInternal((FIRStorageMetadata*)first_arg, storage_)), kErrorUnknown,
+      [my_impl metadataWithCompletion:(FIRStorageVoidMetadataError)completion]);
 }
 
-Future<std::string> StorageReferenceInternal::GetDownloadUrlLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl
-             ? static_cast<const Future<std::string>&>(
-                   future_impl->LastResult(kStorageReferenceFnGetDownloadUrl))
-             : Future<std::string>();
+
+
+void StorageReferenceInternal::UpdateMetadataImpl(const Metadata* metadata, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  Listener* listener = nullptr; Controller* controller_out = nullptr;
+  FIRStorageMetadata* ios_metadata = metadata ? metadata->internal_->impl() : nil;
+  IOS_ASYNC_COMPLETION(Metadata, Metadata(new internal::MetadataInternal((FIRStorageMetadata*)first_arg, storage_)), kErrorUnknown,
+      [my_impl updateMetadata:ios_metadata completion:(FIRStorageVoidMetadataError)completion]);
 }
 
-Future<Metadata> StorageReferenceInternal::GetMetadata() {
-  @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      return Future<Metadata>();
-    }
-    SafeFutureHandle<Metadata> handle =
-        future_impl->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadata);
-    FIRStorageReference* my_impl = impl();
-    if (!my_impl || !storage_) {
-      future_impl->CompleteWithResult(handle, kErrorUnknown,
-                                      GetErrorMessage(kErrorUnknown),
-                                      Metadata(nullptr));
-      return GetMetadataLastResult();
-    }
-    Future<Metadata> retained_future = GetMetadataLastResult();
-    std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
-        storage_->lifetime_token();
-    // Set once the future has been completed. Only read or written with
-    // storage_token->mutex held: the completion block and the main-queue
-    // block below may run on different threads.
-    __block BOOL completed = NO;
-    FIRStorageVoidMetadataError completion =
-        ^(FIRStorageMetadata* metadata, NSError* error) {
-          (void)retained_future;
-          if (!storage_token) {
-            return;
-          }
-          MutexLock lock(storage_token->mutex);
-          if (completed) return;
-          completed = YES;
-          if (!storage_token->futures_alive) {
-            return;
-          }
-          StorageInternal* alive_storage = storage_token->storage;
-          Error error_code = NSErrorToErrorCode(error);
-          std::string error_string = GetNSErrorMessage(error, error_code);
-          if (error == nil && metadata != nil && alive_storage != nullptr) {
-            FIRStorageReference* meta_ref =
-                metadata.storageReference ?: my_impl;
-            future_impl->CompleteWithResult(
-                handle, kErrorNone, "",
-                Metadata(FIRStorageMetadataToMetadata(
-                    metadata,
-                    StorageReference(new StorageReferenceInternal(
-                        alive_storage,
-                        std::make_unique<FIRStorageReferencePointer>(
-                            meta_ref))))));
-          } else {
-            Error fallback_error =
-                (error_code != kErrorNone)
-                    ? error_code
-                    : (alive_storage == nullptr ? kErrorCancelled
-                                                : kErrorUnknown);
-            const char* fallback_message =
-                (error != nil) ? error_string.c_str()
-                               : GetErrorMessage(fallback_error);
-            future_impl->CompleteWithResult(handle, fallback_error,
-                                            fallback_message, Metadata(nullptr));
-          }
-        };
-    util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        if (!completed) {
-          completed = YES;
-          future_impl->CompleteWithResult(handle, kErrorCancelled,
-                                          GetErrorMessage(kErrorCancelled),
-                                          Metadata(nullptr));
-        }
-        return;
-      }
-      [my_impl metadataWithCompletion:completion];
-    });
-    return retained_future;
-  }
-}
 
-Future<Metadata> StorageReferenceInternal::GetMetadataLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl
-             ? static_cast<const Future<Metadata>&>(
-                   future_impl->LastResult(kStorageReferenceFnGetMetadata))
-             : Future<Metadata>();
-}
-
-Future<Metadata> StorageReferenceInternal::UpdateMetadata(
-    const Metadata* metadata) {
-  @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      return Future<Metadata>();
-    }
-    SafeFutureHandle<Metadata> handle =
-        future_impl->SafeAlloc<Metadata>(kStorageReferenceFnUpdateMetadata);
-    if (!metadata || !metadata->is_valid() || !metadata->internal_) {
-      future_impl->CompleteWithResult(handle, kErrorInvalidArgument,
-                                      GetErrorMessage(kErrorInvalidArgument),
-                                      Metadata(nullptr));
-      return UpdateMetadataLastResult();
-    }
-    FIRStorageReference* my_impl = impl();
-    if (!my_impl || !storage_) {
-      future_impl->CompleteWithResult(handle, kErrorUnknown,
-                                      GetErrorMessage(kErrorUnknown),
-                                      Metadata(nullptr));
-      return UpdateMetadataLastResult();
-    }
-    Future<Metadata> retained_future = UpdateMetadataLastResult();
-    std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
-        storage_->lifetime_token();
-    // Set once the future has been completed. Only read or written with
-    // storage_token->mutex held: the completion block and the main-queue
-    // block below may run on different threads.
-    __block BOOL completed = NO;
-    FIRStorageVoidMetadataError completion =
-        ^(FIRStorageMetadata* metadata_impl, NSError* error) {
-          (void)retained_future;
-          if (!storage_token) {
-            return;
-          }
-          MutexLock lock(storage_token->mutex);
-          if (completed) return;
-          completed = YES;
-          if (!storage_token->futures_alive) {
-            return;
-          }
-          StorageInternal* alive_storage = storage_token->storage;
-          Error error_code = NSErrorToErrorCode(error);
-          std::string error_string = GetNSErrorMessage(error, error_code);
-          if (error == nil && metadata_impl != nil && alive_storage != nullptr) {
-            FIRStorageReference* meta_ref =
-                metadata_impl.storageReference ?: my_impl;
-            future_impl->CompleteWithResult(
-                handle, kErrorNone, "",
-                Metadata(FIRStorageMetadataToMetadata(
-                    metadata_impl,
-                    StorageReference(new StorageReferenceInternal(
-                        alive_storage,
-                        std::make_unique<FIRStorageReferencePointer>(
-                            meta_ref))))));
-          } else {
-            Error fallback_error =
-                (error_code != kErrorNone)
-                    ? error_code
-                    : (alive_storage == nullptr ? kErrorCancelled
-                                                : kErrorUnknown);
-            const char* fallback_message =
-                (error != nil) ? error_string.c_str()
-                               : GetErrorMessage(fallback_error);
-            future_impl->CompleteWithResult(handle, fallback_error,
-                                            fallback_message, Metadata(nullptr));
-          }
-        };
-    FIRStorageMetadata* metadata_copy =
-        MetadataToFIRStorageMetadata(*metadata->internal_);
-    util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        if (!completed) {
-          completed = YES;
-          future_impl->CompleteWithResult(handle, kErrorCancelled,
-                                          GetErrorMessage(kErrorCancelled),
-                                          Metadata(nullptr));
-        }
-        return;
-      }
-      [my_impl updateMetadata:metadata_copy completion:completion];
-    });
-    return retained_future;
-  }
-}
-
-Future<Metadata> StorageReferenceInternal::UpdateMetadataLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl
-             ? static_cast<const Future<Metadata>&>(
-                   future_impl->LastResult(kStorageReferenceFnUpdateMetadata))
-             : Future<Metadata>();
-}
 
 std::string StorageReferenceInternal::name() const {
   @autoreleasepool {
@@ -957,30 +703,25 @@ StorageReferenceInternal* StorageReferenceInternal::GetParent() const {
   }
 }
 
-Future<Metadata> StorageReferenceInternal::PutBytes(const void* buffer,
+void StorageReferenceInternal::PutBytesImpl(const void* buffer,
                                                     size_t buffer_size,
                                                     Listener* listener,
-                                                    Controller* controller_out) {
-  return PutBytes(buffer, buffer_size, nullptr, listener, controller_out);
+                                                    Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  PutBytesImpl(buffer, buffer_size, nullptr, listener, controller_out, handle, api);
+  return;
 }
 
-Future<Metadata> StorageReferenceInternal::PutBytes(
+void StorageReferenceInternal::PutBytesImpl(
     const void* buffer, size_t buffer_size, const Metadata* metadata,
-    Listener* listener, Controller* controller_out) {
+    Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
   @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      if (controller_out) *controller_out = Controller();
-      return Future<Metadata>();
-    }
-    SafeFutureHandle<Metadata> handle =
-        future_impl->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
+  ReferenceCountedFutureImpl* future_impl = api;
     if (!buffer && buffer_size > 0) {
       if (controller_out) *controller_out = Controller();
       future_impl->CompleteWithResult(handle, kErrorInvalidArgument,
                                       "Buffer cannot be null when size > 0.",
                                       Metadata(nullptr));
-      return PutBytesLastResult();
+      return;
     }
     FIRStorageReference* my_impl = impl();
     if (!my_impl || !storage_) {
@@ -988,7 +729,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
       future_impl->CompleteWithResult(handle, kErrorUnknown,
                                       GetErrorMessage(kErrorUnknown),
                                       Metadata(nullptr));
-      return PutBytesLastResult();
+      return;
     }
 
     FIRStorageMetadata* metadata_impl = nil;
@@ -1003,8 +744,6 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
     if (controller_out && controller_out->internal_) {
       controller_out->internal_->set_pending_valid(true);
     }
-
-    Future<Metadata> retained_future = PutBytesLastResult();
     firebase::util::SafeReference<ListenerInternal> listener_ref =
         (listener && listener->impl_)
             ? listener->impl_->safe_reference()
@@ -1022,7 +761,6 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
     __block BOOL completed = NO;
     FIRStorageVoidMetadataError completion =
         ^(FIRStorageMetadata* resultant_metadata, NSError* error) {
-          (void)retained_future;
           if (storage_token) {
             MutexLock lock(storage_token->mutex);
             if (completed) return;
@@ -1067,7 +805,6 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
             : [NSData data];
 
     util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
       if (!storage_token) {
         SafeResetPendingController(controller_handle);
         return;
@@ -1098,37 +835,27 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   }
 }
 
-Future<Metadata> StorageReferenceInternal::PutBytesLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl ? static_cast<const Future<Metadata>&>(
-                           future_impl->LastResult(kStorageReferenceFnPutBytes))
-                     : Future<Metadata>();
-}
 
-Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
+
+void StorageReferenceInternal::PutFileImpl(const char* path,
                                                    Listener* listener,
-                                                   Controller* controller_out) {
-  return PutFile(path, nullptr, listener, controller_out);
+                                                   Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
+  PutFileImpl(path, nullptr, listener, controller_out, handle, api);
+  return;
 }
 
-Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
+void StorageReferenceInternal::PutFileImpl(const char* path,
                                                    const Metadata* metadata,
                                                    Listener* listener,
-                                                   Controller* controller_out) {
+                                                   Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api) {
   @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      if (controller_out) *controller_out = Controller();
-      return Future<Metadata>();
-    }
-    SafeFutureHandle<Metadata> handle =
-        future_impl->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
+  ReferenceCountedFutureImpl* future_impl = api;
     if (!path || path[0] == '\0') {
       if (controller_out) *controller_out = Controller();
       future_impl->CompleteWithResult(handle, kErrorInvalidArgument,
                                       "Path cannot be null or empty.",
                                       Metadata(nullptr));
-      return PutFileLastResult();
+      return;
     }
     NSURL* local_file_url = ParseLocalPathToFileUrl(path);
     if (local_file_url == nil) {
@@ -1136,7 +863,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
       future_impl->CompleteWithResult(
           handle, kErrorInvalidArgument,
           "Unable to convert provided path to valid URL", Metadata(nullptr));
-      return PutFileLastResult();
+      return;
     }
     FIRStorageReference* my_impl = impl();
     if (!my_impl || !storage_) {
@@ -1144,7 +871,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
       future_impl->CompleteWithResult(handle, kErrorUnknown,
                                       GetErrorMessage(kErrorUnknown),
                                       Metadata(nullptr));
-      return PutFileLastResult();
+      return;
     }
 
     FIRStorageMetadata* metadata_impl = nil;
@@ -1159,8 +886,6 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
     if (controller_out && controller_out->internal_) {
       controller_out->internal_->set_pending_valid(true);
     }
-
-    Future<Metadata> retained_future = PutFileLastResult();
     firebase::util::SafeReference<ListenerInternal> listener_ref =
         (listener && listener->impl_)
             ? listener->impl_->safe_reference()
@@ -1178,7 +903,6 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
     __block BOOL completed = NO;
     FIRStorageVoidMetadataError completion =
         ^(FIRStorageMetadata* resultant_metadata, NSError* error) {
-          (void)retained_future;
           if (storage_token) {
             MutexLock lock(storage_token->mutex);
             if (completed) return;
@@ -1217,7 +941,6 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
         };
 
     util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
       if (!storage_token) {
         SafeResetPendingController(controller_handle);
         return;
@@ -1265,263 +988,27 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   }
 }
 
-Future<Metadata> StorageReferenceInternal::PutFileLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl ? static_cast<const Future<Metadata>&>(
-                           future_impl->LastResult(kStorageReferenceFnPutFile))
-                     : Future<Metadata>();
+
+
+void StorageReferenceInternal::ListImpl(int max_results_per_page, const char* page_token, SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api) {
+  Listener* listener = nullptr; Controller* controller_out = nullptr;
+  NSString* ios_page_token = page_token ? @(page_token) : nil;
+  IOS_ASYNC_COMPLETION(StorageListResult, StorageListResult(new internal::ListResultInternal((FIRStorageListResult*)first_arg, storage_)), kErrorUnknown,
+      (ios_page_token ? [my_impl listWithMaxResults:max_results_per_page pageToken:ios_page_token completion:(FIRStorageVoidListError)completion] : [my_impl listWithMaxResults:max_results_per_page completion:(FIRStorageVoidListError)completion]));
 }
 
-Future<StorageListResult> StorageReferenceInternal::List(
-    int max_results_per_page, const char* page_token) {
-  @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      return Future<StorageListResult>();
-    }
-    SafeFutureHandle<StorageListResult> handle =
-        future_impl->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
-    if (max_results_per_page <= 0 || max_results_per_page > 1000) {
-      future_impl->CompleteWithResult(
-          handle, kErrorInvalidArgument,
-          "max_results_per_page must be between 1 and 1000 inclusive.",
-          StorageListResult());
-      return ListLastResult();
-    }
-    NSString* page_token_ns = nil;
-    if (page_token && page_token[0] != '\0') {
-      page_token_ns = [NSString stringWithUTF8String:page_token];
-      if (!page_token_ns) {
-        future_impl->CompleteWithResult(handle, kErrorInvalidArgument,
-                                        "page_token is not valid UTF-8.",
-                                        StorageListResult());
-        return ListLastResult();
-      }
-    }
-    FIRStorageReference* my_impl = impl();
-    if (!my_impl || !storage_) {
-      future_impl->CompleteWithResult(handle, kErrorUnknown,
-                                      GetErrorMessage(kErrorUnknown),
-                                      StorageListResult());
-      return ListLastResult();
-    }
-    Future<StorageListResult> retained_future = ListLastResult();
-    std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
-        storage_->lifetime_token();
 
-    // Set once the future has been completed. Only read or written with
-    // storage_token->mutex held: the completion block and the main-queue
-    // block below may run on different threads.
-    __block BOOL completed = NO;
-    auto completion =
-        ^(FIRStorageListResult* _Nullable result, NSError* _Nullable error) {
-          (void)retained_future;
-          if (!storage_token) {
-            return;
-          }
-          MutexLock lock(storage_token->mutex);
-          if (completed) return;
-          completed = YES;
-          if (!storage_token->futures_alive) {
-            return;
-          }
-          StorageInternal* alive_storage = storage_token->storage;
-          Error error_code = NSErrorToErrorCode(error);
-          std::string error_string = GetNSErrorMessage(error, error_code);
-          if (error == nil && result != nil && alive_storage != nullptr) {
-            std::vector<StorageReference> prefixes;
-            std::vector<StorageReference> items;
-            NSString* next_page_token = result.pageToken;
 
-            auto process_refs = [&](NSArray<FIRStorageReference*>* refs,
-                                    std::vector<StorageReference>& out_vec) {
-              for (FIRStorageReference* ref in refs) {
-                out_vec.push_back(StorageReference(new StorageReferenceInternal(
-                    alive_storage,
-                    std::make_unique<FIRStorageReferencePointer>(ref))));
-              }
-            };
-            process_refs(result.prefixes, prefixes);
-            process_refs(result.items, items);
-
-            // next_page_token is a strong local, so its UTF-8 buffer
-            // stays valid until StorageListResultInternal copies it.
-            const char* token_cstr =
-                next_page_token ? next_page_token.UTF8String : nullptr;
-            if (!token_cstr) {
-              token_cstr = "";
-            }
-            internal::StorageListResultInternal* list_result_internal =
-                new internal::StorageListResultInternal(
-                    std::move(prefixes), std::move(items), token_cstr);
-            future_impl->CompleteWithResult(
-                handle, kErrorNone, "",
-                internal::StorageListResultInternal::AsStorageListResult(
-                    list_result_internal));
-          } else {
-            Error fallback_error =
-                (error_code != kErrorNone)
-                    ? error_code
-                    : (alive_storage == nullptr ? kErrorCancelled
-                                                : kErrorUnknown);
-            const char* fallback_message =
-                (error != nil) ? error_string.c_str()
-                               : GetErrorMessage(fallback_error);
-            future_impl->CompleteWithResult(
-                handle, fallback_error, fallback_message, StorageListResult());
-          }
-        };
-
-    util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        if (!completed) {
-          completed = YES;
-          future_impl->CompleteWithResult(handle, kErrorCancelled,
-                                          GetErrorMessage(kErrorCancelled),
-                                          StorageListResult());
-        }
-        return;
-      }
-      if (page_token_ns) {
-        [my_impl listWithMaxResults:max_results_per_page
-                          pageToken:page_token_ns
-                         completion:completion];
-      } else {
-        [my_impl listWithMaxResults:max_results_per_page completion:completion];
-      }
-    });
-
-    return retained_future;
-  }
+void StorageReferenceInternal::ListAllImpl(SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api) {
+  Listener* listener = nullptr; Controller* controller_out = nullptr;
+  IOS_ASYNC_COMPLETION(StorageListResult, StorageListResult(new internal::ListResultInternal((FIRStorageListResult*)first_arg, storage_)), kErrorUnknown,
+      [my_impl listAllWithCompletion:(FIRStorageVoidListError)completion]);
 }
 
-Future<StorageListResult> StorageReferenceInternal::ListLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl ? static_cast<const Future<StorageListResult>&>(
-                           future_impl->LastResult(kStorageReferenceFnList))
-                     : Future<StorageListResult>();
-}
 
-Future<StorageListResult> StorageReferenceInternal::ListAll() {
-  @autoreleasepool {
-    ReferenceCountedFutureImpl* future_impl = future();
-    if (!future_impl) {
-      return Future<StorageListResult>();
-    }
-    SafeFutureHandle<StorageListResult> handle =
-        future_impl->SafeAlloc<StorageListResult>(kStorageReferenceFnListAll);
-    FIRStorageReference* my_impl = impl();
-    if (!my_impl || !storage_) {
-      future_impl->CompleteWithResult(handle, kErrorUnknown,
-                                      GetErrorMessage(kErrorUnknown),
-                                      StorageListResult());
-      return ListAllLastResult();
-    }
-    Future<StorageListResult> retained_future = ListAllLastResult();
-    std::shared_ptr<StorageInternal::LifetimeToken> storage_token =
-        storage_->lifetime_token();
-
-    // Set once the future has been completed. Only read or written with
-    // storage_token->mutex held: the completion block and the main-queue
-    // block below may run on different threads.
-    __block BOOL completed = NO;
-    auto completion =
-        ^(FIRStorageListResult* _Nullable result, NSError* _Nullable error) {
-          (void)retained_future;
-          if (!storage_token) {
-            return;
-          }
-          MutexLock lock(storage_token->mutex);
-          if (completed) return;
-          completed = YES;
-          if (!storage_token->futures_alive) {
-            return;
-          }
-          StorageInternal* alive_storage = storage_token->storage;
-          Error error_code = NSErrorToErrorCode(error);
-          std::string error_string = GetNSErrorMessage(error, error_code);
-          if (error == nil && result != nil && alive_storage != nullptr) {
-            std::vector<StorageReference> prefixes;
-            std::vector<StorageReference> items;
-
-            auto process_refs = [&](NSArray<FIRStorageReference*>* refs,
-                                    std::vector<StorageReference>& out_vec) {
-              for (FIRStorageReference* ref in refs) {
-                out_vec.push_back(StorageReference(new StorageReferenceInternal(
-                    alive_storage,
-                    std::make_unique<FIRStorageReferencePointer>(ref))));
-              }
-            };
-            process_refs(result.prefixes, prefixes);
-            process_refs(result.items, items);
-
-            internal::StorageListResultInternal* list_result_internal =
-                new internal::StorageListResultInternal(
-                    std::move(prefixes), std::move(items), std::string());
-            future_impl->CompleteWithResult(
-                handle, kErrorNone, "",
-                internal::StorageListResultInternal::AsStorageListResult(
-                    list_result_internal));
-          } else {
-            Error fallback_error =
-                (error_code != kErrorNone)
-                    ? error_code
-                    : (alive_storage == nullptr ? kErrorCancelled
-                                                : kErrorUnknown);
-            const char* fallback_message =
-                (error != nil) ? error_string.c_str()
-                               : GetErrorMessage(fallback_error);
-            future_impl->CompleteWithResult(
-                handle, fallback_error, fallback_message, StorageListResult());
-          }
-        };
-
-    util::DispatchAsyncSafeMainQueue(^() {
-      (void)retained_future;
-      if (!storage_token) {
-        return;
-      }
-      MutexLock lock(storage_token->mutex);
-      if (!storage_token->futures_alive) {
-        return;
-      }
-      StorageInternal* alive_storage = storage_token->storage;
-      if (!alive_storage) {
-        if (!completed) {
-          completed = YES;
-          future_impl->CompleteWithResult(handle, kErrorCancelled,
-                                          GetErrorMessage(kErrorCancelled),
-                                          StorageListResult());
-        }
-        return;
-      }
-      [my_impl listAllWithCompletion:completion];
-    });
-
-    return retained_future;
-  }
-}
-
-Future<StorageListResult> StorageReferenceInternal::ListAllLastResult() const {
-  ReferenceCountedFutureImpl* future_impl = future();
-  return future_impl ? static_cast<const Future<StorageListResult>&>(
-                           future_impl->LastResult(kStorageReferenceFnListAll))
-                     : Future<StorageListResult>();
-}
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() const {
-  return storage_ ? storage_->future_manager().GetFutureApi(
-                        const_cast<StorageReferenceInternal*>(this))
-                  : nullptr;
+  return const_cast<ReferenceCountedFutureImpl*>(&future_api_);
 }
 
 }  // namespace internal

@@ -37,6 +37,21 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
+enum StorageReferenceFn {
+  kStorageReferenceFnDelete = 0,
+  kStorageReferenceFnGetBytes,
+  kStorageReferenceFnGetFile,
+  kStorageReferenceFnGetDownloadUrl,
+  kStorageReferenceFnGetMetadata,
+  kStorageReferenceFnUpdateMetadata,
+  kStorageReferenceFnPutBytes,
+  kStorageReferenceFnPutFile,
+  kStorageReferenceFnList,
+  kStorageReferenceFnListAll,
+  kStorageReferenceFnCount,
+};
+
+
 // This defines the class FIRStorageReferencePointer, which is a C++-compatible
 // wrapper around the FIRStorageReference Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRStorageReference);
@@ -46,6 +61,7 @@ OBJ_C_PTR_WRAPPER(FIRStorageObservableTask);
 
 class StorageReferenceInternal {
  public:
+  ReferenceCountedFutureImpl* future() const;
   explicit StorageReferenceInternal(
       StorageInternal* _Nonnull storage,
       std::unique_ptr<FIRStorageReferencePointer> impl);
@@ -79,11 +95,7 @@ class StorageReferenceInternal {
   StorageReferenceInternal* _Nullable Child(const char* _Nullable path) const;
 
   // Deletes the object at the current path.
-  Future<void> Delete();
-
-  // Returns the result of the most recent call to Delete();
-  Future<void> DeleteLastResult() const;
-
+  void DeleteImpl(SafeFutureHandle<void> handle, ReferenceCountedFutureImpl* api);
   // Return the Google Cloud Storage bucket that holds this object.
   std::string bucket() const;
 
@@ -91,40 +103,20 @@ class StorageReferenceInternal {
   std::string full_path() const;
 
   // Asynchronously downloads the object from this StorageReferenceInternal.
-  Future<size_t> GetFile(const char* _Nullable path,
+  void GetFileImpl(const char* _Nullable path,
                          Listener* _Nullable listener,
-                         Controller* _Nullable controller_out);
-
-  // Returns the result of the most recent call to GetFile();
-  Future<size_t> GetFileLastResult() const;
-
+                         Controller* _Nullable controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api);
   // Asynchronously downloads the object from this StorageReferenceInternal.
-  Future<size_t> GetBytes(void* _Nullable buffer, size_t buffer_size,
+  void GetBytesImpl(void* _Nullable buffer, size_t buffer_size,
                           Listener* _Nullable listener,
-                          Controller* _Nullable controller_out);
-
-  // Returns the result of the most recent call to GetBytes();
-  Future<size_t> GetBytesLastResult() const;
-
+                          Controller* _Nullable controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api);
   // Asynchronously retrieves a long lived download URL with a revokable token.
-  Future<std::string> GetDownloadUrl();
-
-  // Returns the result of the most recent call to GetDownloadUrl();
-  Future<std::string> GetDownloadUrlLastResult() const;
-
+  void GetDownloadUrlImpl(SafeFutureHandle<std::string> handle, ReferenceCountedFutureImpl* api);
   // Retrieves metadata associated with an object at this
   // StorageReferenceInternal.
-  Future<Metadata> GetMetadata();
-
-  // Returns the result of the most recent call to GetMetadata();
-  Future<Metadata> GetMetadataLastResult() const;
-
+  void GetMetadataImpl(SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
   // Updates the metadata associated with this StorageReferenceInternal.
-  Future<Metadata> UpdateMetadata(const Metadata* _Nullable metadata);
-
-  // Returns the result of the most recent call to UpdateMetadata();
-  Future<Metadata> UpdateMetadataLastResult() const;
-
+  void UpdateMetadataImpl(const Metadata* _Nullable metadata, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
   // Returns the short name of this object.
   std::string name() const;
 
@@ -134,49 +126,33 @@ class StorageReferenceInternal {
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutBytes(const void* _Nullable buffer, size_t buffer_size,
+  void PutBytesImpl(const void* _Nullable buffer, size_t buffer_size,
                             Listener* _Nullable listener,
-                            Controller* _Nullable controller_out);
+                            Controller* _Nullable controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutBytes(const void* _Nullable buffer, size_t buffer_size,
+  void PutBytesImpl(const void* _Nullable buffer, size_t buffer_size,
                             const Metadata* _Nullable metadata,
                             Listener* _Nullable listener,
-                            Controller* _Nullable controller_out);
-
-  // Returns the result of the most recent call to PutBytes();
-  Future<Metadata> PutBytesLastResult() const;
-
+                            Controller* _Nullable controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutFile(const char* _Nullable path,
+  void PutFileImpl(const char* _Nullable path,
                            Listener* _Nullable listener,
-                           Controller* _Nullable controller_out);
+                           Controller* _Nullable controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutFile(const char* _Nullable path,
+  void PutFileImpl(const char* _Nullable path,
                            const Metadata* _Nullable metadata,
                            Listener* _Nullable listener,
-                           Controller* _Nullable controller_out);
-
-  // Returns the result of the most recent call to PutFile();
-  Future<Metadata> PutFileLastResult() const;
-
+                           Controller* _Nullable controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
   // List items (files) and prefixes (folders) under this StorageReference.
-  Future<StorageListResult> List(int max_results_per_page,
-                                 const char* _Nullable page_token);
-
-  // Returns the result of the most recent call to List();
-  Future<StorageListResult> ListLastResult() const;
-
+  void ListImpl(int max_results_per_page,
+                                 const char* _Nullable page_token, SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api);
   // List all items (files) and prefixes (folders) under this StorageReference.
-  Future<StorageListResult> ListAll();
-
-  // Returns the result of the most recent call to ListAll();
-  Future<StorageListResult> ListAllLastResult() const;
-
+  void ListAllImpl(SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api);
   // StorageInternal instance we are associated with.
   StorageInternal* _Nullable storage_internal() const { return storage_; }
 

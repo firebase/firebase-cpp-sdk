@@ -185,8 +185,6 @@ StorageInternal::~StorageInternal() {
   }
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
-
-  cleanup_.CleanupAll();
   JNIEnv* env = app_->GetJNIEnv();
   firebase::util::CancelCallbacks(env, jni_task_id_.c_str());
   if (obj_ != nullptr) {

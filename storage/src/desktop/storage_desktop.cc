@@ -138,7 +138,6 @@ StorageInternal::~StorageInternal() {
   }
 
   CleanupCompletedOperations();
-  cleanup_.CleanupAll();
   CleanupAllOperations();
   firebase::rest::CleanupTransportCurl();
   firebase::rest::util::Terminate();

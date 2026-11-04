@@ -19,9 +19,8 @@
 #include <memory>
 #include <string>
 
-#include "app/src/cleanup_notifier.h"
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
@@ -133,14 +132,11 @@ class StorageInternal {
   // default remote backend
   void UseEmulator(const char* _Nullable host, int port);
 
-  FutureManager& future_manager() { return future_manager_; }
-
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const;
 
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
 
   std::shared_ptr<LifetimeToken> lifetime_token() const {
     return lifetime_token_;
@@ -156,14 +152,12 @@ class StorageInternal {
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStoragePointer> impl_;
 
-  FutureManager future_manager_;
-
   std::string url_;
 
-  CleanupNotifier cleanup_;
-
   std::shared_ptr<LifetimeToken> lifetime_token_;
+  CleanupNotifier cleanup_;
 };
+
 
 }  // namespace internal
 }  // namespace storage

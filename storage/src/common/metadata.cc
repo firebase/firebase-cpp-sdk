@@ -145,7 +145,7 @@ class MetadataInternalCommon {
     }
   }
 
-  static void Release(Metadata* handle) {
+      static void Release(Metadata* handle) {
     MetadataInternal* internal = nullptr;
     StorageInternal* storage = nullptr;
     StorageToken token;
@@ -164,13 +164,9 @@ class MetadataInternalCommon {
       }
     }
     if (storage != nullptr) {
-      const bool unregistered = RunWhileStorageAlive(
-          token, storage, [internal](StorageInternal& alive_storage) {
-            alive_storage.cleanup().UnregisterObject(internal);
-          });
-      if (!unregistered) {
-        return;
-      }
+      RunWhileStorageAlive(token, storage, [&](StorageInternal& alive) {
+        alive.cleanup().UnregisterObject(internal);
+      });
       std::lock_guard<std::mutex> lock(HandleMutex());
       if (Owners().erase(internal) == 0) {
         return;

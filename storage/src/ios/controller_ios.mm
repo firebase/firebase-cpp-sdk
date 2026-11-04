@@ -97,10 +97,7 @@ void ControllerInternal::LifetimeHandle::AssignTask(
         // lifetime token was marked dead; UnregisterObject() is only called
         // under a live token, so it never waits for this callback. Hence the
         // callback may simply block on `mutex`.
-        new_storage->cleanup().RegisterObject(ctx, [](void* obj) {
-          std::unique_ptr<CleanupContext> ctx_holder(
-              static_cast<CleanupContext*>(obj));
-          std::shared_ptr<LifetimeHandle> locked = ctx_holder->handle.lock();
+                  std::shared_ptr<LifetimeHandle> locked = ctx_holder->handle.lock();
           if (!locked) {
             return;  // The handle is gone or being destroyed.
           }
@@ -159,12 +156,7 @@ void ControllerInternal::LifetimeHandle::AssignTask(
       }
     }
   }
-  if (stale_token && stale_ctx != nullptr) {
-    stale_token->RunWhileAlive([stale_ctx](StorageInternal& alive_storage) {
-      alive_storage.cleanup().UnregisterObject(stale_ctx);
-      delete stale_ctx;
-    });
-  }
+
 }
 
 ControllerInternal::ControllerInternal()

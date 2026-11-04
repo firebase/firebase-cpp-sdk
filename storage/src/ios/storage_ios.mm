@@ -66,8 +66,6 @@ StorageInternal::StorageInternal(App* _Nullable app, const char* _Nullable url)
     }
   }
   if (impl()) {
-    cleanup_.RegisterObject(this, [](void* obj) {
-      auto* self = static_cast<StorageInternal*>(obj);
       if (self->lifetime_token_) {
         MutexLock lock(self->lifetime_token_->mutex);
         self->lifetime_token_->storage = nullptr;
@@ -81,11 +79,9 @@ StorageInternal::~StorageInternal() {
     MutexLock lock(lifetime_token_->mutex);
     lifetime_token_->storage = nullptr;
   }
-  cleanup_.CleanupAll();
   if (lifetime_token_) {
     MutexLock lock(lifetime_token_->mutex);
     lifetime_token_->futures_alive = false;
-    future_manager_.CleanupOrphanedFutureApis(/*force_delete_all=*/true);
   }
 }
 
@@ -102,7 +98,6 @@ bool StorageInternal::LifetimeToken::RunWhileAlive(
 void StorageInternal::LifetimeToken::UnregisterCleanupObject(
     void* _Nonnull object) {
   RunWhileAlive([object](StorageInternal& alive_storage) {
-    alive_storage.cleanup().UnregisterObject(object);
   });
 }
 

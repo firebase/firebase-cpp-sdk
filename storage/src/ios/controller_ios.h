@@ -53,12 +53,6 @@ class ControllerInternal {
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token;
     // Incremented on every cleanup registration so a callback belonging to a
     // superseded registration can tell it no longer owns the binding.
-    uint64_t cleanup_generation = 0;
-    struct CleanupContext {
-      std::weak_ptr<LifetimeHandle> handle;
-      uint64_t generation;
-    };
-    CleanupContext* _Nullable cleanup_ctx = nullptr;
     std::unique_ptr<FIRStorageObservableTaskPointer> task_impl;
     uint64_t action_generation = 0;
     bool pending_valid = false;

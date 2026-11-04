@@ -24,9 +24,9 @@
 #include <string>
 
 #include "app/src/cleanup_notifier.h"
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
@@ -109,14 +109,11 @@ class StorageInternal {
   Error ErrorFromJavaStorageException(jobject java_error,
                                       std::string* error_message) const;
 
-  FutureManager& future_manager() { return future_manager_; }
-
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return app_ != nullptr && obj_ != nullptr; }
 
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
 
   // Used for registering global callbacks. See
   // firebase::util::RegisterCallbackOnTask for context.
@@ -151,11 +148,7 @@ class StorageInternal {
   // Java FirebaseStorage global ref.
   jobject obj_ = nullptr;
 
-  FutureManager future_manager_;
-
   std::string url_;
-
-  CleanupNotifier cleanup_;
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;

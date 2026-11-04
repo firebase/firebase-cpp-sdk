@@ -26,8 +26,8 @@
 #include <vector>
 
 #include "app/src/cleanup_notifier.h"
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/desktop/callback_dispatcher.h"
 #include "storage/src/desktop/storage_path.h"
@@ -116,11 +116,10 @@ class StorageInternal {
 
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
-  FutureManager& future_manager() { return future_manager_; }
-  CleanupNotifier& cleanup() { return cleanup_; }
 
   // Shared token used to coordinate lifetime with detached retry threads and
   // async responses.
+  CleanupNotifier& cleanup() { return cleanup_; }
   const std::shared_ptr<LifetimeToken>& lifetime_token() const {
     return lifetime_token_;
   }
@@ -184,16 +183,14 @@ class StorageInternal {
       std::make_shared<LifetimeToken>();
   App* app_ = nullptr;
 
-  FutureManager future_manager_;
-
   std::string url_;
 
   std::atomic<double> max_download_retry_time_{600.0};
   std::atomic<double> max_operation_retry_time_{120.0};
   std::atomic<double> max_upload_retry_time_{600.0};
   StoragePath root_;
-
   CleanupNotifier cleanup_;
+
   std::string user_agent_;
   std::mutex operations_mutex_;
   std::condition_variable operations_cv_;

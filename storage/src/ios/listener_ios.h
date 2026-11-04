@@ -116,7 +116,6 @@ class ListenerInternal {
     // if it was not registered.
     std::shared_ptr<StorageInternal::LifetimeToken> storage_token;
     // Opaque CleanupContext* registered with storage_token's CleanupNotifier.
-    void* _Nullable cleanup_ctx = nullptr;
   };
 
   // Detaches the current task (if any) under mutex_. Does not wait for
@@ -169,7 +168,6 @@ class ListenerInternal {
   std::shared_ptr<StorageInternal::LifetimeToken> storage_token_;
   // Incremented on every cleanup registration so a callback belonging to a
   // superseded registration can tell it no longer owns the attachment.
-  uint64_t cleanup_generation_ = 0;
   bool destroying_ = false;
 
   // Task monitored by this listener.
