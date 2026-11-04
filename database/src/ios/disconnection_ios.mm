@@ -14,6 +14,8 @@
 
 #include "database/src/ios/disconnection_ios.h"
 
+#include <utility>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_ios.h"
@@ -28,75 +30,46 @@ namespace internal {
 
 using util::VariantToId;
 
-enum DisconnectionHandlerFn {
-  kDisconnectionHandlerFnCancel = 0,
-  kDisconnectionHandlerFnRemoveValue,
-  kDisconnectionHandlerFnSetValue,
-  kDisconnectionHandlerFnSetValueAndPriority,
-  kDisconnectionHandlerFnUpdateChildren,
-  kDisconnectionHandlerFnCount,
-};
-
 DisconnectionHandlerInternal::DisconnectionHandlerInternal(
-    DatabaseInternal* database, std::unique_ptr<FIRDatabaseReferencePointer> impl)
-    : database_(database), impl_(std::move(impl)) {
-  database_->future_manager().AllocFutureApi(this, kDisconnectionHandlerFnCount);
-}
+    DatabaseInternal* database,
+    std::unique_ptr<FIRDatabaseReferencePointer> impl)
+    : database_(database), impl_(std::move(impl)), future_api_(database) {}
 
-DisconnectionHandlerInternal::~DisconnectionHandlerInternal() {
-  database_->future_manager().ReleaseFutureApi(this);
-}
+DisconnectionHandlerInternal::~DisconnectionHandlerInternal() = default;
 
 void DisconnectionHandlerInternal::CancelImpl(SafeFutureHandle<void> handle) {
-  [impl() cancelDisconnectOperationsWithCompletionBlock:CreateCompletionBlock(handle, future())];
+  [impl() cancelDisconnectOperationsWithCompletionBlock:CreateCompletionBlock(
+                                                            handle, future())];
 }
 
-
-void DisconnectionHandlerInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
-  [impl() onDisconnectRemoveValueWithCompletionBlock:CreateCompletionBlock(handle, future())];
+void DisconnectionHandlerInternal::RemoveValueImpl(
+    SafeFutureHandle<void> handle) {
+  [impl() onDisconnectRemoveValueWithCompletionBlock:CreateCompletionBlock(
+                                                         handle, future())];
 }
 
-
-void DisconnectionHandlerInternal::SetValueImpl(Variant value, SafeFutureHandle<void> handle) {
-  if (future()->LastResult(kDisconnectionHandlerFnSetValueAndPriority).status() ==
-      kFutureStatusPending) {
-    future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
-  } else {
-    [impl() onDisconnectSetValue:VariantToId(value)
-             withCompletionBlock:CreateCompletionBlock(handle, future())];
-  }
+void DisconnectionHandlerInternal::SetValueImpl(Variant value,
+                                                SafeFutureHandle<void> handle) {
+  [impl() onDisconnectSetValue:VariantToId(value)
+           withCompletionBlock:CreateCompletionBlock(handle, future())];
 }
 
-
-void DisconnectionHandlerInternal::SetValueAndPriorityImpl(Variant value, Variant priority, SafeFutureHandle<void> handle) {
-  if (future()->LastResult(kDisconnectionHandlerFnSetValue).status() == kFutureStatusPending) {
-    future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
-  } else if (!IsValidPriority(priority)) {
-    future()->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForPriority);
-  } else {
-    [impl() onDisconnectSetValue:VariantToId(value)
-                     andPriority:VariantToId(priority)
-             withCompletionBlock:CreateCompletionBlock(handle, future())];
-  }
+void DisconnectionHandlerInternal::SetValueAndPriorityImpl(
+    Variant value, Variant priority, SafeFutureHandle<void> handle) {
+  [impl() onDisconnectSetValue:VariantToId(value)
+                   andPriority:VariantToId(priority)
+           withCompletionBlock:CreateCompletionBlock(handle, future())];
 }
 
-
-void DisconnectionHandlerInternal::UpdateChildrenImpl(Variant values, SafeFutureHandle<void> handle) {
-  if (!values.is_map()) {
-    future()->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForUpdateChildren);
-  } else {
-    id values_id = VariantToId(values);
-    NSDictionary *values_dict = (NSDictionary *)values_id;
-    [impl() onDisconnectUpdateChildValues:values_dict
-                      withCompletionBlock:CreateCompletionBlock(handle, future())];
-  }
+void DisconnectionHandlerInternal::UpdateChildrenImpl(
+    Variant values, SafeFutureHandle<void> handle) {
+  [impl() onDisconnectUpdateChildValues:(NSDictionary*)VariantToId(values)
+                    withCompletionBlock:CreateCompletionBlock(handle,
+                                                              future())];
 }
 
-
-FIRDatabaseReference* _Nonnull DisconnectionHandlerInternal::impl() const { return impl_->get(); }
-
-ReferenceCountedFutureImpl* DisconnectionHandlerInternal::future() {
-  return database_->future_manager().GetFutureApi(this);
+FIRDatabaseReference* _Nonnull DisconnectionHandlerInternal::impl() const {
+  return impl_->get();
 }
 
 }  // namespace internal

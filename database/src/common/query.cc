@@ -20,7 +20,6 @@
 #include "database/src/include/firebase/database.h"
 #include "database/src/include/firebase/database/query.h"
 
-// QueryInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "database/src/android/database_android.h"
 #include "database/src/android/query_android.h"
@@ -33,8 +32,7 @@
 #else
 #include "database/src/stub/database_stub.h"
 #include "database/src/stub/query_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
-        // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
+#endif
 
 #include "database/src/common/cleanup.h"
 
@@ -76,8 +74,9 @@ Query::Query(const Query& src)
 }
 
 Query& Query::operator=(const Query& src) {
-  if (&src == this) return *this;
-  SetInternal(src.internal_ ? new QueryInternal(*src.internal_) : nullptr);
+  if (&src != this) {
+    SetInternal(src.internal_ ? new QueryInternal(*src.internal_) : nullptr);
+  }
   return *this;
 }
 
@@ -89,17 +88,18 @@ Query::Query(Query&& query) : internal_(nullptr) {
 }
 
 Query& Query::operator=(Query&& query) {
-  if (&query == this) return *this;
-  query.UnregisterCleanup();
-  QueryInternal* internal = query.internal_;
-  query.internal_ = nullptr;
-  SetInternal(internal);
+  if (&query != this) {
+    query.UnregisterCleanup();
+    QueryInternal* internal = query.internal_;
+    query.internal_ = nullptr;
+    SetInternal(internal);
+  }
   return *this;
 }
 
 bool operator==(const Query& lhs, const Query& rhs) {
-  if (!lhs.is_valid() && !rhs.is_valid()) return true;   // both invalid
-  if (!lhs.is_valid() || !rhs.is_valid()) return false;  // only one invalid
+  if (!lhs.is_valid() && !rhs.is_valid()) return true;
+  if (!lhs.is_valid() || !rhs.is_valid()) return false;
   return lhs.internal_->database_internal() ==
              rhs.internal_->database_internal() &&
          lhs.internal_->query_spec() == rhs.internal_->query_spec();
@@ -113,107 +113,96 @@ Query::~Query() {
 Future<DataSnapshot> Query::GetValue() {
   if (!internal_) return Future<DataSnapshot>();
   ReferenceCountedFutureImpl* api = internal_->query_future();
-  SafeFutureHandle<DataSnapshot> handle = api->SafeAlloc<DataSnapshot>(internal::kQueryFnGetValue);
+  if (!api) return Future<DataSnapshot>();
+  SafeFutureHandle<DataSnapshot> handle =
+      api->SafeAlloc<DataSnapshot>(internal::kQueryFnGetValue,
+                                   DataSnapshot(nullptr));
   internal_->GetValueImpl(handle);
   return MakeFuture(api, handle);
 }
 
+Future<DataSnapshot> Query::GetValueLastResult() {
+  return (internal_ && internal_->query_future())
+             ? static_cast<const Future<DataSnapshot>&>(
+                   internal_->query_future()->LastResult(
+                       internal::kQueryFnGetValue))
+             : Future<DataSnapshot>();
+}
 
 void Query::AddValueListener(ValueListener* listener) {
   if (internal_ && listener) internal_->AddValueListener(listener);
 }
-
 void Query::RemoveValueListener(ValueListener* listener) {
   if (internal_ && listener) internal_->RemoveValueListener(listener);
 }
-
 void Query::RemoveAllValueListeners() {
   if (internal_) internal_->RemoveAllValueListeners();
 }
-
 void Query::AddChildListener(ChildListener* listener) {
   if (internal_ && listener) internal_->AddChildListener(listener);
 }
-
 void Query::RemoveChildListener(ChildListener* listener) {
   if (internal_ && listener) internal_->RemoveChildListener(listener);
 }
-
 void Query::RemoveAllChildListeners() {
   if (internal_) internal_->RemoveAllChildListeners();
 }
-
 DatabaseReference Query::GetReference() const {
   return internal_ ? DatabaseReference(internal_->GetReference())
                    : DatabaseReference(nullptr);
 }
-
 void Query::SetKeepSynchronized(bool keep_sync) {
   if (internal_) internal_->SetKeepSynchronized(keep_sync);
 }
-
 Query Query::OrderByChild(const char* path) {
   return internal_ && path ? Query(internal_->OrderByChild(path))
                            : Query(nullptr);
 }
-
 Query Query::OrderByChild(const std::string& path) {
   return OrderByChild(path.c_str());
 }
-
 Query Query::OrderByKey() {
   return internal_ ? Query(internal_->OrderByKey()) : Query(nullptr);
 }
-
 Query Query::OrderByPriority() {
   return internal_ ? Query(internal_->OrderByPriority()) : Query(nullptr);
 }
-
 Query Query::OrderByValue() {
   return internal_ ? Query(internal_->OrderByValue()) : Query(nullptr);
 }
-
 Query Query::StartAt(Variant order_value) {
   return internal_ ? Query(internal_->StartAt(std::move(order_value)))
                    : Query(nullptr);
 }
-
 Query Query::StartAt(Variant order_value, const char* child_key) {
   return internal_ && child_key
              ? Query(internal_->StartAt(std::move(order_value), child_key))
              : Query(nullptr);
 }
-
 Query Query::EndAt(Variant order_value) {
   return internal_ ? Query(internal_->EndAt(std::move(order_value)))
                    : Query(nullptr);
 }
-
 Query Query::EndAt(Variant order_value, const char* child_key) {
   return internal_ && child_key
              ? Query(internal_->EndAt(std::move(order_value), child_key))
              : Query(nullptr);
 }
-
 Query Query::EqualTo(Variant order_value) {
   return internal_ ? Query(internal_->EqualTo(std::move(order_value)))
                    : Query(nullptr);
 }
-
 Query Query::EqualTo(Variant order_value, const char* child_key) {
   return internal_ && child_key
              ? Query(internal_->EqualTo(std::move(order_value), child_key))
              : Query(nullptr);
 }
-
 Query Query::LimitToFirst(size_t limit) {
   return internal_ ? Query(internal_->LimitToFirst(limit)) : Query(nullptr);
 }
-
 Query Query::LimitToLast(size_t limit) {
   return internal_ ? Query(internal_->LimitToLast(limit)) : Query(nullptr);
 }
-
 bool Query::is_valid() const { return internal_ != nullptr; }
 
 }  // namespace database

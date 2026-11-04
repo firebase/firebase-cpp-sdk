@@ -26,6 +26,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/android/query_android.h"
+#include "database/src/common/database_reference.h"
 #include "database/src/include/firebase/database/disconnection.h"
 #include "database/src/include/firebase/database/query.h"
 #include "database/src/include/firebase/database/transaction.h"
@@ -40,94 +41,51 @@ class DatabaseReferenceInternal : public QueryInternal {
  public:
   DatabaseReferenceInternal(DatabaseInternal* database,
                             jobject database_reference_obj);
-
   ~DatabaseReferenceInternal() override;
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
-
   DatabaseReferenceInternal& operator=(
       const DatabaseReferenceInternal& reference);
-
   DatabaseReferenceInternal(DatabaseReferenceInternal&& reference) noexcept;
-
   DatabaseReferenceInternal& operator=(
       DatabaseReferenceInternal&& reference) noexcept;
 
   Database* GetDatabase() const;
-
-  // Returns the key. Cached by this instance.
   const char* GetKey();
-
-  // Returns the key, cached by this instance.
   const std::string& GetKeyString();
-
-  // Return true if this is the root node, false otherwise.
   bool IsRoot() const;
-
-  // Get the parent node. Or if we are the parent, then ourselves again.
-  //
-  // This should be passed to a DatabaseReference for lifetime management.
   DatabaseReferenceInternal* GetParent() const;
-
-  // This should be passed to a DatabaseReference for lifetime management.
   DatabaseReferenceInternal* GetRoot() const;
-
-  // This should be passed to a DatabaseReference for lifetime management.
   DatabaseReferenceInternal* Child(const char* path) const;
-
-  // This should be passed to a DatabaseReference for lifetime management.
   DatabaseReferenceInternal* PushChild() const;
 
   void RemoveValueImpl(SafeFutureHandle<void> handle);
-
-  
   Future<DataSnapshot> RunTransaction(
       DoTransactionWithContext transaction_function, void* context,
       void (*delete_context)(void*), bool trigger_local_events = true);
-
-  
   void SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle);
-
-  
   void SetValueImpl(const Variant& value, SafeFutureHandle<void> handle);
-
-  
-  void SetValueAndPriorityImpl(const Variant& value,
-                                   const Variant& priority, SafeFutureHandle<void> handle);
-
-  
+  void SetValueAndPriorityImpl(const Variant& value, const Variant& priority,
+                               SafeFutureHandle<void> handle);
   void UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle);
 
-  
   std::string GetUrl() const;
-
   DisconnectionHandler* OnDisconnect();
-
   void GoOffline() const;
-
   void GoOnline() const;
+  ReferenceCountedFutureImpl* ref_future() { return ref_future_api_.get(); }
 
  private:
   friend class DatabaseInternal;
-
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
-  // Get the Future for the DatabaseReferenceInternal.
-  public:
-  ReferenceCountedFutureImpl* ref_future();
-  // The memory location of this member variable is used to look up our
-  // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and
-  // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
-  // instances, but have the same "this" pointer as one is a subclass of the
-  // other.
-  int future_api_id_;
+  ScopedFutureApi<DatabaseInternal, kDatabaseReferenceFnCount> ref_future_api_;
   mutable Mutex member_mutex_;
-  Variant cached_key_;  // A Variant for the memory management convenience.
-  DisconnectionHandler* cached_disconnection_handler_;
+  Variant cached_key_;
+  DisconnectionHandler* cached_disconnection_handler_ = nullptr;
 };
 
-// Used by RunTransaction to keep track of the important things.
 struct TransactionData {
   TransactionData(DoTransactionWithContext transaction_,
                   ReferenceCountedFutureImpl* future_,
@@ -142,7 +100,7 @@ struct TransactionData {
   ~TransactionData() {
     if (delete_context) delete_context(context);
     delete_context = nullptr;
-    java_handler = nullptr;  // This is freed in DeleteJavaTransactionHandler
+    java_handler = nullptr;
   }
   DoTransactionWithContext transaction;
   ReferenceCountedFutureImpl* future;

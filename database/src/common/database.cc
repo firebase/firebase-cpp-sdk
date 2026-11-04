@@ -14,11 +14,11 @@
 
 #include "database/src/include/firebase/database.h"
 
-#include <assert.h>
-
+#include <cassert>
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -28,7 +28,6 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 
-// DatabaseInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "database/src/android/database_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
@@ -37,16 +36,10 @@
 #include "database/src/desktop/database_desktop.h"
 #else
 #include "database/src/stub/database_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
-        // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
+#endif
 
-// Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
-    database, { return ::firebase::kInitResultSuccess; },
-    {
-        // Nothing to tear down.
-    },
-    false);
+    database, { return ::firebase::kInitResultSuccess; }, {}, false);
 
 namespace firebase {
 namespace database {
@@ -54,7 +47,6 @@ namespace database {
 DEFINE_FIREBASE_VERSION_STRING(FirebaseDatabase);
 
 using internal::DatabaseInternal;
-
 using DatabaseMap = std::map<std::pair<std::string, std::string>, Database*>;
 Mutex g_databases_lock;  // NOLINT
 static DatabaseMap* g_databases = nullptr;
@@ -72,12 +64,10 @@ Database* Database::GetInstance(App* app, const char* url,
     return nullptr;
   }
   MutexLock lock(g_databases_lock);
-  if (!g_databases) {
-    g_databases = new DatabaseMap();
-  }
+  if (!g_databases) g_databases = new DatabaseMap();
 
   DatabaseMap::key_type key = MakeKey(app, std::string(url ? url : ""));
-  DatabaseMap::iterator it = g_databases->find(key);
+  auto it = g_databases->find(key);
   if (it != g_databases->end()) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
@@ -90,7 +80,7 @@ Database* Database::GetInstance(App* app, const char* url,
     delete database;
     return nullptr;
   }
-  g_databases->insert(std::make_pair(key, database));
+  g_databases->emplace(key, database);
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return database;
 }
@@ -101,34 +91,27 @@ Database* Database::GetInstance(App* app, InitResult* init_result_out) {
 
 Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
     : internal_(internal) {
-  if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app);
-    assert(app_notifier);
-    app_notifier->RegisterObject(this, [](void* object) {
-      Database* database = reinterpret_cast<Database*>(object);
-      App* app = database->app();
-      if (app) {
-        Logger* logger = app_common::FindAppLoggerByName(app->name());
-        if (logger) {
-          logger->LogWarning(
-              "Database object 0x%08x should be deleted before the App 0x%08x "
-              "it depends upon.",
-              static_cast<int>(reinterpret_cast<intptr_t>(database)),
-              static_cast<int>(reinterpret_cast<intptr_t>(app)));
-        }
+  if (!internal_->initialized()) return;
+  CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app);
+  assert(app_notifier);
+  app_notifier->RegisterObject(this, [](void* object) {
+    Database* database = reinterpret_cast<Database*>(object);
+    if (App* app = database->app()) {
+      if (Logger* logger = app_common::FindAppLoggerByName(app->name())) {
+        logger->LogWarning(
+            "Database object 0x%08x should be deleted before the App 0x%08x "
+            "it depends upon.",
+            static_cast<int>(reinterpret_cast<intptr_t>(database)),
+            static_cast<int>(reinterpret_cast<intptr_t>(app)));
       }
-      database->DeleteInternal();
-    });
-  }
+    }
+    database->DeleteInternal();
+  });
 }
 
 void Database::DeleteInternal() {
   MutexLock lock(g_databases_lock);
-
   if (!internal_) return;
-
-  // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to g_databases, and app() may be null.
   if (!internal_->initialized()) {
     delete internal_;
     internal_ = nullptr;
@@ -137,21 +120,17 @@ void Database::DeleteInternal() {
 
   App* my_app = app();
   std::string url = internal_->constructor_url();
-
   CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
   assert(app_notifier);
   app_notifier->UnregisterObject(this);
 
   {
     MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
-    // Force cleanup to happen first.
     internal_->cleanup().CleanupAll();
   }
   delete internal_;
   internal_ = nullptr;
-  // If a Database is explicitly deleted, remove it from our cache.
   g_databases->erase(MakeKey(my_app, url));
-  // If it's the last one, delete the map.
   if (g_databases->empty()) {
     delete g_databases;
     g_databases = nullptr;
@@ -160,57 +139,47 @@ void Database::DeleteInternal() {
 
 Database::~Database() { DeleteInternal(); }
 
-Database::Database(const Database& src) {
+Database::Database(const Database& /*src*/) {
   FIREBASE_ASSERT_MESSAGE(false,
                           "Can't copy a firebase::database::Database object.");
 }
 
-Database& Database::operator=(const Database& src) {
+Database& Database::operator=(const Database& /*src*/) {
   FIREBASE_ASSERT_MESSAGE(false,
                           "Can't copy a firebase::database::Database object.");
   return *this;
 }
 
 App* Database::app() const { return internal_ ? internal_->GetApp() : nullptr; }
-
 const char* Database::url() const {
   return internal_ ? internal_->constructor_url().c_str() : "";
 }
-
 DatabaseReference Database::GetReference() const {
   return internal_ ? internal_->GetReference() : DatabaseReference();
 }
-
 DatabaseReference Database::GetReference(const char* path) const {
   return internal_ && path ? internal_->GetReference(path)
                            : DatabaseReference();
 }
-
 DatabaseReference Database::GetReferenceFromUrl(const char* url) const {
   return internal_ && url ? internal_->GetReferenceFromUrl(url)
                           : DatabaseReference();
 }
-
 void Database::GoOffline() {
   if (internal_) internal_->GoOffline();
 }
-
 void Database::GoOnline() {
   if (internal_) internal_->GoOnline();
 }
-
 void Database::PurgeOutstandingWrites() {
   if (internal_) internal_->PurgeOutstandingWrites();
 }
-
 void Database::set_persistence_enabled(bool enabled) {
   if (internal_) internal_->SetPersistenceEnabled(enabled);
 }
-
 void Database::set_log_level(LogLevel log_level) {
   if (internal_) internal_->set_log_level(log_level);
 }
-
 LogLevel Database::log_level() const {
   return internal_ ? internal_->log_level() : kLogLevelInfo;
 }

@@ -14,12 +14,9 @@
 
 #include "database/src/include/firebase/database/mutable_data.h"
 
-#include <cassert>
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 
-// QueryInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "database/src/android/database_android.h"
 #include "database/src/android/mutable_data_android.h"
@@ -32,8 +29,7 @@
 #else
 #include "database/src/stub/database_stub.h"
 #include "database/src/stub/mutable_data_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
-        // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
+#endif
 
 #include "database/src/common/cleanup.h"
 
@@ -44,7 +40,7 @@ using internal::MutableDataInternal;
 
 MutableData GetInvalidMutableData() { return MutableData(nullptr); }
 
-typedef CleanupFn<MutableData, MutableDataInternal> CleanupFnMutableData;
+using CleanupFnMutableData = CleanupFn<MutableData, MutableDataInternal>;
 
 template <>
 CleanupFnMutableData::CreateInvalidObjectFn
@@ -54,7 +50,6 @@ MutableData::MutableData(MutableDataInternal* internal) : internal_(internal) {
   CleanupFnMutableData::Register(this, internal_);
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 MutableData::MutableData(MutableData&& rhs) : internal_(rhs.internal_) {
   rhs.internal_ = nullptr;
   CleanupFnMutableData::Unregister(&rhs, internal_);
@@ -62,66 +57,56 @@ MutableData::MutableData(MutableData&& rhs) : internal_(rhs.internal_) {
 }
 
 MutableData& MutableData::operator=(MutableData&& rhs) {
-  CleanupFnMutableData::Unregister(this, internal_);
-  if (internal_) delete internal_;
-  internal_ = rhs.internal_;
-  rhs.internal_ = nullptr;
-  CleanupFnMutableData::Unregister(&rhs, internal_);
-  CleanupFnMutableData::Register(this, internal_);
+  if (&rhs != this) {
+    CleanupFnMutableData::Unregister(this, internal_);
+    delete internal_;
+    internal_ = rhs.internal_;
+    rhs.internal_ = nullptr;
+    CleanupFnMutableData::Unregister(&rhs, internal_);
+    CleanupFnMutableData::Register(this, internal_);
+  }
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 MutableData::~MutableData() {
   CleanupFnMutableData::Unregister(this, internal_);
-  if (internal_) delete internal_;
+  delete internal_;
 }
 
 MutableData MutableData::Child(const char* path) {
   return internal_ && path ? MutableData(internal_->Child(path))
                            : GetInvalidMutableData();
 }
-
 MutableData MutableData::Child(const std::string& path) {
   return Child(path.c_str());
 }
-
 std::vector<MutableData> MutableData::children() {
   return internal_ ? internal_->GetChildren() : std::vector<MutableData>();
 }
-
 size_t MutableData::children_count() {
   return internal_ ? internal_->GetChildrenCount() : 0;
 }
-
 const char* MutableData::key() const {
   return internal_ ? internal_->GetKey() : "";
 }
-
 std::string MutableData::key_string() const {
-  return internal_ ? internal_->GetKeyString() : std::string("");
+  return internal_ ? internal_->GetKeyString() : std::string();
 }
-
 Variant MutableData::value() const {
   return internal_ ? internal_->GetValue() : Variant::Null();
 }
-
 Variant MutableData::priority() {
   return internal_ ? internal_->GetPriority() : Variant::Null();
 }
-
 bool MutableData::HasChild(const char* path) const {
   return internal_ && path ? internal_->HasChild(path) : false;
 }
-
 bool MutableData::HasChild(const std::string& path) const {
   return internal_ ? internal_->HasChild(path.c_str()) : false;
 }
-
 void MutableData::set_value(const Variant& value) {
   if (internal_) internal_->SetValue(value);
 }
-
 void MutableData::set_priority(const Variant& priority) {
   if (internal_) internal_->SetPriority(priority);
 }

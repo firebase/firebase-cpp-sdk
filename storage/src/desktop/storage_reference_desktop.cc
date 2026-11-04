@@ -41,7 +41,7 @@
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/curl_requests.h"
 #include "storage/src/desktop/listener_desktop.h"
-#include "storage/src/common/metadata_internal.h"
+#include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/include/firebase/storage.h"
@@ -1370,15 +1370,11 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
       data->future_api_owner->api->Complete(data->handle, result.error(),
                                             result.error_message());
     } else {
-      std::string download_url;
-      if (result.result() && result.result()->internal_) {
-        auto* metadata_internal = result.result()->internal_;
-        if (!metadata_internal->download_tokens().empty()) {
-          const std::string& token = metadata_internal->download_tokens().front();
-          download_url = StoragePath(data->storage_ref.internal_->storage_internal(), std::string("gs://") + metadata_internal->bucket() + "/" + metadata_internal->path()).AsHttpUrl();
-          if (!token.empty()) download_url += "&token=" + token;
-        }
-      }
+      const char* url_cstr =
+          (result.result() && result.result()->internal_)
+              ? result.result()->internal_->download_url()
+              : nullptr;
+      std::string download_url = url_cstr ? url_cstr : "";
       if (download_url.empty()) {
         data->future_api_owner->api->Complete(
             data->handle, kErrorUnknown, "Could not retrieve download URL.");

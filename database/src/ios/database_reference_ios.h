@@ -22,6 +22,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "database/src/common/database_reference.h"
 #include "database/src/include/firebase/database/disconnection.h"
 #include "database/src/include/firebase/database/query.h"
 #include "database/src/include/firebase/database/transaction.h"
@@ -35,143 +36,59 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-// This defines the class FIRDatabaseReferencePointer, which is a C++-compatible
-// wrapper around the FIRDatabaseReference Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRDatabaseReference);
 
-// The iOS implementation of the DatabaseReference class, which represents a
-// particular location in your Database and can be used for reading or writing
-// data to that Database location.
 class DatabaseReferenceInternal : public QueryInternal {
  public:
   explicit DatabaseReferenceInternal(
       DatabaseInternal* database,
       std::unique_ptr<FIRDatabaseReferencePointer> impl);
-
   ~DatabaseReferenceInternal() override;
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
-
   DatabaseReferenceInternal& operator=(
       const DatabaseReferenceInternal& reference);
-
   DatabaseReferenceInternal(DatabaseReferenceInternal&& reference) noexcept;
-
   DatabaseReferenceInternal& operator=(
       DatabaseReferenceInternal&& reference) noexcept;
 
-  // Gets the database to which we refer.
   Database* GetDatabase() const;
-
-  // Gets the string key of this database location. The pointer is only valid
-  // while the DatabaseReference is in scope.
-  const char* GetKey() const;
-
-  // Gets the string key of this database location.
-  std::string GetKeyString() const;
-
-  // Returns true if we are the root of the database.
+  const char* GetKey() const { return cached_key_.c_str(); }
+  std::string GetKeyString() const { return cached_key_; }
   bool IsRoot() const;
-
-  // Gets the parent of this location, or get this location again if IsRoot().
-  //
-  // The returned pointer should be passed to a DatabaseReference for lifetime
-  // management.
   DatabaseReferenceInternal* GetParent();
-
-  // Gets the root of the database.
-  //
-  // The returned pointer should be passed to a DatabaseReference for lifetime
-  // management.
   DatabaseReferenceInternal* GetRoot();
-
-  // Gets a reference to a location relative to this one.
-  //
-  // The returned pointer should be passed to a DatabaseReference for lifetime
-  // management.
   DatabaseReferenceInternal* Child(const char* path);
-
-  // Automatically generates a child location, create a reference to it, and
-  // returns that reference to it.
-  //
-  // The returned pointer should be passed to a DatabaseReference for lifetime
-  // management.
   DatabaseReferenceInternal* PushChild();
 
-  // Removes the value at this location from the database.
   void RemoveValueImpl(SafeFutureHandle<void> handle);
-
-  // Gets the result of the most recent call to RemoveValue();
-  
-  // Run a user-supplied callback function, possibly multiple times, to perform
-  // an atomic transaction on the database.
   Future<DataSnapshot> RunTransaction(
       DoTransactionWithContext transaction_function, void* context,
       void (*delete_context)(void*), bool trigger_local_events = true);
-
-  // Get the result of the most recent call to RunTransaction().
-  
-  // Sets the priority of this field, which controls its sort
-  // order relative to its siblings.
   void SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle);
-
-  // Gets the result of the most recent call to SetPriority().
-  
-  // Sets the data at this location to the given value.
   void SetValueImpl(const Variant& value, SafeFutureHandle<void> handle);
-
-  // Gets the result of the most recent call to SetValue().
-  
-  // Sets both the data and priority of this location. See SetValue() and
-  // SetPriority() for context on the parameters.
-  void SetValueAndPriorityImpl(const Variant& value,
-                                   const Variant& priority, SafeFutureHandle<void> handle);
-
-  // Get the result of the most recent call to SetValueAndPriority().
-  
-  // Updates the specified child keys to the given values.
+  void SetValueAndPriorityImpl(const Variant& value, const Variant& priority,
+                               SafeFutureHandle<void> handle);
   void UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle);
 
-  // Gets the result of the most recent call to either version of
-  // UpdateChildren().
-  
-  // Get the full URL representation of this reference.
   std::string GetUrl() const;
-
-  // Get the disconnect handler, which controls what actions the server will
-  // perform to this location's data when this client disconnects.
   DisconnectionHandler* OnDisconnect();
-
-  // Manually disconnect Firebase Realtime Database from the server, and disable
-  // automatic reconnection.
   static void GoOffline();
-
-  // Manually reestablish connection to the Firebase Realtime Database server
-  // and enable automatic reconnection.
   static void GoOnline();
+  ReferenceCountedFutureImpl* ref_future() { return ref_future_api_.get(); }
 
  protected:
 #ifdef __OBJC__
   FIRDatabaseReference* impl() const { return impl_ ? impl_->get() : nil; }
 #endif  // __OBJC__
 
- private:
-  // Get the Future for the DatabaseReferenceInternal.
-  public:
-  ReferenceCountedFutureImpl* ref_future();
-
-  // Object lifetime managed by Objective C ARC.
+ public:
   std::unique_ptr<FIRDatabaseReferencePointer> impl_;
-
   DisconnectionHandler* cached_disconnection_handler_ = nullptr;
   std::string cached_key_;
 
-  // The memory location of this member variable is used to look up our
-  // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and
-  // DatabaseReferenceInternal require two separate ReferenceCountedFutureImpl
-  // instances, but have the same "this" pointer as one is a subclass of the
-  // other.
-  int future_api_id_ = 0;
+ private:
+  ScopedFutureApi<DatabaseInternal, kDatabaseReferenceFnCount> ref_future_api_;
 };
 
 }  // namespace internal

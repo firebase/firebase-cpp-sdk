@@ -43,7 +43,6 @@
         (firebase::database::ChildListener* _Nullable)childListener {
   self = [super init];
   if (self) {
-    // "4" is the maximum number of observers for a child listener.
     _observers = [NSMutableArray arrayWithCapacity:4];
     _databaseInternal = databaseInternal;
     _lock = databaseInternal->query_lock();
@@ -63,8 +62,7 @@
 - (void)removeAllObservers {
   [_lock lock];
   for (NSNumber* handleValue in _observers) {
-    FIRDatabaseHandle handle = handleValue.unsignedLongValue;
-    [_databaseQuery removeObserverWithHandle:handle];
+    [_databaseQuery removeObserverWithHandle:handleValue.unsignedLongValue];
   }
   [_observers removeAllObjects];
   _databaseInternal = nullptr;
@@ -92,83 +90,67 @@ void LogException(Logger* logger, const char* name, const char* url,
                                   exception] UTF8String]);
 }
 
+template <typename Fn>
+QueryInternal* BuildQuery(DatabaseInternal* db, FIRDatabaseQuery* query,
+                          const char* name, const QuerySpec& spec, Fn&& fn) {
+  if (!db || !query) return nullptr;
+  @try {
+    return new QueryInternal(
+        db, std::make_unique<FIRDatabaseQueryPointer>(fn(query)), spec);
+  } @catch (NSException* exception) {
+    LogException(db->logger(), name, spec.path.c_str(), exception);
+    return nullptr;
+  }
+}
+
 }  // namespace
 
 QueryInternal::QueryInternal(DatabaseInternal* database,
                              std::unique_ptr<FIRDatabaseQueryPointer> query)
-    : database_(database), impl_(std::move(query)) {
-  if (database_) {
-    database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  }
-}
+    : database_(database), impl_(std::move(query)), future_api_(database) {}
 
 QueryInternal::QueryInternal(DatabaseInternal* database,
                              std::unique_ptr<FIRDatabaseQueryPointer> query,
                              const QuerySpec& query_spec)
-    : query_spec_(query_spec), database_(database), impl_(std::move(query)) {
-  if (database_) {
-    database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  }
-}
+    : query_spec_(query_spec),
+      database_(database),
+      impl_(std::move(query)),
+      future_api_(database) {}
 
 QueryInternal::QueryInternal(const QueryInternal& other)
     : query_spec_(other.query_spec_),
       database_(other.database_),
-      impl_(std::make_unique<FIRDatabaseQueryPointer>(other.impl())) {
-  if (database_) {
-    database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  }
-}
+      impl_(std::make_unique<FIRDatabaseQueryPointer>(other.impl())),
+      future_api_(other.future_api_) {}
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& other) {
   if (&other == this) return *this;
   impl_ = std::make_unique<FIRDatabaseQueryPointer>(other.impl());
   query_spec_ = other.query_spec_;
-  if (database_ != other.database_) {
-    if (database_) {
-      database_->future_manager().ReleaseFutureApi(&future_api_id_);
-    }
-    database_ = other.database_;
-    if (database_) {
-      database_->future_manager().AllocFutureApi(&future_api_id_,
-                                                 kQueryFnCount);
-    }
-  }
+  database_ = other.database_;
+  future_api_ = other.future_api_;
   return *this;
 }
 
 QueryInternal::QueryInternal(QueryInternal&& other) noexcept
     : query_spec_(std::move(other.query_spec_)),
       database_(other.database_),
-      impl_(std::move(other.impl_)) {
+      impl_(std::move(other.impl_)),
+      future_api_(std::move(other.future_api_)) {
   other.database_ = nullptr;
-  if (database_) {
-    database_->future_manager().MoveFutureApi(&other.future_api_id_,
-                                              &future_api_id_);
-  }
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& other) noexcept {
   if (&other == this) return *this;
   impl_ = std::move(other.impl_);
-  if (database_) {
-    database_->future_manager().ReleaseFutureApi(&future_api_id_);
-  }
   database_ = other.database_;
   other.database_ = nullptr;
-  if (database_) {
-    database_->future_manager().MoveFutureApi(&other.future_api_id_,
-                                              &future_api_id_);
-  }
+  future_api_ = std::move(other.future_api_);
   query_spec_ = std::move(other.query_spec_);
   return *this;
 }
 
-QueryInternal::~QueryInternal() {
-  if (database_) {
-    database_->future_manager().ReleaseFutureApi(&future_api_id_);
-  }
-}
+QueryInternal::~QueryInternal() = default;
 
 SingleValueListener::SingleValueListener(
     DatabaseInternal* database, ReferenceCountedFutureImpl* future,
@@ -210,7 +192,6 @@ typedef void (*NotifyValueListenerFunc)(DatabaseInternal* _Nonnull database,
                                         ValueListener* _Nonnull listener,
                                         const DataSnapshot& snapshot);
 
-// Safely attempt to notify a value listener.
 static void NotifyValueListener(
     FIRCPPDatabaseQueryCallbackState* _Nonnull callback_state,
     FIRDataSnapshot* _Nonnull snapshot_impl,
@@ -232,7 +213,6 @@ typedef void (*CancelValueListenerFunc)(DatabaseInternal* _Nonnull database,
                                         const Error& error_code,
                                         const char* _Nonnull error_string);
 
-// Safely attempt to cancel a value listener.
 static void CancelValueListener(
     FIRCPPDatabaseQueryCallbackState* _Nonnull callback_state,
     NSError* _Nonnull error, CancelValueListenerFunc _Nonnull notify) {
@@ -248,23 +228,20 @@ static void CancelValueListener(
 }
 
 void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
-  if (!database_) return;
   ReferenceCountedFutureImpl* future_api = query_future();
-  if (!future_api) return;
+  if (!database_ || !future_api) return;
   if (!impl()) {
     future_api->Complete(handle, kErrorOperationFailed,
                          GetErrorMessage(kErrorOperationFailed));
     return;
   }
   Future<DataSnapshot> result_future = MakeFuture(future_api, handle);
-
-  // Register a one-time ValueEventListener with the query.
   FIRCPPDatabaseQueryCallbackState* callback_state =
       [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
                                                         andQuery:impl()
                                                 andValueListener:nullptr
                                                 andChildListener:nullptr];
-  SingleValueListener* single_listener = new SingleValueListener(
+  auto* single_listener = new SingleValueListener(
       database_, future_api, handle, result_future,
       FIRCPPDatabaseQueryCallbackStatePointer(callback_state));
   callback_state.valueListener = single_listener;
@@ -299,16 +276,14 @@ void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   [callback_state.lock lock];
   @try {
     database_->AddSingleValueListener(single_listener);
-    FIRDatabaseHandle observer_handle =
-        [impl() observeEventType:FIRDataEventTypeValue
-                       withBlock:block
-                 withCancelBlock:cancel_block];
-    [callback_state addObserverHandle:observer_handle];
+    [callback_state
+        addObserverHandle:[impl() observeEventType:FIRDataEventTypeValue
+                                         withBlock:block
+                                   withCancelBlock:cancel_block]];
   } @finally {
     [callback_state.lock unlock];
   }
 }
-
 
 void QueryInternal::AddValueListener(ValueListener* value_listener) {
   if (!database_ || !impl() || !value_listener) return;
@@ -360,20 +335,18 @@ void QueryInternal::AddValueListener(ValueListener* value_listener) {
 }
 
 void QueryInternal::RemoveValueListener(ValueListener* value_listener) {
-  if (!database_) return;
-  database_->UnregisterValueListener(query_spec_, value_listener, impl());
+  if (database_)
+    database_->UnregisterValueListener(query_spec_, value_listener, impl());
 }
 
 void QueryInternal::RemoveAllValueListeners() {
-  if (!database_) return;
-  database_->UnregisterAllValueListeners(query_spec_, impl());
+  if (database_) database_->UnregisterAllValueListeners(query_spec_, impl());
 }
 
 typedef void (*NotifyChildListenerFunc)(ChildListener* listener,
                                         const DataSnapshot& snapshot,
                                         const char* key);
 
-// Safely attempt to notify a child listener.
 static void NotifyChildListener(
     FIRCPPDatabaseQueryCallbackState* callback_state,
     FIRDataSnapshot* _Nonnull snapshot_impl, NSString* previous_key,
@@ -394,58 +367,43 @@ static void NotifyChildListener(
 void QueryInternal::AddChildListener(ChildListener* child_listener) {
   if (!database_ || !impl() || !child_listener) return;
   typedef void (^CallbackBlock)(FIRDataSnapshot* _Nonnull, NSString* _Nullable);
-  typedef void (^CancelBlock)(NSError* _Nonnull);
   FIRCPPDatabaseQueryCallbackState* callback_state =
       [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
                                                         andQuery:impl()
                                                 andValueListener:nullptr
                                                 andChildListener:child_listener];
 
-  CallbackBlock child_added_block =
-      ^(FIRDataSnapshot* _Nonnull snapshot_impl, NSString* previous_key) {
-        NotifyChildListener(callback_state, snapshot_impl, previous_key,
-                            [](ChildListener* listener,
-                               const DataSnapshot& snapshot, const char* key) {
-                              listener->OnChildAdded(snapshot, key);
-                            });
-      };
-
-  CallbackBlock child_changed_block =
-      ^(FIRDataSnapshot* _Nonnull snapshot_impl, NSString* previous_key) {
-        NotifyChildListener(callback_state, snapshot_impl, previous_key,
-                            [](ChildListener* listener,
-                               const DataSnapshot& snapshot, const char* key) {
-                              listener->OnChildChanged(snapshot, key);
-                            });
-      };
-
-  CallbackBlock child_moved_block =
-      ^(FIRDataSnapshot* _Nonnull snapshot_impl, NSString* previous_key) {
-        NotifyChildListener(callback_state, snapshot_impl, previous_key,
-                            [](ChildListener* listener,
-                               const DataSnapshot& snapshot, const char* key) {
-                              listener->OnChildMoved(snapshot, key);
-                            });
-      };
-
-  CallbackBlock child_removed_block = ^(FIRDataSnapshot* _Nonnull snapshot_impl,
-                                        NSString* previous_key) {
-    NotifyChildListener(
-        callback_state, snapshot_impl, previous_key,
-        [](ChildListener* listener, const DataSnapshot& snapshot,
-           const char* key) {
-          (void)key;
-          listener->OnChildRemoved(snapshot);
-        });
+  auto make_cb = [callback_state](NotifyChildListenerFunc fn) -> CallbackBlock {
+    return [^(FIRDataSnapshot* _Nonnull snap, NSString* prev) {
+      NotifyChildListener(callback_state, snap, prev, fn);
+    } copy];
   };
 
-  CancelBlock cancel_block = ^(NSError* _Nonnull error) {
+  CallbackBlock child_added_block =
+      make_cb([](ChildListener* l, const DataSnapshot& s, const char* k) {
+        l->OnChildAdded(s, k);
+      });
+  CallbackBlock child_changed_block =
+      make_cb([](ChildListener* l, const DataSnapshot& s, const char* k) {
+        l->OnChildChanged(s, k);
+      });
+  CallbackBlock child_moved_block =
+      make_cb([](ChildListener* l, const DataSnapshot& s, const char* k) {
+        l->OnChildMoved(s, k);
+      });
+  CallbackBlock child_removed_block =
+      make_cb([](ChildListener* l, const DataSnapshot& s, const char* k) {
+        (void)k;
+        l->OnChildRemoved(s);
+      });
+
+  void (^cancel_block)(NSError* _Nonnull) = ^(NSError* _Nonnull error) {
     Error error_code = NSErrorToErrorCode(error);
     const char* error_string = GetErrorMessage(error_code);
     [callback_state.lock lock];
-    DatabaseInternal* database = callback_state.databaseInternal;
-    ChildListener* listener = callback_state.childListener;
-    if (database && listener) listener->OnCancelled(error_code, error_string);
+    if (callback_state.databaseInternal && callback_state.childListener) {
+      callback_state.childListener->OnCancelled(error_code, error_string);
+    }
     [callback_state.lock unlock];
   };
 
@@ -483,13 +441,12 @@ void QueryInternal::AddChildListener(ChildListener* child_listener) {
 }
 
 void QueryInternal::RemoveChildListener(ChildListener* child_listener) {
-  if (!database_) return;
-  database_->UnregisterChildListener(query_spec_, child_listener, impl());
+  if (database_)
+    database_->UnregisterChildListener(query_spec_, child_listener, impl());
 }
 
 void QueryInternal::RemoveAllChildListeners() {
-  if (!database_) return;
-  database_->UnregisterAllChildListeners(query_spec_, impl());
+  if (database_) database_->UnregisterAllChildListeners(query_spec_, impl());
 }
 
 DatabaseReferenceInternal* QueryInternal::GetReference() {
@@ -511,88 +468,47 @@ QueryInternal* QueryInternal::OrderByChild(const char* path) {
     }
     return nullptr;
   }
-  @try {
-    NSString* path_str = @(path);
-    if (!path_str) return nullptr;
-    internal::QuerySpec spec = query_spec_;
-    spec.params.order_by = internal::QueryParams::kOrderByChild;
-    spec.params.order_by_child = path;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryOrderedByChild:path_str]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "OrderByChild", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  NSString* path_str = @(path);
+  if (!path_str) return nullptr;
+  QuerySpec spec = query_spec_;
+  spec.params.order_by = QueryParams::kOrderByChild;
+  spec.params.order_by_child = path;
+  return BuildQuery(database_, impl(), "OrderByChild", spec,
+                    [path_str](FIRDatabaseQuery* q) {
+                      return [q queryOrderedByChild:path_str];
+                    });
 }
 
 QueryInternal* QueryInternal::OrderByKey() {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.order_by = internal::QueryParams::kOrderByKey;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>([impl() queryOrderedByKey]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "OrderByKey", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  QuerySpec spec = query_spec_;
+  spec.params.order_by = QueryParams::kOrderByKey;
+  return BuildQuery(database_, impl(), "OrderByKey", spec,
+                    [](FIRDatabaseQuery* q) { return [q queryOrderedByKey]; });
 }
 
 QueryInternal* QueryInternal::OrderByPriority() {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.order_by = internal::QueryParams::kOrderByPriority;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryOrderedByPriority]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "OrderByPriority",
-                 query_spec_.path.c_str(), exception);
-    return nullptr;
-  }
+  QuerySpec spec = query_spec_;
+  spec.params.order_by = QueryParams::kOrderByPriority;
+  return BuildQuery(
+      database_, impl(), "OrderByPriority", spec,
+      [](FIRDatabaseQuery* q) { return [q queryOrderedByPriority]; });
 }
 
 QueryInternal* QueryInternal::OrderByValue() {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.order_by = internal::QueryParams::kOrderByValue;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>([impl() queryOrderedByValue]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "OrderByValue", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  QuerySpec spec = query_spec_;
+  spec.params.order_by = QueryParams::kOrderByValue;
+  return BuildQuery(
+      database_, impl(), "OrderByValue", spec,
+      [](FIRDatabaseQuery* q) { return [q queryOrderedByValue]; });
 }
 
 QueryInternal* QueryInternal::StartAt(Variant start_value) {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.start_at_value = start_value;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryStartingAtValue:VariantToId(start_value)]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "StartAt", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  QuerySpec spec = query_spec_;
+  spec.params.start_at_value = start_value;
+  return BuildQuery(database_, impl(), "StartAt", spec,
+                    [&](FIRDatabaseQuery* q) {
+                      return [q queryStartingAtValue:VariantToId(start_value)];
+                    });
 }
 
 QueryInternal* QueryInternal::StartAt(Variant start_value,
@@ -605,40 +521,24 @@ QueryInternal* QueryInternal::StartAt(Variant start_value,
     }
     return nullptr;
   }
-  @try {
-    NSString* child_key_str = @(child_key);
-    if (!child_key_str) return nullptr;
-    internal::QuerySpec spec = query_spec_;
-    spec.params.start_at_value = start_value;
-    spec.params.start_at_child_key = child_key;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryStartingAtValue:VariantToId(start_value)
-                                childKey:child_key_str]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "StartAt", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  NSString* child_key_str = @(child_key);
+  if (!child_key_str) return nullptr;
+  QuerySpec spec = query_spec_;
+  spec.params.start_at_value = start_value;
+  spec.params.start_at_child_key = child_key;
+  return BuildQuery(database_, impl(), "StartAt", spec,
+                    [&](FIRDatabaseQuery* q) {
+                      return [q queryStartingAtValue:VariantToId(start_value)
+                                            childKey:child_key_str];
+                    });
 }
 
 QueryInternal* QueryInternal::EndAt(Variant end_value) {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.end_at_value = end_value;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryEndingAtValue:VariantToId(end_value)]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "EndAt", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  QuerySpec spec = query_spec_;
+  spec.params.end_at_value = end_value;
+  return BuildQuery(database_, impl(), "EndAt", spec, [&](FIRDatabaseQuery* q) {
+    return [q queryEndingAtValue:VariantToId(end_value)];
+  });
 }
 
 QueryInternal* QueryInternal::EndAt(Variant end_value, const char* child_key) {
@@ -650,40 +550,22 @@ QueryInternal* QueryInternal::EndAt(Variant end_value, const char* child_key) {
     }
     return nullptr;
   }
-  @try {
-    NSString* child_key_str = @(child_key);
-    if (!child_key_str) return nullptr;
-    internal::QuerySpec spec = query_spec_;
-    spec.params.end_at_value = end_value;
-    spec.params.end_at_child_key = child_key;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryEndingAtValue:VariantToId(end_value)
-                              childKey:child_key_str]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "EndAt", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  NSString* child_key_str = @(child_key);
+  if (!child_key_str) return nullptr;
+  QuerySpec spec = query_spec_;
+  spec.params.end_at_value = end_value;
+  spec.params.end_at_child_key = child_key;
+  return BuildQuery(database_, impl(), "EndAt", spec, [&](FIRDatabaseQuery* q) {
+    return [q queryEndingAtValue:VariantToId(end_value) childKey:child_key_str];
+  });
 }
 
 QueryInternal* QueryInternal::EqualTo(Variant value) {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.equal_to_value = value;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryEqualToValue:VariantToId(value)]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "EqualTo", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  QuerySpec spec = query_spec_;
+  spec.params.equal_to_value = value;
+  return BuildQuery(
+      database_, impl(), "EqualTo", spec,
+      [&](FIRDatabaseQuery* q) { return [q queryEqualToValue:VariantToId(value)]; });
 }
 
 QueryInternal* QueryInternal::EqualTo(Variant value, const char* child_key) {
@@ -695,62 +577,32 @@ QueryInternal* QueryInternal::EqualTo(Variant value, const char* child_key) {
     }
     return nullptr;
   }
-  @try {
-    NSString* child_key_str = @(child_key);
-    if (!child_key_str) return nullptr;
-    internal::QuerySpec spec = query_spec_;
-    spec.params.equal_to_value = value;
-    spec.params.equal_to_child_key = child_key;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryEqualToValue:VariantToId(value)
-                             childKey:child_key_str]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "EqualTo", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  NSString* child_key_str = @(child_key);
+  if (!child_key_str) return nullptr;
+  QuerySpec spec = query_spec_;
+  spec.params.equal_to_value = value;
+  spec.params.equal_to_child_key = child_key;
+  return BuildQuery(database_, impl(), "EqualTo", spec,
+                    [&](FIRDatabaseQuery* q) {
+                      return [q queryEqualToValue:VariantToId(value)
+                                         childKey:child_key_str];
+                    });
 }
 
 QueryInternal* QueryInternal::LimitToFirst(size_t limit) {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.limit_first = limit;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryLimitedToFirst:limit]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "LimitToFirst", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
+  QuerySpec spec = query_spec_;
+  spec.params.limit_first = limit;
+  return BuildQuery(
+      database_, impl(), "LimitToFirst", spec,
+      [limit](FIRDatabaseQuery* q) { return [q queryLimitedToFirst:limit]; });
 }
 
 QueryInternal* QueryInternal::LimitToLast(size_t limit) {
-  if (!database_ || !impl()) return nullptr;
-  @try {
-    internal::QuerySpec spec = query_spec_;
-    spec.params.limit_last = limit;
-    return new QueryInternal(
-        database_,
-        std::make_unique<FIRDatabaseQueryPointer>(
-            [impl() queryLimitedToLast:limit]),
-        spec);
-  } @catch (NSException* exception) {
-    LogException(database_->logger(), "LimitToLast", query_spec_.path.c_str(),
-                 exception);
-    return nullptr;
-  }
-}
-
-ReferenceCountedFutureImpl* QueryInternal::query_future() {
-  return database_ ? database_->future_manager().GetFutureApi(&future_api_id_)
-                   : nullptr;
+  QuerySpec spec = query_spec_;
+  spec.params.limit_last = limit;
+  return BuildQuery(
+      database_, impl(), "LimitToLast", spec,
+      [limit](FIRDatabaseQuery* q) { return [q queryLimitedToLast:limit]; });
 }
 
 }  // namespace internal

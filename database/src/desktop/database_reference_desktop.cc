@@ -16,7 +16,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -71,15 +70,10 @@ struct RepoFutureTraits<DataSnapshot> {
   }
 };
 
-// Keeps the FutureBackingData and ReferenceCountedFutureImpl alive for the full
-// duration of an asynchronous Repo operation (including server ACK latency),
-// and atomically completes the user handle either when Repo resolves the
-// internal proxy future or with an error if the Repo shuts down first.
 template <typename T>
 struct AsyncOpState : public std::enable_shared_from_this<AsyncOpState<T>> {
   AsyncOpState(std::shared_ptr<ReferenceCountedFutureImpl> api_in,
-               SafeFutureHandle<T> handle_in,
-               void* context_in = nullptr,
+               SafeFutureHandle<T> handle_in, void* context_in = nullptr,
                void (*delete_context_in)(void*) = nullptr)
       : user_api(std::move(api_in)),
         user_handle(handle_in),
@@ -87,24 +81,19 @@ struct AsyncOpState : public std::enable_shared_from_this<AsyncOpState<T>> {
         delete_context(delete_context_in),
         repo_api(1),
         repo_handle(RepoFutureTraits<T>::Alloc(&repo_api)),
-        repo_future(MakeFuture(&repo_api, repo_handle)),
-        completed(false),
-        ready_to_release(false) {}
+        repo_future(MakeFuture(&repo_api, repo_handle)) {}
 
   ~AsyncOpState() { FailIfNotCompleted(); }
 
   static std::shared_ptr<AsyncOpState<T>> Create(
       std::shared_ptr<ReferenceCountedFutureImpl> api_in,
-      SafeFutureHandle<T> handle_in,
-      void* context_in = nullptr,
+      SafeFutureHandle<T> handle_in, void* context_in = nullptr,
       void (*delete_context_in)(void*) = nullptr) {
     auto state = std::make_shared<AsyncOpState<T>>(
         std::move(api_in), handle_in, context_in, delete_context_in);
     std::weak_ptr<AsyncOpState<T>> weak_self = state;
     state->repo_future.OnCompletion([weak_self](const Future<T>& result) {
-      if (auto self = weak_self.lock()) {
-        self->CompleteFromRepo(result);
-      }
+      if (auto self = weak_self.lock()) self->CompleteFromRepo(result);
     });
     return state;
   }
@@ -148,9 +137,7 @@ struct AsyncOpState : public std::enable_shared_from_this<AsyncOpState<T>> {
         handle_to_complete = user_handle;
       }
     }
-    if (delete_fn != nullptr) {
-      delete_fn(context_to_delete);
-    }
+    if (delete_fn != nullptr) delete_fn(context_to_delete);
     if (api_to_complete != nullptr) {
       api_to_complete->Complete(handle_to_complete, kErrorUnknownError,
                                 "The database is being destroyed.");
@@ -175,8 +162,8 @@ struct AsyncOpState : public std::enable_shared_from_this<AsyncOpState<T>> {
   ReferenceCountedFutureImpl repo_api;
   SafeFutureHandle<T> repo_handle;
   Future<T> repo_future;
-  bool completed;
-  bool ready_to_release;
+  bool completed = false;
+  bool ready_to_release = false;
 };
 
 template <typename T>
@@ -197,6 +184,40 @@ void ScheduleOpStateWatch(Repo::ThisRef ref,
       5);
 }
 
+void ScheduleVoidRepoOp(
+    DatabaseInternal* database,
+    const std::shared_ptr<ReferenceCountedFutureImpl>& future_impl,
+    SafeFutureHandle<void> handle, const Path& path, const Variant& val,
+    bool is_update = false) {
+  if (!database || !future_impl) {
+    if (future_impl) {
+      future_impl->Complete(handle, kErrorUnknownError,
+                            "The database is being destroyed.");
+    }
+    return;
+  }
+  auto state = AsyncOpState<void>::Create(future_impl, handle);
+  Repo::scheduler().Schedule(NewCallback(
+      [](Repo::ThisRef ref, Path path, Variant val, bool is_update,
+         std::shared_ptr<AsyncOpState<void>> op_state) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          ConvertVectorToMap(&val);
+          if (is_update) {
+            lock.GetReference()->UpdateChildren(path, val, &op_state->repo_api,
+                                                op_state->repo_handle);
+          } else {
+            lock.GetReference()->SetValue(path, val, &op_state->repo_api,
+                                          op_state->repo_handle);
+          }
+          ScheduleOpStateWatch(ref, std::move(op_state));
+        } else {
+          op_state->FailIfNotCompleted();
+        }
+      },
+      database->repo()->this_ref(), path, val, is_update, std::move(state)));
+}
+
 }  // namespace
 
 const char kVirtualChildKeyValue[] = ".value";
@@ -208,8 +229,6 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
       ref_future_impl_(std::make_shared<ReferenceCountedFutureImpl>(
           kDatabaseReferenceFnCount)) {}
 
-DatabaseReferenceInternal::~DatabaseReferenceInternal() = default;
-
 DatabaseReferenceInternal::DatabaseReferenceInternal(
     const DatabaseReferenceInternal& internal)
     : QueryInternal(internal),
@@ -218,10 +237,11 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     const DatabaseReferenceInternal& internal) {
-  if (&internal == this) return *this;
-  QueryInternal::operator=(internal);
-  ref_future_impl_ =
-      std::make_shared<ReferenceCountedFutureImpl>(kDatabaseReferenceFnCount);
+  if (&internal != this) {
+    QueryInternal::operator=(internal);
+    ref_future_impl_ =
+        std::make_shared<ReferenceCountedFutureImpl>(kDatabaseReferenceFnCount);
+  }
   return *this;
 }
 
@@ -234,10 +254,11 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     DatabaseReferenceInternal&& internal) noexcept {
-  if (&internal == this) return *this;
-  QueryInternal::operator=(std::move(internal));
-  ref_future_impl_ = std::move(internal.ref_future_impl_);
-  internal.database_ = nullptr;
+  if (&internal != this) {
+    QueryInternal::operator=(std::move(internal));
+    ref_future_impl_ = std::move(internal.ref_future_impl_);
+    internal.database_ = nullptr;
+  }
   return *this;
 }
 
@@ -253,31 +274,26 @@ std::string DatabaseReferenceInternal::GetUrl() const {
   if (!database_) return std::string();
   std::stringstream url;
   url << database_->database_url();
-  if (!query_spec_.path.str().empty()) {
-    url << '/';
-    url << query_spec_.path.str();
-  }
+  if (!query_spec_.path.str().empty()) url << '/' << query_spec_.path.str();
   return url.str();
 }
 
-bool DatabaseReferenceInternal::IsRoot() const {
-  return query_spec_.path.empty();
-}
-
 DatabaseReferenceInternal* DatabaseReferenceInternal::GetParent() {
-  if (!database_) return nullptr;
-  return new DatabaseReferenceInternal(database_, query_spec_.path.GetParent());
+  return database_
+             ? new DatabaseReferenceInternal(database_,
+                                             query_spec_.path.GetParent())
+             : nullptr;
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::GetRoot() {
-  if (!database_) return nullptr;
-  return new DatabaseReferenceInternal(database_, Path());
+  return database_ ? new DatabaseReferenceInternal(database_, Path()) : nullptr;
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::Child(const char* path) {
-  if (!database_ || path == nullptr) return nullptr;
-  return new DatabaseReferenceInternal(database_,
-                                       query_spec_.path.GetChild(path));
+  return (database_ && path)
+             ? new DatabaseReferenceInternal(database_,
+                                             query_spec_.path.GetChild(path))
+             : nullptr;
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() {
@@ -285,45 +301,23 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() {
   auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
                  std::chrono::system_clock::now().time_since_epoch())
                  .count();
-  std::string child = database_->name_generator().GeneratePushChildName(now);
-  return new DatabaseReferenceInternal(database_,
-                                       query_spec_.path.GetChild(child));
+  return new DatabaseReferenceInternal(
+      database_,
+      query_spec_.path.GetChild(
+          database_->name_generator().GeneratePushChildName(now)));
 }
 
 void DatabaseReferenceInternal::RemoveValueImpl(SafeFutureHandle<void> handle) {
-  if (!database_ || !ref_future_impl_) {
-    if (ref_future_impl_) {
-      ref_future_impl_->Complete(handle, kErrorUnknownError,
-                                 "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = AsyncOpState<void>::Create(ref_future_impl_, handle);
-  Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, Path path,
-         std::shared_ptr<AsyncOpState<void>> op_state) {
-        Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          lock.GetReference()->SetValue(path, Variant::Null(),
-                                        &op_state->repo_api,
-                                        op_state->repo_handle);
-          ScheduleOpStateWatch(ref, std::move(op_state));
-        } else {
-          op_state->FailIfNotCompleted();
-        }
-      },
-      database_->repo()->this_ref(), query_spec_.path, std::move(state)));
+  ScheduleVoidRepoOp(database_, ref_future_impl_, handle, query_spec_.path,
+                     Variant::Null());
 }
-
 
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
     DoTransactionWithContext transaction_function, void* context,
     void (*delete_context)(void*), bool trigger_local_events) {
   ReferenceCountedFutureImpl* api = ref_future();
   if (!database_ || !api) {
-    if (delete_context != nullptr) {
-      delete_context(context);
-    }
+    if (delete_context != nullptr) delete_context(context);
     return Future<DataSnapshot>();
   }
   SafeFutureHandle<DataSnapshot> handle = api->SafeAlloc<DataSnapshot>(
@@ -352,146 +346,54 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
       },
       database_->repo()->this_ref(), query_spec_.path, transaction_function,
       trigger_local_events, std::move(state)));
-
   return result;
 }
 
-
-void DatabaseReferenceInternal::SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle) {
-  if (!database_ || !ref_future_impl_) {
-    if (ref_future_impl_) {
-      ref_future_impl_->Complete(handle, kErrorUnknownError,
-                                 "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = AsyncOpState<void>::Create(ref_future_impl_, handle);
-  Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, Path path, Variant prio,
-         std::shared_ptr<AsyncOpState<void>> op_state) {
-        Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          ConvertVectorToMap(&prio);
-          lock.GetReference()->SetValue(path.GetChild(kPriorityKey), prio,
-                                        &op_state->repo_api,
-                                        op_state->repo_handle);
-          ScheduleOpStateWatch(ref, std::move(op_state));
-        } else {
-          op_state->FailIfNotCompleted();
-        }
-      },
-      database_->repo()->this_ref(), query_spec_.path, priority,
-      std::move(state)));
+void DatabaseReferenceInternal::SetPriorityImpl(const Variant& priority,
+                                                SafeFutureHandle<void> handle) {
+  ScheduleVoidRepoOp(database_, ref_future_impl_, handle,
+                     query_spec_.path.GetChild(kPriorityKey), priority);
 }
 
-
-void DatabaseReferenceInternal::SetValueImpl(const Variant& value, SafeFutureHandle<void> handle) {
-  if (!database_ || !ref_future_impl_) {
-    if (ref_future_impl_) {
-      ref_future_impl_->Complete(handle, kErrorUnknownError,
-                                 "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = AsyncOpState<void>::Create(ref_future_impl_, handle);
-  Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, Path path, Variant val,
-         std::shared_ptr<AsyncOpState<void>> op_state) {
-        Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          ConvertVectorToMap(&val);
-          lock.GetReference()->SetValue(path, val, &op_state->repo_api,
-                                        op_state->repo_handle);
-          ScheduleOpStateWatch(ref, std::move(op_state));
-        } else {
-          op_state->FailIfNotCompleted();
-        }
-      },
-      database_->repo()->this_ref(), query_spec_.path, value,
-      std::move(state)));
+void DatabaseReferenceInternal::SetValueImpl(const Variant& value,
+                                             SafeFutureHandle<void> handle) {
+  ScheduleVoidRepoOp(database_, ref_future_impl_, handle, query_spec_.path,
+                     value);
 }
-
 
 void DatabaseReferenceInternal::SetValueAndPriorityImpl(
-    const Variant& value, const Variant& priority, SafeFutureHandle<void> handle) {
-  if (!database_ || !ref_future_impl_) {
-    if (ref_future_impl_) {
-      ref_future_impl_->Complete(handle, kErrorUnknownError,
-                                 "The database is being destroyed.");
-    }
-    return;
+    const Variant& value, const Variant& priority,
+    SafeFutureHandle<void> handle) {
+  Variant val = value;
+  ConvertVectorToMap(&val);
+  Variant data = Variant::EmptyMap();
+  if (val.is_map()) {
+    data = std::move(val);
+  } else {
+    data.map()[kVirtualChildKeyValue] = std::move(val);
   }
-  auto state = AsyncOpState<void>::Create(ref_future_impl_, handle);
-  Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, Path path, Variant val, Variant prio,
-         std::shared_ptr<AsyncOpState<void>> op_state) {
-        Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          ConvertVectorToMap(&val);
-          Variant data;
-          if (val.is_map()) {
-            data = std::move(val);
-            data.map()[kVirtualChildKeyPriority] = std::move(prio);
-          } else {
-            data = Variant::EmptyMap();
-            data.map()[kVirtualChildKeyValue] = std::move(val);
-            data.map()[kVirtualChildKeyPriority] = std::move(prio);
-          }
-          lock.GetReference()->SetValue(path, data, &op_state->repo_api,
-                                        op_state->repo_handle);
-          ScheduleOpStateWatch(ref, std::move(op_state));
-        } else {
-          op_state->FailIfNotCompleted();
-        }
-      },
-      database_->repo()->this_ref(), query_spec_.path, value, priority,
-      std::move(state)));
+  data.map()[kVirtualChildKeyPriority] = priority;
+  ScheduleVoidRepoOp(database_, ref_future_impl_, handle, query_spec_.path,
+                     data);
 }
 
-
-void DatabaseReferenceInternal::UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle) {
-  if (!database_ || !ref_future_impl_) {
-    if (ref_future_impl_) {
-      ref_future_impl_->Complete(handle, kErrorUnknownError,
-                                 "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = AsyncOpState<void>::Create(ref_future_impl_, handle);
-  Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, Path path, Variant vals,
-         std::shared_ptr<AsyncOpState<void>> op_state) {
-        Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          ConvertVectorToMap(&vals);
-          lock.GetReference()->UpdateChildren(
-              path, vals, &op_state->repo_api, op_state->repo_handle);
-          ScheduleOpStateWatch(ref, std::move(op_state));
-        } else {
-          op_state->FailIfNotCompleted();
-        }
-      },
-      database_->repo()->this_ref(), query_spec_.path, values,
-      std::move(state)));
+void DatabaseReferenceInternal::UpdateChildrenImpl(
+    const Variant& values, SafeFutureHandle<void> handle) {
+  ScheduleVoidRepoOp(database_, ref_future_impl_, handle, query_spec_.path,
+                     values, /*is_update=*/true);
 }
-
 
 DisconnectionHandler* DatabaseReferenceInternal::OnDisconnect() {
-  if (!database_) return nullptr;
-  return new DisconnectionHandler(
-      new DisconnectionHandlerInternal(database_, query_spec_.path));
+  return database_ ? new DisconnectionHandler(new DisconnectionHandlerInternal(
+                         database_, query_spec_.path))
+                   : nullptr;
 }
 
 void DatabaseReferenceInternal::GoOffline() {
   if (database_) database_->GoOffline();
 }
-
 void DatabaseReferenceInternal::GoOnline() {
   if (database_) database_->GoOnline();
-}
-
-ReferenceCountedFutureImpl* DatabaseReferenceInternal::ref_future() {
-  return database_ ? ref_future_impl_.get() : nullptr;
 }
 
 }  // namespace internal

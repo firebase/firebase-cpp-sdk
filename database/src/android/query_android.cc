@@ -15,6 +15,7 @@
 #include "database/src/android/query_android.h"
 
 #include <jni.h>
+#include <utility>
 
 #include "app/src/app_android.h"
 #include "app/src/jni/declaration.h"
@@ -97,61 +98,50 @@ JNI_METHOD_LOOKUP_DECLARATION(query, QUERY_METHODS, FIELD_LOOKUP_NONE,
                               PROGUARD_KEEP_CLASS
                               "com/google/firebase/database/Query")
 
-
-
-QueryInternal::QueryInternal(DatabaseInternal* db, jobject obj) : db_(db) {
-  db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
-}
+QueryInternal::QueryInternal(DatabaseInternal* db, jobject obj)
+    : db_(db),
+      obj_(db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj)),
+      future_api_(db) {}
 
 QueryInternal::QueryInternal(DatabaseInternal* db, jobject obj,
                              const internal::QuerySpec& query_spec)
-    : db_(db), query_spec_(query_spec) {
-  db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
-}
+    : db_(db),
+      obj_(db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj)),
+      query_spec_(query_spec),
+      future_api_(db) {}
 
 QueryInternal::QueryInternal(const QueryInternal& src)
-    : db_(src.db_), query_spec_(src.query_spec_) {
-  db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_);
-}
+    : db_(src.db_),
+      obj_(db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_)),
+      query_spec_(src.query_spec_),
+      future_api_(src.future_api_) {}
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& src) {
   if (&src == this) return *this;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  if (obj_ != nullptr) {
-    env->DeleteGlobalRef(obj_);
-  }
-  if (db_ != src.db_) {
-    db_->future_manager().ReleaseFutureApi(&future_api_id_);
-    db_ = src.db_;
-    db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  }
+  if (obj_ != nullptr) env->DeleteGlobalRef(obj_);
+  db_ = src.db_;
+  future_api_ = src.future_api_;
   obj_ = src.obj_ ? env->NewGlobalRef(src.obj_) : nullptr;
   query_spec_ = src.query_spec_;
   return *this;
 }
 
-QueryInternal::QueryInternal(QueryInternal&& src) : db_(src.db_) {
-  obj_ = src.obj_;
+QueryInternal::QueryInternal(QueryInternal&& src)
+    : db_(src.db_),
+      obj_(src.obj_),
+      query_spec_(std::move(src.query_spec_)),
+      future_api_(std::move(src.future_api_)) {
   src.obj_ = nullptr;
-  db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
-  query_spec_ = std::move(src.query_spec_);
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& src) {
   if (&src == this) return *this;
-  if (obj_ != nullptr) {
-    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
-  }
-  if (db_ != src.db_) {
-    db_->future_manager().ReleaseFutureApi(&future_api_id_);
-    db_ = src.db_;
-  }
+  if (obj_ != nullptr) db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
+  db_ = src.db_;
   obj_ = src.obj_;
   src.obj_ = nullptr;
-  db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
+  future_api_ = std::move(src.future_api_);
   query_spec_ = std::move(src.query_spec_);
   return *this;
 }
@@ -161,13 +151,10 @@ QueryInternal::~QueryInternal() {
     db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
     obj_ = nullptr;
   }
-  db_->future_manager().ReleaseFutureApi(&future_api_id_);
 }
 
 bool QueryInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  return query::CacheMethodIds(env, activity);
+  return query::CacheMethodIds(app->GetJNIEnv(), app->activity());
 }
 
 void QueryInternal::Terminate(App* app) {
@@ -178,15 +165,14 @@ void QueryInternal::Terminate(App* app) {
 
 DatabaseReferenceInternal* QueryInternal::GetReference() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject database_reference_obj =
+  jobject ref_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kGetRef));
   if (::firebase::jni::CheckAndClearException(env)) {
     db_->logger()->LogWarning("Query::GetReference() failed");
     return nullptr;
   }
-  DatabaseReferenceInternal* internal =
-      new DatabaseReferenceInternal(db_, database_reference_obj);
-  env->DeleteLocalRef(database_reference_obj);
+  auto* internal = new DatabaseReferenceInternal(db_, ref_obj);
+  env->DeleteLocalRef(ref_obj);
   return internal;
 }
 
@@ -210,57 +196,44 @@ QueryInternal* QueryInternal::OrderByChild(const char* path) {
                             query_spec_.path.c_str());
     return nullptr;
   }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
+  auto* internal = new QueryInternal(db_, query_obj, spec);
   env->DeleteLocalRef(query_obj);
   return internal;
 }
 
+namespace {
+QueryInternal* MakeNoArgQuery(DatabaseInternal* db, jobject obj,
+                              const internal::QuerySpec& spec,
+                              query::Method method, const char* fn_name) {
+  JNIEnv* env = db->GetApp()->GetJNIEnv();
+  jobject query_obj = env->CallObjectMethod(obj, query::GetMethodId(method));
+  if (::firebase::jni::CheckAndClearException(env)) {
+    db->logger()->LogError("Query::%s (URL = %s)", fn_name, spec.path.c_str());
+    return nullptr;
+  }
+  auto* internal = new QueryInternal(db, query_obj, spec);
+  env->DeleteLocalRef(query_obj);
+  return internal;
+}
+}  // namespace
+
 QueryInternal* QueryInternal::OrderByKey() {
   internal::QuerySpec spec = query_spec_;
   spec.params.order_by = internal::QueryParams::kOrderByKey;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject query_obj =
-      env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByKey));
-  if (::firebase::jni::CheckAndClearException(env)) {
-    db_->logger()->LogError("Query::OrderByKey (URL = %s)",
-                            query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return MakeNoArgQuery(db_, obj_, spec, query::kOrderByKey, "OrderByKey");
 }
 
 QueryInternal* QueryInternal::OrderByPriority() {
   internal::QuerySpec spec = query_spec_;
   spec.params.order_by = internal::QueryParams::kOrderByPriority;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject query_obj =
-      env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByPriority));
-  if (::firebase::jni::CheckAndClearException(env)) {
-    db_->logger()->LogError("Query::OrderByPriority (URL = %s)",
-                            query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return MakeNoArgQuery(db_, obj_, spec, query::kOrderByPriority,
+                        "OrderByPriority");
 }
 
 QueryInternal* QueryInternal::OrderByValue() {
   internal::QuerySpec spec = query_spec_;
   spec.params.order_by = internal::QueryParams::kOrderByValue;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject query_obj =
-      env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByValue));
-  if (::firebase::jni::CheckAndClearException(env)) {
-    db_->logger()->LogError("Query::OrderByValue (URL = %s)",
-                            query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return MakeNoArgQuery(db_, obj_, spec, query::kOrderByValue, "OrderByValue");
 }
 
 QueryInternal* QueryInternal::LimitToFirst(size_t limit) {
@@ -268,14 +241,13 @@ QueryInternal* QueryInternal::LimitToFirst(size_t limit) {
   spec.params.limit_first = limit;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject query_obj = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kLimitToFirst),
-      static_cast<jint>(limit));
+      obj_, query::GetMethodId(query::kLimitToFirst), static_cast<jint>(limit));
   if (::firebase::jni::CheckAndClearException(env)) {
     db_->logger()->LogError("Query::LimitToFirst (URL = %s)",
                             query_spec_.path.c_str());
     return nullptr;
   }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
+  auto* internal = new QueryInternal(db_, query_obj, spec);
   env->DeleteLocalRef(query_obj);
   return internal;
 }
@@ -285,244 +257,135 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
   spec.params.limit_last = limit;
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject query_obj = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kLimitToLast),
-      static_cast<jint>(limit));
+      obj_, query::GetMethodId(query::kLimitToLast), static_cast<jint>(limit));
   if (::firebase::jni::CheckAndClearException(env)) {
     db_->logger()->LogError("Query::LimitToLast (URL = %s)",
                             query_spec_.path.c_str());
     return nullptr;
   }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
+  auto* internal = new QueryInternal(db_, query_obj, spec);
   env->DeleteLocalRef(query_obj);
   return internal;
 }
 
-QueryInternal* QueryInternal::StartAt(Variant value) {
-  Logger* logger = db_->logger();
-  if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    logger->LogWarning(
-        "Query::StartAt(): Only strings, numbers, and boolean values are "
-        "allowed. (URL = %s)",
-        query_spec_.path.c_str());
-    return nullptr;
-  }
-  internal::QuerySpec spec = query_spec_;
-  spec.params.start_at_value = value;
+QueryInternal* QueryInternal::CallRangeMethod(
+    const Variant& value, const char* key, const internal::QuerySpec& spec,
+    int bool_method, int double_method, int str_method, const char* fn_name) {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  jstring key_str = key ? env->NewStringUTF(key) : nullptr;
   jobject query_obj = nullptr;
   if (value.is_bool()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kStartAtBool), value.bool_value());
+    jmethodID mid = query::GetMethodId(static_cast<query::Method>(bool_method));
+    query_obj = key ? env->CallObjectMethod(obj_, mid, value.bool_value(),
+                                            key_str)
+                    : env->CallObjectMethod(obj_, mid, value.bool_value());
   } else if (value.is_numeric()) {
-    query_obj =
-        env->CallObjectMethod(obj_, query::GetMethodId(query::kStartAtDouble),
-                              value.AsDouble().double_value());
+    jmethodID mid =
+        query::GetMethodId(static_cast<query::Method>(double_method));
+    double d = value.AsDouble().double_value();
+    query_obj = key ? env->CallObjectMethod(obj_, mid, d, key_str)
+                    : env->CallObjectMethod(obj_, mid, d);
   } else if (value.is_string()) {
-    jstring value_string = env->NewStringUTF(value.string_value());
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kStartAtString), value_string);
-    env->DeleteLocalRef(value_string);
+    jmethodID mid = query::GetMethodId(static_cast<query::Method>(str_method));
+    jstring val_str = env->NewStringUTF(value.string_value());
+    query_obj = key ? env->CallObjectMethod(obj_, mid, val_str, key_str)
+                    : env->CallObjectMethod(obj_, mid, val_str);
+    env->DeleteLocalRef(val_str);
   }
+  if (key_str) env->DeleteLocalRef(key_str);
   if (::firebase::jni::CheckAndClearException(env)) {
-    logger->LogError("Query::StartAt (URL = %s)", query_spec_.path.c_str());
+    db_->logger()->LogError("Query::%s (URL = %s)", fn_name,
+                            query_spec_.path.c_str());
     return nullptr;
   }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
+  auto* internal = new QueryInternal(db_, query_obj, spec);
   env->DeleteLocalRef(query_obj);
   return internal;
+}
+
+namespace {
+bool ValidateRangeValue(Logger* logger, const Variant& value, const char* name,
+                        const char* url) {
+  if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
+    logger->LogWarning(
+        "Query::%s: Only strings, numbers, and boolean values are allowed. "
+        "(URL = %s)",
+        name, url);
+    return false;
+  }
+  return true;
+}
+}  // namespace
+
+QueryInternal* QueryInternal::StartAt(Variant value) {
+  if (!ValidateRangeValue(db_->logger(), value, "StartAt()",
+                          query_spec_.path.c_str()))
+    return nullptr;
+  internal::QuerySpec spec = query_spec_;
+  spec.params.start_at_value = value;
+  return CallRangeMethod(value, nullptr, spec, query::kStartAtBool,
+                         query::kStartAtDouble, query::kStartAtString,
+                         "StartAt");
 }
 
 QueryInternal* QueryInternal::StartAt(Variant value, const char* key) {
-  Logger* logger = db_->logger();
-  if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    logger->LogWarning(
-        "Query::StartAt: Only strings, numbers, and boolean values are "
-        "allowed. (URL = %s)",
-        query_spec_.path.c_str());
+  if (!ValidateRangeValue(db_->logger(), value, "StartAt",
+                          query_spec_.path.c_str()))
     return nullptr;
-  }
   FIREBASE_ASSERT_RETURN(nullptr, key != nullptr);
   internal::QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
   spec.params.start_at_child_key = key;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jstring key_string = env->NewStringUTF(key);
-  jobject query_obj = nullptr;
-  if (value.is_bool()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kStartAtBoolString), value.bool_value(),
-        key_string);
-  } else if (value.is_numeric()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kStartAtDoubleString),
-        value.AsDouble().double_value(), key_string);
-  } else if (value.is_string()) {
-    jstring value_string = env->NewStringUTF(value.string_value());
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kStartAtStringString), value_string,
-        key_string);
-    env->DeleteLocalRef(value_string);
-  }
-  env->DeleteLocalRef(key_string);
-  if (::firebase::jni::CheckAndClearException(env)) {
-    logger->LogError("Query::StartAt (URL = %s)", query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return CallRangeMethod(value, key, spec, query::kStartAtBoolString,
+                         query::kStartAtDoubleString,
+                         query::kStartAtStringString, "StartAt");
 }
 
 QueryInternal* QueryInternal::EndAt(Variant value) {
-  Logger* logger = db_->logger();
-  if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    logger->LogWarning(
-        "Query::EndAt: Only strings, numbers, and boolean values are "
-        "allowed. (URL = %s)",
-        query_spec_.path.c_str());
+  if (!ValidateRangeValue(db_->logger(), value, "EndAt",
+                          query_spec_.path.c_str()))
     return nullptr;
-  }
   internal::QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject query_obj = nullptr;
-  if (value.is_bool()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEndAtBool), value.bool_value());
-  } else if (value.is_numeric()) {
-    query_obj =
-        env->CallObjectMethod(obj_, query::GetMethodId(query::kEndAtDouble),
-                              value.AsDouble().double_value());
-  } else if (value.is_string()) {
-    jstring value_string = env->NewStringUTF(value.string_value());
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEndAtString), value_string);
-    env->DeleteLocalRef(value_string);
-  }
-  if (::firebase::jni::CheckAndClearException(env)) {
-    logger->LogError("Query::EndAt (URL = %s)", query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return CallRangeMethod(value, nullptr, spec, query::kEndAtBool,
+                         query::kEndAtDouble, query::kEndAtString, "EndAt");
 }
 
 QueryInternal* QueryInternal::EndAt(Variant value, const char* key) {
-  Logger* logger = db_->logger();
-  if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    logger->LogWarning(
-        "Query::EndAt: Only strings, numbers, and boolean values are "
-        "allowed. (URL = %s)",
-        query_spec_.path.c_str());
+  if (!ValidateRangeValue(db_->logger(), value, "EndAt",
+                          query_spec_.path.c_str()))
     return nullptr;
-  }
   FIREBASE_ASSERT_RETURN(nullptr, key != nullptr);
   internal::QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
   spec.params.end_at_child_key = key;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jstring key_string = env->NewStringUTF(key);
-  jobject query_obj = nullptr;
-  if (value.is_bool()) {
-    query_obj =
-        env->CallObjectMethod(obj_, query::GetMethodId(query::kEndAtBoolString),
-                              value.bool_value(), key_string);
-  } else if (value.is_numeric()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEndAtDoubleString),
-        value.AsDouble().double_value(), key_string);
-  } else if (value.is_string()) {
-    jstring value_string = env->NewStringUTF(value.string_value());
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEndAtStringString), value_string,
-        key_string);
-    env->DeleteLocalRef(value_string);
-  }
-  env->DeleteLocalRef(key_string);
-  if (::firebase::jni::CheckAndClearException(env)) {
-    logger->LogError("Query::EndAt (URL = %s)", query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return CallRangeMethod(value, key, spec, query::kEndAtBoolString,
+                         query::kEndAtDoubleString, query::kEndAtStringString,
+                         "EndAt");
 }
 
 QueryInternal* QueryInternal::EqualTo(Variant value) {
-  Logger* logger = db_->logger();
-  if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    logger->LogWarning(
-        "Query::EqualTo: Only strings, numbers, and boolean values are "
-        "allowed. (URL = %s)",
-        query_spec_.path.c_str());
+  if (!ValidateRangeValue(db_->logger(), value, "EqualTo",
+                          query_spec_.path.c_str()))
     return nullptr;
-  }
   internal::QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject query_obj = nullptr;
-  if (value.is_bool()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEqualToBool), value.bool_value());
-  } else if (value.is_numeric()) {
-    query_obj =
-        env->CallObjectMethod(obj_, query::GetMethodId(query::kEqualToDouble),
-                              value.AsDouble().double_value());
-  } else if (value.is_string()) {
-    jstring value_string = env->NewStringUTF(value.string_value());
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEqualToString), value_string);
-    env->DeleteLocalRef(value_string);
-  }
-  if (::firebase::jni::CheckAndClearException(env)) {
-    logger->LogError("Query::EqualTo (URL = %s)", query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return CallRangeMethod(value, nullptr, spec, query::kEqualToBool,
+                         query::kEqualToDouble, query::kEqualToString,
+                         "EqualTo");
 }
 
 QueryInternal* QueryInternal::EqualTo(Variant value, const char* key) {
-  Logger* logger = db_->logger();
-  if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    logger->LogWarning(
-        "Query::EqualTo: Only strings, numbers, and boolean values are "
-        "allowed. (URL = %s)",
-        query_spec_.path.c_str());
+  if (!ValidateRangeValue(db_->logger(), value, "EqualTo",
+                          query_spec_.path.c_str()))
     return nullptr;
-  }
   FIREBASE_ASSERT_RETURN(nullptr, key != nullptr);
   internal::QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
   spec.params.equal_to_child_key = key;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jstring key_string = env->NewStringUTF(key);
-  jobject query_obj = nullptr;
-  if (value.is_bool()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEqualToBoolString), value.bool_value(),
-        key_string);
-  } else if (value.is_numeric()) {
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEqualToDoubleString),
-        value.AsDouble().double_value(), key_string);
-  } else if (value.is_string()) {
-    jstring value_string = env->NewStringUTF(value.string_value());
-    query_obj = env->CallObjectMethod(
-        obj_, query::GetMethodId(query::kEqualToStringString), value_string,
-        key_string);
-    env->DeleteLocalRef(value_string);
-  }
-  env->DeleteLocalRef(key_string);
-  if (::firebase::jni::CheckAndClearException(env)) {
-    logger->LogError("Query::EqualTo (URL = %s)", query_spec_.path.c_str());
-    return nullptr;
-  }
-  QueryInternal* internal = new QueryInternal(db_, query_obj, spec);
-  env->DeleteLocalRef(query_obj);
-  return internal;
+  return CallRangeMethod(value, key, spec, query::kEqualToBoolString,
+                         query::kEqualToDoubleString,
+                         query::kEqualToStringString, "EqualTo");
 }
 
 SingleValueListener::SingleValueListener(DatabaseInternal* db,
@@ -531,9 +394,7 @@ SingleValueListener::SingleValueListener(DatabaseInternal* db,
     : db_(db), future_(future), handle_(handle), java_listener_(nullptr) {}
 
 SingleValueListener::~SingleValueListener() {
-  if (java_listener_ != nullptr) {
-    db_->RemoveSingleValueListener(java_listener_);
-  }
+  if (java_listener_ != nullptr) db_->RemoveSingleValueListener(java_listener_);
 }
 
 void SingleValueListener::SetJavaListener(jobject obj) {
@@ -541,13 +402,17 @@ void SingleValueListener::SetJavaListener(jobject obj) {
   db_->AddSingleValueListener(java_listener_);
 }
 
-void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
+void SingleValueListener::CleanupJavaListener() {
   if (java_listener_ != nullptr) {
     db_->RemoveSingleValueListener(java_listener_);
     db_->ClearJavaEventListener(java_listener_);
     db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
     java_listener_ = nullptr;
   }
+}
+
+void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
+  CleanupJavaListener();
   future_->Complete<DataSnapshot>(
       handle_, kErrorNone, "",
       [&snapshot](DataSnapshot* data) { *data = snapshot; });
@@ -556,28 +421,14 @@ void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
 
 void SingleValueListener::OnCancelled(const Error& error_code,
                                       const char* error_message) {
-  if (java_listener_ != nullptr) {
-    db_->RemoveSingleValueListener(java_listener_);
-    db_->ClearJavaEventListener(java_listener_);
-    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
-    java_listener_ = nullptr;
-  }
+  CleanupJavaListener();
   future_->Complete(handle_, error_code, error_message);
   delete this;
 }
 
 void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
-  // Register a one-time ValueEventListener with the query.
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  SingleValueListener* single_listener =
-      new SingleValueListener(db_, query_future(), handle);
-  // The SingleValueListener newed above is deleted in one of several places:
-  // - In the CheckAndClearException block below, if an exception was thrown
-  //   adding the listener.
-  // - In the listener's OnValueChanged and OnCancelled callbacks, which are
-  //   guaranteed to be called once as long as the database is still valid.
-  // - In DatabaseInternal's destructor, if any SingleValueListeners were
-  //   not deleted (due to shutdown happening while a value is pending).
+  auto* single_listener = new SingleValueListener(db_, query_future(), handle);
   jobject listener = db_->CreateJavaEventListener(single_listener);
   single_listener->SetJavaListener(listener);
   env->CallVoidMethod(
@@ -586,23 +437,19 @@ void QueryInternal::GetValueImpl(SafeFutureHandle<DataSnapshot> handle) {
   if (::firebase::jni::CheckAndClearException(env)) {
     db_->logger()->LogError("Query::GetValue (URL = %s) failed",
                             query_spec_.path.c_str());
-    // The query failed, so it needs to clean itself up.
     delete single_listener;
     db_->ClearJavaEventListener(listener);
     env->DeleteGlobalRef(listener);
     query_future()->Complete(handle, kErrorUnknownError,
                              "addListenerForSingleValueEvent failed");
   }
-  return;
 }
-
 
 void QueryInternal::AddValueListener(ValueListener* value_listener) {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject listener =
       db_->RegisterValueEventListener(query_spec_, value_listener);
   if (listener != nullptr) {
-    // Register a Java listener.
     jobject listener_ref = env->CallObjectMethod(
         obj_, query::GetMethodId(query::kAddValueEventListener), listener);
     env->DeleteLocalRef(listener_ref);
@@ -611,8 +458,7 @@ void QueryInternal::AddValueListener(ValueListener* value_listener) {
                               query_spec_.path.c_str());
     }
   } else {
-    Logger* logger = db_->logger();
-    logger->LogWarning(
+    db_->logger()->LogWarning(
         "Query::AddValueListener (URL = %s): You may not register the same "
         "ValueListener more than once on the same Query.",
         query_spec_.path.c_str());
@@ -624,8 +470,6 @@ void QueryInternal::RemoveValueListener(ValueListener* value_listener) {
   jobject listener =
       db_->UnregisterValueEventListener(query_spec_, value_listener);
   if (listener != nullptr) {
-    // Unregister it. If this is the last one, it will be deleted once this
-    // local ref is deleted.
     env->CallVoidMethod(
         obj_, query::GetMethodId(query::kRemoveValueEventListener), listener);
     if (::firebase::jni::CheckAndClearException(env)) {
@@ -638,14 +482,11 @@ void QueryInternal::RemoveValueListener(ValueListener* value_listener) {
 
 void QueryInternal::RemoveAllValueListeners() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  std::vector<jobject> listeners =
-      db_->UnregisterAllValueEventListeners(query_spec_);
-  for (size_t i = 0; i < listeners.size(); i++) {
-    env->CallVoidMethod(obj_,
-                        query::GetMethodId(query::kRemoveValueEventListener),
-                        listeners[i]);
+  for (jobject listener : db_->UnregisterAllValueEventListeners(query_spec_)) {
+    env->CallVoidMethod(
+        obj_, query::GetMethodId(query::kRemoveValueEventListener), listener);
     ::firebase::jni::CheckAndClearException(env);
-    env->DeleteLocalRef(listeners[i]);
+    env->DeleteLocalRef(listener);
   }
 }
 
@@ -654,7 +495,6 @@ void QueryInternal::AddChildListener(ChildListener* child_listener) {
   jobject listener =
       db_->RegisterChildEventListener(query_spec_, child_listener);
   if (listener != nullptr) {
-    // Register a Java listener.
     jobject listener_ref = env->CallObjectMethod(
         obj_, query::GetMethodId(query::kAddChildEventListener), listener);
     env->DeleteLocalRef(listener_ref);
@@ -663,8 +503,7 @@ void QueryInternal::AddChildListener(ChildListener* child_listener) {
                               query_spec_.path.c_str());
     }
   } else {
-    Logger* logger = db_->logger();
-    logger->LogWarning(
+    db_->logger()->LogWarning(
         "Query::AddChildListener (URL = %s): You may not register the same "
         "ChildListener more than once on the same Query.",
         query_spec_.path.c_str());
@@ -676,8 +515,6 @@ void QueryInternal::RemoveChildListener(ChildListener* child_listener) {
   jobject listener =
       db_->UnregisterChildEventListener(query_spec_, child_listener);
   if (listener != nullptr) {
-    // Unregister it. If this is the last one, it will be deleted once this
-    // local ref is deleted.
     env->CallVoidMethod(
         obj_, query::GetMethodId(query::kRemoveChildEventListener), listener);
     if (::firebase::jni::CheckAndClearException(env)) {
@@ -688,20 +525,13 @@ void QueryInternal::RemoveChildListener(ChildListener* child_listener) {
   }
 }
 
-ReferenceCountedFutureImpl* QueryInternal::query_future() {
-  return db_->future_manager().GetFutureApi(&future_api_id_);
-}
-
 void QueryInternal::RemoveAllChildListeners() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  std::vector<jobject> listeners =
-      db_->UnregisterAllChildEventListeners(query_spec_);
-  for (size_t i = 0; i < listeners.size(); i++) {
-    env->CallVoidMethod(obj_,
-                        query::GetMethodId(query::kRemoveChildEventListener),
-                        listeners[i]);
+  for (jobject listener : db_->UnregisterAllChildEventListeners(query_spec_)) {
+    env->CallVoidMethod(
+        obj_, query::GetMethodId(query::kRemoveChildEventListener), listener);
     ::firebase::jni::CheckAndClearException(env);
-    env->DeleteLocalRef(listeners[i]);
+    env->DeleteLocalRef(listener);
   }
 }
 

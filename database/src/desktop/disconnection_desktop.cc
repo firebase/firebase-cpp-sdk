@@ -36,10 +36,6 @@ namespace internal {
 
 namespace {
 
-// Keeps ReferenceCountedFutureImpl alive for the full duration of an
-// asynchronous Repo OnDisconnect request (including server ACK latency), and
-// atomically completes the user handle either when Repo resolves the internal
-// proxy future or with an error if the Database/Repo shuts down first.
 struct DisconnectionOpState
     : public std::enable_shared_from_this<DisconnectionOpState> {
   DisconnectionOpState(DatabaseInternal* database,
@@ -52,9 +48,7 @@ struct DisconnectionOpState
         user_backing_future(MakeFuture(user_api.get(), user_handle)),
         repo_api(std::make_shared<ReferenceCountedFutureImpl>(1)),
         repo_handle(repo_api->SafeAlloc<void>(0)),
-        repo_future(MakeFuture(repo_api.get(), repo_handle)),
-        completed(false),
-        cleanup_finished(false) {}
+        repo_future(MakeFuture(repo_api.get(), repo_handle)) {}
 
   ~DisconnectionOpState() { FailIfNotCompleted(); }
 
@@ -69,10 +63,6 @@ struct DisconnectionOpState
     std::weak_ptr<DisconnectionOpState> weak_self = state;
     state->repo_future.OnCompletion([weak_self](const Future<void>& result) {
       if (auto self = weak_self.lock()) {
-        // Defer releasing the CleanupNotifier registration (and thus `self`
-        // and `repo_api`) onto Repo::scheduler() BEFORE running user callbacks
-        // so `repo_api` is never destroyed while `repo_api->Complete()` is on
-        // the call stack.
         {
           Repo::ThisRefLock repo_lock(&self->repo_ref);
           if (repo_lock.GetReference() != nullptr) {
@@ -119,11 +109,7 @@ struct DisconnectionOpState
     }
     {
       DatabaseInternal::ThisRefLock db_lock(&db_ref);
-      DatabaseInternal* db = db_lock.GetReference();
-      if (db != nullptr) {
-        // Keep `this` (and `repo_api`) alive until after `repo_.reset(nullptr)`
-        // finishes in `~DatabaseInternal()` so in-flight OnDisconnectResponse
-        // objects in Repo/PersistentConnection never hold a dangling pointer.
+      if (DatabaseInternal* db = db_lock.GetReference()) {
         db->RetainUntilRepoDestroyed(shared_from_this());
       }
     }
@@ -137,8 +123,7 @@ struct DisconnectionOpState
       cleanup_finished = true;
     }
     DatabaseInternal::ThisRefLock db_lock(&db_ref);
-    DatabaseInternal* db = db_lock.GetReference();
-    if (db != nullptr) {
+    if (DatabaseInternal* db = db_lock.GetReference()) {
       db->cleanup().UnregisterObject(this);
     }
   }
@@ -152,9 +137,25 @@ struct DisconnectionOpState
   std::shared_ptr<ReferenceCountedFutureImpl> repo_api;
   SafeFutureHandle<void> repo_handle;
   Future<void> repo_future;
-  bool completed;
-  bool cleanup_finished;
+  bool completed = false;
+  bool cleanup_finished = false;
 };
+
+template <typename Fn>
+void ExecuteDisconnectOp(
+    DatabaseInternal* db,
+    const std::shared_ptr<ReferenceCountedFutureImpl>& future_impl,
+    SafeFutureHandle<void> handle, Fn fn) {
+  if (!db || !db->repo() || !future_impl) {
+    if (future_impl) {
+      future_impl->Complete(handle, kErrorUnknownError,
+                            "The database is being destroyed.");
+    }
+    return;
+  }
+  auto state = DisconnectionOpState::Create(db, future_impl, handle);
+  fn(db->repo(), state->repo_handle, state->repo_api.get());
+}
 
 }  // namespace
 
@@ -165,94 +166,52 @@ DisconnectionHandlerInternal::DisconnectionHandlerInternal(
       future_impl_(std::make_shared<ReferenceCountedFutureImpl>(
           kDisconnectionHandlerFnCount)) {}
 
-DisconnectionHandlerInternal::~DisconnectionHandlerInternal() = default;
-
 void DisconnectionHandlerInternal::CancelImpl(SafeFutureHandle<void> handle) {
-  if (!database_ || !database_->repo() || !future_impl_) {
-    if (future_impl_) {
-      future_impl_->Complete(handle, kErrorUnknownError,
-                             "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = DisconnectionOpState::Create(database_, future_impl_, handle);
-  database_->repo()->OnDisconnectCancel(state->repo_handle,
-                                        state->repo_api.get(), path_);
+  ExecuteDisconnectOp(database_, future_impl_, handle,
+                      [this](Repo* repo, SafeFutureHandle<void> h,
+                             ReferenceCountedFutureImpl* api) {
+                        repo->OnDisconnectCancel(h, api, path_);
+                      });
 }
 
 void DisconnectionHandlerInternal::RemoveValueImpl(
     SafeFutureHandle<void> handle) {
-  if (!database_ || !database_->repo() || !future_impl_) {
-    if (future_impl_) {
-      future_impl_->Complete(handle, kErrorUnknownError,
-                             "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = DisconnectionOpState::Create(database_, future_impl_, handle);
-  database_->repo()->OnDisconnectSetValue(
-      state->repo_handle, state->repo_api.get(), path_, Variant::Null());
+  SetValueImpl(Variant::Null(), handle);
 }
 
-void DisconnectionHandlerInternal::SetValueImpl(
-    Variant value, SafeFutureHandle<void> handle) {
-  if (!database_ || !database_->repo() || !future_impl_) {
-    if (future_impl_) {
-      future_impl_->Complete(handle, kErrorUnknownError,
-                             "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = DisconnectionOpState::Create(database_, future_impl_, handle);
-  database_->repo()->OnDisconnectSetValue(
-      state->repo_handle, state->repo_api.get(), path_, std::move(value));
+void DisconnectionHandlerInternal::SetValueImpl(Variant value,
+                                                SafeFutureHandle<void> handle) {
+  ExecuteDisconnectOp(database_, future_impl_, handle,
+                      [this, value = std::move(value)](
+                          Repo* repo, SafeFutureHandle<void> h,
+                          ReferenceCountedFutureImpl* api) mutable {
+                        repo->OnDisconnectSetValue(h, api, path_,
+                                                   std::move(value));
+                      });
 }
 
 void DisconnectionHandlerInternal::SetValueAndPriorityImpl(
     Variant value, Variant priority, SafeFutureHandle<void> handle) {
-  if (!database_ || !database_->repo() || !future_impl_) {
-    if (future_impl_) {
-      future_impl_->Complete(handle, kErrorUnknownError,
-                             "The database is being destroyed.");
-    }
-    return;
-  }
   ConvertVectorToMap(&value);
-  Variant data;
+  Variant data = Variant::EmptyMap();
   if (value.is_map()) {
     data = std::move(value);
-    data.map()[".priority"] = std::move(priority);
   } else {
-    data = Variant::EmptyMap();
     data.map()[".value"] = std::move(value);
-    data.map()[".priority"] = std::move(priority);
   }
-  auto state = DisconnectionOpState::Create(database_, future_impl_, handle);
-  database_->repo()->OnDisconnectSetValue(
-      state->repo_handle, state->repo_api.get(), path_, std::move(data));
+  data.map()[".priority"] = std::move(priority);
+  SetValueImpl(std::move(data), handle);
 }
 
 void DisconnectionHandlerInternal::UpdateChildrenImpl(
     Variant values, SafeFutureHandle<void> handle) {
-  if (!database_ || !database_->repo() || !future_impl_) {
-    if (future_impl_) {
-      future_impl_->Complete(handle, kErrorUnknownError,
-                             "The database is being destroyed.");
-    }
-    return;
-  }
-  auto state = DisconnectionOpState::Create(database_, future_impl_, handle);
-  database_->repo()->OnDisconnectUpdate(
-      state->repo_handle, state->repo_api.get(), path_, std::move(values));
-}
-
-ReferenceCountedFutureImpl* DisconnectionHandlerInternal::future() {
-  return future_impl_.get();
-}
-
-DisconnectionHandler
-DisconnectionHandlerInternal::GetInvalidDisconnectionHandler() {
-  return DisconnectionHandler(nullptr);
+  ExecuteDisconnectOp(database_, future_impl_, handle,
+                      [this, values = std::move(values)](
+                          Repo* repo, SafeFutureHandle<void> h,
+                          ReferenceCountedFutureImpl* api) mutable {
+                        repo->OnDisconnectUpdate(h, api, path_,
+                                                 std::move(values));
+                      });
 }
 
 }  // namespace internal

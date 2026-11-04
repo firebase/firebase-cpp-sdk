@@ -15,14 +15,58 @@
 #ifndef FIREBASE_DATABASE_SRC_COMMON_QUERY_H_
 #define FIREBASE_DATABASE_SRC_COMMON_QUERY_H_
 
+#include "app/src/reference_counted_future_impl.h"
+
 namespace firebase {
 namespace database {
 namespace internal {
 
-// Future functions.
 enum kQueryFn {
   kQueryFnGetValue = 0,
   kQueryFnCount,
+};
+
+template <typename DbInternal, int FnCount>
+class ScopedFutureApi {
+ public:
+  explicit ScopedFutureApi(DbInternal* db) : db_(db) {
+    if (db_) db_->future_manager().AllocFutureApi(&id_, FnCount);
+  }
+  ScopedFutureApi(const ScopedFutureApi& other) : db_(other.db_) {
+    if (db_) db_->future_manager().AllocFutureApi(&id_, FnCount);
+  }
+  ScopedFutureApi& operator=(const ScopedFutureApi& other) {
+    if (this != &other && db_ != other.db_) {
+      if (db_) db_->future_manager().ReleaseFutureApi(&id_);
+      db_ = other.db_;
+      if (db_) db_->future_manager().AllocFutureApi(&id_, FnCount);
+    }
+    return *this;
+  }
+  ScopedFutureApi(ScopedFutureApi&& other) noexcept : db_(other.db_) {
+    other.db_ = nullptr;
+    if (db_) db_->future_manager().MoveFutureApi(&other.id_, &id_);
+  }
+  ScopedFutureApi& operator=(ScopedFutureApi&& other) noexcept {
+    if (this != &other) {
+      if (db_) db_->future_manager().ReleaseFutureApi(&id_);
+      db_ = other.db_;
+      other.db_ = nullptr;
+      if (db_) db_->future_manager().MoveFutureApi(&other.id_, &id_);
+    }
+    return *this;
+  }
+  ~ScopedFutureApi() {
+    if (db_) db_->future_manager().ReleaseFutureApi(&id_);
+  }
+  ReferenceCountedFutureImpl* get() const {
+    return db_ ? db_->future_manager().GetFutureApi(const_cast<int*>(&id_))
+               : nullptr;
+  }
+
+ private:
+  DbInternal* db_ = nullptr;
+  int id_ = 0;
 };
 
 }  // namespace internal

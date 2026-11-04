@@ -15,7 +15,6 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_DATABASE_REFERENCE_DESKTOP_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_DATABASE_REFERENCE_DESKTOP_H_
 
-#include <map>
 #include <memory>
 #include <string>
 
@@ -33,66 +32,42 @@ namespace internal {
 class DatabaseReferenceInternal : public QueryInternal {
  public:
   DatabaseReferenceInternal(DatabaseInternal* database, const Path& path);
-
-  ~DatabaseReferenceInternal() override;
-
+  ~DatabaseReferenceInternal() override = default;
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
-
   DatabaseReferenceInternal& operator=(
       const DatabaseReferenceInternal& reference);
-
   DatabaseReferenceInternal(DatabaseReferenceInternal&& reference) noexcept;
-
   DatabaseReferenceInternal& operator=(
       DatabaseReferenceInternal&& reference) noexcept;
 
   Database* GetDatabase() const;
-
   const char* GetKey() const { return query_spec_.path.GetBaseName(); }
-
   std::string GetKeyString() const { return query_spec_.path.GetBaseName(); }
-
   std::string GetUrl() const;
-
-  bool IsRoot() const;
+  bool IsRoot() const { return query_spec_.path.empty(); }
 
   DatabaseReferenceInternal* GetParent();
-
   DatabaseReferenceInternal* GetRoot();
-
   DatabaseReferenceInternal* Child(const char* path);
-
   DatabaseReferenceInternal* PushChild();
 
   void RemoveValueImpl(SafeFutureHandle<void> handle);
-
-  
   Future<DataSnapshot> RunTransaction(
       DoTransactionWithContext transaction_function, void* context,
       void (*delete_context)(void*), bool trigger_local_events = true);
-
-  
   void SetPriorityImpl(const Variant& priority, SafeFutureHandle<void> handle);
-
-  
   void SetValueImpl(const Variant& value, SafeFutureHandle<void> handle);
-
-  
-  void SetValueAndPriorityImpl(const Variant& value,
-                                   const Variant& priority, SafeFutureHandle<void> handle);
-
-  
+  void SetValueAndPriorityImpl(const Variant& value, const Variant& priority,
+                               SafeFutureHandle<void> handle);
   void UpdateChildrenImpl(const Variant& values, SafeFutureHandle<void> handle);
 
-  
   DisconnectionHandler* OnDisconnect();
-
   void GoOffline();
-
   void GoOnline();
 
-  // Get the Future for the DatabaseReferenceInternal.
-  ReferenceCountedFutureImpl* ref_future();
+  ReferenceCountedFutureImpl* ref_future() {
+    return database_ ? ref_future_impl_.get() : nullptr;
+  }
 
  private:
   std::shared_ptr<ReferenceCountedFutureImpl> ref_future_impl_;

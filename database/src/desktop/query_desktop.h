@@ -36,74 +36,51 @@ class DatabaseInternal;
 class QueryInternal {
  public:
   QueryInternal() = default;
-
   QueryInternal(DatabaseInternal* database, const QuerySpec& query_spec);
-
   QueryInternal(const QueryInternal& query);
-
   QueryInternal& operator=(const QueryInternal& query);
-
   QueryInternal(QueryInternal&& query) noexcept;
-
   QueryInternal& operator=(QueryInternal&& query) noexcept;
-
-  virtual ~QueryInternal();
+  virtual ~QueryInternal() = default;
 
   void GetValueImpl(SafeFutureHandle<DataSnapshot> handle);
-  
   void AddValueListener(ValueListener* listener);
-
   void RemoveValueListener(ValueListener* listener);
-
   void RemoveAllValueListeners();
-
   void AddChildListener(ChildListener* listener);
-
   void RemoveChildListener(ChildListener* listener);
-
   void RemoveAllChildListeners();
-
   DatabaseReferenceInternal* GetReference();
-
   void SetKeepSynchronized(bool keep_sync);
 
   QueryInternal* OrderByChild(const char* path);
   QueryInternal* OrderByKey();
   QueryInternal* OrderByPriority();
   QueryInternal* OrderByValue();
-
   QueryInternal* StartAt(const Variant& value);
   QueryInternal* StartAt(const Variant& value, const char* child_key);
-
   QueryInternal* EndAt(const Variant& value);
   QueryInternal* EndAt(const Variant& value, const char* child_key);
-
   QueryInternal* EqualTo(const Variant& value);
   QueryInternal* EqualTo(const Variant& value, const char* child_key);
-
   QueryInternal* LimitToFirst(size_t limit);
   QueryInternal* LimitToLast(size_t limit);
 
   const QuerySpec& query_spec() const { return query_spec_; }
-
   DatabaseInternal* database_internal() const { return database_; }
-
-  // Get the Future for the QueryInternal.
-  ReferenceCountedFutureImpl* query_future();
+  ReferenceCountedFutureImpl* query_future() {
+    return database_ ? future_impl_.get() : nullptr;
+  }
 
  protected:
   DatabaseInternal* database_ = nullptr;
   QuerySpec query_spec_;
 
  private:
+  QueryInternal* OrderBy(QueryParams::OrderBy order_by);
   void AddEventRegistration(std::unique_ptr<EventRegistration> registration,
                             void* listener_ptr);
-
   void RemoveEventRegistration(void* listener_ptr, const QuerySpec& query_spec);
-  void RemoveEventRegistration(ValueListener* listener,
-                               const QuerySpec& query_spec);
-  void RemoveEventRegistration(ChildListener* listener,
-                               const QuerySpec& query_spec);
 
   std::shared_ptr<ReferenceCountedFutureImpl> future_impl_;
 };
@@ -111,14 +88,12 @@ class QueryInternal {
 struct ValueListenerCleanupData {
   explicit ValueListenerCleanupData(QuerySpec query_spec_in)
       : query_spec(std::move(query_spec_in)) {}
-
   QuerySpec query_spec;
 };
 
 struct ChildListenerCleanupData {
   explicit ChildListenerCleanupData(QuerySpec query_spec_in)
       : query_spec(std::move(query_spec_in)) {}
-
   QuerySpec query_spec;
 };
 
