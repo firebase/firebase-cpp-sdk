@@ -14,8 +14,10 @@
 
 #include "remote_config/src/desktop/notification_channel.h"
 
+#include <atomic>
 #include <chrono>              // NOLINT
 #include <condition_variable>  // NOLINT
+#include <mutex>               // NOLINT
 #include <thread>              // NOLINT
 
 #include "gtest/gtest.h"
@@ -26,53 +28,70 @@ namespace internal {
 
 class NotificationChannelTest : public ::testing::Test {
  protected:
-  int times_ = 0;
+  std::atomic<int> times_{0};
   NotificationChannel channel_;
 };
 
 TEST_F(NotificationChannelTest, All) {
-  std::thread thread([this]() {
+  std::mutex sync_mutex;
+  std::condition_variable entered_cv;
+  std::condition_variable proceed_cv;
+  bool in_iteration_1 = false;
+  bool allow_finish_iteration_1 = false;
+
+  std::thread thread([&]() {
     while (channel_.Get()) {
-      times_++;
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      int current = times_.fetch_add(1) + 1;
+      if (current == 1) {
+        std::unique_lock<std::mutex> lock(sync_mutex);
+        in_iteration_1 = true;
+        entered_cv.notify_all();
+        proceed_cv.wait(lock, [&]() { return allow_finish_iteration_1; });
+      }
     }
   });
 
-  EXPECT_EQ(times_, 0);
+  EXPECT_EQ(times_.load(), 0);
 
-  // Thread will get `notification`.
+  // Thread will get `notification` and pause inside the first iteration.
   channel_.Put();
-  // Thread will get `notification` in short period of time
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  {
+    std::unique_lock<std::mutex> lock(sync_mutex);
+    entered_cv.wait(lock, [&]() { return in_iteration_1; });
+  }
   // Expect thread got one notification. Thread is processing something now.
-  EXPECT_EQ(times_, 1);
+  EXPECT_EQ(times_.load(), 1);
 
-  // Thread will get `notification` afrer current loop iteration.
+  // Thread will get `notification` after current loop iteration.
   channel_.Put();
-  // Thread will get notification in short period of time
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
   // Expect thread got one `notification` total. It is processing something.
-  EXPECT_EQ(times_, 1);
+  EXPECT_EQ(times_.load(), 1);
 
-  // Thread is doing something. It will get notification after finish first loop
-  // iteration. So channel will ignore this Put() call.
+  // Thread is doing something. It will get notification after finishing the
+  // first loop iteration. So channel will coalesce this Put() call.
   channel_.Put();
-  // Thread will finish second loop iteration after sleep.
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  EXPECT_EQ(times_.load(), 1);
+
+  {
+    std::lock_guard<std::mutex> lock(sync_mutex);
+    allow_finish_iteration_1 = true;
+  }
+  proceed_cv.notify_all();
+
+  for (int i = 0; i < 100 && times_.load() < 2; ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
   // Expect thread got two `notification`s total.
-  EXPECT_EQ(times_, 2);
+  EXPECT_EQ(times_.load(), 2);
 
   // Thread will get notification that channel is closed. Thread will be closed.
   channel_.Close();
-  // Wait until thread will get `close notification`.
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  thread.join();
 
   // Thread should be closed, because channel is closed.
   channel_.Put();
   // Still expect that thread got two `notification`s total.
-  EXPECT_EQ(times_, 2);
-
-  thread.join();
+  EXPECT_EQ(times_.load(), 2);
 }
 
 }  // namespace internal

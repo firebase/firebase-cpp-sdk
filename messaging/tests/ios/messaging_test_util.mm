@@ -88,14 +88,46 @@ void OnMessageReceived(const Message &message) {
     NSMutableDictionary<NSString *, id> *alert = [NSMutableDictionary dictionary];
     alert[kTitle] = @(message.notification->title.c_str());
     alert[kBody] = @(message.notification->body.c_str());
+    if (!message.notification->body_loc_key.empty()) {
+      alert[@"loc-key"] = @(message.notification->body_loc_key.c_str());
+    }
+    if (!message.notification->body_loc_args.empty()) {
+      NSMutableArray<NSString *> *bodyArgs = [NSMutableArray array];
+      for (const auto &arg : message.notification->body_loc_args) {
+        [bodyArgs addObject:@(arg.c_str())];
+      }
+      alert[@"loc-args"] = bodyArgs;
+    }
+    if (!message.notification->title_loc_key.empty()) {
+      alert[@"title-loc-key"] = @(message.notification->title_loc_key.c_str());
+    }
+    if (!message.notification->title_loc_args.empty()) {
+      NSMutableArray<NSString *> *titleArgs = [NSMutableArray array];
+      for (const auto &arg : message.notification->title_loc_args) {
+        [titleArgs addObject:@(arg.c_str())];
+      }
+      alert[@"title-loc-args"] = titleArgs;
+    }
     NSMutableDictionary *aps = [NSMutableDictionary dictionary];
     aps[kSound] = @(message.notification->sound.c_str());
     aps[kBadge] = @(message.notification->badge.c_str());
+    if (!message.notification->click_action.empty()) {
+      aps[@"category"] = @(message.notification->click_action.c_str());
+    }
     aps[kAlert] = alert;
     userData[@"aps"] = aps;
   }
-  [[[UIApplication sharedApplication] delegate] application:[UIApplication sharedApplication]
-                               didReceiveRemoteNotification:userData];
+  if (message.notification_opened) {
+    [[[UIApplication sharedApplication] delegate]
+                              application:[UIApplication sharedApplication]
+            didFinishLaunchingWithOptions:@{
+              UIApplicationLaunchOptionsRemoteNotificationKey : userData
+            }];
+  } else {
+    [[[UIApplication sharedApplication] delegate]
+                         application:[UIApplication sharedApplication]
+        didReceiveRemoteNotification:userData];
+  }
 }
 
 void OnMessageSent(const char *message_id) {}

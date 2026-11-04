@@ -45,9 +45,10 @@ TEST(LayeredConfigsTest, Convertation) {
   LayeredConfigs configs(fetched, active, defaults, metadata);
   std::string buffer = configs.Serialize();
   LayeredConfigs new_configs;
-  new_configs.Deserialize(buffer);
+  EXPECT_TRUE(new_configs.Deserialize(buffer));
 
   EXPECT_EQ(configs, new_configs);
+  EXPECT_FALSE(new_configs.Deserialize(""));
 }
 
 TEST(NamespacedConfigDataTest, ConversionToFlexbuffer) {
@@ -61,9 +62,10 @@ TEST(NamespacedConfigDataTest, ConversionToFlexbuffer) {
 
   // Make a new config and deserialize it with the string.
   NamespacedConfigData new_config_data;
-  new_config_data.Deserialize(buffer);
+  EXPECT_TRUE(new_config_data.Deserialize(buffer));
 
   EXPECT_EQ(config_data, new_config_data);
+  EXPECT_FALSE(new_config_data.Deserialize(""));
 }
 
 TEST(NamespacedConfigDataTest, DefaultConstructor) {

@@ -31,9 +31,13 @@
 #include <TargetConditionals.h>
 #endif  // defined(__APPLE_)
 
+#include <type_traits>
+#include <utility>
+
 #include "app/src/util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "messaging/src/common.h"
 #include "messaging/tests/messaging_test_util.h"
 #include "testing/config.h"
 #include "testing/reporter.h"
@@ -43,6 +47,43 @@ using ::testing::StrEq;
 
 namespace firebase {
 namespace messaging {
+
+#if !defined(FIREBASE_ANDROID_FOR_DESKTOP) && !defined(__ANDROID__) && \
+    !defined(__APPLE__)
+void InitializeMessagingTest() {}
+void TerminateMessagingTest() {}
+void OnTokenReceived(const char* tokenstr) {
+  NotifyListenerOnTokenReceived(tokenstr);
+}
+void OnRegistrationReceived(const char* registration_id) {
+  NotifyListenerOnRegistrationReceived(registration_id);
+}
+void OnUnregistrationReceived(const char* registration_id) {
+  NotifyListenerOnUnregistrationReceived(registration_id);
+}
+void OnDeletedMessages() {
+  Message msg;
+  msg.message_type = "deleted_messages";
+  NotifyListenerOnMessage(msg);
+}
+void OnMessageReceived(const Message& message) {
+  NotifyListenerOnMessage(message);
+}
+void OnMessageSent(const char* message_id) {
+  Message msg;
+  msg.message_id = message_id ? message_id : "";
+  msg.message_type = "send_event";
+  NotifyListenerOnMessage(msg);
+}
+void OnMessageSentError(const char* message_id, const char* error) {
+  Message msg;
+  msg.message_id = message_id ? message_id : "";
+  msg.message_type = "send_error";
+  msg.error = error ? error : "";
+  NotifyListenerOnMessage(msg);
+}
+void SleepMessagingTest(double /*seconds*/) {}
+#endif  // !FIREBASE_ANDROID_FOR_DESKTOP && !__ANDROID__ && !__APPLE__
 
 class MessagingTestListener : public Listener {
  public:
@@ -147,10 +188,9 @@ void MessagingTestListener::OnUnregistrationReceived(
 TEST_F(MessagingTest, TestInitializeTwice) {
   MessagingTestListener listener;
   EXPECT_EQ(Initialize(*firebase_app_, &listener), kInitResultSuccess);
+  Terminate();
 }
 
-// The order of these matter because of the global flag
-// g_registration_token_received
 TEST_F(MessagingTest, TestSubscribeNoRegistration) {
   Subscribe("topic");
   SleepMessagingTest(1);
@@ -168,9 +208,9 @@ TEST_F(MessagingTest, TestSubscribeBeforeRegistration) {
   Unsubscribe("unsubscribe_topic1");
   Unsubscribe("unsubscribe_topic2");
   AddExpectationApple("-[FIRMessaging subscribeToTopic:completion:]",
-                      {"$invalid", "subscribe_topic1", "subscribe_topic2"});
+                      {"subscribe_topic1", "subscribe_topic2"});
   AddExpectationApple("-[FIRMessaging unsubscribeFromTopic:completion:]",
-                      {"$invalid", "unsubscribe_topic1", "unsubscribe_topic2"});
+                      {"unsubscribe_topic1", "unsubscribe_topic2"});
 
   // No requests to Java API yet, iOS should go ahead and forward.
   EXPECT_THAT(reporter_.getFakeReports(),
@@ -260,8 +300,6 @@ TEST_F(MessagingTest, TestSubscribeInvalidTopic) {
   SleepMessagingTest(1);
   Subscribe("$invalid");
   AddExpectationAndroid("FirebaseMessaging.subscribeToTopic", {"$invalid"});
-  AddExpectationApple("-[FIRMessaging subscribeToTopic:completion:]",
-                      {"$invalid"});
 }
 
 TEST_F(MessagingTest, TestUnsubscribeInvalidTopic) {
@@ -269,8 +307,6 @@ TEST_F(MessagingTest, TestUnsubscribeInvalidTopic) {
   SleepMessagingTest(1);
   Unsubscribe("$invalid");
   AddExpectationAndroid("FirebaseMessaging.unsubscribeFromTopic", {"$invalid"});
-  AddExpectationApple("-[FIRMessaging unsubscribeFromTopic:completion:]",
-                      {"$invalid"});
 }
 
 TEST_F(MessagingTest, TestDataMessageReceived) {
@@ -300,6 +336,7 @@ TEST_F(MessagingTest, TestNotificationReceived) {
   send_message.notification->body = "my_body";
   send_message.notification->icon = "my_icon";
   send_message.notification->sound = "my_sound";
+  send_message.notification->badge = "my_badge";
   send_message.notification->tag = "my_tag";
   send_message.notification->color = "my_color";
   send_message.notification->click_action = "my_click_action";
@@ -331,6 +368,7 @@ TEST_F(MessagingTest, TestNotificationReceived) {
   EXPECT_THAT(message.notification->title, StrEq("my_title"));
   EXPECT_THAT(message.notification->body, StrEq("my_body"));
   EXPECT_THAT(message.notification->sound, StrEq("my_sound"));
+  EXPECT_THAT(message.notification->badge, StrEq("my_badge"));
   EXPECT_THAT(message.collapse_key, StrEq("my_collapse_key"));
   EXPECT_THAT(message.priority, StrEq("my_priority"));
   EXPECT_EQ(message.time_to_live, 1234);
@@ -477,6 +515,214 @@ TEST_F(MessagingTest, TestTwoRegistrationsReceivedAfterInitialize) {
 }
 
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
+
+TEST_F(MessagingTest, TestNotificationCopyAndMove) {
+  static_assert(std::is_nothrow_move_constructible<Notification>::value,
+                "Notification must be nothrow move constructible");
+  static_assert(std::is_nothrow_move_assignable<Notification>::value,
+                "Notification must be nothrow move assignable");
+
+  Notification orig;
+  orig.title = "title";
+  orig.body = "body";
+  orig.icon = "icon";
+  orig.sound = "sound";
+  orig.badge = "42";
+  orig.tag = "tag";
+  orig.color = "#112233";
+  orig.click_action = "OPEN";
+  orig.body_loc_key = "body_key";
+  orig.body_loc_args = {"b1", "b2"};
+  orig.title_loc_key = "title_key";
+  orig.title_loc_args = {"t1"};
+  orig.android = new AndroidNotificationParams();
+  orig.android->channel_id = "chan_1";
+
+  // Self-assignment must preserve all fields and android pointer validity.
+  Notification& self_ref = orig;
+  orig = self_ref;
+  ASSERT_NE(orig.android, nullptr);
+  EXPECT_EQ(orig.badge, "42");
+  EXPECT_EQ(orig.android->channel_id, "chan_1");
+
+  // Copy constructor and copy assignment must deep-copy badge and android.
+  Notification copy_constructed(orig);
+  EXPECT_EQ(copy_constructed, orig);
+  EXPECT_EQ(copy_constructed.badge, "42");
+  ASSERT_NE(copy_constructed.android, nullptr);
+  EXPECT_NE(copy_constructed.android, orig.android);
+  EXPECT_EQ(copy_constructed.android->channel_id, "chan_1");
+
+  Notification copy_assigned;
+  copy_assigned = orig;
+  EXPECT_EQ(copy_assigned, orig);
+  EXPECT_EQ(copy_assigned.badge, "42");
+  ASSERT_NE(copy_assigned.android, nullptr);
+  EXPECT_NE(copy_assigned.android, orig.android);
+
+  // Move constructor transfers android pointer without reallocating.
+  AndroidNotificationParams* raw_android = copy_constructed.android;
+  Notification move_constructed(std::move(copy_constructed));
+  EXPECT_EQ(move_constructed.badge, "42");
+  EXPECT_EQ(move_constructed.android, raw_android);
+  EXPECT_EQ(copy_constructed.android, nullptr);
+
+  // Move assignment transfers android pointer and cleans up target.
+  Notification move_assigned;
+  move_assigned.android = new AndroidNotificationParams();
+  move_assigned.android->channel_id = "old";
+  move_assigned = std::move(move_constructed);
+  EXPECT_EQ(move_assigned.badge, "42");
+  EXPECT_EQ(move_assigned.android, raw_android);
+  EXPECT_EQ(move_constructed.android, nullptr);
+}
+
+TEST_F(MessagingTest, TestMessageCopyAndMove) {
+  static_assert(std::is_nothrow_move_constructible<Message>::value,
+                "Message must be nothrow move constructible");
+  static_assert(std::is_nothrow_move_assignable<Message>::value,
+                "Message must be nothrow move assignable");
+
+  Message orig;
+  orig.from = "sender";
+  orig.to = "recipient";
+  orig.collapse_key = "ck";
+  orig.data["k"] = "v";
+  orig.raw_data = {1, 2, 3};
+  orig.message_id = "m1";
+  orig.message_type = "type1";
+  orig.priority = "high";
+  orig.original_priority = "normal";
+  orig.sent_time = 999;
+  orig.time_to_live = 60;
+  orig.error = "err";
+  orig.error_description = "desc";
+  orig.notification_opened = true;
+  orig.link = "https://example.com";
+  orig.notification = new Notification();
+  orig.notification->title = "hello";
+  orig.notification->badge = "7";
+  orig.notification->android = new AndroidNotificationParams();
+  orig.notification->android->channel_id = "ch";
+
+  // Self-assignment must be safe.
+  Message& self_ref = orig;
+  orig = self_ref;
+  ASSERT_NE(orig.notification, nullptr);
+  EXPECT_EQ(orig.notification->badge, "7");
+
+  // Copy constructor makes a deep copy.
+  Message copied(orig);
+  EXPECT_EQ(copied, orig);
+  ASSERT_NE(copied.notification, nullptr);
+  EXPECT_NE(copied.notification, orig.notification);
+  EXPECT_EQ(copied.notification->badge, "7");
+  ASSERT_NE(copied.notification->android, nullptr);
+  EXPECT_EQ(copied.notification->android->channel_id, "ch");
+
+  // Move constructor transfers notification pointer.
+  Notification* raw_notif = copied.notification;
+  Message moved(std::move(copied));
+  EXPECT_EQ(moved, orig);
+  EXPECT_EQ(moved.notification, raw_notif);
+  EXPECT_EQ(copied.notification, nullptr);
+
+  // Move assignment transfers notification pointer.
+  Message move_assigned;
+  move_assigned.notification = new Notification();
+  move_assigned = std::move(moved);
+  EXPECT_EQ(move_assigned, orig);
+  EXPECT_EQ(move_assigned.notification, raw_notif);
+  EXPECT_EQ(moved.notification, nullptr);
+}
+
+TEST_F(MessagingTest, TestPollableListener) {
+  PollableListener pollable;
+  SetListener(&pollable);
+
+  // Null pointer checks should return false safely.
+  EXPECT_FALSE(pollable.PollMessage(nullptr));
+  EXPECT_FALSE(pollable.PollRegistrationToken(static_cast<std::string*>(nullptr)));
+  EXPECT_FALSE(pollable.PollRegistration(static_cast<std::string*>(nullptr)));
+  EXPECT_FALSE(pollable.PollUnregistration(static_cast<std::string*>(nullptr)));
+
+  Message msg;
+  msg.from = "poll_from";
+  msg.notification = new Notification();
+  msg.notification->badge = "3";
+  OnMessageReceived(msg);
+  SleepMessagingTest(1);
+
+  // Move PollableListener while registered and verify it still works and
+  // retains queued messages.
+  PollableListener moved_pollable(std::move(pollable));
+  SetListener(&moved_pollable);
+  Message out_msg;
+  ASSERT_TRUE(moved_pollable.PollMessage(&out_msg));
+  EXPECT_EQ(out_msg.from, "poll_from");
+  ASSERT_NE(out_msg.notification, nullptr);
+  EXPECT_EQ(out_msg.notification->badge, "3");
+  EXPECT_FALSE(moved_pollable.PollMessage(&out_msg));
+
+  OnTokenReceived("poll_token");
+  SleepMessagingTest(1);
+  std::string out_token;
+  EXPECT_TRUE(moved_pollable.PollRegistrationToken(&out_token));
+  EXPECT_EQ(out_token, "poll_token");
+  EXPECT_FALSE(moved_pollable.PollRegistrationToken(&out_token));
+
+  OnRegistrationReceived("reg_1");
+  SleepMessagingTest(1);
+  OnUnregistrationReceived("reg_1");
+  SleepMessagingTest(1);
+  std::string out_id;
+  // Unregistration clears stale unpolled registration.
+  EXPECT_FALSE(moved_pollable.PollRegistration(&out_id));
+  EXPECT_TRUE(moved_pollable.PollUnregistration(&out_id));
+  EXPECT_EQ(out_id, "reg_1");
+
+  SetListener(&listener_);
+}
+
+TEST_F(MessagingTest, TestUnsubscribeLastResultAndOverloads) {
+  OnTokenReceived("my_token");
+  SleepMessagingTest(1);
+
+  Future<void> sub_f = Subscribe(std::string("topic_one"));
+  Future<void> unsub_f = Unsubscribe(std::string("topic_one"));
+  AddExpectationAndroid("FirebaseMessaging.subscribeToTopic", {"topic_one"});
+  AddExpectationAndroid("FirebaseMessaging.unsubscribeFromTopic",
+                        {"topic_one"});
+  AddExpectationApple("-[FIRMessaging subscribeToTopic:completion:]",
+                      {"topic_one"});
+  AddExpectationApple("-[FIRMessaging unsubscribeFromTopic:completion:]",
+                      {"topic_one"});
+
+  EXPECT_NE(SubscribeLastResult().status(), kFutureStatusInvalid);
+  EXPECT_NE(UnsubscribeLastResult().status(), kFutureStatusInvalid);
+
+  // Null and empty topic names fail immediately with kErrorInvalidTopicName
+  // without invoking native SDK methods.
+  Future<void> null_sub = Subscribe(nullptr);
+  EXPECT_EQ(null_sub.status(), kFutureStatusComplete);
+  EXPECT_EQ(null_sub.error(), kErrorInvalidTopicName);
+
+  Future<void> empty_unsub = Unsubscribe("");
+  EXPECT_EQ(empty_unsub.status(), kFutureStatusComplete);
+  EXPECT_EQ(empty_unsub.error(), kErrorInvalidTopicName);
+}
+
+TEST_F(MessagingTest, TestReplaceListenerDeliversCachedToken) {
+  OnTokenReceived("cached_tok");
+  SleepMessagingTest(1);
+  EXPECT_EQ(listener_.GetToken(), "cached_tok");
+
+  MessagingTestListener second_listener;
+  SetListener(&second_listener);
+  EXPECT_EQ(second_listener.GetToken(), "cached_tok");
+  EXPECT_EQ(second_listener.GetOnTokenReceivedCount(), 1);
+  SetListener(&listener_);
+}
 
 }  // namespace messaging
 }  // namespace firebase

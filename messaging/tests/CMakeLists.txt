@@ -12,6 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+firebase_cpp_cc_test(
+    firebase_messaging_message_reader_test
+  SOURCES
+    android/cpp/message_reader_test.cc
+    ${CMAKE_CURRENT_LIST_DIR}/../src/android/cpp/message_reader.cc
+    ${FIREBASE_GEN_FILE_DIR}/messaging/messaging_generated.h
+  DEPENDS
+    firebase_app_for_testing
+    firebase_messaging
+    flatbuffers
+)
+if(TARGET firebase_messaging_message_reader_test)
+  add_dependencies(firebase_messaging_message_reader_test generate_messaging_fbs)
+  target_include_directories(firebase_messaging_message_reader_test
+    PRIVATE
+      ${FIREBASE_GEN_FILE_DIR}
+      ${FLATBUFFERS_SOURCE_DIR}/include
+  )
+endif()
+
 if(ANDROID OR IOS)
     set(messaging_test_util_common_SRCS
         messaging_test_util.h)
@@ -74,5 +94,14 @@ if(ANDROID OR IOS)
         FirebaseMessaging
         Protobuf
     )
-
+else()
+    firebase_cpp_cc_test(
+        firebase_messaging_test
+    SOURCES
+        messaging_test.cc
+    DEPENDS
+        firebase_app_for_testing
+        firebase_messaging
+        firebase_testing
+    )
 endif()

@@ -15,6 +15,7 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -22,6 +23,8 @@
 #include <ctime>
 #include <future>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -146,7 +149,11 @@ static const char* ValueSourceToString(
       "Remote",   // kValueSourceRemoteValue
       "Default",  // kValueSourceDefaultValue
   };
-  return kSourceToString[source];
+  size_t index = static_cast<size_t>(source);
+  if (index >= FIREBASE_ARRAYSIZE(kSourceToString)) {
+    return "Unknown";
+  }
+  return kSourceToString[index];
 }
 
 static const unsigned char kBinaryDefaults[] = {6, 0, 0, 6, 7, 3};
@@ -231,7 +238,7 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
     validated_defaults = false;
   }
   std::vector<unsigned char> blob_value =
-      rc_->GetData("TestData");  //, &value_info);
+      rc_->GetData("TestData", &value_info);
   if (value_info.source == firebase::remote_config::kValueSourceDefaultValue) {
     EXPECT_THAT(blob_value, testing::ElementsAreArray(kBinaryDefaults,
                                                       sizeof(kBinaryDefaults)));
@@ -300,20 +307,27 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   }
 // Realtime RC is not yet supported on desktop.
 #if FIREBASE_PLATFORM_DESKTOP
-  rc_->AddOnConfigUpdateListener(
-      [](firebase::remote_config::ConfigUpdate&&,
-         firebase::remote_config::RemoteConfigError) {});
+  firebase::remote_config::ConfigUpdateListenerRegistration registration =
+      rc_->AddOnConfigUpdateListener(
+          [](firebase::remote_config::ConfigUpdate&&,
+             firebase::remote_config::RemoteConfigError) {});
+  registration.Remove();
 #else
-  auto config_update_promise = std::make_shared<std::promise<void> >();
+  auto config_update_promise = std::make_shared<std::promise<void>>();
+  auto promise_fulfilled = std::make_shared<std::atomic<bool>>(false);
   auto config_update_future = config_update_promise->get_future();
 
   firebase::remote_config::ConfigUpdateListenerRegistration registration =
       rc_->AddOnConfigUpdateListener(
-          [&, config_update_promise](
+          [config_update_promise, promise_fulfilled](
               firebase::remote_config::ConfigUpdate&& configUpdate,
               firebase::remote_config::RemoteConfigError remoteConfigError) {
-            EXPECT_EQ(configUpdate.updated_keys.size(), 5);
-            config_update_promise->set_value();
+            EXPECT_EQ(remoteConfigError,
+                      firebase::remote_config::kRemoteConfigErrorNone);
+            EXPECT_EQ(configUpdate.updated_keys.size(), 5u);
+            if (!promise_fulfilled->exchange(true)) {
+              config_update_promise->set_value();
+            }
           });
   if (!has_cached_data) {
     ASSERT_EQ(std::future_status::ready,
@@ -325,16 +339,16 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
     LogDebug("Real-time Config Update keys retrieved.");
 
     std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
-    EXPECT_EQ(key_values.size(), 6);
+    EXPECT_EQ(key_values.size(), 6u);
 
-    for (auto key_value_pair : kServerValue) {
+    for (const auto& key_value_pair : kServerValue) {
       firebase::Variant k_value = key_value_pair.value;
       firebase::Variant fetched_value = key_values[key_value_pair.key];
       EXPECT_EQ(k_value.type(), fetched_value.type());
       EXPECT_EQ(k_value, fetched_value);
     }
-    registration.Remove();
   }
+  registration.Remove();
 #endif  // !FIREBASE_PLATFORM_DESKTOP
   // This test sometimes times out on Android with the config not updated.
 #if defined(__ANDROID__)
@@ -406,7 +420,7 @@ TEST_F(FirebaseRemoteConfigTest, TestFetch) {
   EXPECT_TRUE(
       WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }), "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
-  LogDebug("Fetch time: %lld", rc_->GetInfo().fetch_time);
+  LogDebug("Fetch time: %" PRIu64, rc_->GetInfo().fetch_time);
   firebase::remote_config::ValueInfo value_info;
   bool bool_value = rc_->GetBoolean("TestBoolean", &value_info);
   EXPECT_EQ(value_info.source, firebase::remote_config::kValueSourceRemoteValue)
@@ -433,7 +447,7 @@ TEST_F(FirebaseRemoteConfigTest, TestFetch) {
   EXPECT_EQ(string_value, "This is a string");
 
   std::vector<unsigned char> blob_value =
-      rc_->GetData("TestData");  //, &value_info);
+      rc_->GetData("TestData", &value_info);
   EXPECT_EQ(value_info.source, firebase::remote_config::kValueSourceRemoteValue)
       << "TestData source is " << ValueSourceToString(value_info.source)
       << ", expected Remote";
@@ -518,5 +532,54 @@ TEST_F(FirebaseRemoteConfigTest, TestSetCustomSignals) {
   EXPECT_TRUE(WaitForCompletion(rc_->SetCustomSignals(custom_signals),
                                 "SetCustomSignals"));
   EXPECT_EQ(rc_->SetCustomSignalsLastResult().error(), 0);
+
+  std::map<std::string, firebase::Variant> clear_signals = {
+      {"test_string", firebase::Variant::Null()}};
+  EXPECT_TRUE(WaitForCompletion(rc_->SetCustomSignals(clear_signals),
+                                "SetCustomSignals clear"));
+  EXPECT_EQ(rc_->SetCustomSignalsLastResult().error(), 0);
 }
+
+// Verifies that multiple Firebase App + RemoteConfig instances can fetch and
+// activate concurrently over the shared CurlIoLoop without corrupting state.
+TEST_F(FirebaseRemoteConfigTest, TestConcurrentMultiAppFetchAndActivate) {
+  ASSERT_NE(app_, nullptr);
+
+  const int kNumApps = 6;
+  std::vector<firebase::App*> apps(kNumApps, nullptr);
+  std::vector<RemoteConfig*> rcs(kNumApps, nullptr);
+  std::vector<Future<void>> fetch_futures(kNumApps);
+
+  for (int i = 0; i < kNumApps; ++i) {
+    std::string name = "concurrent_rc_app_" + std::to_string(i);
+#if defined(__ANDROID__)
+    apps[i] = firebase::App::Create(app_->options(), name.c_str(),
+                                    app_framework::GetJniEnv(),
+                                    app_framework::GetActivity());
+#else
+    apps[i] = firebase::App::Create(app_->options(), name.c_str());
+#endif  // defined(__ANDROID__)
+    ASSERT_NE(apps[i], nullptr);
+    rcs[i] = RemoteConfig::GetInstance(apps[i]);
+    ASSERT_NE(rcs[i], nullptr);
+    EXPECT_TRUE(WaitForCompletion(SetDefaults(rcs[i]), "MultiApp SetDefaults"));
+    fetch_futures[i] = rcs[i]->Fetch(0);
+  }
+
+  for (int i = 0; i < kNumApps; ++i) {
+    EXPECT_TRUE(WaitForCompletion(fetch_futures[i], "MultiApp Fetch(0)"));
+    EXPECT_TRUE(WaitForCompletion(rcs[i]->Activate(), "MultiApp Activate"));
+    firebase::remote_config::ValueInfo info;
+    EXPECT_TRUE(rcs[i]->GetBoolean("TestBoolean", &info));
+    EXPECT_EQ(info.source, firebase::remote_config::kValueSourceRemoteValue);
+    EXPECT_EQ(rcs[i]->GetLong("TestLong", &info), 119);
+    EXPECT_EQ(rcs[i]->GetString("TestString", &info), "This is a string");
+  }
+
+  for (int i = 0; i < kNumApps; ++i) {
+    delete rcs[i];
+    delete apps[i];
+  }
+}
+
 }  // namespace firebase_testapp_automated
