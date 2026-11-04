@@ -51,6 +51,7 @@ struct ModuleInitializerState {
         app(nullptr),
         context(nullptr),
         init_fn_idx(0),
+        last_attempted_make_available_idx(static_cast<size_t>(-1)),
         cancelled(false) {}
   Mutex mutex;
   // Futures implementation.
@@ -69,6 +70,11 @@ struct ModuleInitializerState {
 
   // Where we are in the initializer function list.
   size_t init_fn_idx;
+
+  // Tracks the last init_fn_idx that already triggered MakeAvailable(), so if
+  // MakeAvailable() completes with success but the initializer still returns
+  // kInitResultFailedMissingDependency, we fail cleanly instead of recursing.
+  size_t last_attempted_make_available_idx;
 
   // True once ~ModuleInitializer() has run.
   bool cancelled;
@@ -116,6 +122,15 @@ static void PerformInitialize(
 
 #if FIREBASE_PLATFORM_ANDROID
     if (init_result == kInitResultFailedMissingDependency) {
+      if (state->last_attempted_make_available_idx == state->init_fn_idx) {
+        int num_remaining =
+            static_cast<int>(state->init_fns.size() - state->init_fn_idx);
+        state->future_impl.Complete(
+            state->future_handle_init, num_remaining,
+            "Unable to initialize module even though Google Play services is "
+            "available.");
+        return;
+      }
       // Note: If Initialize here succeeds, google_play_services::Terminate
       // is called in the OnCompletion handler below. Note that these
       // are reference-counted so it's safe to init/terminate an extra time.
@@ -125,6 +140,7 @@ static void PerformInitialize(
         // On Android, we need to update or activate Google Play services
         // before we can initialize this Firebase module.
         LogWarning("Google Play services unavailable, trying to fix.");
+        state->last_attempted_make_available_idx = state->init_fn_idx;
 
         Future<void> make_available = google_play_services::MakeAvailable(
             state->app->GetJNIEnv(), state->app->activity());
@@ -231,6 +247,7 @@ Future<void> ModuleInitializer::Initialize(
         state->future_impl.SafeAlloc<void>(kModuleInitializerInitialize);
     state->app = app;
     state->init_fn_idx = 0;
+    state->last_attempted_make_available_idx = static_cast<size_t>(-1);
     state->init_fns.clear();
     for (size_t i = 0; i < init_fns_count; i++) {
       state->init_fns.push_back(init_fns[i]);

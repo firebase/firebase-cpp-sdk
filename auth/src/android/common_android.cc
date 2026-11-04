@@ -234,7 +234,11 @@ JNI_METHOD_LOOKUP_DECLARATION(action_code_exception, METHOD_LOOKUP_NONE, FIELD_L
 JNI_METHOD_LOOKUP_DECLARATION(email_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthEmailException")
 
 
-JNI_METHOD_LOOKUP_DECLARATION(weak_password_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthWeakPasswordException")
+// clang-format off
+#define WEAK_PASSWORD_METHODS(X)                                              \
+  X(GetReason, "getReason", "()Ljava/lang/String;")
+// clang-format on
+JNI_METHOD_LOOKUP_DECLARATION(weak_password_exception, WEAK_PASSWORD_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthWeakPasswordException")
 
 
 JNI_METHOD_LOOKUP_DECLARATION(invalid_credentials_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthInvalidCredentialsException")
@@ -255,7 +259,7 @@ JNI_METHOD_LOOKUP_DECLARATION(recent_login_required_exception, METHOD_LOOKUP_NON
 JNI_METHOD_LOOKUP_DECLARATION(user_collision_exception, USER_COLLISION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthUserCollisionException")
 
 
-JNI_METHOD_LOOKUP_DECLARATION(android_web_exception, USER_COLLISION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthWebException")
+JNI_METHOD_LOOKUP_DECLARATION(android_web_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthWebException")
 
 
 // clang-format off
@@ -265,13 +269,13 @@ JNI_METHOD_LOOKUP_DECLARATION(android_web_exception, USER_COLLISION_METHODS, FIE
 JNI_METHOD_LOOKUP_DECLARATION(firebase_auth_exception, AUTH_EXCEPTION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuthException")
 
 
-JNI_METHOD_LOOKUP_DECLARATION(firebase_network_exception, AUTH_EXCEPTION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/FirebaseNetworkException")
+JNI_METHOD_LOOKUP_DECLARATION(firebase_network_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "com/google/firebase/FirebaseNetworkException")
 
 
-JNI_METHOD_LOOKUP_DECLARATION(too_many_requests_exception, AUTH_EXCEPTION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/FirebaseTooManyRequestsException")
+JNI_METHOD_LOOKUP_DECLARATION(too_many_requests_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "com/google/firebase/FirebaseTooManyRequestsException")
 
 
-JNI_METHOD_LOOKUP_DECLARATION(firebase_exception, AUTH_EXCEPTION_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/FirebaseException")
+JNI_METHOD_LOOKUP_DECLARATION(firebase_exception, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE, "com/google/firebase/FirebaseException")
 
 
 bool CacheCommonMethodIds(JNIEnv* env, jobject activity) {

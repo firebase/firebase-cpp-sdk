@@ -120,11 +120,13 @@ JNI_METHOD_LOOKUP_DECLARATION(oauthprovider, OAUTHPROVIDER_METHODS, FIELD_LOOKUP
 
 
 // clang-format off
+#define TIME_UNIT_METHODS(X)                                                   \
+    X(ToMillis, "toMillis", "(J)J")
 #define TIME_UNIT_FIELDS(X)                                                    \
     X(Milliseconds, "MILLISECONDS", "Ljava/util/concurrent/TimeUnit;",         \
       jni::kFieldTypeStatic)
 // clang-format on
-JNI_METHOD_LOOKUP_DECLARATION(timeunit, OAUTHPROVIDER_METHODS, TIME_UNIT_FIELDS, "java/util/concurrent/TimeUnit")
+JNI_METHOD_LOOKUP_DECLARATION(timeunit, TIME_UNIT_METHODS, TIME_UNIT_FIELDS, "java/util/concurrent/TimeUnit")
 
 
 // clang-format off
