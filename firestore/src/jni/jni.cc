@@ -143,6 +143,19 @@ void Initialize(JavaVM* jvm) {
   g_jvm.store(jvm, std::memory_order_release);
 }
 
+JNIEnv* GetAttachedEnv() {
+  JavaVM* jvm = GetGlobalJavaVM();
+  if (!jvm) {
+    return nullptr;
+  }
+  JNIEnv* env = nullptr;
+  if (jvm->GetEnv(EnvOut(&env), JNI_VERSION_1_6) == JNI_OK) {
+    GlobalRefReaper::GetInstance().Reap(env);
+    return env;
+  }
+  return nullptr;
+}
+
 JNIEnv* GetEnv() {
   JavaVM* jvm = GetGlobalJavaVM();
 

@@ -77,44 +77,43 @@ class ConstructorBase {
       : sig_(sig ? sig : "") {}
   explicit constexpr ConstructorBase(jclass global_clazz,
                                      jmethodID id) noexcept
-      : sig_(""), clazz_{global_clazz}, id_{id} {}
+      : sig_(""), state_{{global_clazz, id}} {}
 
   constexpr const char* name() const noexcept { return "<init>"; }
   constexpr const char* sig() const noexcept { return sig_; }
 
   State Get() const noexcept {
-    return {clazz_.load(std::memory_order_acquire),
-            id_.load(std::memory_order_acquire)};
+    return state_.load(std::memory_order_acquire);
   }
 
   explicit operator bool() const noexcept {
-    return clazz_.load(std::memory_order_acquire) != nullptr &&
-           id_.load(std::memory_order_acquire) != nullptr;
+    State s = Get();
+    return s.clazz != nullptr && s.id != nullptr;
   }
 
   // Stores a JVM global `jclass` reference and resolved `jmethodID`.
   void Set(JNIEnv* env, jclass clazz, jmethodID id) noexcept {
     JavaVM* jvm = internal::GlobalRefReaper::RecordJavaVM(env);
     jobject global_clazz = internal::GlobalRefReaper::NewGlobalRef(env, clazz, jvm);
-    id_.store(id, std::memory_order_release);
-    jclass old_clazz = clazz_.exchange(static_cast<jclass>(global_clazz), std::memory_order_acq_rel);
-    if (old_clazz) {
-      internal::GlobalRefReaper::DeleteOrEnqueue(old_clazz, env, jvm);
+    State old = state_.exchange(
+        State{static_cast<jclass>(global_clazz), id},
+        std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env, jvm);
     }
   }
 
   void Reset(JNIEnv* env = nullptr) noexcept {
-    jclass old_clazz = clazz_.exchange(nullptr, std::memory_order_acq_rel);
-    id_.store(nullptr, std::memory_order_release);
-    if (old_clazz) {
-      internal::GlobalRefReaper::DeleteOrEnqueue(old_clazz, env);
+    State old = state_.exchange(State{nullptr, nullptr},
+                                std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env);
     }
   }
 
  private:
   const char* sig_ = "";
-  std::atomic<jclass> clazz_{nullptr};
-  std::atomic<jmethodID> id_{nullptr};
+  std::atomic<State> state_{{nullptr, nullptr}};
 };
 
 // Typed declaration of a Java constructor for type T (or signature T(Args...)).
@@ -243,44 +242,43 @@ class StaticFieldBase {
       : name_(name ? name : ""), sig_(sig ? sig : "") {}
   explicit constexpr StaticFieldBase(jclass global_clazz,
                                      jfieldID id) noexcept
-      : name_(""), sig_(""), clazz_{global_clazz}, id_{id} {}
+      : name_(""), sig_(""), state_{{global_clazz, id}} {}
 
   constexpr const char* name() const noexcept { return name_; }
   constexpr const char* sig() const noexcept { return sig_; }
 
   State Get() const noexcept {
-    return {clazz_.load(std::memory_order_acquire),
-            id_.load(std::memory_order_acquire)};
+    return state_.load(std::memory_order_acquire);
   }
 
   explicit operator bool() const noexcept {
-    return clazz_.load(std::memory_order_acquire) != nullptr &&
-           id_.load(std::memory_order_acquire) != nullptr;
+    State s = Get();
+    return s.clazz != nullptr && s.id != nullptr;
   }
 
   void Set(JNIEnv* env, jclass clazz, jfieldID id) noexcept {
     JavaVM* jvm = internal::GlobalRefReaper::RecordJavaVM(env);
     jobject global_clazz = internal::GlobalRefReaper::NewGlobalRef(env, clazz, jvm);
-    id_.store(id, std::memory_order_release);
-    jclass old_clazz = clazz_.exchange(static_cast<jclass>(global_clazz), std::memory_order_acq_rel);
-    if (old_clazz) {
-      internal::GlobalRefReaper::DeleteOrEnqueue(old_clazz, env, jvm);
+    State old = state_.exchange(
+        State{static_cast<jclass>(global_clazz), id},
+        std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env, jvm);
     }
   }
 
   void Reset(JNIEnv* env = nullptr) noexcept {
-    jclass old_clazz = clazz_.exchange(nullptr, std::memory_order_acq_rel);
-    id_.store(nullptr, std::memory_order_release);
-    if (old_clazz) {
-      internal::GlobalRefReaper::DeleteOrEnqueue(old_clazz, env);
+    State old = state_.exchange(State{nullptr, nullptr},
+                                std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env);
     }
   }
 
  private:
   const char* name_ = "";
   const char* sig_ = "";
-  std::atomic<jclass> clazz_{nullptr};
-  std::atomic<jfieldID> id_{nullptr};
+  std::atomic<State> state_{{nullptr, nullptr}};
 };
 
 // Typed declaration of a Java static field of type T.
@@ -306,44 +304,43 @@ class StaticMethodBase {
       : name_(name ? name : ""), sig_(sig ? sig : "") {}
   explicit constexpr StaticMethodBase(jclass global_clazz,
                                       jmethodID id) noexcept
-      : name_(""), sig_(""), clazz_{global_clazz}, id_{id} {}
+      : name_(""), sig_(""), state_{{global_clazz, id}} {}
 
   constexpr const char* name() const noexcept { return name_; }
   constexpr const char* sig() const noexcept { return sig_; }
 
   State Get() const noexcept {
-    return {clazz_.load(std::memory_order_acquire),
-            id_.load(std::memory_order_acquire)};
+    return state_.load(std::memory_order_acquire);
   }
 
   explicit operator bool() const noexcept {
-    return clazz_.load(std::memory_order_acquire) != nullptr &&
-           id_.load(std::memory_order_acquire) != nullptr;
+    State s = Get();
+    return s.clazz != nullptr && s.id != nullptr;
   }
 
   void Set(JNIEnv* env, jclass clazz, jmethodID id) noexcept {
     JavaVM* jvm = internal::GlobalRefReaper::RecordJavaVM(env);
     jobject global_clazz = internal::GlobalRefReaper::NewGlobalRef(env, clazz, jvm);
-    id_.store(id, std::memory_order_release);
-    jclass old_clazz = clazz_.exchange(static_cast<jclass>(global_clazz), std::memory_order_acq_rel);
-    if (old_clazz) {
-      internal::GlobalRefReaper::DeleteOrEnqueue(old_clazz, env, jvm);
+    State old = state_.exchange(
+        State{static_cast<jclass>(global_clazz), id},
+        std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env, jvm);
     }
   }
 
   void Reset(JNIEnv* env = nullptr) noexcept {
-    jclass old_clazz = clazz_.exchange(nullptr, std::memory_order_acq_rel);
-    id_.store(nullptr, std::memory_order_release);
-    if (old_clazz) {
-      internal::GlobalRefReaper::DeleteOrEnqueue(old_clazz, env);
+    State old = state_.exchange(State{nullptr, nullptr},
+                                std::memory_order_acq_rel);
+    if (old.clazz) {
+      internal::GlobalRefReaper::DeleteOrEnqueue(old.clazz, env);
     }
   }
 
  private:
   const char* name_ = "";
   const char* sig_ = "";
-  std::atomic<jclass> clazz_{nullptr};
-  std::atomic<jmethodID> id_{nullptr};
+  std::atomic<State> state_{{nullptr, nullptr}};
 };
 
 // Typed declaration of a Java static method returning T (or signature

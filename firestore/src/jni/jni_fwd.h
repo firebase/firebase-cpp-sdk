@@ -27,6 +27,7 @@ namespace jni {
  * Returns the `JNIEnv` pointer for the current thread.
  */
 JNIEnv* GetEnv();
+JNIEnv* GetAttachedEnv();
 
 class Env;
 class Loader;

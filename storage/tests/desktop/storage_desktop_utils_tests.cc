@@ -31,7 +31,7 @@
 #include "storage/src/desktop/callback_dispatcher.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/listener_desktop.h"
-#include "storage/src/desktop/metadata_desktop.h"
+#include "storage/src/common/metadata_internal.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/desktop/storage_path.h"

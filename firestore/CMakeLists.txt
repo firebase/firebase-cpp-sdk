@@ -322,7 +322,6 @@ target_include_directories(firebase_firestore
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${FIREBASE_CPP_SDK_ROOT_DIR}/auth/src/include
 )
 
 # Additional public headers come from the Firestore core

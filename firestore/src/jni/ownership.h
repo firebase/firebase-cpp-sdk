@@ -331,7 +331,7 @@ class Global : public T {
 
   void clear() {
     if (T::object_) {
-      JNIEnv* env = GetEnv();
+      JNIEnv* env = GetAttachedEnv();
       if (env) {
         env->DeleteGlobalRef(T::object_);
       } else {
