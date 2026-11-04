@@ -78,8 +78,8 @@ MetadataInternal::MetadataInternal(const MetadataInternal& metadata)
       has_content_encoding_(metadata.has_content_encoding_),
       has_content_language_(metadata.has_content_language_),
       has_content_type_(metadata.has_content_type_),
-      custom_metadata_(metadata.custom_metadata_) {
-  UpdateStorageInternal();
+      custom_metadata_(metadata.custom_metadata_),
+      download_tokens_(metadata.download_tokens_) {
 }
 
 MetadataInternal& MetadataInternal::operator=(
@@ -108,12 +108,12 @@ MetadataInternal& MetadataInternal::operator=(
   has_content_language_ = metadata.has_content_language_;
   has_content_type_ = metadata.has_content_type_;
   custom_metadata_ = metadata.custom_metadata_;
+  download_tokens_ = metadata.download_tokens_;
   return *this;
 }
 
 MetadataInternal::MetadataInternal(MetadataInternal&& other) noexcept
     : storage_reference_(std::move(other.storage_reference_)),
-      storage_internal_(nullptr),
       path_(std::move(other.path_)),
       name_(std::move(other.name_)),
       bucket_(std::move(other.bucket_)),
@@ -133,9 +133,8 @@ MetadataInternal::MetadataInternal(MetadataInternal&& other) noexcept
       has_content_encoding_(other.has_content_encoding_),
       has_content_language_(other.has_content_language_),
       has_content_type_(other.has_content_type_),
-      custom_metadata_(std::move(other.custom_metadata_)) {
-  other.storage_internal_ = nullptr;
-  UpdateStorageInternal();
+      custom_metadata_(std::move(other.custom_metadata_)),
+      download_tokens_(std::move(other.download_tokens_)) {
 }
 
 MetadataInternal& MetadataInternal::operator=(
@@ -144,8 +143,6 @@ MetadataInternal& MetadataInternal::operator=(
     return *this;
   }
   storage_reference_ = std::move(other.storage_reference_);
-  other.storage_internal_ = nullptr;
-  UpdateStorageInternal();
   name_ = std::move(other.name_);
   path_ = std::move(other.path_);
   bucket_ = std::move(other.bucket_);
@@ -166,6 +163,7 @@ MetadataInternal& MetadataInternal::operator=(
   has_content_language_ = other.has_content_language_;
   has_content_type_ = other.has_content_type_;
   custom_metadata_ = std::move(other.custom_metadata_);
+  download_tokens_ = std::move(other.download_tokens_);
   return *this;
 }
 
@@ -347,6 +345,19 @@ bool MetadataInternal::ImportFromJson(const char* json) {
 
   creation_time_ = GetTimeFromTimeString(LookUpString(root, kTimeCreatedKey));
   updated_time_ = GetTimeFromTimeString(LookUpString(root, kTimeUpdatedKey));
+
+  download_tokens_.clear();
+  std::string tokens = LookUpString(root, kDownloadTokensKey);
+  if (!tokens.empty()) {
+    size_t pos = 0;
+    while ((pos = tokens.find(',')) != std::string::npos) {
+      download_tokens_.push_back(tokens.substr(0, pos));
+      tokens.erase(0, pos + 1);
+    }
+    if (!tokens.empty()) {
+      download_tokens_.push_back(tokens);
+    }
+  }
 
   size_bytes_ = LookUpInt64(root, kSizeKey);
   md5_hash_ = LookUpString(root, kMd5HashKey);

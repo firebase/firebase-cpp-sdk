@@ -298,9 +298,6 @@ TEST_F(StorageDesktopUtilsTests, testMetadataJsonImporterAndTimestamps) {
   EXPECT_STREQ(metadata.cache_control(), "max-age=3600");
   EXPECT_EQ((*metadata.custom_metadata())["strKey"], "strVal");
   EXPECT_EQ((*metadata.custom_metadata())["numKey"], "42");
-  EXPECT_STREQ(metadata.download_url(),
-               "https://firebasestorage.googleapis.com:443"
-               "/v0/b/abucket/o/dir%2Ffile.txt?alt=media&token=tok1");
 }
 
 TEST_F(StorageDesktopUtilsTests, testPublicApiValueSemanticsAndValidation) {

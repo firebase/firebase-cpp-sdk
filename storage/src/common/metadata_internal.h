@@ -127,6 +127,10 @@ class MetadataInternal {
     return &custom_metadata_;
   }
 
+  const std::vector<std::string>& download_tokens() const {
+    return download_tokens_;
+  }
+
 
   // Return a version String indicating what version of the StorageReference.
   int64_t generation() const { return generation_; }
@@ -207,6 +211,7 @@ private:
   bool has_content_language_ = false;
   bool has_content_type_ = false;
   std::map<std::string, std::string> custom_metadata_;
+  std::vector<std::string> download_tokens_;
 };
 
 }  // namespace firebase::storage::internal

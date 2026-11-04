@@ -26,7 +26,7 @@
 #include "app/src/log.h"
 #include "app/src/variant_util.h"
 #include "storage/src/common/list_result_internal.h"
-#include "storage/src/desktop/metadata_desktop.h"
+#include "storage/src/common/metadata_internal.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_desktop.h"
 #include "storage/src/desktop/storage_reference_desktop.h"
