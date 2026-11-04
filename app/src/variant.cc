@@ -450,7 +450,7 @@ void Variant::assert_is_blob() const {
 }
 
 Variant Variant::AsString() const {
-  static const size_t kBufferSize = 64;
+  static const size_t kBufferSize = 512;
   switch (type_) {
     case kInternalTypeInt64: {
       char buffer[kBufferSize];

@@ -269,6 +269,25 @@ TEST_F(OptionalTest, MoveAssignment) {
   EXPECT_TRUE(another_optional_struct.has_value());
 }
 
+TEST_F(OptionalTest, MoveAssignmentSelf) {
+  Optional<int> optional_int(9999);
+  optional_int = std::move(optional_int);
+  EXPECT_TRUE(optional_int.has_value());
+  EXPECT_EQ(optional_int.value(), 9999);
+
+  // clang-format off
+  SetupExpectCall()
+    .Construct(1)
+    .CopyAndMove(0, 1)
+    .Destruct(2);
+  // clang-format on
+
+  Optional<SpecialFunctionsNotifierWrapper> optional_struct(
+      SpecialFunctionsNotifierWrapper{});
+  optional_struct = std::move(optional_struct);
+  EXPECT_TRUE(optional_struct.has_value());
+}
+
 TEST_F(OptionalTest, Destructor) {
   SetupExpectCall().Construct(2).CopyAndMove(0, 2).Destruct(4);
 

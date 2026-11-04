@@ -79,12 +79,14 @@ class Optional {
   // Move assignment. If the other Optional has a value, it is move constructed
   // or move assigned into this Optional.
   Optional& operator=(Optional&& other) noexcept {
-    if (other.has_value()) {
-      *this = std::move(other.value());
-    } else {
-      reset();
+    if (this != &other) {
+      if (other.has_value()) {
+        *this = std::move(other.value());
+      } else {
+        reset();
+      }
+      other.reset();
     }
-    other.reset();
     return *this;
   }
 

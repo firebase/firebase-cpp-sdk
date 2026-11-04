@@ -66,7 +66,7 @@ TEST(TypeTraitsTest, IsChar) {
 }
 
 TEST(TypeTraitsTest, IsInteger) {
-  EXPECT_TRUE(IdentityRef(is_integer<short>::value));
+  EXPECT_TRUE(IdentityRef(is_integer<int16_t>::value));
   EXPECT_TRUE(IdentityRef(is_integer<int>::value));
   EXPECT_TRUE(IdentityRef(is_integer<const int>::value));
   EXPECT_TRUE(IdentityRef(is_integer<volatile int>::value));
