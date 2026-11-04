@@ -326,8 +326,6 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # ignored completely (set to None), or scan the changes more in-depth (set
       # to scan_changes function)
       "cmake/external/firestore.cmake": "firestore",
-      "cmake/external/libuv.cmake": "database",
-      "cmake/external/uWebSockets.cmake": "database",
       "ios_spm/Package.swift":scan_changes_in_file,
       "Android/firebase_dependencies.gradle":scan_changes_in_file,
       "release_build_files/Android/firebase_dependencies.gradle":scan_changes_in_file,
