@@ -229,7 +229,7 @@ void FirebaseCppCredentialsProvider::AddAuthStateListener() {
   App& app = contents_->app;
   auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
   uint64_t listener_id = GetNextListenerId();
-  auth_listener_context_ = reinterpret_cast<void*>(static_cast<uintptr_t>(listener_id));
+  auth_listener_context_ = reinterpret_cast<std::weak_ptr<Contents>*>(static_cast<uintptr_t>(listener_id));
   {
     std::lock_guard<std::mutex> lock(ListenerMutex());
     ValidContexts()[listener_id] = std::weak_ptr<Contents>(contents_);

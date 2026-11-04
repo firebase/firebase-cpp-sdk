@@ -84,6 +84,7 @@ class FirebaseCppCredentialsProvider final
   // `GetToken` callback stores a weak pointer. This makes safe the case where
   // the `GetToken` callback might be invoked after this credentials provider
   // has already been destroyed (Auth may outlive Firestore).
+  public:
   struct Contents {
     explicit Contents(App& app) : app(app) {}
 

@@ -16,11 +16,7 @@
 
 #include "firestore/src/android/field_path_android.h"
 
-#if defined(__ANDROID__)
-#include "firestore/src/android/field_path_portable.h"
-#else
 #include "Firestore/core/src/model/field_path.h"
-#endif
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/env.h"

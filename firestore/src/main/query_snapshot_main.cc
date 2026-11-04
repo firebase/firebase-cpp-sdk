@@ -38,8 +38,7 @@ QuerySnapshotInternal::QuerySnapshotInternal(const QuerySnapshotInternal& other)
 
 QuerySnapshotInternal::~QuerySnapshotInternal() = default;
 
-QuerySnapshotInternal::QuerySnapshotInternal(
-    QuerySnapshotInternal&& other) noexcept
+QuerySnapshotInternal::QuerySnapshotInternal(QuerySnapshotInternal&& other) noexcept
     : snapshot_{[&]() {
         std::scoped_lock lock(other.mutex_);
         return std::move(other.snapshot_);
