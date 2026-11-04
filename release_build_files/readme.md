@@ -621,6 +621,14 @@ code.
       must now also link the `SystemConfiguration` framework. Builds that
       supply their own libcurl via `CURL_SOURCE_DIR` require libcurl 8.14.0 or
       newer built with WebSocket support.
+    - General (Desktop): All REST traffic now runs on a single event-driven
+      libcurl I/O thread (`curl_multi_poll`) instead of a 50 ms polling loop.
+      Requests are no longer delayed by other in-flight transfers,
+      `Controller::Cancel()` takes effect immediately, and processes holding
+      more than 1024 open file descriptors are no longer slowed down.
+      Asynchronous completion callbacks (for example Storage and Functions
+      futures) are delivered on a dedicated completion thread and may block
+      without stalling networking.
     - Database (Desktop): Replaced the uWebSockets/libuv WebSocket transport
       with libcurl's WebSocket implementation, driven by one lightweight
       event-driven thread per connection. Windows apps no longer need to link

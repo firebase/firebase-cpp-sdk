@@ -76,6 +76,9 @@ std::string TrimWhitespace(const std::string& str);
 // Change to upper cases.
 std::string ToUpper(const std::string& str);
 
+// Change to lower cases.
+std::string ToLower(const std::string& str);
+
 // Apply URL encoding to a string.
 std::string EncodeUrl(const std::string& path);
 

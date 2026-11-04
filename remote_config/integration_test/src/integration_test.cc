@@ -22,6 +22,8 @@
 #include <ctime>
 #include <future>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -304,7 +306,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
       [](firebase::remote_config::ConfigUpdate&&,
          firebase::remote_config::RemoteConfigError) {});
 #else
-  auto config_update_promise = std::make_shared<std::promise<void> >();
+  auto config_update_promise = std::make_shared<std::promise<void>>();
   auto config_update_future = config_update_promise->get_future();
 
   firebase::remote_config::ConfigUpdateListenerRegistration registration =
@@ -519,4 +521,41 @@ TEST_F(FirebaseRemoteConfigTest, TestSetCustomSignals) {
                                 "SetCustomSignals"));
   EXPECT_EQ(rc_->SetCustomSignalsLastResult().error(), 0);
 }
+
+// Verifies that multiple Firebase App + RemoteConfig instances can fetch and
+// activate concurrently over the shared CurlIoLoop without corrupting state.
+TEST_F(FirebaseRemoteConfigTest, TestConcurrentMultiAppFetchAndActivate) {
+  ASSERT_NE(app_, nullptr);
+
+  const int kNumApps = 6;
+  std::vector<firebase::App*> apps(kNumApps, nullptr);
+  std::vector<RemoteConfig*> rcs(kNumApps, nullptr);
+  std::vector<Future<void>> fetch_futures(kNumApps);
+
+  for (int i = 0; i < kNumApps; ++i) {
+    std::string name = "concurrent_rc_app_" + std::to_string(i);
+    apps[i] = firebase::App::Create(app_->options(), name.c_str());
+    ASSERT_NE(apps[i], nullptr);
+    rcs[i] = RemoteConfig::GetInstance(apps[i]);
+    ASSERT_NE(rcs[i], nullptr);
+    EXPECT_TRUE(WaitForCompletion(SetDefaults(rcs[i]), "MultiApp SetDefaults"));
+    fetch_futures[i] = rcs[i]->Fetch(0);
+  }
+
+  for (int i = 0; i < kNumApps; ++i) {
+    EXPECT_TRUE(WaitForCompletion(fetch_futures[i], "MultiApp Fetch(0)"));
+    EXPECT_TRUE(WaitForCompletion(rcs[i]->Activate(), "MultiApp Activate"));
+    firebase::remote_config::ValueInfo info;
+    EXPECT_TRUE(rcs[i]->GetBoolean("TestBoolean", &info));
+    EXPECT_EQ(info.source, firebase::remote_config::kValueSourceRemoteValue);
+    EXPECT_EQ(rcs[i]->GetLong("TestLong", &info), 119);
+    EXPECT_EQ(rcs[i]->GetString("TestString", &info), "This is a string");
+  }
+
+  for (int i = 0; i < kNumApps; ++i) {
+    delete rcs[i];
+    delete apps[i];
+  }
+}
+
 }  // namespace firebase_testapp_automated

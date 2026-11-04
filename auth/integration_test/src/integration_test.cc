@@ -21,6 +21,7 @@
 #include <cstring>
 #include <ctime>
 #include <string>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -1570,5 +1571,57 @@ TEST_F(FirebaseAuthTest, TestLinkFederatedProviderBadProviderIdFails) {
 }
 
 #endif  // defined(ENABLE_OAUTH_TESTS)
+
+// Verifies that multiple Firebase App + Auth instances can execute concurrent
+// sign-in and forced token-refresh RPCs simultaneously over the shared
+// process-wide CurlIoLoop without cross-handle leakage or contention failures.
+TEST_F(FirebaseAuthTest, TestConcurrentMultiAppSignInAndTokenRefresh) {
+  ASSERT_NE(app_, nullptr);
+
+  const int kNumApps = 6;
+  std::vector<firebase::App*> apps(kNumApps, nullptr);
+  std::vector<firebase::auth::Auth*> auths(kNumApps, nullptr);
+  std::vector<firebase::Future<firebase::auth::AuthResult>> sign_in_futures(
+      kNumApps);
+
+  for (int i = 0; i < kNumApps; ++i) {
+    std::string name = "concurrent_auth_app_" + std::to_string(i);
+    apps[i] = firebase::App::Create(app_->options(), name.c_str());
+    ASSERT_NE(apps[i], nullptr);
+    firebase::InitResult init_result = firebase::kInitResultSuccess;
+    auths[i] = firebase::auth::Auth::GetAuth(apps[i], &init_result);
+    ASSERT_EQ(init_result, firebase::kInitResultSuccess);
+    ASSERT_NE(auths[i], nullptr);
+    sign_in_futures[i] = auths[i]->SignInAnonymously();
+  }
+
+  for (int i = 0; i < kNumApps; ++i) {
+    FirebaseTest::WaitForCompletion(sign_in_futures[i],
+                                    "MultiApp SignInAnonymously");
+    ASSERT_TRUE(auths[i]->current_user().is_valid());
+  }
+
+  std::vector<firebase::Future<std::string>> token_futures(kNumApps);
+  for (int i = 0; i < kNumApps; ++i) {
+    token_futures[i] =
+        auths[i]->current_user().GetToken(/*force_refresh=*/true);
+  }
+  for (int i = 0; i < kNumApps; ++i) {
+    FirebaseTest::WaitForCompletion(token_futures[i],
+                                    "MultiApp GetToken(true)");
+    ASSERT_NE(token_futures[i].result(), nullptr);
+    EXPECT_FALSE(token_futures[i].result()->empty());
+  }
+
+  std::vector<firebase::Future<void>> delete_futures(kNumApps);
+  for (int i = 0; i < kNumApps; ++i) {
+    delete_futures[i] = auths[i]->current_user().Delete();
+  }
+  for (int i = 0; i < kNumApps; ++i) {
+    FirebaseTest::WaitForCompletion(delete_futures[i], "MultiApp User::Delete");
+    delete auths[i];
+    delete apps[i];
+  }
+}
 
 }  // namespace firebase_testapp_automated

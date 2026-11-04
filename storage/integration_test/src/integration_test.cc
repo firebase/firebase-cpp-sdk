@@ -19,7 +19,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <string>
 #include <thread>  // NOLINT
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -28,6 +30,13 @@
 #include "firebase/storage.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
+
+#if FIREBASE_PLATFORM_DESKTOP && !defined(_WIN32)
+#include <fcntl.h>
+#include <sys/resource.h>
+#include <sys/select.h>
+#include <unistd.h>
+#endif
 
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
@@ -1716,5 +1725,229 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
   // Reinitialize App and Auth.
   InitializeAppAndAuth();
 }
+
+// Verifies that Controller::bytes_transferred() and total_byte_count() equal
+// the full object size immediately upon download completion (exercising
+// CURLOPT_XFERINFOFUNCTION rather than periodic loop sampling).
+TEST_F(FirebaseStorageTest,
+       TestCompletedDownloadReportsExactControllerProgress) {
+  SignIn();
+
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("TestFile-ExactControllerProgress.bin");
+  cleanup_files_.push_back(ref);
+
+  const size_t kFileSize = 2 * 1024 * 1024;
+  const std::string payload = CreateDataForLargeFile(kFileSize);
+
+  WaitForCompletion(
+      RunWithRetry([&]() { return ref.PutBytes(payload.data(), kFileSize); }),
+      "PutBytes");
+
+  std::vector<char> downloaded(kFileSize, 0);
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> get_future =
+      ref.GetBytes(downloaded.data(), kFileSize, &listener, &controller);
+  WaitForCompletion(get_future, "GetBytes");
+  ASSERT_NE(get_future.result(), nullptr);
+  EXPECT_EQ(*get_future.result(), kFileSize);
+  EXPECT_EQ(memcmp(payload.data(), downloaded.data(), kFileSize), 0);
+  EXPECT_EQ(controller.total_byte_count(), static_cast<int64_t>(kFileSize));
+  EXPECT_EQ(controller.bytes_transferred(), static_cast<int64_t>(kFileSize));
+}
+
+// Verifies that concurrent small metadata/data RPCs complete promptly while a
+// large streaming transfer is active on the shared CurlIoLoop, and that
+// Controller::Cancel() wakes the loop immediately.
+TEST_F(FirebaseStorageTest,
+       TestConcurrentOperationsAndFastCancelDuringLargeTransfer) {
+  SignIn();
+
+  firebase::storage::StorageReference folder = CreateFolder();
+  firebase::storage::StorageReference large_ref =
+      folder.Child("TestFile-ConcurrentLarge.bin");
+  cleanup_files_.push_back(large_ref);
+
+  const size_t kLargeSize = 16 * 1024 * 1024;
+  const std::string large_payload = CreateDataForLargeFile(kLargeSize);
+  WaitForCompletion(RunWithRetry([&]() {
+                      return large_ref.PutBytes(large_payload.data(),
+                                                kLargeSize);
+                    }),
+                    "PutBytes large");
+
+  std::vector<char> download_buf(kLargeSize, 0);
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> large_get = large_ref.GetBytes(
+      download_buf.data(), kLargeSize, &listener, &controller);
+
+  while (!controller.is_valid()) {
+    ProcessEvents(1);
+  }
+
+  // Fire 8 concurrent metadata reads while the 16 MB download is streaming.
+  const int kFastOps = 8;
+  std::vector<firebase::Future<firebase::storage::Metadata>> meta_futures(
+      kFastOps);
+  for (int i = 0; i < kFastOps; ++i) {
+    meta_futures[i] = large_ref.GetMetadata();
+  }
+  for (int i = 0; i < kFastOps; ++i) {
+    WaitForCompletion(meta_futures[i], "Concurrent GetMetadata");
+    ASSERT_NE(meta_futures[i].result(), nullptr);
+    EXPECT_EQ(meta_futures[i].result()->size_bytes(),
+              static_cast<int64_t>(kLargeSize));
+  }
+
+  // If the large download is still in flight, cancelling it must complete
+  // rapidly via curl_multi_wakeup() rather than hanging.
+  if (large_get.status() == firebase::kFutureStatusPending) {
+    const int64_t cancel_start_us = GetCurrentTimeInMicroseconds();
+    if (controller.Cancel()) {
+      WaitForCompletionAnyResult(large_get, "Cancelled large GetBytes");
+      const int64_t cancel_elapsed_ms =
+          (GetCurrentTimeInMicroseconds() - cancel_start_us) / 1000;
+      // The legacy select() loop only noticed the cancel once the whole 16 MB
+      // body had arrived (tens of seconds on a slow link); the event loop
+      // reacts in milliseconds. Keep generous headroom for loaded CI runners.
+      EXPECT_LT(cancel_elapsed_ms, 5000);
+    } else {
+      WaitForCompletionAnyResult(large_get, "Completed large GetBytes");
+    }
+  } else {
+    EXPECT_EQ(large_get.error(), 0);
+  }
+}
+
+#if FIREBASE_PLATFORM_DESKTOP && !defined(_WIN32)
+// Verifies that Cloud Storage downloads succeed promptly even when the host
+// process already holds > FD_SETSIZE (1024) open file descriptors (such as
+// mounted .pak archives in a desktop game engine), exercising curl_multi_poll()
+// above the legacy select() FD_SETSIZE ceiling.
+TEST_F(FirebaseStorageTest, TestDownloadsWithHighOpenFileDescriptors) {
+  struct rlimit orig_limit {};
+  if (getrlimit(RLIMIT_NOFILE, &orig_limit) != 0) {
+    GTEST_SKIP() << "getrlimit(RLIMIT_NOFILE) failed";
+  }
+  const rlim_t kNeeded = static_cast<rlim_t>(FD_SETSIZE + 160);
+  bool raised_limit = false;
+  if (orig_limit.rlim_cur < kNeeded && orig_limit.rlim_max >= kNeeded) {
+    struct rlimit raised = orig_limit;
+    raised.rlim_cur =
+        orig_limit.rlim_max < static_cast<rlim_t>(FD_SETSIZE + 256)
+            ? orig_limit.rlim_max
+            : static_cast<rlim_t>(FD_SETSIZE + 256);
+    if (setrlimit(RLIMIT_NOFILE, &raised) == 0) {
+      raised_limit = true;
+    }
+  }
+  struct ScopedFdGuard {
+    std::vector<int> fds;
+    bool restore_rlimit = false;
+    struct rlimit saved {};
+    ~ScopedFdGuard() {
+      for (int fd : fds) close(fd);
+      if (restore_rlimit) setrlimit(RLIMIT_NOFILE, &saved);
+    }
+  } guard;
+  guard.restore_rlimit = raised_limit;
+  guard.saved = orig_limit;
+
+  struct rlimit active_limit {};
+  if (getrlimit(RLIMIT_NOFILE, &active_limit) != 0 ||
+      active_limit.rlim_cur < kNeeded) {
+    GTEST_SKIP() << "RLIMIT_NOFILE=" << active_limit.rlim_cur << " < "
+                 << kNeeded;
+  }
+
+  const size_t kFileSize = 1024 * 1024;
+  const int kConcurrentDownloads = 4;
+  // Times kConcurrentDownloads parallel downloads of `ref` and checks their
+  // contents against `payload`.
+  auto timed_download_burst = [&](firebase::storage::StorageReference ref,
+                                  const std::string& payload,
+                                  const char* label) -> int64_t {
+    std::vector<std::vector<char>> buffers(kConcurrentDownloads,
+                                           std::vector<char>(kFileSize, 0));
+    std::vector<firebase::Future<size_t>> downloads(kConcurrentDownloads);
+    const int64_t start_us = GetCurrentTimeInMicroseconds();
+    for (int i = 0; i < kConcurrentDownloads; ++i) {
+      downloads[i] = ref.GetBytes(buffers[i].data(), kFileSize);
+    }
+    for (int i = 0; i < kConcurrentDownloads; ++i) {
+      WaitForCompletion(downloads[i], label);
+      if (downloads[i].result() == nullptr) continue;
+      EXPECT_EQ(*downloads[i].result(), kFileSize) << label;
+      EXPECT_EQ(memcmp(payload.data(), buffers[i].data(), kFileSize), 0)
+          << label;
+    }
+    return (GetCurrentTimeInMicroseconds() - start_us) / 1000;
+  };
+
+  // Baseline: the same burst with ordinary (low) file descriptors, measured on
+  // this very runner so the comparison below is independent of link speed.
+  SignIn();
+  const std::string payload = CreateDataForLargeFile(kFileSize);
+  const std::string kFileName = "TestFile-HighOpenFds.bin";
+  {
+    firebase::storage::StorageReference baseline_ref =
+        CreateFolder().Child(kFileName.c_str());
+    cleanup_files_.push_back(baseline_ref);
+    WaitForCompletion(RunWithRetry([&]() {
+                        return baseline_ref.PutBytes(payload.data(), kFileSize);
+                      }),
+                      "PutBytes baseline");
+  }
+  // Fresh App so both measurements pay the same connection/TLS setup cost.
+  TerminateStorage();
+  TerminateAppAndAuth();
+  InitializeAppAndAuth();
+  InitializeStorage();
+  SignIn();
+  const int64_t baseline_elapsed_ms = timed_download_burst(
+      CreateFolder().Child(kFileName.c_str()), payload, "Low-FD GetBytes");
+
+  // Reserve > FD_SETSIZE descriptors before Auth/Storage open network sockets
+  // so every TLS socket receives fd >= FD_SETSIZE.
+  TerminateStorage();
+  TerminateAppAndAuth();
+
+  const int kTargetFd = FD_SETSIZE + 48;
+  guard.fds.reserve(kTargetFd + 16);
+  int max_fd = -1;
+  while (max_fd < kTargetFd) {
+    int fd = open("/dev/null", O_RDONLY);
+    if (fd < 0) break;
+    guard.fds.push_back(fd);
+    if (fd > max_fd) max_fd = fd;
+  }
+  if (max_fd < kTargetFd) {
+    InitializeAppAndAuth();
+    InitializeStorage();
+    FAIL() << "Failed to allocate FD >= " << kTargetFd;
+  }
+
+  InitializeAppAndAuth();
+  InitializeStorage();
+  SignIn();
+
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child(kFileName.c_str());
+  cleanup_files_.push_back(ref);
+  const int64_t high_fd_elapsed_ms =
+      timed_download_burst(ref, payload, "High-FD GetBytes");
+
+  // Under the legacy curl_multi_fdset() + select() loop, sockets above
+  // FD_SETSIZE degraded into 33 ms sleep ticks: ~14x slower than the low-FD
+  // burst (3,000+ ms vs ~210 ms for 4 x 1 MB on a fast link). Compare against
+  // the baseline measured on this runner rather than an absolute bound so the
+  // test is independent of egress bandwidth; the fixed slack absorbs
+  // per-connection setup jitter.
+  EXPECT_LT(high_fd_elapsed_ms, 3 * baseline_elapsed_ms + 1000)
+      << "baseline=" << baseline_elapsed_ms << " ms";
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP && !defined(_WIN32)
 
 }  // namespace firebase_testapp_automated
