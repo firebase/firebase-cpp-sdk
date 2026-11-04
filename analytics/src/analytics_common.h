@@ -67,6 +67,40 @@ class FutureData {
   ReferenceCountedFutureImpl api_;
 };
 
+// Shared helper to retrieve the last result of a future by function index.
+template <typename T>
+Future<T> GetLastResult(AnalyticsFn fn) {
+  std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+  if (!IsInitialized()) return Future<T>();
+  std::shared_ptr<FutureData> future_data = FutureData::GetShared();
+  if (!future_data) return Future<T>();
+  return static_cast<const Future<T>&>(future_data->api()->LastResult(fn));
+}
+
+template <typename T>
+Future<T> CompleteStubFuture(internal::AnalyticsFn fn, T result_val) {
+  std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+  if (!IsInitialized()) return Future<T>();
+  std::shared_ptr<FutureData> future_data = FutureData::GetShared();
+  if (!future_data) return Future<T>();
+  auto* api = future_data->api();
+  const auto future_handle = api->SafeAlloc<T>(fn);
+  api->CompleteWithResult(future_handle, 0, "", result_val);
+  return Future<T>(api, future_handle.get());
+}
+
+template <>
+inline Future<void> CompleteStubFuture<void>(internal::AnalyticsFn fn, void* /*unused*/) {
+  std::lock_guard<std::recursive_mutex> lock(FutureData::mutex());
+  if (!IsInitialized()) return Future<void>();
+  std::shared_ptr<FutureData> future_data = FutureData::GetShared();
+  if (!future_data) return Future<void>();
+  auto* api = future_data->api();
+  const auto future_handle = api->SafeAlloc<void>(fn);
+  api->Complete(future_handle, 0, "");
+  return Future<void>(api, future_handle.get());
+}
+
 extern const char* const kAnalyticsModuleName;
 
 // Registers a cleanup task for this module on the specified App instance.
