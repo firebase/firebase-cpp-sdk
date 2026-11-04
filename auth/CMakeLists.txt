@@ -52,14 +52,14 @@ endif()
 
 # Common source files used by all platforms
 set(common_SRCS
-    src/auth.cc
-    src/credential.cc
-    src/common.cc
+    src/common/auth.cc
+    src/common/credential.cc
+    src/common/common.cc
     src/common.h
     src/data.h
     src/id_token_util.cc
     src/id_token_util.h
-    src/user.cc)
+    src/common/user.cc)
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":auth:auth_resources:generateDexJarRelease"

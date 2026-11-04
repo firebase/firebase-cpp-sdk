@@ -82,7 +82,7 @@ bool ParseIdToken(const std::string& token, IdTokenResult* out_result) {
   }
 
   std::string payload_json;
-  if (!internal::Base64Decode(payload_b64, &payload_json)) {
+  if (!::firebase::internal::Base64Decode(payload_b64, &payload_json)) {
     return false;
   }
 

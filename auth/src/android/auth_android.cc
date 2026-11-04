@@ -474,247 +474,181 @@ static void ReadProviderResult(
   }
 }
 
-Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
-    const char* email) {
-  if (!auth_data_) return Future<FetchProvidersResult>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<Auth::FetchProvidersResult>(
+void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char* email) {
+  const auto promise.handle() = futures.SafeAlloc<Auth::FetchProvidersResult>(
       kAuthFn_FetchProvidersForEmail);
   if (!email || strlen(email) == 0) {
-    futures.Complete(handle, kAuthErrorMissingEmail, "Empty email address.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email address.");
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   jstring j_email = env->NewStringUTF(email);
-  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
-    return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_),
+      AuthImpl(auth_data),
       auth::GetMethodId(auth::kFetchSignInMethodsForEmail), j_email);
   env->DeleteLocalRef(j_email);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadProviderResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadProviderResult);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> Auth::SignInWithCustomToken(const char* token) {
-  if (!auth_data_) return Future<AuthResult>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithCustomToken);
+void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* token) {
   if (!token || strlen(token) == 0) {
-    futures.Complete(handle, kAuthErrorInvalidCustomToken,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCustomToken,
                      "Empty custom token.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   jstring j_token = env->NewStringUTF(token);
-  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_token != nullptr) env->DeleteLocalRef(j_token);
-    return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCustomToken),
+      AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCustomToken),
       j_token);
   env->DeleteLocalRef(j_token);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<User> Auth::SignInWithCredential(const Credential& credential) {
-  if (!auth_data_) return Future<User>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User>(kAuthFn_SignInWithCredential);
-  JNIEnv* env = Env(auth_data_);
+void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential) {
+  JNIEnv* env = Env(auth_data);
 
   // If the credential itself is in an error state, don't try signing in.
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
+    futures.Complete(promise.handle(), credential.error_code_,
                      credential.error_message_.c_str());
   } else if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
   } else {
     jobject pending_result = env->CallObjectMethod(
-        AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
+        AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential),
         CredentialFromImpl(credential.impl_));
 
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(pending_result, handle, auth_data_,
+    if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+      RegisterCallback(pending_result, promise.handle(), auth_data,
                        ReadUserFromAuthResult);
       env->DeleteLocalRef(pending_result);
     }
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(
-    const Credential& credential) {
-  if (!auth_data_) return Future<AuthResult>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(
+void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
+  const auto promise.handle() = futures.SafeAlloc<AuthResult>(
       kAuthFn_SignInAndRetrieveDataWithCredential);
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   // If the credential itself is in an error state, don't try signing in.
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
+    futures.Complete(promise.handle(), credential.error_code_,
                      credential.error_message_.c_str());
   } else if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
   } else {
     jobject pending_result = env->CallObjectMethod(
-        AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
+        AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential),
         CredentialFromImpl(credential.impl_));
 
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+    if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+      RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
       env->DeleteLocalRef(pending_result);
     }
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
-  if (!auth_data_) return Future<AuthResult>();
+void SignInWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->SignIn(auth_data_);
+  return provider->SignIn(auth_data);
 }
 
-Future<AuthResult> Auth::SignInAnonymously() {
-  if (!auth_data_) return Future<AuthResult>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(kAuthFn_SignInAnonymously);
-  JNIEnv* env = Env(auth_data_);
+void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
+  JNIEnv* env = Env(auth_data);
 
   jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInAnonymously));
+      AuthImpl(auth_data), auth::GetMethodId(auth::kSignInAnonymously));
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
-
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> Auth::SignInWithEmailAndPassword(const char* email,
-                                                    const char* password) {
-  if (!auth_data_) return Future<AuthResult>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithEmailAndPassword);
+void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password) {
 
   if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
-    futures.Complete(handle,
+    futures.Complete(promise.handle(),
                      (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
                                                     : kAuthErrorMissingPassword,
                      kErrorEmptyEmailPassword);
-    return MakeFuture(&futures, handle);
   }
 
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
   jstring j_email = env->NewStringUTF(email);
-  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
-    return MakeFuture(&futures, handle);
   }
   jstring j_password = env->NewStringUTF(password);
-  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     env->DeleteLocalRef(j_email);
     if (j_password != nullptr) env->DeleteLocalRef(j_password);
-    return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_),
+      AuthImpl(auth_data),
       auth::GetMethodId(auth::kSignInWithEmailAndPassword), j_email,
       j_password);
   env->DeleteLocalRef(j_email);
   env->DeleteLocalRef(j_password);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
-
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char* email,
-                                                        const char* password) {
-  if (!auth_data_) return Future<AuthResult>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<AuthResult>(kAuthFn_CreateUserWithEmailAndPassword);
+void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password) {
 
   if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
-    futures.Complete(handle,
+    futures.Complete(promise.handle(),
                      (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
                                                     : kAuthErrorMissingPassword,
                      kErrorEmptyEmailPassword);
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   jstring j_email = env->NewStringUTF(email);
-  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
-    return MakeFuture(&futures, handle);
   }
   jstring j_password = env->NewStringUTF(password);
-  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     env->DeleteLocalRef(j_email);
     if (j_password != nullptr) env->DeleteLocalRef(j_password);
-    return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_),
+      AuthImpl(auth_data),
       auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), j_email,
       j_password);
   env->DeleteLocalRef(j_email);
   env->DeleteLocalRef(j_password);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-User Auth::current_user() {
-  if (!auth_data_) {
-    // Return an invalid user.
-    return User(nullptr);
-  }
-  MutexLock lock(auth_data_->future_impl.mutex());
-
-  // auth_data_->current_user should be available after Auth is created because
-  // persistent is loaded during the constructor of Android FirebaseAuth.
-  // This may change to make FirebaseAuth.getCurrentUser() to block and wait for
-  // persistent loading.  However, it is safe to access auth_data_->current_user
-  // here since FirebaseAuth.getCurrentUser() (Android) is called in
-  // InitPlatformAuth().
-  if (auth_data_->user_impl == nullptr) {
-    // return an invalid user.
-    return User(nullptr);
-  }
-  return auth_data_->current_user;
-}
 
 std::string Auth::language_code() const {
-  if (!auth_data_) return std::string();
   JNIEnv* env = Env(auth_data_);
   jobject j_pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode));
@@ -726,7 +660,6 @@ std::string Auth::language_code() const {
 }
 
 void Auth::set_language_code(const char* language_code) {
-  if (!auth_data_) return;
   if (language_code == nullptr || language_code[0] == '\0') {
     UseAppLanguage();
     return;
@@ -746,53 +679,35 @@ void Auth::set_language_code(const char* language_code) {
 }
 
 void Auth::UseAppLanguage() {
-  if (!auth_data_) return;
   JNIEnv* env = Env(auth_data_);
   env->CallVoidMethod(AuthImpl(auth_data_),
                       auth::GetMethodId(auth::kUseAppLanguage));
   firebase::util::CheckAndClearJniExceptions(env);
 }
 
-void Auth::SignOut() {
-  if (!auth_data_) return;
-  JNIEnv* env = Env(auth_data_);
-  env->CallVoidMethod(AuthImpl(auth_data_), auth::GetMethodId(auth::kSignOut));
-  firebase::util::CheckAndClearJniExceptions(env);
 
-  // Release our current user implementation in Java.
-  MutexLock lock(auth_data_->future_impl.mutex());
-  SetImplFromLocalRef(env, nullptr, &auth_data_->user_impl);
-}
-
-Future<void> Auth::SendPasswordResetEmail(const char* email) {
-  if (!auth_data_) return Future<void>();
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kAuthFn_SendPasswordResetEmail);
+void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
 
   if (!email || strlen(email) == 0) {
-    futures.Complete(handle, kAuthErrorMissingEmail, "Empty email address.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email address.");
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
   jstring j_email = env->NewStringUTF(email);
-  if (CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     if (j_email != nullptr) env->DeleteLocalRef(j_email);
-    return MakeFuture(&futures, handle);
   }
   jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_), auth::GetMethodId(auth::kSendPasswordResetEmail),
+      AuthImpl(auth_data), auth::GetMethodId(auth::kSendPasswordResetEmail),
       j_email);
   env->DeleteLocalRef(j_email);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, nullptr);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, nullptr);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
 void Auth::UseEmulator(std::string host, uint32_t port) {
-  if (!auth_data_) return;
   SetEmulatorJni(auth_data_, host.c_str(), port);
 }
 

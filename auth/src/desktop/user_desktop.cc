@@ -33,7 +33,7 @@
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/desktop/auth_util.h"
 #include "auth/src/desktop/get_account_info_result.h"
-#include "auth/src/desktop/promise.h"
+#include "auth/src/common/promise.h"
 #include "auth/src/desktop/rpcs/delete_account_request.h"
 #include "auth/src/desktop/rpcs/delete_account_response.h"
 #include "auth/src/desktop/rpcs/get_oob_confirmation_code_request.h"
@@ -209,26 +209,26 @@ void CallAsyncWithFreshToken(
     AuthData* const auth_data, Promise<ResultT> promise,
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && request && callback);
+  FIREBASE_ASSERT_RETURN_VOID(auth_data && request && callback);
 
   typedef AuthDataHandle<ResultT, RequestT> HandleT;
 
   auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
-        std::unique_ptr<HandleT> promise.handle()(raw_auth_data_handle);
+        std::unique_ptr<HandleT> promise(raw_auth_data_handle);
 
         const GetTokenResult get_token_result =
-            EnsureFreshToken(promise.handle()->auth_data, false);
+            EnsureFreshToken(promise->auth_data, false);
         if (!get_token_result.IsValid()) {
-          FailPromise(&promise.handle()->promise, get_token_result.error());
+          FailPromise(&promise->promise, get_token_result.error());
           return;
         }
-        promise.handle()->request->SetIdToken(get_token_result.token().c_str());
+        promise->request->SetIdToken(get_token_result.token().c_str());
         if constexpr (std::is_base_of_v<AuthRequest, RequestT>) {
-          promise.handle()->request->PrepareRequestHeaders();
+          promise->request->PrepareRequestHeaders();
         }
 
-        promise.handle()->callback(promise.handle().get());
+        promise->callback(promise.get());
       },
       new HandleT(auth_data, promise, std::move(request), callback));
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
@@ -259,39 +259,39 @@ void CompleteSetAccountInfoPromise(Promise<AuthResult>* const promise,
 }
 
 template <typename ResponseT, typename ResultT>
-void PerformSignUpFlow(AuthDataHandle<ResultT, SignUpRequest>* const promise.handle()) {
-  FIREBASE_ASSERT_RETURN_VOID(promise.handle() && promise.handle()->request);
+void PerformSignUpFlow(AuthDataHandle<ResultT, SignUpRequest>* const promise) {
+  FIREBASE_ASSERT_RETURN_VOID(promise && promise->request);
 
-  const auto response = GetResponse<ResponseT>(*promise.handle()->request);
+  const auto response = GetResponse<ResponseT>(*promise->request);
   const AuthenticationResult auth_response =
-      CompleteSignInFlow(promise.handle()->auth_data, response);
+      CompleteSignInFlow(promise->auth_data, response);
 
   if (auth_response.IsValid()) {
     const AuthResult auth_result =
-        auth_response.SetAsCurrentUser(promise.handle()->auth_data);
-    CompletePromise(&promise.handle()->promise, auth_result);
+        auth_response.SetAsCurrentUser(promise->auth_data);
+    CompletePromise(&promise->promise, auth_result);
   } else {
-    SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth, auth_response.error());
-    FailPromise(&promise.handle()->promise, auth_response.error());
+    SignOutIfUserNoLongerValid(promise->auth_data->auth, auth_response.error());
+    FailPromise(&promise->promise, auth_response.error());
   }
 }
 
 template <typename ResultT>
 void PerformSetAccountInfoFlow(
-    AuthDataHandle<ResultT, SetAccountInfoRequest>* const promise.handle()) {
-  const auto response = GetResponse<SetAccountInfoResponse>(*promise.handle()->request);
+    AuthDataHandle<ResultT, SetAccountInfoRequest>* const promise) {
+  const auto response = GetResponse<SetAccountInfoResponse>(*promise->request);
   const auto account_info = SetAccountInfoResult::FromResponse(response);
 
   if (account_info.IsValid()) {
     User* api_user_to_return =
-        account_info.MergeToCurrentUser(promise.handle()->auth_data);
+        account_info.MergeToCurrentUser(promise->auth_data);
     if (api_user_to_return != nullptr) {
-      TriggerSaveUserFlow(promise.handle()->auth_data);
+      TriggerSaveUserFlow(promise->auth_data);
     }
-    CompleteSetAccountInfoPromise(&promise.handle()->promise, api_user_to_return);
+    CompleteSetAccountInfoPromise(&promise->promise, api_user_to_return);
   } else {
-    SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth, account_info.error());
-    FailPromise(&promise.handle()->promise, account_info.error());
+    SignOutIfUserNoLongerValid(promise->auth_data->auth, account_info.error());
+    FailPromise(&promise->promise, account_info.error());
   }
 }
 
@@ -300,10 +300,10 @@ void PerformSetAccountInfoFlow(
 // a EmailAuthCredential.
 // Non-blocking.
 template <typename ResultT>
-Future<ResultT> DoLinkWithEmailAndPassword(
+void DoLinkWithEmailAndPassword(
     AuthData* const auth_data, Promise<ResultT> promise,
     const void* const raw_credential_impl) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && raw_credential_impl);
+  FIREBASE_ASSERT_RETURN_VOID(auth_data && raw_credential_impl);
 
   const EmailAuthCredential* email_credential =
       GetEmailCredential(raw_credential_impl);
@@ -339,11 +339,11 @@ bool IsProviderAlreadyLinked(const std::string& provider,
 }
 
 template <typename ResultT>
-Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
+void DoLinkCredential(Promise<ResultT> promise,
                                  AuthData* const auth_data,
                                  const std::string& provider,
                                  const void* const raw_credential) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data);
+  FIREBASE_ASSERT_RETURN_VOID(auth_data);
 
   if (!ValidateCredential(&promise, provider, raw_credential)) {
   }
@@ -355,14 +355,14 @@ Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
       });
 
   if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
+    promise.InvalidateLastResult(); return;
   }
   if (is_provider_already_linked) {
     FailPromise(&promise, kAuthErrorProviderAlreadyLinked);
   }
 
   if (provider == kEmailPasswordAuthProviderId) {
-    return DoLinkWithEmailAndPassword(auth_data, promise, raw_credential);
+    DoLinkWithEmailAndPassword(auth_data, promise, raw_credential);
   }
 
   // The difference with sign in is that verifyAssertion is called with an ID
@@ -375,57 +375,57 @@ Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
   }
   CallAsyncWithFreshToken(
       auth_data, promise, std::move(request),
-      [](AuthDataHandle<ResultT, VerifyAssertionRequest>* const promise.handle()) {
-        FIREBASE_ASSERT_RETURN_VOID(promise.handle() && promise.handle()->request);
+      [](AuthDataHandle<ResultT, VerifyAssertionRequest>* const promise) {
+        FIREBASE_ASSERT_RETURN_VOID(promise && promise->request);
 
         const auto response =
-            GetResponse<VerifyAssertionResponse>(*promise.handle()->request);
+            GetResponse<VerifyAssertionResponse>(*promise->request);
         const AuthenticationResult authentication_result =
-            CompleteSignInFlow(promise.handle()->auth_data, response);
+            CompleteSignInFlow(promise->auth_data, response);
 
         if (authentication_result.IsValid()) {
           const AuthResult auth_result =
-              authentication_result.SetAsCurrentUser(promise.handle()->auth_data);
-          CompletePromise(&promise.handle()->promise, auth_result);
+              authentication_result.SetAsCurrentUser(promise->auth_data);
+          CompletePromise(&promise->promise, auth_result);
         } else {
-          SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth,
+          SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                      authentication_result.error());
-          FailPromise(&promise.handle()->promise, authentication_result.error());
+          FailPromise(&promise->promise, authentication_result.error());
         }
       });
 }
 
 // Reauthenticates the current user and completes the promise contained within
-// the given promise.handle() (either successfully or with an error, if the backend call
+// the given promise (either successfully or with an error, if the backend call
 // failed).
 template <typename ResponseT, typename FutureResultT, typename RequestT>
-void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const promise.handle()) {
-  const auto response = GetResponse<ResponseT>(*promise.handle()->request);
+void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const promise) {
+  const auto response = GetResponse<ResponseT>(*promise->request);
   const AuthenticationResult authentication_result =
-      CompleteSignInFlow(promise.handle()->auth_data, response);
+      CompleteSignInFlow(promise->auth_data, response);
   if (!authentication_result.IsValid()) {
-    SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth,
+    SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                authentication_result.error());
-    FailPromise(&promise.handle()->promise, authentication_result.error());
+    FailPromise(&promise->promise, authentication_result.error());
     return;
   }
 
   std::string current_uid;
   const bool is_user_logged_in = UserView::TryRead(
-      promise.handle()->auth_data,
+      promise->auth_data,
       [&](const UserView::Reader& user) { current_uid = user->uid; });
   if (!is_user_logged_in) {
-    FailPromise(&promise.handle()->promise, kAuthErrorNoSignedInUser);
+    FailPromise(&promise->promise, kAuthErrorNoSignedInUser);
     return;
   }
 
   if (authentication_result.uid() == current_uid) {
     const AuthResult auth_result =
-        authentication_result.SetAsCurrentUser(promise.handle()->auth_data);
+        authentication_result.SetAsCurrentUser(promise->auth_data);
 
-    CompletePromise(&promise.handle()->promise, auth_result);
+    CompletePromise(&promise->promise, auth_result);
   } else {
-    FailPromise(&promise.handle()->promise, kAuthErrorUserMismatch);
+    FailPromise(&promise->promise, kAuthErrorUserMismatch);
   }
 }
 
@@ -434,7 +434,7 @@ void DoReauthenticate(Promise<ResultT> promise,
                                  AuthData* const auth_data,
                                  const std::string& provider,
                                  const void* const raw_credential) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data);
+  FIREBASE_ASSERT_RETURN_VOID(auth_data);
 
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
@@ -708,16 +708,15 @@ bool User::is_valid() const {
 
 // RPCs
 
-namespace internal {
-void GetToken(AuthData* auth_data, Promise<std::string> promise, const bool force_refresh) {
-  return GetTokenInternal(force_refresh, kUserFn_GetToken);
-}
-}  // namespace internal
+void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise, const bool force_refresh, const int future_identifier);
 
-namespace internal {
+void GetToken(AuthData* auth_data, Promise<std::string> promise, const bool force_refresh) {
+  GetTokenInternal(auth_data, promise, force_refresh, kUserFn_GetToken);
+}
+
 void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise, const bool force_refresh, const int future_identifier) {
   if (auth_data == nullptr) {     // user is not valid
-    return Future<std::string>();  // invalid future
+    return;  // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
@@ -733,43 +732,39 @@ void GetTokenInternal(AuthData* auth_data, Promise<std::string> promise, const b
   }
   if (current_token.IsValid()) {
     promise.CompleteWithResult(current_token.token());
-    return promise.future();
+    return;
   }
 
   const auto callback =
       force_refresh
-          ? +[](AuthDataHandle<std::string, rest::Request>* const promise.handle()) {
+          ? +[](AuthDataHandle<std::string, rest::Request>* const promise) {
               const GetTokenResult get_token_result =
-                  EnsureFreshToken(promise.handle()->auth_data, true);
+                  EnsureFreshToken(promise->auth_data, true);
               if (!get_token_result.IsValid()) {
-                FailPromise(&promise.handle()->promise, get_token_result.error());
+                FailPromise(&promise->promise, get_token_result.error());
                 return;
               }
-              promise.handle()->promise.CompleteWithResult(get_token_result.token());
+              promise->promise.CompleteWithResult(get_token_result.token());
             }
-          : +[](AuthDataHandle<std::string, rest::Request>* const promise.handle()) {
+          : +[](AuthDataHandle<std::string, rest::Request>* const promise) {
               const GetTokenResult get_token_result =
-                  EnsureFreshToken(promise.handle()->auth_data, false);
+                  EnsureFreshToken(promise->auth_data, false);
               if (!get_token_result.IsValid()) {
-                FailPromise(&promise.handle()->promise, get_token_result.error());
+                FailPromise(&promise->promise, get_token_result.error());
                 return;
               }
-              promise.handle()->promise.CompleteWithResult(get_token_result.token());
+              promise->promise.CompleteWithResult(get_token_result.token());
             };
 
   // Note: request is deliberately null because EnsureFreshToken will create it.
-  return CallAsync(auth_data, promise, std::unique_ptr<rest::Request>(),
+  CallAsync(auth_data, promise, std::unique_ptr<rest::Request>(),
                    callback);
 }
-}  // namespace internal
 
-namespace internal {
 void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const bool force_refresh) {
   if (auth_data == nullptr) {
-    return Future<IdTokenResult>();
+    return;
   }
-  Promise<IdTokenResult> promise(&auth_data->future_impl,
-                                 kUserFn_GetIdTokenResult);
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
 
@@ -787,19 +782,19 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const
     if (!ParseIdToken(current_token.token(), &id_token_result)) {
       LogWarning("GetIdTokenResult: Failed to parse cached ID token.");
       promise.Fail(kAuthErrorFailure, kIdTokenResultParseErrorMessage);
-      return promise.future();
+      return;
     }
     promise.CompleteWithResult(id_token_result);
-    return promise.future();
+    return;
   }
 
   const auto callback =
       force_refresh
-          ? +[](AuthDataHandle<IdTokenResult, rest::Request>* const promise.handle()) {
+          ? +[](AuthDataHandle<IdTokenResult, rest::Request>* const promise) {
               const GetTokenResult get_token_result =
-                  EnsureFreshToken(promise.handle()->auth_data, true);
+                  EnsureFreshToken(promise->auth_data, true);
               if (!get_token_result.IsValid()) {
-                FailPromise(&promise.handle()->promise, get_token_result.error());
+                FailPromise(&promise->promise, get_token_result.error());
                 return;
               }
 
@@ -807,17 +802,17 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const
               if (!ParseIdToken(get_token_result.token(), &id_token_result)) {
                 LogWarning(
                     "GetIdTokenResult: Failed to parse refreshed ID token.");
-                promise.handle()->promise.Fail(kAuthErrorFailure,
+                promise->promise.Fail(kAuthErrorFailure,
                                      kIdTokenResultParseErrorMessage);
                 return;
               }
-              promise.handle()->promise.CompleteWithResult(id_token_result);
+              promise->promise.CompleteWithResult(id_token_result);
             }
-          : +[](AuthDataHandle<IdTokenResult, rest::Request>* const promise.handle()) {
+          : +[](AuthDataHandle<IdTokenResult, rest::Request>* const promise) {
               const GetTokenResult get_token_result =
-                  EnsureFreshToken(promise.handle()->auth_data, false);
+                  EnsureFreshToken(promise->auth_data, false);
               if (!get_token_result.IsValid()) {
-                FailPromise(&promise.handle()->promise, get_token_result.error());
+                FailPromise(&promise->promise, get_token_result.error());
                 return;
               }
 
@@ -825,23 +820,21 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const
               if (!ParseIdToken(get_token_result.token(), &id_token_result)) {
                 LogWarning(
                     "GetIdTokenResult: Failed to parse refreshed ID token.");
-                promise.handle()->promise.Fail(kAuthErrorFailure,
+                promise->promise.Fail(kAuthErrorFailure,
                                      kIdTokenResultParseErrorMessage);
                 return;
               }
-              promise.handle()->promise.CompleteWithResult(id_token_result);
+              promise->promise.CompleteWithResult(id_token_result);
             };
 
   // Note: request is deliberately null because EnsureFreshToken will create it.
-  return CallAsync(auth_data, promise, std::unique_ptr<rest::Request>(),
+  CallAsync(auth_data, promise, std::unique_ptr<rest::Request>(),
                    callback);
 }
-}  // namespace internal
 
-namespace internal {
 void Delete(AuthData* auth_data, Promise<void> promise) {
   if (auth_data == nullptr) {  // user is not valid
-    return Future<void>();
+    return;
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
@@ -850,30 +843,24 @@ void Delete(AuthData* auth_data, Promise<void> promise) {
   auto request =
       std::make_unique<RequestT>(*auth_data->app, GetApiKey(*auth_data));
 
-  const auto callback = [](AuthDataHandle<void, RequestT>* const promise.handle()) {
-    const auto response = GetResponse<DeleteAccountResponse>(*promise.handle()->request);
+  const auto callback = [](AuthDataHandle<void, RequestT>* const promise) {
+    const auto response = GetResponse<DeleteAccountResponse>(*promise->request);
     if (response.IsSuccessful()) {
-      promise.handle()->auth_data->auth->SignOut();
-      promise.handle()->promise.Complete();
+      promise->auth_data->auth->SignOut();
+      promise->promise.Complete();
     } else {
-      SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth,
+      SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                  response.error_code());
-      FailPromise(&promise.handle()->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code());
     }
   };
 
   CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  callback);
 }
-}  // namespace internal
 
-namespace internal {
 void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
-  if (!is_valid()) {
-    return Future<void>();
-  }
-  Promise<void> promise(&auth_data->future_impl,
-                        kUserFn_SendEmailVerification);
+  
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
 
@@ -890,30 +877,24 @@ void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
   auto request = RequestT::CreateSendEmailVerificationRequest(
       *auth_data->app, GetApiKey(*auth_data), language_code);
 
-  const auto callback = [](AuthDataHandle<void, RequestT>* const promise.handle()) {
+  const auto callback = [](AuthDataHandle<void, RequestT>* const promise) {
     const auto response =
-        GetResponse<GetOobConfirmationCodeResponse>(*promise.handle()->request);
+        GetResponse<GetOobConfirmationCodeResponse>(*promise->request);
     if (response.IsSuccessful()) {
-      promise.handle()->promise.Complete();
+      promise->promise.Complete();
     } else {
-      SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth,
+      SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                  response.error_code());
-      FailPromise(&promise.handle()->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code());
     }
   };
 
   CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  callback);
 }
-}  // namespace internal
 
-namespace internal {
 void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
-  if (!is_valid()) {
-    return Future<void>();
-  }
-  Promise<void> promise(&auth_data->future_impl,
-                        kUserFn_SendEmailVerificationBeforeUpdatingEmail);
+  
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
   if (!ValidateEmail(&promise, email)) {
@@ -933,27 +914,25 @@ void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void>
       RequestT::CreateSendEmailVerificationBeforeUpdatingEmailRequest(
           *auth_data->app, GetApiKey(*auth_data), email, language_code);
 
-  const auto callback = [](AuthDataHandle<void, RequestT>* const promise.handle()) {
+  const auto callback = [](AuthDataHandle<void, RequestT>* const promise) {
     const auto response =
-        GetResponse<GetOobConfirmationCodeResponse>(*promise.handle()->request);
+        GetResponse<GetOobConfirmationCodeResponse>(*promise->request);
     if (response.IsSuccessful()) {
-      promise.handle()->promise.Complete();
+      promise->promise.Complete();
     } else {
-      SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth,
+      SignOutIfUserNoLongerValid(promise->auth_data->auth,
                                  response.error_code());
-      FailPromise(&promise.handle()->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code());
     }
   };
 
   CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  callback);
 }
-}  // namespace internal
 
-namespace internal {
 void Reload(AuthData* auth_data, Promise<void> promise) {
   if (auth_data == nullptr) {  // user is not valid
-    return Future<void>();
+    return;
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
@@ -964,37 +943,35 @@ void Reload(AuthData* auth_data, Promise<void> promise) {
       [&](const UserView::Reader& user) { id_token = user->id_token; });
 
   if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
+    promise.InvalidateLastResult(); return;
   }
 
   typedef GetAccountInfoRequest RequestT;
   auto request = std::make_unique<RequestT>(
       *auth_data->app, GetApiKey(*auth_data), id_token.c_str());
 
-  const auto callback = [](AuthDataHandle<void, RequestT>* const promise.handle()) {
-    const GetAccountInfoResult account_info = GetAccountInfo(*promise.handle()->request);
+  const auto callback = [](AuthDataHandle<void, RequestT>* const promise) {
+    const GetAccountInfoResult account_info = GetAccountInfo(*promise->request);
     // No listeners will be notified: UID couldn't have changed, because we
     // are reloading the same user. Token couldn't have changed, because
     // GetAccountInfoResponse doesn't contain any tokens.
     if (account_info.IsValid()) {
-      account_info.MergeToCurrentUser(promise.handle()->auth_data);
-      TriggerSaveUserFlow(promise.handle()->auth_data);
-      promise.handle()->promise.Complete();
+      account_info.MergeToCurrentUser(promise->auth_data);
+      TriggerSaveUserFlow(promise->auth_data);
+      promise->promise.Complete();
     } else {
-      SignOutIfUserNoLongerValid(promise.handle()->auth_data->auth, account_info.error());
-      FailPromise(&promise.handle()->promise, account_info.error());
+      SignOutIfUserNoLongerValid(promise->auth_data->auth, account_info.error());
+      FailPromise(&promise->promise, account_info.error());
     }
   };
 
   CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  callback);
 }
-}  // namespace internal
 
-namespace internal {
 void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* const password) {
   if (auth_data == nullptr) {  // user is not valid
-    return Future<void>();      // invalid future
+    return;      // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
@@ -1017,12 +994,10 @@ void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* cons
   CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
 }
-}  // namespace internal
 
-namespace internal {
-void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserProfile& profile) {
+void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::UserProfile& profile) {
   if (auth_data == nullptr) {  // user is not valid
-    return Future<void>();      // invalid future
+    return;      // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
@@ -1035,12 +1010,10 @@ void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserPro
   CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
 }
-}  // namespace internal
 
-namespace internal {
 void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* const provider) {
   if (auth_data == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+    return;  // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
@@ -1055,7 +1028,7 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* const 
       });
 
   if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
+    promise.InvalidateLastResult(); return;
   }
   if (!is_provider_linked) {
     FailPromise(&promise, kAuthErrorNoSuchProvider);
@@ -1068,67 +1041,52 @@ void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* const 
   CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  PerformSetAccountInfoFlow<AuthResult>);
 }
-}  // namespace internal
 
-namespace internal {
 void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
   if (auth_data == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+    return;  // invalid future
   }
-  Promise<AuthResult> promise(&auth_data->future_impl,
-                              kUserFn_LinkWithCredential);
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
-  return DoLinkCredential(promise, auth_data, credential.provider(),
+  DoLinkCredential(promise, auth_data, credential.provider(),
                           internal::CredentialAccess::GetImpl(credential));
 }
-}  // namespace internal
 
-namespace internal {
 void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
   if (auth_data == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+    return;  // invalid future
   }
   FIREBASE_ASSERT_RETURN_VOID(provider);
   provider->Link(auth_data);
 }
-}  // namespace internal
 
-namespace internal {
 void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential& credential) {
   if (auth_data == nullptr) {  // user is not valid
-    return Future<void>();      // invalid future
+    return;      // invalid future
   }
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
   DoReauthenticate(promise, auth_data, credential.provider(),
                           internal::CredentialAccess::GetImpl(credential));
 }
-}  // namespace internal
 
-namespace internal {
 void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
   if (auth_data == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+    return;  // invalid future
   }
-  Promise<AuthResult> promise(&auth_data->future_impl,
-                              kUserFn_ReauthenticateAndRetrieveData);
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
   DoReauthenticate(promise, auth_data, credential.provider(),
                           internal::CredentialAccess::GetImpl(credential));
 }
-}  // namespace internal
 
-namespace internal {
 void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
   if (auth_data == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+    return;  // invalid future
   }
   FIREBASE_ASSERT_RETURN_VOID(provider);
-  return provider->Reauthenticate(auth_data);
+  provider->Reauthenticate(auth_data); return;
 }
-}  // namespace internal
 
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
@@ -1232,20 +1190,16 @@ std::string User::provider_id() const {
   return user_view.IsValid() ? user_view->provider_id : std::string();
 }
 
-namespace internal {
 void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential& credential) {
   if (auth_data == nullptr) {  // user is not valid
-    return Future<User>();      // invalid future
+    return;      // invalid future
   }
-  Promise<User> promise(&auth_data->future_impl,
-                        kUserFn_UpdatePhoneNumberCredential);
   if (!ValidateCurrentUser(&promise, auth_data)) {
   }
 
   promise.Fail(kAuthErrorApiNotAvailable,
                "Phone Auth is not supported on desktop");
 }
-}  // namespace internal
 
 }  // namespace auth
 }  // namespace firebase

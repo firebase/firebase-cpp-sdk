@@ -68,6 +68,10 @@ struct PhoneAuthOptions;
 struct PhoneAuthProviderData;
 struct PhoneListenerData;
 
+namespace internal {
+struct CredentialAccess;
+}  // namespace internal
+
 /// @brief Authentication credentials for an authentication provider.
 ///
 /// An authentication provider is a service that allows you to authenticate
@@ -146,6 +150,7 @@ class Credential {
   /// @returns True if the credential is valid, false otherwise.
   bool is_valid() const;
 
+  friend struct internal::CredentialAccess;
  protected:
   /// @cond FIREBASE_APP_INTERNAL
   friend class Auth;
@@ -750,6 +755,14 @@ class YahooAuthProvider {
  private:
   YahooAuthProvider() {}
 };
+
+namespace internal {
+struct CredentialAccess {
+  static void* GetImpl(const Credential& credential) {
+    return credential.impl_;
+  }
+};
+}  // namespace internal
 
 }  // namespace auth
 }  // namespace firebase

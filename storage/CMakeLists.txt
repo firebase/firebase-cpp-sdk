@@ -39,7 +39,7 @@ endif()
 set(android_SRCS
     ${storage_resources_source}
     src/android/controller_android.cc
-    src/android/metadata_android.cc
+    src/common/metadata_internal.cc
     src/android/storage_android.cc
     src/android/storage_reference_android.cc)
 
@@ -47,7 +47,7 @@ set(android_SRCS
 set(ios_SRCS
     src/ios/controller_ios.mm
     src/ios/listener_ios.mm
-    src/ios/metadata_ios.mm
+    src/common/metadata_internal.cc
     src/ios/storage_ios.mm
     src/ios/storage_reference_ios.mm
     src/ios/util_ios.mm)
@@ -58,7 +58,7 @@ set(desktop_SRCS
     src/desktop/controller_desktop.cc
     src/desktop/curl_requests.cc
     src/desktop/listener_desktop.cc
-    src/desktop/metadata_desktop.cc
+    src/common/metadata_internal.cc
     src/desktop/rest_operation.cc
     src/desktop/storage_desktop.cc
     src/desktop/storage_path.cc

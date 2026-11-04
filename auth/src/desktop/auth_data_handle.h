@@ -20,7 +20,7 @@
 #include "app/rest/request.h"
 #include "app/src/include/firebase/future.h"
 #include "auth/src/data.h"
-#include "auth/src/desktop/promise.h"
+#include "auth/src/common/promise.h"
 
 namespace firebase {
 namespace auth {

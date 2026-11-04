@@ -182,7 +182,7 @@ struct AuthImpl {
 // Auth tokens expire after 60 minutes so we refresh slightly before.
 const int kMinutesPerTokenRefresh = 58;
 const int kMsPerTokenRefresh =
-    kMinutesPerTokenRefresh * internal::kMillisecondsPerMinute;
+    kMinutesPerTokenRefresh * ::firebase::internal::kMillisecondsPerMinute;
 // Exponential backoff parameters when token refresh fails (e.g. network
 // outage), matching Android DefaultTokenRefresher.
 const int kMinRetryBackoffMs = 30 * 1000;       // 30 seconds base delay

@@ -31,8 +31,8 @@ std::string MakeJwt(const std::string& header_json,
                     const std::string& signature = "sig") {
   std::string header_b64;
   std::string payload_b64;
-  internal::Base64EncodeUrlSafe(header_json, &header_b64);
-  internal::Base64EncodeUrlSafe(payload_json, &payload_b64);
+  ::firebase::internal::Base64EncodeUrlSafe(header_json, &header_b64);
+  ::firebase::internal::Base64EncodeUrlSafe(payload_json, &payload_b64);
   return header_b64 + "." + payload_b64 + "." + signature;
 }
 
@@ -115,7 +115,7 @@ TEST(IdTokenResultTest, ParseBase64UrlSpecialCharsAndUnpaddedLengths) {
       "\"exp\":1700003600,\"auth_time\":1699999999,\"pad\":\"\"}";
   ASSERT_EQ(1U, payload_mod2.size() % 3);
   std::string payload_b64_mod2;
-  internal::Base64EncodeUrlSafe(payload_mod2, &payload_b64_mod2);
+  ::firebase::internal::Base64EncodeUrlSafe(payload_mod2, &payload_b64_mod2);
   EXPECT_NE(std::string::npos, payload_b64_mod2.find('-'));
   EXPECT_NE(std::string::npos, payload_b64_mod2.find('_'));
   EXPECT_EQ(std::string::npos, payload_b64_mod2.find('='));
@@ -136,7 +136,7 @@ TEST(IdTokenResultTest, ParseBase64UrlSpecialCharsAndUnpaddedLengths) {
       "\"exp\":1700003600,\"auth_time\":1699999999,\"pad\":\"x\"}";
   ASSERT_EQ(2U, payload_mod3.size() % 3);
   std::string payload_b64_mod3;
-  internal::Base64EncodeUrlSafe(payload_mod3, &payload_b64_mod3);
+  ::firebase::internal::Base64EncodeUrlSafe(payload_mod3, &payload_b64_mod3);
   EXPECT_EQ(3U, payload_b64_mod3.size() % 4);
   EXPECT_EQ(std::string::npos, payload_b64_mod3.find('='));
 
@@ -179,7 +179,7 @@ TEST(IdTokenResultTest, MalformedTokenInvalidBase64) {
 
 TEST(IdTokenResultTest, MalformedTokenNotJsonPayload) {
   std::string b64;
-  internal::Base64EncodeUrlSafe("this is not json", &b64);
+  ::firebase::internal::Base64EncodeUrlSafe("this is not json", &b64);
   const std::string token = "header." + b64 + ".sig";
 
   IdTokenResult result;
@@ -188,7 +188,7 @@ TEST(IdTokenResultTest, MalformedTokenNotJsonPayload) {
 
 TEST(IdTokenResultTest, MalformedTokenNonObjectJsonPayload) {
   std::string b64;
-  internal::Base64EncodeUrlSafe("\"just a json string\"", &b64);
+  ::firebase::internal::Base64EncodeUrlSafe("\"just a json string\"", &b64);
   const std::string token = "header." + b64 + ".sig";
 
   IdTokenResult result;

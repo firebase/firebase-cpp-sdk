@@ -34,7 +34,7 @@
 #include "auth/src/desktop/auth_util.h"
 #include "auth/src/desktop/authentication_result.h"
 #include "auth/src/desktop/credential_impl.h"
-#include "auth/src/desktop/promise.h"
+#include "auth/src/common/promise.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_response.h"
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
@@ -70,7 +70,7 @@ void DoSignInWithCredential(Promise<ResultT> promise,
                                        AuthData* const auth_data,
                                        const std::string& provider,
                                        const void* const raw_credential) {
-  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data);
+  FIREBASE_ASSERT_RETURN_VOID(auth_data);
 
   if (!ValidateCredential(&promise, provider, raw_credential)) {
   }
@@ -144,7 +144,7 @@ void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
   if (is_signed_in) {
     ResetTokenRefreshCounter(auth->auth_data_);
     current_token_ = std::move(new_token);
-    token_timestamp_ = internal::GetTimestampEpoch();
+    token_timestamp_ = ::firebase::internal::GetTimestampEpoch();
   } else {
     current_token_.clear();
   }
@@ -309,22 +309,22 @@ bool Auth::RemoveAuthStateListenerForRegistry(App* app, void* callback,
 void Auth::InitPlatformAuth(AuthData* const auth_data) {
   firebase::rest::InitTransportCurl();
   auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthGetCurrentToken, Auth::GetAuthTokenForRegistry);
+      ::firebase::internal::FnAuthGetCurrentToken, Auth::GetAuthTokenForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthGetCurrentUserUid, Auth::GetCurrentUserUidForRegistry);
+      ::firebase::internal::FnAuthGetCurrentUserUid, Auth::GetCurrentUserUidForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthStartTokenListener,
+      ::firebase::internal::FnAuthStartTokenListener,
       Auth::StartTokenRefreshThreadForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthStopTokenListener,
+      ::firebase::internal::FnAuthStopTokenListener,
       Auth::StopTokenRefreshThreadForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthGetTokenAsync, Auth::GetAuthTokenAsyncForRegistry);
+      ::firebase::internal::FnAuthGetTokenAsync, Auth::GetAuthTokenAsyncForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthAddAuthStateListener,
+      ::firebase::internal::FnAuthAddAuthStateListener,
       Auth::AddAuthStateListenerForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthRemoveAuthStateListener,
+      ::firebase::internal::FnAuthRemoveAuthStateListener,
       Auth::RemoveAuthStateListenerForRegistry);
 
   // Register internal function registry listeners first so they are notified
@@ -343,19 +343,19 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 
   // Unregister from the function registry first so no new internal calls arrive.
   auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthRemoveAuthStateListener);
+      ::firebase::internal::FnAuthRemoveAuthStateListener);
   auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthAddAuthStateListener);
+      ::firebase::internal::FnAuthAddAuthStateListener);
   auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthGetCurrentToken);
+      ::firebase::internal::FnAuthGetCurrentToken);
   auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthGetCurrentUserUid);
+      ::firebase::internal::FnAuthGetCurrentUserUid);
   auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthStartTokenListener);
+      ::firebase::internal::FnAuthStartTokenListener);
   auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthStopTokenListener);
+      ::firebase::internal::FnAuthStopTokenListener);
   auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthGetTokenAsync);
+      ::firebase::internal::FnAuthGetTokenAsync);
 
   // Shut down the token refresher thread BEFORE cancelling the scheduler so
   // any in-flight refresh task on the scheduler completes its future_sem.Wait()
@@ -376,10 +376,7 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 }
 
 // RPCs
-namespace internal {
 void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* custom_token) {
-  Promise<AuthResult> promise(&auth_data->future_impl,
-                              kAuthFn_SignInWithCustomToken);
   if (!custom_token || strlen(custom_token) == 0) {
     FailPromise(&promise, kAuthErrorInvalidCustomToken);
   }
@@ -392,27 +389,18 @@ void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, con
   CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<VerifyCustomTokenResponse>);
 }
-}  // namespace internal
 
-namespace internal {
 void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential) {
   DoSignInWithCredential(promise, auth_data, credential.provider(),
                                 internal::CredentialAccess::GetImpl(credential));
 }
-}  // namespace internal
 
-namespace internal {
 void SignInWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN_VOID(provider);
   provider->SignIn(auth_data);
 }
-}  // namespace internal
 
-namespace internal {
 void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
-  Promise<AuthResult> promise(&auth_data->future_impl,
-                              kAuthFn_SignInAnonymously);
-
   // If user is already signed in anonymously, return immediately.
   bool is_anonymous = false;
   User* api_user_to_return = nullptr;
@@ -434,12 +422,8 @@ void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
   CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
-}  // namespace internal
 
-namespace internal {
 void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
-  Promise<AuthResult> promise(&auth_data->future_impl,
-                              kAuthFn_SignInWithEmailAndPassword);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
   }
 
@@ -450,12 +434,8 @@ void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise
   CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<VerifyPasswordResponse>);
 }
-}  // namespace internal
 
-namespace internal {
 void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* const email, const char* const password) {
-  Promise<AuthResult> promise(&auth_data->future_impl,
-                              kAuthFn_CreateUserWithEmailAndPassword);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
   }
 
@@ -466,21 +446,13 @@ void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> pro
   CallAsync(auth_data, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
-}  // namespace internal
 
-namespace internal {
 void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
-  Promise<AuthResult> promise(&auth_data->future_impl,
-                              kAuthFn_SignInAndRetrieveDataWithCredential);
   DoSignInWithCredential(promise, auth_data, credential.provider(),
                                 internal::CredentialAccess::GetImpl(credential));
 }
-}  // namespace internal
 
-namespace internal {
 void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char* email) {
-  Promise<FetchProvidersResult> promise(&auth_data->future_impl,
-                                        kAuthFn_FetchProvidersForEmail);
   if (!ValidateEmail(&promise, email)) {
   }
 
@@ -489,26 +461,22 @@ void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersRes
                                             GetApiKey(*auth_data), email);
 
   const auto callback =
-      [](AuthDataHandle<FetchProvidersResult, RequestT>* promise.handle()) {
+      [](AuthDataHandle<Auth::FetchProvidersResult, RequestT>* promise) {
         const auto response =
-            GetResponse<CreateAuthUriResponse>(*promise.handle()->request);
+            GetResponse<CreateAuthUriResponse>(*promise->request);
         if (response.IsSuccessful()) {
-          FetchProvidersResult result;
+          Auth::FetchProvidersResult result;
           result.providers = response.providers();
-          promise.handle()->promise.CompleteWithResult(result);
+          promise->promise.CompleteWithResult(result);
         } else {
-          FailPromise(&promise.handle()->promise, response.error_code());
+          FailPromise(&promise->promise, response.error_code());
         }
       };
 
   CallAsync(auth_data, promise, std::move(request), callback);
 }
-}  // namespace internal
 
-namespace internal {
 void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
-  Promise<void> promise(&auth_data->future_impl,
-                        kAuthFn_SendPasswordResetEmail);
   if (!ValidateEmail(&promise, email)) {
   }
 
@@ -525,24 +493,19 @@ void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const ch
   auto request = RequestT::CreateSendPasswordResetEmailRequest(
       *auth_data->app, GetApiKey(*auth_data), email, language_code);
 
-  const auto callback = [](AuthDataHandle<void, RequestT>* promise.handle()) {
+  const auto callback = [](AuthDataHandle<void, RequestT>* promise) {
     const auto response =
-        GetResponse<GetOobConfirmationCodeResponse>(*promise.handle()->request);
+        GetResponse<GetOobConfirmationCodeResponse>(*promise->request);
     if (response.IsSuccessful()) {
-      promise.handle()->promise.Complete();
+      promise->promise.Complete();
     } else {
-      FailPromise(&promise.handle()->promise, response.error_code());
+      FailPromise(&promise->promise, response.error_code());
     }
   };
 
   CallAsync(auth_data, promise, std::move(request), callback);
 }
-}  // namespace internal
 
-void Auth::SignOut() {
-  // No REST request. So we can do this in the main thread.
-  AuthenticationResult::SignOut(auth_data_);
-}
 
 // AuthStateListener to wait for current_user() until persistent
 // cache load is finished.
@@ -559,26 +522,6 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
   Semaphore semaphore_;
 };
 
-User Auth::current_user() {
-
-  // Add a listener and wait for the first trigger.
-  CurrentUserBlockListener listener;
-  AddAuthStateListener(&listener);
-  // If the persistent cache has not be loaded, this would wait until the
-  // loading is finished and OnAuthStateChanged() is triggered.
-  // If it has been loaded, OnAuthStateChanged() should be triggered recursively
-  // and synchronously when AddAuthStateListener() is called.
-  listener.WaitForEvent();
-  RemoveAuthStateListener(&listener);
-
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (auth_data_->user_impl == nullptr) {
-      return User(nullptr);
-    }
-    return auth_data_->current_user;
-  }
-}
 
 std::string Auth::language_code() const {
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
@@ -606,45 +549,34 @@ void Auth::UseEmulator(std::string host, uint32_t port) {
   LogInfo("Using Auth Emulator: %s", auth_impl->assigned_emulator_url.c_str());
 }
 
-namespace internal {
 void InitializeTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Initialize(auth_data);
 }
-}  // namespace internal
 
-namespace internal {
 void DestroyTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Destroy();
 }
-}  // namespace internal
 
-namespace internal {
 void InitializeFunctionRegistryListener(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->internal_listeners =
       std::make_unique<FunctionRegistryAuthStateListener>();
   auth_data->auth->AddAuthStateListener(auth_impl->internal_listeners.get());
 }
-}  // namespace internal
 
-namespace internal {
 void DestroyFunctionRegistryListener(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_data->auth->RemoveAuthStateListener(auth_impl->internal_listeners.get());
   auth_impl->internal_listeners.reset(nullptr);
 }
-}  // namespace internal
 
-namespace internal {
 void EnableTokenAutoRefresh(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.EnableAuthRefresh();
 }
-}  // namespace internal
 
-namespace internal {
 void DisableTokenAutoRefresh(AuthData* auth_data) {
   // We don't actually directly stop the thread here - we just decrease the ref
   // count and it the thread will remove itself next time it fires, if it is
@@ -652,21 +584,17 @@ void DisableTokenAutoRefresh(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.DisableAuthRefresh();
 }
-}  // namespace internal
 
 // Called automatically whenever anyone refreshes the auth token.
-namespace internal {
 void ResetTokenRefreshCounter(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.WakeThread();
 }
-}  // namespace internal
 
-namespace internal {
 void InitializeUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->user_data_persist = std::make_unique<UserDataPersist>(
-      internal::CreateAppIdentifierFromOptions(auth_data->app->options())
+      ::firebase::internal::CreateAppIdentifierFromOptions(auth_data->app->options())
           .c_str());
 
   {
@@ -676,16 +604,12 @@ void InitializeUserDataPersist(AuthData* auth_data) {
   auth_data->auth->AddAuthStateListener(auth_impl->user_data_persist.get());
   auth_impl->user_data_persist->LoadUserData(auth_data);
 }
-}  // namespace internal
 
-namespace internal {
 void DestroyUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_data->auth->RemoveAuthStateListener(auth_impl->user_data_persist.get());
 }
-}  // namespace internal
 
-namespace internal {
 void LoadFinishTriggerListeners(AuthData* auth_data) {
   MutexLock destructing_lock(auth_data->destructing_mutex);
   if (auth_data->destructing) {
@@ -702,7 +626,6 @@ void LoadFinishTriggerListeners(AuthData* auth_data) {
   NotifyAuthStateListeners(auth_data);
   NotifyIdTokenListeners(auth_data);
 }
-}  // namespace internal
 
 void IdTokenRefreshThread::WakeThread() { wakeup_sem_.Post(); }
 
@@ -735,7 +658,7 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
             // user-facing one.
 
             uint64_t ms_since_last_refresh =
-                internal::GetTimestampEpoch() -
+                ::firebase::internal::GetTimestampEpoch() -
                 refresh_thread->token_refresh_listener_.GetTokenTimestamp();
 
             if (ms_since_last_refresh >= kMsPerTokenRefresh) {
@@ -783,7 +706,7 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
               }
 
               ms_since_last_refresh =
-                  internal::GetTimestampEpoch() -
+                  ::firebase::internal::GetTimestampEpoch() -
                   refresh_thread->token_refresh_listener_.GetTokenTimestamp();
               const int wait_ms =
                   static_cast<uint64_t>(kMsPerTokenRefresh) >

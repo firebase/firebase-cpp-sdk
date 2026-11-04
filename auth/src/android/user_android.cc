@@ -215,7 +215,6 @@ User::~User() { auth_data_ = nullptr; }
 bool User::is_valid() const { return ValidUser(auth_data_); }
 
 std::string User::uid() const {
-  if (!auth_data_) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -225,7 +224,6 @@ std::string User::uid() const {
 }
 
 std::string User::email() const {
-  if (!auth_data_) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -235,7 +233,6 @@ std::string User::email() const {
 }
 
 std::string User::display_name() const {
-  if (!auth_data_) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -245,7 +242,6 @@ std::string User::display_name() const {
 }
 
 std::string User::phone_number() const {
-  if (!auth_data_) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -255,7 +251,6 @@ std::string User::phone_number() const {
 }
 
 std::string User::photo_url() const {
-  if (!auth_data_) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -265,7 +260,6 @@ std::string User::photo_url() const {
 }
 
 std::string User::provider_id() const {
-  if (!auth_data_) return "";
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return "";
@@ -317,38 +311,34 @@ static void ReadTokenResultForced(jobject result,
   ReadTokenResultImpl(result, d, success, void_data, true);
 }
 
-Future<std::string> User::GetToken(bool force_refresh) {
-  if (!ValidUser(auth_data_)) {
+void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refresh) {
+  if (!ValidUser(auth_data)) {
     return Future<std::string>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<std::string>(kUserFn_GetToken);
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   if (force_refresh) {
-    auth_data_->SetExpectIdTokenListenerCallback(true);
+    auth_data->SetExpectIdTokenListenerCallback(true);
   }
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     if (force_refresh) {
-      auth_data_->SetExpectIdTokenListenerCallback(false);
+      auth_data->SetExpectIdTokenListenerCallback(false);
     }
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kToken), force_refresh);
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_,
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data,
                      force_refresh ? ReadTokenResultForced : ReadTokenResult);
     env->DeleteLocalRef(pending_result);
   } else if (force_refresh) {
     // If the method failed for some reason, clear the expected callback.
-    auth_data_->SetExpectIdTokenListenerCallback(false);
+    auth_data->SetExpectIdTokenListenerCallback(false);
   }
-  return MakeFuture(&futures, handle);
 }
 
 static void ReadIdTokenResultImpl(jobject result,
@@ -422,45 +412,39 @@ static void ReadIdTokenResultForced(jobject result,
   ReadIdTokenResultImpl(result, d, success, void_data, true);
 }
 
-Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
-  if (!ValidUser(auth_data_)) {
+void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool force_refresh) {
+  if (!ValidUser(auth_data)) {
     return Future<IdTokenResult>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<IdTokenResult>(kUserFn_GetIdTokenResult);
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   if (force_refresh) {
-    auth_data_->SetExpectIdTokenListenerCallback(true);
+    auth_data->SetExpectIdTokenListenerCallback(true);
   }
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
     if (force_refresh) {
-      auth_data_->SetExpectIdTokenListenerCallback(false);
+      auth_data->SetExpectIdTokenListenerCallback(false);
     }
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kToken), force_refresh);
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
     RegisterCallback(
-        pending_result, handle, auth_data_,
+        pending_result, promise.handle(), auth_data,
         force_refresh ? ReadIdTokenResultForced : ReadIdTokenResult);
     env->DeleteLocalRef(pending_result);
   } else if (force_refresh) {
     // If the method failed for some reason, clear the expected callback.
-    auth_data_->SetExpectIdTokenListenerCallback(false);
+    auth_data->SetExpectIdTokenListenerCallback(false);
   }
-  return MakeFuture(&futures, handle);
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
-  if (!auth_data_) return provider_data;
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (user_local != nullptr) {
@@ -503,23 +487,19 @@ std::vector<UserInfoInterface> User::provider_data() const {
   return provider_data;
 }
 
-Future<void> User::UpdatePassword(const char* password) {
-  if (!ValidUser(auth_data_)) {
+void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* password) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_UpdatePassword);
   if (!password) {
-    futures.Complete(handle, kAuthErrorMissingPassword,
+    futures.Complete(promise.handle(), kAuthErrorMissingPassword,
                      "Password must be provided.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jstring j_password = env->NewStringUTF(password);
   jobject pending_result = env->CallObjectMethod(
@@ -527,20 +507,17 @@ Future<void> User::UpdatePassword(const char* password) {
   env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_password);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::UpdateUserProfile(const UserProfile& profile) {
-  if (!ValidUser(auth_data_)) {
+void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserProfile& profile) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateUserProfile);
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   AuthError error = kAuthErrorNone;
   std::string exception_error_message;
@@ -612,22 +589,22 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 
   if (error == kAuthErrorNone) {
     // Call FirebaseUser.updateProfile.
-    jobject user_local = AcquireUserLocalRef(env, auth_data_);
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
     if (user_local == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
+      futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
     } else {
       jobject pending_result = env->CallObjectMethod(
           user_local, user::GetMethodId(user::kUpdateUserProfile),
           j_user_profile_request);
       env->DeleteLocalRef(user_local);
-      if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-        RegisterCallback(pending_result, handle, auth_data_,
+      if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+        RegisterCallback(pending_result, promise.handle(), auth_data,
                          UpdateUserOnSuccess);
         env->DeleteLocalRef(pending_result);
       }
     }
   } else {
-    futures.Complete(handle, error, exception_error_message.c_str());
+    futures.Complete(promise.handle(), error, exception_error_message.c_str());
   }
   if (j_user_profile_request) {
     env->DeleteLocalRef(j_user_profile_request);
@@ -635,69 +612,57 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
   if (j_user_profile_builder) {
     env->DeleteLocalRef(j_user_profile_builder);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
+void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_LinkWithCredential);
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
+    futures.Complete(promise.handle(), credential.error_code_,
                      credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
   } else if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kLinkWithCredential),
       CredentialFromImpl(credential.impl_));
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::LinkWithProvider(
-    FederatedAuthProvider* provider) const {
-  if (!ValidUser(auth_data_)) {
+void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Link(auth_data_);
+  return provider->Link(auth_data);
 }
 
-Future<AuthResult> User::Unlink(const char* provider) {
-  if (!ValidUser(auth_data_)) {
+void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* provider) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_Unlink);
   if (!provider || strlen(provider) == 0) {
-    futures.Complete(handle, kAuthErrorInvalidProviderId,
+    futures.Complete(promise.handle(), kAuthErrorInvalidProviderId,
                      "Provider ID must be provided.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jstring j_provider = env->NewStringUTF(provider);
   jobject pending_result = env->CallObjectMethod(
@@ -705,48 +670,40 @@ Future<AuthResult> User::Unlink(const char* provider) {
   env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_provider);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<User> User::UpdatePhoneNumberCredential(
-    const PhoneAuthCredential& credential) {
-  if (!ValidUser(auth_data_)) {
+void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential& credential) {
+  if (!ValidUser(auth_data)) {
     return Future<User>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<User>(kUserFn_UpdatePhoneNumberCredential);
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
+    futures.Complete(promise.handle(), credential.error_code_,
                      credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
   } else if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
   jobject j_credential = CredentialFromImpl(credential.impl_);
   if (j_credential != nullptr &&
       env->IsInstanceOf(j_credential, phonecredential::GetClass())) {
-    jobject user_local = AcquireUserLocalRef(env, auth_data_);
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
     if (user_local == nullptr) {
-      futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-      return MakeFuture(&futures, handle);
+      futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
     }
     jobject pending_result = env->CallObjectMethod(
         user_local, user::GetMethodId(user::kUpdatePhoneNumberCredential),
         j_credential);
     env->DeleteLocalRef(user_local);
 
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
       RegisterCallback(
-          pending_result, handle, auth_data_,
+          pending_result, promise.handle(), auth_data,
           [](jobject /*result*/, FutureCallbackData<User>* d, bool success,
              void* void_data) {
             auto* data = static_cast<User*>(void_data);
@@ -760,157 +717,128 @@ Future<User> User::UpdatePhoneNumberCredential(
       env->DeleteLocalRef(pending_result);
     }
   } else {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Credential is not a phone credential.");
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::Reload() {
-  if (!ValidUser(auth_data_)) {
+void Reload(AuthData* auth_data, Promise<void> promise) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_Reload);
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kReload));
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::Reauthenticate(const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
+void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential& credential) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
+    futures.Complete(promise.handle(), credential.error_code_,
                      credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
   } else if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kReauthenticate),
       CredentialFromImpl(credential.impl_));
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::ReauthenticateAndRetrieveData(
-    const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
+void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<AuthResult>(kUserFn_ReauthenticateAndRetrieveData);
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
+    futures.Complete(promise.handle(), credential.error_code_,
                      credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
   } else if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential,
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential,
                      "Invalid credential.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kReauthenticateAndRetrieveData),
       CredentialFromImpl(credential.impl_));
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::ReauthenticateWithProvider(
-    FederatedAuthProvider* provider) const {
-  if (!ValidUser(auth_data_)) {
+void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider* provider) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Reauthenticate(auth_data_);
+  return provider->Reauthenticate(auth_data);
 }
 
-Future<void> User::SendEmailVerification() {
-  if (!ValidUser(auth_data_)) {
+void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerification);
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result = env->CallObjectMethod(
       user_local, user::GetMethodId(user::kSendEmailVerification));
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, nullptr);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, nullptr);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
-  if (!ValidUser(auth_data_)) {
+void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<void>(kUserFn_SendEmailVerificationBeforeUpdatingEmail);
   if (!email || strlen(email) == 0) {
-    futures.Complete(handle, kAuthErrorMissingEmail,
+    futures.Complete(promise.handle(), kAuthErrorMissingEmail,
                      "Email must be provided.");
-    return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jstring j_email = env->NewStringUTF(email);
   jobject pending_result = env->CallObjectMethod(
@@ -918,39 +846,33 @@ Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
   env->DeleteLocalRef(user_local);
   env->DeleteLocalRef(j_email);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, nullptr);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, nullptr);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::Delete() {
-  if (!ValidUser(auth_data_)) {
+void Delete(AuthData* auth_data, Promise<void> promise) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
-  JNIEnv* env = Env(auth_data_);
+  JNIEnv* env = Env(auth_data);
 
-  jobject user_local = AcquireUserLocalRef(env, auth_data_);
+  jobject user_local = AcquireUserLocalRef(env, auth_data);
   if (user_local == nullptr) {
-    futures.Complete(handle, kAuthErrorFailure, "User is no longer valid.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
   }
   jobject pending_result =
       env->CallObjectMethod(user_local, user::GetMethodId(user::kDelete));
   env->DeleteLocalRef(user_local);
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, UpdateUserOnSuccess);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
+    RegisterCallback(pending_result, promise.handle(), auth_data, UpdateUserOnSuccess);
     env->DeleteLocalRef(pending_result);
   }
-  return MakeFuture(&futures, handle);
 }
 
 UserMetadata User::metadata() const {
-  if (!auth_data_) return UserMetadata();
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return UserMetadata();
@@ -977,7 +899,6 @@ UserMetadata User::metadata() const {
 }
 
 bool User::is_email_verified() const {
-  if (!auth_data_) return false;
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return false;
@@ -989,7 +910,6 @@ bool User::is_email_verified() const {
 }
 
 bool User::is_anonymous() const {
-  if (!auth_data_) return false;
   JNIEnv* env = Env(auth_data_);
   jobject user_local = AcquireUserLocalRef(env, auth_data_);
   if (!user_local) return false;

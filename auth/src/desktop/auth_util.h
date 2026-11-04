@@ -33,7 +33,7 @@
 #include "auth/src/desktop/auth_data_handle.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/desktop/authentication_result.h"
-#include "auth/src/desktop/promise.h"
+#include "auth/src/common/promise.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
 #include "auth/src/desktop/rpcs/error_codes.h"
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
@@ -107,7 +107,7 @@ inline void CallAsync(
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->scheduler_.Schedule(scheduler_callback);
 
-  return promise.future();
+  return;
 }
 
 template <typename T>

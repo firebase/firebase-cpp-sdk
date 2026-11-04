@@ -38,6 +38,12 @@
 #include "app/src/util.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
+#include "auth/src/common/promise.h"
+#include "auth/src/include/firebase/auth/credential.h"
+#include "auth/src/desktop/authentication_result.h"
+#include "auth/src/common/promise.h"
+#include "auth/src/include/firebase/auth/credential.h"
+#include "auth/src/desktop/authentication_result.h"
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
@@ -210,7 +216,7 @@ void Auth::DeleteInternal() {
   // Wait for any in-flight futures without holding g_auths_mutex so callbacks
   // calling FindAuth() cannot deadlock.
   while (!auth_data_->future_impl.IsSafeToDelete()) {
-    internal::Sleep(100);
+    ::firebase::internal::Sleep(100);
   }
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);
@@ -435,6 +441,69 @@ AUTH_RESULT_FN(Auth, SignInAnonymously, AuthResult)
 AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, AuthResult)
 
 AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, AuthResult)
+
+Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
+  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithCustomToken);
+  ::firebase::auth::SignInWithCustomToken(auth_data_, promise, custom_token);
+  return promise.future();
+}
+
+Future<User> Auth::SignInWithCredential(const Credential& credential) {
+  Promise<User> promise(&auth_data_->future_impl, kAuthFn_SignInWithCredential);
+  ::firebase::auth::SignInWithCredential(auth_data_, promise, credential);
+  return promise.future();
+}
+
+Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithProvider);
+  ::firebase::auth::SignInWithProvider(auth_data_, promise, provider);
+  return promise.future();
+}
+
+Future<AuthResult> Auth::SignInAnonymously() {
+  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously);
+  ::firebase::auth::SignInAnonymously(auth_data_, promise);
+  return promise.future();
+}
+
+Future<AuthResult> Auth::SignInWithEmailAndPassword(const char* const email, const char* const password) {
+  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithEmailAndPassword);
+  ::firebase::auth::SignInWithEmailAndPassword(auth_data_, promise, email, password);
+  return promise.future();
+}
+
+Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char* const email, const char* const password) {
+  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_CreateUserWithEmailAndPassword);
+  ::firebase::auth::CreateUserWithEmailAndPassword(auth_data_, promise, email, password);
+  return promise.future();
+}
+
+Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(const Credential& credential) {
+  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInAndRetrieveDataWithCredential);
+  ::firebase::auth::SignInAndRetrieveDataWithCredential(auth_data_, promise, credential);
+  return promise.future();
+}
+
+Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char* email) {
+  Promise<Auth::FetchProvidersResult> promise(&auth_data_->future_impl, kAuthFn_FetchProvidersForEmail);
+  ::firebase::auth::FetchProvidersForEmail(auth_data_, promise, email);
+  return promise.future();
+}
+
+Future<void> Auth::SendPasswordResetEmail(const char* email) {
+  Promise<void> promise(&auth_data_->future_impl, kAuthFn_SendPasswordResetEmail);
+  ::firebase::auth::SendPasswordResetEmail(auth_data_, promise, email);
+  return promise.future();
+}
+
+
+User Auth::current_user() {
+  return auth_data_->current_user;
+}
+
+void Auth::SignOut() {
+  AuthenticationResult::SignOut(auth_data_);
+}
 
 }  // namespace auth
 }  // namespace firebase

@@ -36,26 +36,25 @@ User::~User() { auth_data_ = nullptr; }
 
 bool User::is_valid() const { return ValidUser(auth_data_); }
 
-Future<std::string> User::GetToken(bool force_refresh) {
-  if (!ValidUser(auth_data_)) {
+void GetToken(AuthData* auth_data, Promise<std::string> promise, bool force_refresh) {
+  if (!ValidUser(auth_data)) {
     return Future<std::string>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<std::string>(kUserFn_GetToken);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (force_refresh) {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    auth_data_->SetExpectIdTokenListenerCallback(true);
+    MutexLock lock(auth_data->future_impl.mutex());
+    auth_data->SetExpectIdTokenListenerCallback(true);
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       getIDTokenForcingRefresh:force_refresh
                     completion:^(NSString *_Nullable token, NSError *_Nullable error) {
                       @synchronized(listener_cpp_handle) {
                         AuthData *data = listener_cpp_handle.authData;
                         if (!data) return;
                         data->future_impl.Complete(
-                            handle, AuthErrorFromNSError(error),
+                            promise.handle(), AuthErrorFromNSError(error),
                             ErrorMessageFromNSError(error).c_str(),
                             [token](std::string *result_data) {
                               *result_data = StringFromNSString(token);
@@ -77,22 +76,20 @@ Future<std::string> User::GetToken(bool force_refresh) {
                         }
                       }
                     }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
-  if (!ValidUser(auth_data_)) {
+void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, bool force_refresh) {
+  if (!ValidUser(auth_data)) {
     return Future<IdTokenResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<IdTokenResult>(kUserFn_GetIdTokenResult);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (force_refresh) {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    auth_data_->SetExpectIdTokenListenerCallback(true);
+    MutexLock lock(auth_data->future_impl.mutex());
+    auth_data->SetExpectIdTokenListenerCallback(true);
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       getIDTokenResultForcingRefresh:force_refresh
                           completion:^(FIRAuthTokenResult *_Nullable token_result,
                                        NSError *_Nullable error) {
@@ -100,7 +97,7 @@ Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
                               AuthData *data = listener_cpp_handle.authData;
                               if (!data) return;
                               data->future_impl.Complete(
-                                  handle, AuthErrorFromNSError(error),
+                                  promise.handle(), AuthErrorFromNSError(error),
                                   ErrorMessageFromNSError(error).c_str(),
                                   [token_result](IdTokenResult *result_data) {
                                     if (token_result != nullptr) {
@@ -154,12 +151,10 @@ Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
                               }
                             }
                           }];
-  return MakeFuture(&futures, handle);
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
-  if (!auth_data_) return provider_data;
   MutexLock lock(auth_data_->future_impl.mutex());
   if (ValidUser(auth_data_)) {
     NSArray<id<FIRUserInfo>> *fir_provider_data = UserImpl(auth_data_).providerData;
@@ -184,19 +179,17 @@ std::vector<UserInfoInterface> User::provider_data() const {
   return provider_data;
 }
 
-Future<void> User::UpdatePassword(const char *password) {
-  if (!ValidUser(auth_data_)) {
+void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char *password) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_UpdatePassword);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (!password) {
-    futures.Complete(handle, kAuthErrorMissingPassword, "Password must be provided.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorMissingPassword, "Password must be provided.");
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       updatePassword:util::CStringToNSString(password)
           completion:^(NSError *_Nullable error) {
             @synchronized(listener_cpp_handle) {
@@ -205,21 +198,19 @@ Future<void> User::UpdatePassword(const char *password) {
               if (!error) {
                 UpdateCurrentUser(data);
               }
-              data->future_impl.Complete(handle, AuthErrorFromNSError(error),
+              data->future_impl.Complete(promise.handle(), AuthErrorFromNSError(error),
                                          ErrorMessageFromNSError(error).c_str());
             }
           }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::UpdateUserProfile(const UserProfile &profile) {
-  if (!ValidUser(auth_data_)) {
+void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const UserProfile &profile) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateUserProfile);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   // Create and populate the change request.
-  FIRUserProfileChangeRequest *request = [UserImpl(auth_data_) profileChangeRequest];
+  FIRUserProfileChangeRequest *request = [UserImpl(auth_data) profileChangeRequest];
   if (profile.display_name != nullptr) {
     request.displayName = util::CStringToNSString(profile.display_name);
   }
@@ -240,7 +231,7 @@ Future<void> User::UpdateUserProfile(const UserProfile &profile) {
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
   // Execute the change request.
   [request commitChangesWithCompletion:^(NSError *_Nullable error) {
     @synchronized(listener_cpp_handle) {
@@ -249,142 +240,125 @@ Future<void> User::UpdateUserProfile(const UserProfile &profile) {
       if (!error) {
         UpdateCurrentUser(data);
       }
-      data->future_impl.Complete(handle, AuthErrorFromNSError(error),
+      data->future_impl.Complete(promise.handle(), AuthErrorFromNSError(error),
                                  ErrorMessageFromNSError(error).c_str());
     }
   }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::SendEmailVerification() {
-  if (!ValidUser(auth_data_)) {
+void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerification);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_) sendEmailVerificationWithCompletion:^(NSError *_Nullable error) {
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data) sendEmailVerificationWithCompletion:^(NSError *_Nullable error) {
     @synchronized(listener_cpp_handle) {
       AuthData *data = listener_cpp_handle.authData;
       if (!data) return;
-      data->future_impl.Complete(handle, AuthErrorFromNSError(error),
+      data->future_impl.Complete(promise.handle(), AuthErrorFromNSError(error),
                                  ErrorMessageFromNSError(error).c_str());
     }
   }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char *email) {
-  if (!ValidUser(auth_data_)) {
+void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char *email) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerificationBeforeUpdatingEmail);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (!email || strlen(email) == 0) {
-    futures.Complete(handle, kAuthErrorMissingEmail, "Email must be provided.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorMissingEmail, "Email must be provided.");
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       sendEmailVerificationBeforeUpdatingEmail:util::CStringToNSString(email)
                                     completion:^(NSError *_Nullable error) {
                                       @synchronized(listener_cpp_handle) {
                                         AuthData *data = listener_cpp_handle.authData;
                                         if (!data) return;
                                         data->future_impl.Complete(
-                                            handle, AuthErrorFromNSError(error),
+                                            promise.handle(), AuthErrorFromNSError(error),
                                             ErrorMessageFromNSError(error).c_str());
                                       }
                                     }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::LinkWithCredential(const Credential &credential) {
-  if (!ValidUser(auth_data_)) {
+void LinkWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential &credential) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_LinkWithCredential, AuthResult());
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_, credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
   }
   if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
                 @synchronized(listener_cpp_handle) {
                   AuthData *data = listener_cpp_handle.authData;
                   if (!data) return;
-                  AuthResultCallback(auth_result, error, handle, data);
+                  AuthResultCallback(auth_result, error, promise.handle(), data);
                 }
               }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::LinkWithProvider(FederatedAuthProvider *provider) const {
-  if (!ValidUser(auth_data_)) {
+void LinkWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider *provider) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Link(auth_data_);
+  return provider->Link(auth_data);
 }
 
-Future<AuthResult> User::Unlink(const char *provider) {
-  if (!ValidUser(auth_data_)) {
+void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char *provider) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_Unlink);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (!provider || strlen(provider) == 0) {
-    futures.Complete(handle, kAuthErrorInvalidProviderId, "Provider ID must be provided.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorInvalidProviderId, "Provider ID must be provided.");
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       unlinkFromProvider:util::CStringToNSString(provider)
               completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
                 @synchronized(listener_cpp_handle) {
                   AuthData *data = listener_cpp_handle.authData;
                   if (!data) return;
-                  AuthResultCallback(user, error, handle, data);
+                  AuthResultCallback(user, error, promise.handle(), data);
                 }
               }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &credential) {
-  if (!ValidUser(auth_data_)) {
+void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential &credential) {
+  if (!ValidUser(auth_data)) {
     return Future<User>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User>(kUserFn_UpdatePhoneNumberCredential);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
 
 #if FIREBASE_PLATFORM_IOS
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_, credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
   }
   if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
   }
   FIRPhoneAuthCredential *objc_credential = PhoneAuthCredentialFromImpl(credential.impl_);
   if (!objc_credential) {
-    futures.Complete(handle, kAuthErrorInvalidCredential, "Credential is not a phone credential.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Credential is not a phone credential.");
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       updatePhoneNumberCredential:objc_credential
                        completion:^(NSError *_Nullable error) {
                          @synchronized(listener_cpp_handle) {
@@ -393,58 +367,51 @@ Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &creden
                            if (!error) {
                              UpdateCurrentUser(data);
                            }
-                           AuthResultCallback(UserImpl(data), error, handle, data);
+                           AuthResultCallback(UserImpl(data), error, promise.handle(), data);
                          }
                        }];
 #else   // non iOS Apple platforms (eg: tvOS).
-  futures.Complete(handle, kAuthErrorApiNotAvailable,
+  futures.Complete(promise.handle(), kAuthErrorApiNotAvailable,
                    "Phone Auth is not supported on non-iOS apple platforms.");
 #endif  // FIREBASE_PLATFORM_IOS
-
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::Reload() {
-  if (!ValidUser(auth_data_)) {
+void Reload(AuthData* auth_data, Promise<void> promise) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_Reload);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_) reloadWithCompletion:^(NSError *_Nullable error) {
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data) reloadWithCompletion:^(NSError *_Nullable error) {
     @synchronized(listener_cpp_handle) {
       AuthData *data = listener_cpp_handle.authData;
       if (!data) return;
       if (!error) {
         UpdateCurrentUser(data);
       }
-      data->future_impl.Complete(handle, AuthErrorFromNSError(error),
+      data->future_impl.Complete(promise.handle(), AuthErrorFromNSError(error),
                                  ErrorMessageFromNSError(error).c_str());
     }
   }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<void> User::Reauthenticate(const Credential &credential) {
-  if (!ValidUser(auth_data_)) {
+void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential &credential) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_, credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
   }
   if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
   }
 
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
                         completion:^(FIRAuthDataResult *_Nullable auth_result,
                                      NSError *_Nullable error) {
@@ -458,77 +425,70 @@ Future<void> User::Reauthenticate(const Credential &credential) {
                                 UpdateCurrentUser(data);
                               }
                             }
-                            data->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                            data->future_impl.Complete(promise.handle(), AuthErrorFromNSError(error),
                                                        ErrorMessageFromNSError(error).c_str());
                           }
                         }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential &credential) {
-  if (!ValidUser(auth_data_)) {
+void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential &credential) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
+  const auto promise.handle() = auth_data->future_impl.SafeAlloc<AuthResult>(
       kUserFn_ReauthenticateAndRetrieveData, AuthResult());
   if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_, credential.error_message_.c_str());
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), credential.error_code_, credential.error_message_.c_str());
   }
   if (!credential.is_valid()) {
-    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
-    return MakeFuture(&futures, handle);
+    futures.Complete(promise.handle(), kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
   }
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_)
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data)
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
                         completion:^(FIRAuthDataResult *_Nullable auth_result,
                                      NSError *_Nullable error) {
                           @synchronized(listener_cpp_handle) {
                             AuthData *data = listener_cpp_handle.authData;
                             if (!data) return;
-                            AuthResultCallback(auth_result, error, handle, data);
+                            AuthResultCallback(auth_result, error, promise.handle(), data);
                           }
                         }];
-  return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::ReauthenticateWithProvider(FederatedAuthProvider *provider) const {
-  if (!ValidUser(auth_data_)) {
+void ReauthenticateWithProvider(AuthData* auth_data, Promise<AuthResult> promise, FederatedAuthProvider *provider) {
+  if (!ValidUser(auth_data)) {
     return Future<AuthResult>();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Reauthenticate(auth_data_);
+  return provider->Reauthenticate(auth_data);
 }
 
-Future<void> User::Delete() {
-  if (!ValidUser(auth_data_)) {
+void Delete(AuthData* auth_data, Promise<void> promise) {
+  if (!ValidUser(auth_data)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
+  ReferenceCountedFutureImpl &auth_data->future_impl = auth_data->future_impl;
   FIRCPPAuthListenerHandle *listener_cpp_handle =
-      reinterpret_cast<AuthDataIos *>(auth_data_->auth_impl)->listener_handle.get();
-  [UserImpl(auth_data_) deleteWithCompletion:^(NSError *_Nullable error) {
+      reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle.get();
+  [UserImpl(auth_data) deleteWithCompletion:^(NSError *_Nullable error) {
     @synchronized(listener_cpp_handle) {
       AuthData *data = listener_cpp_handle.authData;
       if (!data) return;
       if (!error) {
         UpdateCurrentUser(data);
-        data->future_impl.Complete(handle, kAuthErrorNone, "");
+        data->future_impl.Complete(promise.handle(), kAuthErrorNone, "");
       } else {
-        data->future_impl.Complete(handle, AuthErrorFromNSError(error),
+        data->future_impl.Complete(promise.handle(), AuthErrorFromNSError(error),
                                    ErrorMessageFromNSError(error).c_str());
       }
     }
   }];
-  return MakeFuture(&futures, handle);
 }
 
 UserMetadata User::metadata() const {
-  if (!auth_data_) return UserMetadata();
   MutexLock lock(auth_data_->future_impl.mutex());
   if (!ValidUser(auth_data_)) return UserMetadata();
 
@@ -547,49 +507,41 @@ UserMetadata User::metadata() const {
 }
 
 bool User::is_email_verified() const {
-  if (!auth_data_) return false;
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? UserImpl(auth_data_).emailVerified : false;
 }
 
 bool User::is_anonymous() const {
-  if (!auth_data_) return false;
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? UserImpl(auth_data_).anonymous : false;
 }
 
 std::string User::uid() const {
-  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).uid) : "";
 }
 
 std::string User::email() const {
-  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).email) : "";
 }
 
 std::string User::display_name() const {
-  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).displayName) : "";
 }
 
 std::string User::phone_number() const {
-  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).phoneNumber) : "";
 }
 
 std::string User::photo_url() const {
-  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSUrl(UserImpl(auth_data_).photoURL) : "";
 }
 
 std::string User::provider_id() const {
-  if (!auth_data_) return "";
   MutexLock lock(auth_data_->future_impl.mutex());
   return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).providerID) : "";
 }

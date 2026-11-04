@@ -248,9 +248,9 @@ TEST_F(UserTest, TestGetIdTokenResult) {
   // the mocked securetoken endpoint must return a well-formed one.
   std::string header_b64;
   std::string payload_b64;
-  internal::Base64EncodeUrlSafe("{\"alg\":\"RS256\",\"typ\":\"JWT\"}",
+  ::firebase::internal::Base64EncodeUrlSafe("{\"alg\":\"RS256\",\"typ\":\"JWT\"}",
                                 &header_b64);
-  internal::Base64EncodeUrlSafe(
+  ::firebase::internal::Base64EncodeUrlSafe(
       "{\"auth_time\":1600000000,\"iat\":1600000010,\"exp\":1600003610,"
       "\"sub\":\"localid123\"}",
       &payload_b64);
@@ -322,9 +322,9 @@ TEST_F(UserTest, TestGetIdTokenResultFailsOnMalformedToken) {
 TEST_F(UserTest, TestGetIdTokenResultDecodesJwtClaimsAndTimestamps) {
   std::string header_b64;
   std::string payload_b64;
-  internal::Base64EncodeUrlSafe("{\"alg\":\"RS256\",\"typ\":\"JWT\"}",
+  ::firebase::internal::Base64EncodeUrlSafe("{\"alg\":\"RS256\",\"typ\":\"JWT\"}",
                                 &header_b64);
-  internal::Base64EncodeUrlSafe(
+  ::firebase::internal::Base64EncodeUrlSafe(
       "{"
       "\"auth_time\":1600000000,"
       "\"iat\":1600000010,"
