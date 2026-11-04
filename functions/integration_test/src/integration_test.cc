@@ -322,10 +322,9 @@ TEST_F(FirebaseFunctionsTest, TestFunction) {
   firebase::Variant data(firebase::Variant::EmptyMap());
   data.map()["firstNumber"] = 5;
   data.map()["secondNumber"] = 7;
-  firebase::Variant result =
-      TestFunction("addNumbers", &data, firebase::Variant::Null())
-          .result()
-          ->data();
+  auto future = TestFunction("addNumbers", &data, firebase::Variant::Null());
+  ASSERT_NE(future.result(), nullptr);
+  firebase::Variant result = future.result()->data();
   EXPECT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 12);
 }
@@ -432,10 +431,10 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURL) {
   std::string proj = app_->options().project_id();
   std::string url =
       "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
-  firebase::Variant result =
-      TestFunctionFromURL(url.c_str(), &data, firebase::Variant::Null())
-          .result()
-          ->data();
+  auto future =
+      TestFunctionFromURL(url.c_str(), &data, firebase::Variant::Null());
+  ASSERT_NE(future.result(), nullptr);
+  firebase::Variant result = future.result()->data();
   EXPECT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 6);
 }
@@ -455,10 +454,10 @@ TEST_F(FirebaseFunctionsTest, TestFunctionWithLimitedUseAppCheckToken) {
   firebase::functions::HttpsCallableReference ref =
       functions_->GetHttpsCallable("addNumbers", options);
 
-  firebase::Variant result =
-      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())
-          .result()
-          ->data();
+  auto future =
+      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null());
+  ASSERT_NE(future.result(), nullptr);
+  firebase::Variant result = future.result()->data();
   EXPECT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 12);
 }
@@ -484,10 +483,10 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
   firebase::functions::HttpsCallableReference ref =
       functions_->GetHttpsCallableFromURL(url.c_str(), options);
 
-  firebase::Variant result =
-      TestFunctionHelper(url.c_str(), ref, &data, firebase::Variant::Null())
-          .result()
-          ->data();
+  auto future =
+      TestFunctionHelper(url.c_str(), ref, &data, firebase::Variant::Null());
+  ASSERT_NE(future.result(), nullptr);
+  firebase::Variant result = future.result()->data();
   EXPECT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 6);
 }
@@ -507,10 +506,10 @@ TEST_F(FirebaseFunctionsTest, TestV1FunctionWithLimitedUseAppCheckToken) {
   firebase::functions::HttpsCallableReference ref =
       functions_->GetHttpsCallable("addNumbers", options);
 
-  firebase::Variant result =
-      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())
-          .result()
-          ->data();
+  auto future =
+      TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null());
+  ASSERT_NE(future.result(), nullptr);
+  firebase::Variant result = future.result()->data();
   EXPECT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 12);
 }
