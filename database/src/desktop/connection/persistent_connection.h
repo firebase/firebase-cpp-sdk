@@ -30,7 +30,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"

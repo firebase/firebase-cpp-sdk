@@ -20,7 +20,7 @@
 #include <utility>
 
 #include "app/src/include/firebase/variant.h"
-#include "app/src/optional.h"
+#include <optional>
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/query_params_comparator.h"
 
@@ -77,12 +77,12 @@ class IndexedVariant {
   IndexedVariant UpdatePriority(const Variant& priority) const;
 
   // Gets the first child in the indexed variant, if one is present. If this is
-  // a leaf node, an empty Optional is returned
-  Optional<std::pair<Variant, Variant>> GetFirstChild() const;
+  // a leaf node, an empty std::optional is returned
+  std::optional<std::pair<Variant, Variant>> GetFirstChild() const;
 
   // Gets the last child in the indexed variant, if one is present. If this is
-  // a leaf node, an empty Optional is returned
-  Optional<std::pair<Variant, Variant>> GetLastChild() const;
+  // a leaf node, an empty std::optional is returned
+  std::optional<std::pair<Variant, Variant>> GetLastChild() const;
 
  private:
   void EnsureIndexed();

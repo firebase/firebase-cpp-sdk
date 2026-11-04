@@ -166,7 +166,7 @@ TEST_F(CompoundWriteTest, EmptyWrite) {
 }
 
 TEST_F(CompoundWriteTest, AddWriteEmptyPath) {
-  CompoundWrite new_write = write_.AddWrite(Path(), Optional<Variant>(100));
+  CompoundWrite new_write = write_.AddWrite(Path(), std::optional<Variant>(100));
 
   // New write should just be the root value.
   EXPECT_EQ(new_write.write_tree().GetValueAt(Path("aaa")), nullptr);
@@ -180,7 +180,7 @@ TEST_F(CompoundWriteTest, AddWriteEmptyPath) {
 }
 
 TEST_F(CompoundWriteTest, AddWriteInlineEmptyPath) {
-  write_.AddWriteInline(Path(), Optional<Variant>(100));
+  write_.AddWriteInline(Path(), std::optional<Variant>(100));
   CompoundWrite& new_write = write_;
 
   // New write should just be the root value.
@@ -197,7 +197,7 @@ TEST_F(CompoundWriteTest, AddWriteInlineEmptyPath) {
 TEST_F(CompoundWriteTest, AddWritePriorityWrite) {
   {
     CompoundWrite new_write =
-        write_.AddWrite(Path("ccc/.priority"), Optional<Variant>(100));
+        write_.AddWrite(Path("ccc/.priority"), std::optional<Variant>(100));
 
     // Everything should be the same, but with an additional .priority field.
     EXPECT_EQ(*new_write.write_tree().GetValueAt(Path("aaa")), 1);
@@ -214,7 +214,7 @@ TEST_F(CompoundWriteTest, AddWritePriorityWrite) {
 
   {
     CompoundWrite new_write =
-        write_.AddWrite(Path("aaa/bad_path/.priority"), Optional<Variant>(100));
+        write_.AddWrite(Path("aaa/bad_path/.priority"), std::optional<Variant>(100));
 
     // New write should be identical to the old write.
     EXPECT_EQ(new_write, write_);
@@ -223,7 +223,7 @@ TEST_F(CompoundWriteTest, AddWritePriorityWrite) {
 
 TEST_F(CompoundWriteTest, AddWriteThatDoesNotOverwrite) {
   CompoundWrite new_write =
-      write_.AddWrite(Path("iii/jjj"), Optional<Variant>(100));
+      write_.AddWrite(Path("iii/jjj"), std::optional<Variant>(100));
 
   // New write should have the new value alongside old values.
   EXPECT_EQ(*new_write.write_tree().GetValueAt(Path("aaa")), 1);
@@ -240,7 +240,7 @@ TEST_F(CompoundWriteTest, AddWriteThatDoesNotOverwrite) {
 
 TEST_F(CompoundWriteTest, AddWriteThatShadowsExistingData) {
   CompoundWrite new_write =
-      write_.AddWrite(Path("ccc/fff/ggg"), Optional<Variant>(100));
+      write_.AddWrite(Path("ccc/fff/ggg"), std::optional<Variant>(100));
 
   // Values being shadowed are still part of the CompoundWrite.
   EXPECT_EQ(*new_write.write_tree().GetValueAt(Path("aaa")), 1);
@@ -378,7 +378,7 @@ TEST_F(CompoundWriteTest, HasCompleteWrite) {
 }
 
 TEST_F(CompoundWriteTest, GetRootWriteEmpty) {
-  Optional<Variant> root = write_.GetRootWrite();
+  std::optional<Variant> root = write_.GetRootWrite();
   EXPECT_FALSE(root.has_value());
 }
 
@@ -388,7 +388,7 @@ TEST(CompoundWrite, GetRootWritePopulated) {
   };
   CompoundWrite write = CompoundWrite::FromPathMerge(merge);
 
-  Optional<Variant> root = write.GetRootWrite();
+  std::optional<Variant> root = write.GetRootWrite();
   EXPECT_TRUE(root.has_value());
   EXPECT_EQ(root.value(), "One billion");
 }

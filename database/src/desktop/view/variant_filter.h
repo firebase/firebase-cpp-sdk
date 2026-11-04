@@ -38,10 +38,10 @@ namespace internal {
 class CompleteChildSource {
  public:
   virtual ~CompleteChildSource() {}
-  virtual Optional<Variant> GetCompleteChild(
+  virtual std::optional<Variant> GetCompleteChild(
       const std::string& child_key) const = 0;
 
-  virtual Optional<std::pair<Variant, Variant>> GetChildAfterChild(
+  virtual std::optional<std::pair<Variant, Variant>> GetChildAfterChild(
       const QueryParams& query_params, const std::pair<Variant, Variant>& child,
       IterationDirection direction) const = 0;
 };

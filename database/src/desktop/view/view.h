@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "app/src/include/firebase/variant.h"
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"

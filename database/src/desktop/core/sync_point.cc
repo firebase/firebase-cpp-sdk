@@ -55,7 +55,7 @@ std::vector<Event> SyncPoint::ApplyOperation(
     const Operation& operation, const WriteTreeRef& writes_cache,
     const Variant* opt_complete_server_cache,
     PersistenceManagerInterface* persistence_manager) {
-  const Optional<QueryParams>& query_params = operation.source.query_params;
+  const std::optional<QueryParams>& query_params = operation.source.query_params;
   if (query_params.has_value()) {
     auto iter = views_.find(*query_params);
     assert(iter != views_.end());
@@ -86,7 +86,7 @@ std::vector<Event> SyncPoint::AddEventRegistration(
   const QuerySpec& query_spec = event_registration->query_spec();
   View* view = MapGet(&views_, query_spec.params);
   if (view == nullptr) {
-    Optional<Variant> event_cache =
+    std::optional<Variant> event_cache =
         writes_cache.CalcCompleteEventCache(server_cache.GetCompleteSnap());
     bool event_cache_complete;
     if (event_cache.has_value()) {

@@ -53,7 +53,7 @@ class SparseSnapshotTree {
   }
 
  private:
-  Optional<Variant> value_;
+  std::optional<Variant> value_;
   std::map<std::string, SparseSnapshotTree> children_;
 };
 

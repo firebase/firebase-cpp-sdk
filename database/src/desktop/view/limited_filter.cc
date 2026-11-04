@@ -135,7 +135,7 @@ IndexedVariant LimitedFilter::FullLimitUpdateChild(
     const Variant& child_snap, const CompleteChildSource* source,
     ChildChangeAccumulator* opt_change_accumulator) const {
   std::pair<Variant, Variant> new_child_node(child_key, child_snap);
-  Optional<std::pair<Variant, Variant>> window_boundary =
+  std::optional<std::pair<Variant, Variant>> window_boundary =
       reverse_ ? old_indexed.GetFirstChild() : old_indexed.GetLastChild();
   bool in_range = ranged_filter_->Matches(new_child_node);
 
@@ -146,7 +146,7 @@ IndexedVariant LimitedFilter::FullLimitUpdateChild(
   const Variant* old_child_snap =
       GetInternalVariant(&old_indexed.variant(), child_key);
   if (old_child_snap) {
-    Optional<std::pair<Variant, Variant>> next_child =
+    std::optional<std::pair<Variant, Variant>> next_child =
         source->GetChildAfterChild(query_params(), *window_boundary, direction);
     while (next_child.has_value() &&
            (next_child->first == child_key ||

@@ -59,7 +59,7 @@ class Database {
   ///
   /// @param[in] app Your instance of firebase::App. Firebase Realtime Database
   /// will use this to communicate with Firebase Authentication.
-  /// @param[out] init_result_out Optional: If provided, write the init result
+  /// @param[out] init_result_out std::optional: If provided, write the init result
   /// here. Will be set to kInitResultSuccess if initialization succeeded, or
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
@@ -77,7 +77,7 @@ class Database {
   /// will use this to communicate with Firebase Authentication.
   /// @param[in] url The URL of your Firebase Realtime Database. This overrides
   /// any url specified in the App options.
-  /// @param[out] init_result_out Optional: If provided, write the init result
+  /// @param[out] init_result_out std::optional: If provided, write the init result
   /// here. Will be set to kInitResultSuccess if initialization succeeded, or
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.

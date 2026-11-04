@@ -16,7 +16,7 @@
 
 #include <memory>
 
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -766,7 +766,7 @@ TEST(TreeTest, CallOnEachAncestorIncludeSelf) {
 
   subtree->CallOnEachAncestor(
       [&call_order](Tree<int>* current_tree) {
-        Optional<int> value = current_tree->value();
+        std::optional<int> value = current_tree->value();
         call_order.push_back(*value);
         return false;
       },
@@ -788,7 +788,7 @@ TEST(TreeTest, CallOnEachAncestorDoNotIncludeSelf) {
 
   subtree->CallOnEachAncestor(
       [&call_order](Tree<int>* current_tree) {
-        Optional<int> value = current_tree->value();
+        std::optional<int> value = current_tree->value();
         call_order.push_back(*value);
         return false;
       },
@@ -809,7 +809,7 @@ TEST(TreeTest, CallOnEachDescendantIncludeSelf) {
   Tree<int>* subtree = tree.GetChild(Path("aaa/bbb"));
 
   subtree->CallOnEachDescendant([&call_order](Tree<int>* current_tree) {
-    Optional<int> value = current_tree->value();
+    std::optional<int> value = current_tree->value();
     call_order.push_back(*value);
     return false;
   });
@@ -830,7 +830,7 @@ TEST(TreeTest, CallOnEachDescendantDoNotIncludeSelf) {
 
   subtree->CallOnEachDescendant(
       [&call_order](Tree<int>* current_tree) {
-        Optional<int> value = current_tree->value();
+        std::optional<int> value = current_tree->value();
         call_order.push_back(*value);
         return false;
       },
@@ -852,7 +852,7 @@ TEST(TreeTest, CallOnEachDescendantChildrenFirst) {
 
   subtree->CallOnEachDescendant(
       [&call_order](Tree<int>* current_tree) {
-        Optional<int> value = current_tree->value();
+        std::optional<int> value = current_tree->value();
         call_order.push_back(*value);
         return false;
       },
@@ -874,7 +874,7 @@ TEST(TreeTest, CallOnEachDescendantChildrenLast) {
 
   subtree->CallOnEachDescendant(
       [&call_order](Tree<int>* current_tree) {
-        Optional<int> value = current_tree->value();
+        std::optional<int> value = current_tree->value();
         call_order.push_back(*value);
         return false;
       },
@@ -888,7 +888,7 @@ TEST(TreeTest, FindRootMostPathWithValueSuccess) {
   tree.SetValueAt(Path("1/2/3"), 100);
   tree.SetValueAt(Path("1/2/3/4/5/6"), 200);
 
-  Optional<Path> result = tree.FindRootMostPathWithValue(Path("1/2/3/4/5/6/7"));
+  std::optional<Path> result = tree.FindRootMostPathWithValue(Path("1/2/3/4/5/6/7"));
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), Path("1/2/3"));
 }
@@ -898,7 +898,7 @@ TEST(TreeTest, FindRootMostPathWithValueNoValue) {
   tree.SetValueAt(Path("a/b/c"), 100);
   tree.SetValueAt(Path("a/b/c/d/e/f"), 200);
 
-  Optional<Path> result = tree.FindRootMostPathWithValue(Path("1/2/3/4/5/6/7"));
+  std::optional<Path> result = tree.FindRootMostPathWithValue(Path("1/2/3/4/5/6/7"));
   EXPECT_FALSE(result.has_value());
 }
 
@@ -911,7 +911,7 @@ TEST(TreeTest, FindRootMostMatchingPathSuccess) {
   tree.SetValueAt(Path("1/2/3/4/5"), 15);
   tree.SetValueAt(Path("1/2/3/4/5/6"), 21);
 
-  Optional<Path> result = tree.FindRootMostMatchingPath(
+  std::optional<Path> result = tree.FindRootMostMatchingPath(
       Path("1/2/3/4/5/6"), [](int value) { return value == 10; });
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), Path("1/2/3/4"));
@@ -926,7 +926,7 @@ TEST(TreeTest, FindRootMostMatchingPathNoMatch) {
   tree.SetValueAt(Path("1/2/3/4/5"), 15);
   tree.SetValueAt(Path("1/2/3/4/5/6"), 21);
 
-  Optional<Path> result = tree.FindRootMostMatchingPath(
+  std::optional<Path> result = tree.FindRootMostMatchingPath(
       Path("1/2/3/4/5/6"), [](int value) { return value == 100; });
   EXPECT_FALSE(result.has_value());
 }

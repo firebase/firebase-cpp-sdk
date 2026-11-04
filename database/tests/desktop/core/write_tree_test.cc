@@ -210,7 +210,7 @@ TEST(WriteTree, CalcCompleteEventCache_NoExcludes_ShadowingWrite) {
   CompoundWrite merge = CompoundWrite::FromPathMerge(merge_data);
   write_tree.AddMerge(Path("test"), merge, 100);
 
-  Optional<Variant> result = write_tree.CalcCompleteEventCache(
+  std::optional<Variant> result = write_tree.CalcCompleteEventCache(
       tree_path, &complete_server_cache, no_write_ids_to_exclude);
 
   Variant expected_result(std::map<Variant, Variant>{
@@ -236,7 +236,7 @@ TEST(WriteTree, CalcCompleteEventCache_NoExcludes_NoChildMerge) {
   CompoundWrite merge = CompoundWrite::FromPathMerge(merge_data);
   write_tree.AddMerge(Path("test"), merge, 100);
 
-  Optional<Variant> result = write_tree.CalcCompleteEventCache(
+  std::optional<Variant> result = write_tree.CalcCompleteEventCache(
       tree_path, &complete_server_cache, no_write_ids_to_exclude);
 
   Variant expected_result("server_cache");
@@ -261,7 +261,7 @@ TEST(WriteTree, CalcCompleteEventCache_NoExcludes_NoCompleteSnapshot) {
   CompoundWrite merge = CompoundWrite::FromPathMerge(merge_data);
   write_tree.AddMerge(Path("test"), merge, 100);
 
-  Optional<Variant> result = write_tree.CalcCompleteEventCache(
+  std::optional<Variant> result = write_tree.CalcCompleteEventCache(
       tree_path, nullptr, no_write_ids_to_exclude);
 
   EXPECT_FALSE(result.has_value());
@@ -287,7 +287,7 @@ TEST(WriteTree, CalcCompleteEventCache_NoExcludes_ApplyCache) {
   CompoundWrite merge = CompoundWrite::FromPathMerge(merge_data);
   write_tree.AddMerge(Path("test"), merge, 100);
 
-  Optional<Variant> result = write_tree.CalcCompleteEventCache(
+  std::optional<Variant> result = write_tree.CalcCompleteEventCache(
       tree_path, &complete_server_cache, no_write_ids_to_exclude);
 
   Variant expected_result(std::map<Variant, Variant>{
@@ -320,7 +320,7 @@ TEST(WriteTree,
   CompoundWrite merge = CompoundWrite::FromPathMerge(merge_data);
   write_tree.AddMerge(Path("test"), merge, 100);
 
-  Optional<Variant> result = write_tree.CalcCompleteEventCache(
+  std::optional<Variant> result = write_tree.CalcCompleteEventCache(
       tree_path, &complete_server_cache, write_ids_to_exclude);
 
   Variant expected_result("server_cache");
@@ -353,7 +353,7 @@ TEST(WriteTree, CalcCompleteEventCache_HasExcludes_NoHiddenWritesAndMergeData) {
   write_tree.AddMerge(Path("test"), write_102, 102);
   write_tree.AddMerge(Path("test"), write_103, 103);
 
-  Optional<Variant> result = write_tree.CalcCompleteEventCache(
+  std::optional<Variant> result = write_tree.CalcCompleteEventCache(
       tree_path, &complete_server_cache, write_ids_to_exclude);
 
   Variant expected_result(std::map<Variant, Variant>{
@@ -448,7 +448,7 @@ TEST(WriteTree, CalcEventCacheAfterServerOverwrite_NoWritesAreShadowing) {
   // anything, needs to be applied to the event cache.  In this case, no writes
   // are shadowing. Events should be raised, the snap to be applied comes from
   // the server data.
-  Optional<Variant> result = write_tree.CalcEventCacheAfterServerOverwrite(
+  std::optional<Variant> result = write_tree.CalcEventCacheAfterServerOverwrite(
       tree_path, child_path, &existing_local_snap, &exsiting_server_snap);
   Variant expected_result = 3;
 
@@ -476,7 +476,7 @@ TEST(WriteTree, CalcEventCacheAfterServerOverwrite_CompleteShadowing) {
   // Given that the underlying server data has updated, determine what, if
   // anything, needs to be applied to the event cache. The write at "test/aaa"
   // is completely shadowed by what is already in the tree.
-  Optional<Variant> result = write_tree.CalcEventCacheAfterServerOverwrite(
+  std::optional<Variant> result = write_tree.CalcEventCacheAfterServerOverwrite(
       tree_path, child_path, &existing_local_snap, &exsiting_server_snap);
 
   EXPECT_FALSE(result.has_value());
@@ -502,7 +502,7 @@ TEST(WriteTree, CalcEventCacheAfterServerOverwrite_PartiallyShadowed) {
   // anything, needs to be applied to the event cache. The write at "test" is
   // partially shadowed, so we'll need to merge the server snap with the write
   // to get the updated snapshot.
-  Optional<Variant> result = write_tree.CalcEventCacheAfterServerOverwrite(
+  std::optional<Variant> result = write_tree.CalcEventCacheAfterServerOverwrite(
       tree_path, child_path, &existing_local_snap, &exsiting_server_snap);
   Variant expected_result(std::map<Variant, Variant>{
       std::make_pair("aaa", 1),
@@ -536,7 +536,7 @@ TEST(WriteTree, CalcCompleteChild_HasShadowingVariant) {
   };
   write_tree.AddMerge(Path("test"), CompoundWrite::FromPathMerge(merge), 100);
 
-  Optional<Variant> result =
+  std::optional<Variant> result =
       write_tree.CalcCompleteChild(tree_path, child_key, existing_server_cache);
   Variant expected_result = 1;
 
@@ -556,7 +556,7 @@ TEST(WriteTree, CalcCompleteChild_HasCompleteChild) {
   };
   write_tree.AddMerge(Path("test"), CompoundWrite::FromPathMerge(merge), 100);
 
-  Optional<Variant> result =
+  std::optional<Variant> result =
       write_tree.CalcCompleteChild(tree_path, child_key, existing_server_cache);
   Variant expected_result = 2;
 
@@ -577,7 +577,7 @@ TEST(WriteTree, CalcCompleteChild_NoCompleteChild) {
   write_tree.AddMerge(Path("test"), CompoundWrite::FromPathMerge(merge), 100);
 
   Variant expected_result;
-  Optional<Variant> result =
+  std::optional<Variant> result =
       write_tree.CalcCompleteChild(tree_path, child_key, existing_server_cache);
 
   EXPECT_EQ(*result, expected_result);
@@ -596,7 +596,7 @@ TEST(WriteTree, CalcNextVariantAfterPost_WithShadowingVariant) {
                           101, kOverwriteVisible);
 
   Path tree_path("test");
-  Optional<Variant> complete_server_data;
+  std::optional<Variant> complete_server_data;
   IterationDirection direction = kIterateForward;
   QuerySpec query_spec;
   EXPECT_EQ(*write_tree.CalcNextVariantAfterPost(
@@ -625,7 +625,7 @@ TEST(WriteTree, CalcNextVariantAfterPost_WithShadowingVariant) {
 TEST(WriteTree, CalcNextVariantAfterPost_WithoutShadowingVariant) {
   WriteTree write_tree;
   Path tree_path("test");
-  Optional<Variant> complete_server_data(std::map<Variant, Variant>{
+  std::optional<Variant> complete_server_data(std::map<Variant, Variant>{
       std::make_pair("aaa", 5),
       std::make_pair("bbb", 4),
       std::make_pair("ccc", 3),
@@ -660,7 +660,7 @@ TEST(WriteTree, CalcNextVariantAfterPost_WithoutShadowingVariant) {
 TEST(WriteTree, CalcNextVariantAfterPost_WithoutShadowingVariantOrServerData) {
   WriteTree write_tree;
   Path tree_path("test");
-  Optional<Variant> complete_server_data;
+  std::optional<Variant> complete_server_data;
   IterationDirection direction = kIterateForward;
   QuerySpec query_spec;
   EXPECT_FALSE(write_tree
@@ -683,7 +683,7 @@ TEST(WriteTree, CalcNextVariantAfterPost_Reverse) {
                           101, kOverwriteVisible);
 
   Path tree_path("test");
-  Optional<Variant> complete_server_data;
+  std::optional<Variant> complete_server_data;
   IterationDirection direction = kIterateReverse;
   QuerySpec query_spec;
   EXPECT_FALSE(write_tree

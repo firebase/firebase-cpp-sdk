@@ -18,7 +18,7 @@
 #include <cassert>
 
 #include "app/src/assert.h"
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/compound_write.h"
@@ -36,10 +36,10 @@ struct OperationSource {
   explicit OperationSource(Source _source)
       : source(_source), query_params(), tagged(false) {}
 
-  explicit OperationSource(const Optional<QueryParams>& _query_params)
+  explicit OperationSource(const std::optional<QueryParams>& _query_params)
       : source(kSourceServer), query_params(_query_params), tagged(false) {}
 
-  OperationSource(Source _source, const Optional<QueryParams>& _query_params,
+  OperationSource(Source _source, const std::optional<QueryParams>& _query_params,
                   bool _tagged)
       : source(_source), query_params(_query_params), tagged(_tagged) {
     FIREBASE_DEV_ASSERT(!tagged || source == kSourceServer);
@@ -50,7 +50,7 @@ struct OperationSource {
 
   // The parameters, if any, that are associated with this operation. This is
   // used to determine which View the operation should apply to.
-  const Optional<QueryParams> query_params;
+  const std::optional<QueryParams> query_params;
 
   const bool tagged;
 
@@ -129,7 +129,7 @@ struct Operation {
   const bool revert;
 };
 
-Optional<Operation> OperationForChild(const Operation& op,
+std::optional<Operation> OperationForChild(const Operation& op,
                                       const std::string& child_key);
 
 }  // namespace internal

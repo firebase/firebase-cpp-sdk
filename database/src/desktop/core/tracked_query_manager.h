@@ -20,7 +20,7 @@
 #include <set>
 
 #include "app/src/logger.h"
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/cache_policy.h"

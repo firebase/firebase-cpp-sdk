@@ -121,7 +121,7 @@ void TrackedQueryManager::RemoveTrackedQuery(const QuerySpec& query_spec) {
   tracked_queries->erase(to_erase);
   if (tracked_queries->empty()) {
     tracked_query_tree_.SetValueAt(normalized_spec.path,
-                                   Optional<TrackedQueryMap>());
+                                   std::optional<TrackedQueryMap>());
   }
 }
 
@@ -323,7 +323,7 @@ std::set<QueryId> TrackedQueryManager::FilteredQueryIdsAtPath(
     const Path& path) {
   std::set<QueryId> ids;
   auto* subtree = tracked_query_tree_.GetChild(path);
-  Optional<TrackedQueryMap>& queries = subtree->value();
+  std::optional<TrackedQueryMap>& queries = subtree->value();
   if (queries.has_value()) {
     for (const auto& query_spec_tracked_query_pair : *queries) {
       const TrackedQuery& query = query_spec_tracked_query_pair.second;

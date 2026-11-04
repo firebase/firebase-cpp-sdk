@@ -173,18 +173,18 @@ IndexedVariant IndexedVariant::UpdatePriority(const Variant& priority) const {
                         query_params_);
 }
 
-Optional<std::pair<Variant, Variant>> IndexedVariant::GetFirstChild() const {
+std::optional<std::pair<Variant, Variant>> IndexedVariant::GetFirstChild() const {
   if (index().empty()) {
-    return Optional<std::pair<Variant, Variant>>();
+    return std::optional<std::pair<Variant, Variant>>();
   }
-  return Optional<std::pair<Variant, Variant>>(*index().begin());
+  return std::optional<std::pair<Variant, Variant>>(*index().begin());
 }
 
-Optional<std::pair<Variant, Variant>> IndexedVariant::GetLastChild() const {
+std::optional<std::pair<Variant, Variant>> IndexedVariant::GetLastChild() const {
   if (index().empty()) {
-    return Optional<std::pair<Variant, Variant>>();
+    return std::optional<std::pair<Variant, Variant>>();
   }
-  return Optional<std::pair<Variant, Variant>>(*index().rbegin());
+  return std::optional<std::pair<Variant, Variant>>(*index().rbegin());
 }
 
 bool operator==(const IndexedVariant& lhs, const IndexedVariant& rhs) {

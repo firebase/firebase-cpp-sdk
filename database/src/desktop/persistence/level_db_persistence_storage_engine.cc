@@ -457,7 +457,7 @@ Variant LevelDbPersistenceStorageEngine::ServerCache(const Path& path) {
         child.value().size());
     Variant variant = FlexbufferToVariant(reference);
     Path key_path(child.key().ToString());
-    Optional<Path> relative_path = Path::GetRelative(path, key_path);
+    auto relative_path = Path::GetRelative(path, key_path);
     assert(relative_path.has_value());
     VariantAddCachedValue(&result, *relative_path, variant);
   }

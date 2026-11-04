@@ -655,7 +655,7 @@ TEST_F(SyncTreeTest, RemoveAllEventRegistrations) {
   Event expected_event;
   expected_event.type = kEventTypeError;
   expected_event.event_registration = event_registration4;
-  expected_event.snapshot = Optional<DataSnapshotInternal>();
+  expected_event.snapshot = std::optional<DataSnapshotInternal>();
   expected_event.error = kErrorExpiredToken;
   expected_event.path = Path("ddd/eee/fff");
   EXPECT_EQ(results, std::vector<Event>{expected_event});
@@ -730,7 +730,7 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
   Event expected_event;
   expected_event.type = kEventTypeError;
   expected_event.event_registration = event_registration4;
-  expected_event.snapshot = Optional<DataSnapshotInternal>();
+  expected_event.snapshot = std::optional<DataSnapshotInternal>();
   expected_event.error = kErrorExpiredToken;
   expected_event.path = Path("ddd/eee/fff");
   EXPECT_EQ(results, std::vector<Event>{expected_event});
@@ -811,13 +811,13 @@ TEST(SyncTree, CalcCompleteEventCache) {
                                    write_ids_to_exclude);
 
   // When no server cache exists for a path, nullptr is passed instead of
-  // dereferencing an empty Optional<Variant>.
+  // dereferencing an empty std::optional<Variant>.
   EXPECT_CALL(*pending_write_tree,
               CalcCompleteEventCache(Path("untracked/path"), nullptr,
                                      write_ids_to_exclude,
                                      kIncludeHiddenWrites))
-      .WillOnce(Return(Optional<Variant>(Variant("local_write_value"))));
-  Optional<Variant> untracked_result = sync_tree.CalcCompleteEventCache(
+      .WillOnce(Return(std::optional<Variant>(Variant("local_write_value"))));
+  std::optional<Variant> untracked_result = sync_tree.CalcCompleteEventCache(
       Path("untracked/path"), write_ids_to_exclude);
   ASSERT_TRUE(untracked_result.has_value());
   EXPECT_EQ(*untracked_result, Variant("local_write_value"));

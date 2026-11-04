@@ -550,10 +550,10 @@ TEST(IndexedVariant, GetFirstAndLastChildByPriority) {
                                                 std::make_pair(".value", 400)}),
   };
   IndexedVariant indexed_variant(variant, params);
-  Optional<std::pair<Variant, Variant>> expected_first(std::make_pair(
+  std::optional<std::pair<Variant, Variant>> expected_first(std::make_pair(
       "ccc", std::map<Variant, Variant>{std::make_pair(".priority", 1),
                                         std::make_pair(".value", 300)}));
-  Optional<std::pair<Variant, Variant>> expected_last(std::make_pair(
+  std::optional<std::pair<Variant, Variant>> expected_last(std::make_pair(
       "bbb", std::map<Variant, Variant>{std::make_pair(".priority", 4),
                                         std::make_pair(".value", 200)}));
   EXPECT_EQ(indexed_variant.GetFirstChild(), expected_first);
@@ -575,9 +575,9 @@ TEST(IndexedVariant, GetFirstAndLastChildByChild) {
                      std::map<Variant, Variant>{std::make_pair("zzz", 3)}),
   };
   IndexedVariant indexed_variant(variant, params);
-  Optional<std::pair<Variant, Variant>> expected_first(std::make_pair(
+  std::optional<std::pair<Variant, Variant>> expected_first(std::make_pair(
       "bbb", std::map<Variant, Variant>{std::make_pair("zzz", 1)}));
-  Optional<std::pair<Variant, Variant>> expected_last(std::make_pair(
+  std::optional<std::pair<Variant, Variant>> expected_last(std::make_pair(
       "ccc", std::map<Variant, Variant>{std::make_pair("zzz", 4)}));
   EXPECT_EQ(indexed_variant.GetFirstChild(), expected_first);
   EXPECT_EQ(indexed_variant.GetLastChild(), expected_last);
@@ -593,9 +593,9 @@ TEST(IndexedVariant, GetFirstAndLastChildByKey) {
       std::make_pair("ddd", 100),
   };
   IndexedVariant indexed_variant(variant, params);
-  Optional<std::pair<Variant, Variant>> expected_first(
+  std::optional<std::pair<Variant, Variant>> expected_first(
       std::make_pair("aaa", 400));
-  Optional<std::pair<Variant, Variant>> expected_last(
+  std::optional<std::pair<Variant, Variant>> expected_last(
       std::make_pair("ddd", 100));
   EXPECT_EQ(indexed_variant.GetFirstChild(), expected_first);
   EXPECT_EQ(indexed_variant.GetLastChild(), expected_last);
@@ -612,9 +612,9 @@ TEST(IndexedVariant, GetFirstAndLastChildByValue) {
       std::make_pair("ddd", 100),
   };
   IndexedVariant indexed_variant(variant, params);
-  Optional<std::pair<Variant, Variant>> expected_first(
+  std::optional<std::pair<Variant, Variant>> expected_first(
       std::make_pair("ddd", 100));
-  Optional<std::pair<Variant, Variant>> expected_last(
+  std::optional<std::pair<Variant, Variant>> expected_last(
       std::make_pair("aaa", 400));
   EXPECT_EQ(indexed_variant.GetFirstChild(), expected_first);
   EXPECT_EQ(indexed_variant.GetLastChild(), expected_last);
@@ -625,8 +625,8 @@ TEST(IndexedVariant, GetFirstAndLastChildLeaf) {
   params.order_by = QueryParams::kOrderByValue;
   Variant variant = 1000;
   IndexedVariant indexed_variant(variant, params);
-  Optional<std::pair<Variant, Variant>> expected_first;
-  Optional<std::pair<Variant, Variant>> expected_last;
+  std::optional<std::pair<Variant, Variant>> expected_first;
+  std::optional<std::pair<Variant, Variant>> expected_last;
   EXPECT_EQ(indexed_variant.GetFirstChild(), expected_first);
   EXPECT_EQ(indexed_variant.GetLastChild(), expected_last);
 }

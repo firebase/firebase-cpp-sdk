@@ -15,7 +15,7 @@
 #include "database/src/desktop/core/sync_point.h"
 
 #include "app/src/include/firebase/variant.h"
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/child_event_registration.h"

@@ -872,7 +872,7 @@ void Repo::SendAllReadyTransactions() {
 }
 
 void Repo::SendReadyTransactions(Tree<std::vector<TransactionDataPtr>>* node) {
-  Optional<std::vector<TransactionDataPtr>> queue = node->value();
+  std::optional<std::vector<TransactionDataPtr>> queue = node->value();
   if (queue.has_value()) {
     queue = BuildTransactionQueue(node);
     assert(queue->size() != 0);
@@ -921,7 +921,7 @@ Path Repo::AbortTransactions(const Path& path, Error reason) {
 
 void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
                                    Error reason) {
-  Optional<std::vector<TransactionDataPtr>>& queue = node->value();
+  std::optional<std::vector<TransactionDataPtr>>& queue = node->value();
   std::vector<Event> events;
 
   if (queue.has_value()) {
@@ -1048,7 +1048,7 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
         "Cannot send a transaction that is not running!");
     transaction->status = TransactionData::kStatusSent;
     ++transaction->retry_count;
-    Optional<Path> relative_path = Path::GetRelative(path, transaction->path);
+    auto relative_path = Path::GetRelative(path, transaction->path);
     FIREBASE_DEV_ASSERT(relative_path.has_value());
     SetVariantAtPath(&snap_to_send, *relative_path,
                      transaction->current_output_snapshot_raw);
@@ -1179,7 +1179,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   }
 
   for (const TransactionDataPtr& transaction : queue) {
-    Optional<Path> relative_path = Path::GetRelative(path, transaction->path);
+    auto relative_path = Path::GetRelative(path, transaction->path);
     assert(relative_path.has_value());
 
     bool abort_transaction = false;
@@ -1291,7 +1291,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
 
 Variant Repo::GetLatestState(const Path& path,
                              std::vector<WriteId> sets_to_ignore) {
-  Optional<Variant> state =
+  std::optional<Variant> state =
       server_sync_tree_->CalcCompleteEventCache(path, sets_to_ignore);
   return state.has_value() ? *state : Variant::Null();
 }
@@ -1299,7 +1299,7 @@ Variant Repo::GetLatestState(const Path& path,
 void Repo::PruneCompletedTransactions(
     Tree<std::vector<TransactionDataPtr>>* node) {
   if (!node) return;
-  Optional<std::vector<TransactionDataPtr>>& queue = node->value();
+  std::optional<std::vector<TransactionDataPtr>>& queue = node->value();
   if (queue.has_value()) {
     queue->erase(std::remove_if(queue->begin(), queue->end(),
                                 [](const TransactionDataPtr& transaction) {
@@ -1349,7 +1349,7 @@ std::vector<TransactionDataPtr> Repo::BuildTransactionQueue(
 void Repo::AggregateTransactionQueues(
     std::vector<TransactionDataPtr>* queue,
     Tree<std::vector<TransactionDataPtr>>* node) {
-  Optional<std::vector<TransactionDataPtr>>& child_queue = node->value();
+  std::optional<std::vector<TransactionDataPtr>>& child_queue = node->value();
   if (child_queue.has_value()) {
     Extend(queue, *child_queue);
   }

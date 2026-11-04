@@ -399,7 +399,7 @@ TEST(EventEqTest, Matcher) {
   // important, critical ways.
   Event null_snapshot_event(kEventTypeValue, &event_registration, snapshot,
                             "previous");
-  null_snapshot_event.snapshot = Optional<DataSnapshotInternal>();
+  null_snapshot_event.snapshot = std::optional<DataSnapshotInternal>();
   Event different_snapshot_value_event(kEventTypeValue, &event_registration,
                                        snapshot_with_different_value,
                                        "previous");

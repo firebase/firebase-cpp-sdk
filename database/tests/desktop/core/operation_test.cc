@@ -36,7 +36,7 @@ TEST(OperationSource, ConstructorSource) {
 
 TEST(OperationSource, ConstructorQueryParams) {
   QueryParams params;
-  OperationSource source((Optional<QueryParams>(params)));
+  OperationSource source((std::optional<QueryParams>(params)));
 
   EXPECT_EQ(source.source, OperationSource::kSourceServer);
   EXPECT_EQ(source.query_params.value(), params);
@@ -47,7 +47,7 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
   QueryParams params;
   {
     OperationSource source(OperationSource::kSourceServer,
-                           Optional<QueryParams>(params), false);
+                           std::optional<QueryParams>(params), false);
 
     EXPECT_EQ(source.source, OperationSource::kSourceServer);
     EXPECT_EQ(source.query_params.value(), params);
@@ -55,7 +55,7 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
   }
   {
     OperationSource source(OperationSource::kSourceServer,
-                           Optional<QueryParams>(params), true);
+                           std::optional<QueryParams>(params), true);
 
     EXPECT_EQ(source.source, OperationSource::kSourceServer);
     EXPECT_EQ(source.query_params.value(), params);
@@ -63,7 +63,7 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
   }
   {
     OperationSource source(OperationSource::kSourceUser,
-                           Optional<QueryParams>(params), false);
+                           std::optional<QueryParams>(params), false);
 
     EXPECT_EQ(source.source, OperationSource::kSourceUser);
     EXPECT_EQ(source.query_params.value(), params);
@@ -80,14 +80,14 @@ TEST(OperationSourceDeathTest, BadConstructorArgs) {
 #endif
   QueryParams params;
   EXPECT_DEATH(OperationSource(OperationSource::kSourceUser,
-                               Optional<QueryParams>(params), true),
+                               std::optional<QueryParams>(params), true),
                "");
 }
 
 TEST(OperationSource, ForServerTaggedQuery) {
   QueryParams params;
   OperationSource expected(OperationSource::kSourceServer,
-                           Optional<QueryParams>(params), true);
+                           std::optional<QueryParams>(params), true);
 
   OperationSource actual = OperationSource::ForServerTaggedQuery(params);
 
@@ -180,7 +180,7 @@ TEST(Operation, OperationForChildOverwriteEmptyPath) {
   };
   Operation op = Operation::Overwrite(OperationSource::kServer, Path(),
                                       Variant(variant_data));
-  Optional<Operation> result = OperationForChild(op, "aaa");
+  std::optional<Operation> result = OperationForChild(op, "aaa");
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result->type, Operation::kTypeOverwrite);
   EXPECT_EQ(result->source.source, OperationSource::kSourceServer);
@@ -197,7 +197,7 @@ TEST(Operation, OperationForChildOverwriteNonEmptyPath) {
   };
   Operation op = Operation::Overwrite(OperationSource::kServer, Path("A/B/C"),
                                       Variant(variant_data));
-  Optional<Operation> result = OperationForChild(op, "A");
+  std::optional<Operation> result = OperationForChild(op, "A");
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result->type, Operation::kTypeOverwrite);
   EXPECT_EQ(result->source.source, OperationSource::kSourceServer);
@@ -216,7 +216,7 @@ TEST(Operation, OperationForChildMergeEmptyPath) {
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
     Operation op = Operation::Merge(OperationSource::kServer, Path(), write);
 
-    Optional<Operation> result = OperationForChild(op, "zzz");
+    std::optional<Operation> result = OperationForChild(op, "zzz");
 
     EXPECT_FALSE(result.has_value());
   }
@@ -229,7 +229,7 @@ TEST(Operation, OperationForChildMergeEmptyPath) {
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
     Operation op = Operation::Merge(OperationSource::kServer, Path(), write);
 
-    Optional<Operation> result = OperationForChild(op, "aaa");
+    std::optional<Operation> result = OperationForChild(op, "aaa");
 
     EXPECT_TRUE(result.has_value());
     // In this case we expect to generate an Overwrite operation.
@@ -247,7 +247,7 @@ TEST(Operation, OperationForChildMergeEmptyPath) {
     CompoundWrite write = CompoundWrite::FromPathMerge(merge_data);
     Operation op = Operation::Merge(OperationSource::kServer, Path(), write);
 
-    Optional<Operation> result = OperationForChild(op, "ccc");
+    std::optional<Operation> result = OperationForChild(op, "ccc");
 
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ(result->type, Operation::kTypeMerge);
@@ -268,7 +268,7 @@ TEST(Operation, OperationForChildMergeNonEmptyPath) {
     Operation op =
         Operation::Merge(OperationSource::kServer, Path("A/B/C"), write);
 
-    Optional<Operation> result = OperationForChild(op, "A");
+    std::optional<Operation> result = OperationForChild(op, "A");
 
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ(result->type, Operation::kTypeMerge);
@@ -290,7 +290,7 @@ TEST(Operation, OperationForChildMergeNonEmptyPath) {
     Operation op =
         Operation::Merge(OperationSource::kServer, Path("A/B/C"), write);
 
-    Optional<Operation> result = OperationForChild(op, "Z");
+    std::optional<Operation> result = OperationForChild(op, "Z");
 
     EXPECT_FALSE(result.has_value());
   }
@@ -305,7 +305,7 @@ TEST(Operation, OperationForChildAckUserWriteNonEmptyPath) {
   Operation op =
       Operation::AckUserWrite(Path("A/B/C"), affected_tree, kAckRevert);
 
-  Optional<Operation> result = OperationForChild(op, "A");
+  std::optional<Operation> result = OperationForChild(op, "A");
 
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result->type, Operation::kTypeAckUserWrite);
@@ -345,7 +345,7 @@ TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
   affected_tree.SetValueAt(Path(), true);
   Operation op = Operation::AckUserWrite(Path(), affected_tree, kAckRevert);
 
-  Optional<Operation> result = OperationForChild(op, "aaa");
+  std::optional<Operation> result = OperationForChild(op, "aaa");
 
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result->type, Operation::kTypeAckUserWrite);
@@ -385,7 +385,7 @@ TEST(Operation, OperationForChildAckUserWriteEmptyPathDoesNotHasValue) {
   affected_tree.SetValueAt(Path("ccc/eee"), false);
   Operation op = Operation::AckUserWrite(Path(), affected_tree, kAckRevert);
 
-  Optional<Operation> result = OperationForChild(op, "ccc");
+  std::optional<Operation> result = OperationForChild(op, "ccc");
 
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result->type, Operation::kTypeAckUserWrite);
@@ -406,7 +406,7 @@ TEST(Operation,
   affected_tree.SetValueAt(Path("ccc/eee"), false);
   Operation op = Operation::AckUserWrite(Path(), affected_tree, kAckRevert);
 
-  Optional<Operation> result = OperationForChild(op, "zzz");
+  std::optional<Operation> result = OperationForChild(op, "zzz");
 
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result->type, Operation::kTypeAckUserWrite);
@@ -421,7 +421,7 @@ TEST(Operation,
 TEST(Operation, OperationForChildListenCompleteEmptyPath) {
   Operation op = Operation::ListenComplete(OperationSource::kServer, Path());
 
-  Optional<Operation> result = OperationForChild(op, "Z");
+  std::optional<Operation> result = OperationForChild(op, "Z");
 
   // Should be identical to op.
   EXPECT_TRUE(result.has_value());
@@ -435,7 +435,7 @@ TEST(Operation, OperationForChildListenCompleteNonEmptyPath) {
   Operation op =
       Operation::ListenComplete(OperationSource::kServer, Path("A/B/C"));
 
-  Optional<Operation> result = OperationForChild(op, "A");
+  std::optional<Operation> result = OperationForChild(op, "A");
 
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result->type, Operation::kTypeListenComplete);

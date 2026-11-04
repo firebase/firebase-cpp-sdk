@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "app/src/include/firebase/variant.h"
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "database/src/desktop/core/write_tree.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
@@ -33,16 +33,16 @@ namespace internal {
 
 class MockWriteTree : public WriteTree {
  public:
-  MOCK_METHOD(Optional<Variant>, CalcCompleteEventCache,
+  MOCK_METHOD(std::optional<Variant>, CalcCompleteEventCache,
               (const Path& tree_path, const Variant* complete_server_cache),
               (const, override));
 
-  MOCK_METHOD(Optional<Variant>, CalcCompleteEventCache,
+  MOCK_METHOD(std::optional<Variant>, CalcCompleteEventCache,
               (const Path& tree_path, const Variant* complete_server_cache,
                const std::vector<WriteId>& write_ids_to_exclude),
               (const, override));
 
-  MOCK_METHOD(Optional<Variant>, CalcCompleteEventCache,
+  MOCK_METHOD(std::optional<Variant>, CalcCompleteEventCache,
               (const Path& tree_path, const Variant* complete_server_cache,
                const std::vector<WriteId>& write_ids_to_exclude,
                HiddenWriteInclusion include_hidden_writes),
@@ -52,23 +52,23 @@ class MockWriteTree : public WriteTree {
               (const Path& tree_path, const Variant& complete_server_children),
               (const, override));
 
-  MOCK_METHOD(Optional<Variant>, CalcEventCacheAfterServerOverwrite,
+  MOCK_METHOD(std::optional<Variant>, CalcEventCacheAfterServerOverwrite,
               (const Path& tree_path, const Path& path,
                const Variant* existing_local_snap,
                const Variant* existing_server_snap),
               (const, override));
 
-  MOCK_METHOD((Optional<std::pair<Variant, Variant>>), CalcNextVariantAfterPost,
+  MOCK_METHOD((std::optional<std::pair<Variant, Variant>>), CalcNextVariantAfterPost,
               (const Path& tree_path,
-               const Optional<Variant>& complete_server_data,
+               const std::optional<Variant>& complete_server_data,
                (const std::pair<Variant, Variant>& post),
                IterationDirection direction, const QueryParams& params),
               (const, override));
 
-  MOCK_METHOD(Optional<Variant>, ShadowingWrite, (const Path& path),
+  MOCK_METHOD(std::optional<Variant>, ShadowingWrite, (const Path& path),
               (const, override));
 
-  MOCK_METHOD(Optional<Variant>, CalcCompleteChild,
+  MOCK_METHOD(std::optional<Variant>, CalcCompleteChild,
               (const Path& tree_path, const std::string& child_key,
                const CacheNode& existing_server_cache),
               (const, override));

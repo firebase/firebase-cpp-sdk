@@ -25,14 +25,14 @@ namespace database {
 namespace internal {
 
 const OperationSource OperationSource::kUser(OperationSource::kSourceUser,
-                                             Optional<QueryParams>(), false);
+                                             std::optional<QueryParams>(), false);
 const OperationSource OperationSource::kServer(OperationSource::kSourceServer,
-                                               Optional<QueryParams>(), false);
+                                               std::optional<QueryParams>(), false);
 
 OperationSource OperationSource::ForServerTaggedQuery(
     const QueryParams& params) {
   return OperationSource(OperationSource::kSourceServer,
-                         Optional<QueryParams>(params), true);
+                         std::optional<QueryParams>(params), true);
 }
 
 Operation Operation::Overwrite(const OperationSource& source, const Path& path,
@@ -63,31 +63,31 @@ Operation Operation::ListenComplete(const OperationSource& source,
                    CompoundWrite(), Tree<bool>(), kAckConfirm);
 }
 
-static Optional<Operation> OperationForChildOverwrite(
+static std::optional<Operation> OperationForChildOverwrite(
     const Operation& op, const std::string& child_key) {
   if (op.path.empty()) {
-    return Optional<Operation>(Operation::Overwrite(
+    return std::optional<Operation>(Operation::Overwrite(
         op.source, Path(), VariantGetChild(&op.snapshot, child_key)));
   } else {
     std::vector<std::string> directories = op.path.GetDirectories();
     Path child_path(std::next(directories.begin()), directories.end());
-    return Optional<Operation>(
+    return std::optional<Operation>(
         Operation::Overwrite(op.source, child_path, op.snapshot));
   }
 }
 
-static Optional<Operation> OperationForChildMerge(
+static std::optional<Operation> OperationForChildMerge(
     const Operation& op, const std::string& child_key) {
   if (op.path.empty()) {
     CompoundWrite child_tree = op.children.ChildCompoundWrite(Path(child_key));
     if (child_tree.IsEmpty()) {
       // This child is unaffected.
-      return Optional<Operation>();
+      return std::optional<Operation>();
     } else if (child_tree.GetRootWrite().has_value()) {
-      return Optional<Operation>(
+      return std::optional<Operation>(
           Operation::Overwrite(op.source, Path(), *child_tree.GetRootWrite()));
     } else {
-      return Optional<Operation>(
+      return std::optional<Operation>(
           Operation::Merge(op.source, Path(), child_tree));
     }
   } else {
@@ -95,16 +95,16 @@ static Optional<Operation> OperationForChildMerge(
     if (directories.front() == child_key) {
       auto start = directories.begin();
       auto finish = directories.end();
-      return Optional<Operation>(Operation::Merge(
+      return std::optional<Operation>(Operation::Merge(
           op.source, Path(std::next(start), finish), op.children));
     } else {
       // Merge doesn't affect operation path.
-      return Optional<Operation>();
+      return std::optional<Operation>();
     }
   }
 }
 
-static Optional<Operation> OperationForChildAckUserWrite(
+static std::optional<Operation> OperationForChildAckUserWrite(
     const Operation& op, const std::string& child_key) {
   if (!op.path.empty()) {
     FIREBASE_DEV_ASSERT_MESSAGE(
@@ -113,7 +113,7 @@ static Optional<Operation> OperationForChildAckUserWrite(
     std::vector<std::string> directories = op.path.GetDirectories();
     auto start = directories.begin();
     auto finish = directories.end();
-    return Optional<Operation>(Operation::AckUserWrite(
+    return std::optional<Operation>(Operation::AckUserWrite(
         Path(std::next(start), finish), op.affected_tree,
         op.revert ? kAckRevert : kAckConfirm));
   } else if (op.affected_tree.value().has_value()) {
@@ -121,29 +121,29 @@ static Optional<Operation> OperationForChildAckUserWrite(
         op.affected_tree.children().empty(),
         "AffectedTree should not have overlapping affected paths.");
     // All child locations are affected as well; just return same operation.
-    return Optional<Operation>(op);
+    return std::optional<Operation>(op);
   } else {
     const Tree<bool>* child_tree = op.affected_tree.GetChild(child_key);
-    return Optional<Operation>(
+    return std::optional<Operation>(
         Operation::AckUserWrite(Path(), child_tree ? *child_tree : Tree<bool>(),
                                 op.revert ? kAckRevert : kAckConfirm));
   }
 }
 
-static Optional<Operation> OperationForChildListenComplete(
+static std::optional<Operation> OperationForChildListenComplete(
     const Operation& op, const std::string& child_key) {
   if (op.path.empty()) {
-    return Optional<Operation>(Operation::ListenComplete(op.source, Path()));
+    return std::optional<Operation>(Operation::ListenComplete(op.source, Path()));
   } else {
     std::vector<std::string> directories = op.path.GetDirectories();
     auto start = directories.begin();
     auto finish = directories.end();
-    return Optional<Operation>(
+    return std::optional<Operation>(
         Operation::ListenComplete(op.source, Path(std::next(start), finish)));
   }
 }
 
-Optional<Operation> OperationForChild(const Operation& op,
+std::optional<Operation> OperationForChild(const Operation& op,
                                       const std::string& child_key) {
   switch (op.type) {
     case Operation::kTypeOverwrite: {
@@ -160,7 +160,7 @@ Optional<Operation> OperationForChild(const Operation& op,
     }
   }
   FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid Operation::Type");
-  return Optional<Operation>();
+  return std::optional<Operation>();
 }
 
 }  // namespace internal

@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-#include "app/src/optional.h"
+#include <optional>
 #include "app/src/path.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/data_snapshot_desktop.h"
@@ -79,7 +79,7 @@ struct Event {
   EventRegistration* event_registration;
 
   // The snapshot that should be fed to the event registration.
-  Optional<DataSnapshotInternal> snapshot;
+  std::optional<DataSnapshotInternal> snapshot;
 
   // The previous location name of this event, for use with ChildMoved events.
   std::string prev_name;

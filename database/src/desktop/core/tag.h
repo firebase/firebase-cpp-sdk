@@ -17,7 +17,7 @@
 
 #include <cstdint>
 
-#include "app/src/optional.h"
+#include <optional>
 
 namespace firebase {
 namespace database {
@@ -27,7 +27,7 @@ namespace internal {
 // of the data. Because the server can send back multiple different responses to
 // the same location, the tag is used to differentiate which Query at the
 // location the response is directed at.
-typedef Optional<int64_t> Tag;
+typedef std::optional<int64_t> Tag;
 
 }  // namespace internal
 }  // namespace database
