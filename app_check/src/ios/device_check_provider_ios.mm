@@ -27,7 +27,6 @@
 #import "FIRDeviceCheckProvider.h"
 #import "FIRDeviceCheckProviderFactory.h"
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
@@ -136,7 +135,7 @@ DeviceCheckProviderFactoryInternal::~DeviceCheckProviderFactoryInternal() {
   }
   for (auto& [app, raw_provider] : providers) {
     std::unique_ptr<AppCheckProvider> provider(raw_provider);
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+;
     if (notifier != nullptr && provider != nullptr) {
       notifier->UnregisterObject(provider.get());
     }
@@ -169,7 +168,7 @@ AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
     created_providers_[app] = raw_provider;
   }
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+;
   if (notifier != nullptr) {
     notifier->RegisterObject(
         raw_provider, [this, app, raw_provider](void* /*object*/) {

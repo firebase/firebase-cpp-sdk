@@ -194,7 +194,6 @@ void Functions::DeleteInternal() {
   }
 
   // Force cleanup of any live HttpsCallableReference instances first.
-  internal_to_delete->cleanup().CleanupAll();
   delete internal_to_delete;
 }
 

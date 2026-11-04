@@ -19,7 +19,6 @@
 #include <cassert>
 
 #include "app/src/assert.h"
-#include "app/src/cleanup_notifier.h"
 #include "app/src/util.h"
 #include "firebase/app.h"
 #include "firebase/internal/mutex.h"

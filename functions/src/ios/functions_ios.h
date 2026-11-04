@@ -18,8 +18,6 @@
 #include <memory>
 #include <string>
 
-#include "app/src/cleanup_notifier.h"
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -60,10 +58,6 @@ class FunctionsInternal {
   [[nodiscard]] const char* region() const;
 
   // Manage Future implementations.
-  [[nodiscard]] FutureManager& future_manager() { return future_manager_; }
-
-  [[nodiscard]] CleanupNotifier& cleanup() { return cleanup_; }
-
   [[nodiscard]] const std::shared_ptr<FunctionsLifetimeState>& lifetime_state()
       const {
     return lifetime_state_;
@@ -102,11 +96,7 @@ class FunctionsInternal {
  private:
   App* app_;
   std::string region_;
-  std::unique_ptr<FIRFunctionsPointer> impl_;
-  FutureManager future_manager_;
-  std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
-  CleanupNotifier cleanup_;
-};
+  std::unique_ptr<FIRFunctionsPointer> impl_;  std::shared_ptr<FunctionsLifetimeState> lifetime_state_;};
 
 }  // namespace internal
 }  // namespace functions

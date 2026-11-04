@@ -20,7 +20,6 @@
 #include <string>
 #include <thread>  // NOLINT
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
@@ -156,8 +155,6 @@ class RemoteConfigInternal {
   void Cleanup();
 
   // When this is deleted, it will clean up all ListenerRegistrations.
-  [[nodiscard]] CleanupNotifier& cleanup_notifier() { return cleanup_; }
-
  private:
   // Open a new thread for saving state in the file. Thread will wait
   // notifications in loop from the `save_channel_` until it will be closed.
@@ -234,9 +231,6 @@ class RemoteConfigInternal {
 
   // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
-
-  CleanupNotifier cleanup_;
-
   scheduler::Scheduler scheduler_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor

@@ -257,9 +257,7 @@ namespace internal {
 
 AppCheckInternal::AppCheckInternal(App* app)
     : lifetime_state_(std::make_shared<LifetimeState>()), app_(app) {
-  lifetime_state_->owner = this;
-  future_manager().AllocFutureApi(this, kAppCheckFnCount);
-  FIRAppCheck* fir_app_check = (app != nullptr && app->GetPlatformApp() != nil)
+  lifetime_state_->owner = this;  FIRAppCheck* fir_app_check = (app != nullptr && app->GetPlatformApp() != nil)
                                    ? [FIRAppCheck appCheckWithApp:app->GetPlatformApp()]
                                    : [FIRAppCheck appCheck];
   impl_ = std::make_unique<FIRAppCheckPointer>(fir_app_check);
@@ -277,16 +275,11 @@ AppCheckInternal::~AppCheckInternal() {
   }
   for (auto& handle : pending) {
     future()->CompleteWithResult(handle, kAppCheckErrorUnknown, "AppCheck instance destroyed.", AppCheckToken{});
-  }
-  future_manager().ReleaseFutureApi(this);
-  app_ = nullptr;
+  }  app_ = nullptr;
 }
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }
 
-ReferenceCountedFutureImpl* AppCheckInternal::future() {
-  return future_manager().GetFutureApi(this);
-}
 
 void AppCheckInternal::SetAppCheckProviderFactory(AppCheckProviderFactory* factory) {
   if (factory == nullptr) {

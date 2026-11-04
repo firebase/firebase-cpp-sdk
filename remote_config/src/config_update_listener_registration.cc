@@ -14,7 +14,6 @@
 
 #include "remote_config/src/include/firebase/remote_config/config_update_listener_registration.h"
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/cleanup.h"
 #include "remote_config/src/config_update_listener_registration_internal.h"

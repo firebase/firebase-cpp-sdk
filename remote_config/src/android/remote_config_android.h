@@ -21,7 +21,6 @@
 #include <utility>
 #include <vector>
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_count.h"
@@ -102,8 +101,6 @@ class RemoteConfigInternal {
   void Cleanup();
 
   // When this is deleted, it will clean up all ListenerRegistrations.
-  [[nodiscard]] CleanupNotifier& cleanup_notifier() { return cleanup_; }
-
   void set_throttled_end_time(int64_t end_time) {
     throttled_end_time_.store(end_time);
   }
@@ -124,9 +121,6 @@ class RemoteConfigInternal {
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
-
-  CleanupNotifier cleanup_;
-
   jobject internal_obj_ = nullptr;
   bool initialized_ref_ = false;
 

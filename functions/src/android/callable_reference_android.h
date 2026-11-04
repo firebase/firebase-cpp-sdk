@@ -110,7 +110,8 @@ class HttpsCallableReferenceInternal {
   void Cleanup(FunctionsInternal* fallback_functions = nullptr) noexcept;
 
   // Get the Future for the HttpsCallableReferenceInternal.
-  ReferenceCountedFutureImpl* future();
+  ReferenceCountedFutureImpl* future() { return &future_impl_; }
+  ReferenceCountedFutureImpl future_impl_;
 
   // The FunctionsInternal object we are part of.
   FunctionsInternal* functions_ = nullptr;

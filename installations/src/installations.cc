@@ -18,7 +18,6 @@
 #include <map>
 #include <string>
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
@@ -128,7 +127,8 @@ Installations* Installations::GetInstance(App* app,
   if (is_new_instance) {
     // Register CleanupNotifier outside InstallationsMutex() to avoid
     // lock-order inversions with CleanupNotifier::CleanupAll().
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+    CleanupNotifier* notifier =nullptr
+;
     FIREBASE_ASSERT(notifier);
     if (notifier) {
       notifier->RegisterObject(installations, [](void* object) {
@@ -176,7 +176,8 @@ Installations::~Installations() {
   }
 
   if (app_to_unregister) {
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_to_unregister);
+    CleanupNotifier* notifier =nullptr
+;
     if (notifier) {
       notifier->UnregisterObject(this);
     }

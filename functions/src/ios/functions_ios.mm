@@ -69,9 +69,7 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
   impl_ = std::make_unique<FIRFunctionsPointer>(fir_functions);
 }
 
-FunctionsInternal::~FunctionsInternal() {
-  cleanup_.CleanupAll();
-  MutexLock lock(lifetime_state_->mutex);
+FunctionsInternal::~FunctionsInternal() {  MutexLock lock(lifetime_state_->mutex);
   lifetime_state_->alive = false;
 }
 

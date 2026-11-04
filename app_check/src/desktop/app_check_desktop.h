@@ -1,3 +1,4 @@
+#include "app/src/reference_counted_future_impl.h"
 // Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +25,6 @@
 #include <utility>
 #include <vector>
 
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app_check/src/include/firebase/app_check.h"
@@ -87,10 +87,8 @@ class AppCheckInternal {
   void AddAppCheckListener(AppCheckListener* listener);
 
   void RemoveAppCheckListener(AppCheckListener* listener);
-
-  FutureManager& future_manager() { return future_manager_; }
-
-  ReferenceCountedFutureImpl* future();
+  ReferenceCountedFutureImpl* future() { return &future_impl_; }
+  ReferenceCountedFutureImpl future_impl_;
 
  private:
   // Is the cached token valid (caller must NOT hold mutex_).
@@ -127,9 +125,6 @@ class AppCheckInternal {
                                                 void* context);
 
   ::firebase::App* app_{nullptr};
-
-  FutureManager future_manager_;
-
   mutable std::mutex mutex_;
   std::shared_ptr<LifetimeState> lifetime_state_;
 

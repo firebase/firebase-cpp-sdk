@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "app/src/assert.h"
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
@@ -240,10 +239,6 @@ void AppCheck::DeleteInternal() {
   }
 
   if (current_app) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(current_app);
-    if (app_notifier) {
-      app_notifier->UnregisterObject(this);
-    }
   }
 
   internal_to_destroy.reset();

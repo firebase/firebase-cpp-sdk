@@ -26,7 +26,6 @@
 
 #import "FIRAppAttestProvider.h"
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
@@ -131,7 +130,7 @@ AppAttestProviderFactoryInternal::~AppAttestProviderFactoryInternal() {
   }
   for (auto& [app, raw_provider] : providers) {
     std::unique_ptr<AppCheckProvider> provider(raw_provider);
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+;
     if (notifier != nullptr && provider != nullptr) {
       notifier->UnregisterObject(provider.get());
     }
@@ -159,7 +158,7 @@ AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
   AppCheckProvider* raw_provider = cpp_provider.release();
   created_providers_[app] = raw_provider;
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+;
   if (notifier != nullptr) {
     notifier->RegisterObject(
         raw_provider, [this, app, raw_provider](void* /*object*/) {

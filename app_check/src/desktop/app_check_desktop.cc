@@ -142,16 +142,14 @@ class OpLease {
 }  // namespace
 
 AppCheckInternal::AppCheckInternal(App* app)
-    : app_(app),
+    : app_(app), future_impl_(kAppCheckFnCount),
       lifetime_state_(std::make_shared<LifetimeState>()),
       cached_provider_(nullptr),
       cached_provider_factory_(nullptr),
       cached_token_(),
       is_token_auto_refresh_enabled_(true) {
   lifetime_state_->owner = this;
-  RegisterListenerLifetimeState(&internal_listener_, lifetime_state_);
-  future_manager().AllocFutureApi(this, kAppCheckFnCount);
-  AddAppCheckListener(&internal_listener_);
+  RegisterListenerLifetimeState(&internal_listener_, lifetime_state_);  AddAppCheckListener(&internal_listener_);
   InitRegistryCalls();
 }
 
@@ -177,16 +175,11 @@ AppCheckInternal::~AppCheckInternal() {
     cached_token_ = AppCheckToken{};
     cached_provider_ = nullptr;
     cached_provider_factory_ = nullptr;
-  }
-  future_manager().ReleaseFutureApi(this);
-  app_ = nullptr;
+  }  app_ = nullptr;
 }
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }
 
-ReferenceCountedFutureImpl* AppCheckInternal::future() {
-  return future_manager().GetFutureApi(this);
-}
 
 bool AppCheckInternal::HasValidCacheTokenLocked() const {
   return cached_token_.is_valid(CurrentTimeMillis(), kTokenRefreshBufferMillis);

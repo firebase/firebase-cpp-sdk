@@ -15,7 +15,6 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_CLEANUP_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_CLEANUP_H_
 
-#include "app/src/cleanup_notifier.h"
 
 namespace firebase {
 namespace remote_config {
@@ -36,16 +35,11 @@ struct CleanupFn {
   }
 
   static void Register(T* obj, R* remote_config) {
-    if (remote_config) {
-      remote_config->cleanup_notifier().RegisterObject(
-          obj, CleanupFn<T, R>::Cleanup);
-    }
+    
   }
 
   static void Unregister(T* obj, R* remote_config) {
-    if (remote_config) {
-      remote_config->cleanup_notifier().UnregisterObject(obj);
-    }
+    
   }
 };
 

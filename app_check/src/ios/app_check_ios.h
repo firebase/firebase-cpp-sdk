@@ -1,3 +1,4 @@
+#include "app/src/reference_counted_future_impl.h"
 // Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +18,6 @@
 
 #include <memory>
 #include <mutex>
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/util_ios.h"
@@ -88,10 +88,8 @@ class AppCheckInternal {
   void AddAppCheckListener(AppCheckListener* listener);
 
   void RemoveAppCheckListener(AppCheckListener* listener);
-
-  FutureManager& future_manager() { return future_manager_; }
-
-  ReferenceCountedFutureImpl* future();
+  ReferenceCountedFutureImpl* future() { return &future_impl_; }
+  ReferenceCountedFutureImpl future_impl_;
 
  private:
 #ifdef __OBJC__
@@ -108,10 +106,7 @@ class AppCheckInternal {
 
   std::shared_ptr<LifetimeState> lifetime_state_;
 
-  ::firebase::App* app_{nullptr};
-
-  FutureManager future_manager_;
-};
+  ::firebase::App* app_{nullptr};};
 
 }  // namespace internal
 

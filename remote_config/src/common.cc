@@ -14,7 +14,6 @@
 
 #include "remote_config/src/common.h"
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/util.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 

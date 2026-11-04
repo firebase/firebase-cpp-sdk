@@ -776,9 +776,7 @@ bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
 }
 
-void RemoteConfigInternal::Cleanup() {
-  cleanup_notifier().CleanupAll();
-  if (!jni_task_id_.empty()) {
+void RemoteConfigInternal::Cleanup() {  if (!jni_task_id_.empty()) {
     JNIEnv* env = app_.GetJNIEnv();
     util::CancelCallbacks(env, jni_task_id_.c_str());
     jni_task_id_.clear();

@@ -21,8 +21,6 @@
 #include <memory>
 #include <string>
 
-#include "app/src/cleanup_notifier.h"
-#include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -59,10 +57,6 @@ class FunctionsInternal {
   jobject obj() const { return obj_; }
 
   // Manage Future implementations.
-  FutureManager& future_manager() { return future_manager_; }
-
-  CleanupNotifier& cleanup() { return cleanup_; }
-
   // Lifetime token shared with pending JNI Task completion callbacks.
   const std::shared_ptr<FunctionsLifetimeState>& lifetime_state() const {
     return lifetime_state_;
@@ -105,11 +99,7 @@ class FunctionsInternal {
 
   static Mutex init_mutex_;
   static int initialize_count_;
-  static std::map<jobject, Error>* code_map_;
-
-  FutureManager future_manager_;
-  CleanupNotifier cleanup_;
-  App* app_ = nullptr;
+  static std::map<jobject, Error>* code_map_;  App* app_ = nullptr;
   std::string region_;
   jobject obj_ = nullptr;
   std::shared_ptr<FunctionsLifetimeState> lifetime_state_;

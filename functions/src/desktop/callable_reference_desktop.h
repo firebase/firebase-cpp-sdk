@@ -145,7 +145,8 @@ class HttpsCallableReferenceInternal {
 
  private:
   // Get the Future for the HttpsCallableReferenceInternal.
-  ReferenceCountedFutureImpl* future();
+  ReferenceCountedFutureImpl* future() { return &future_impl_; }
+  ReferenceCountedFutureImpl future_impl_;
 
   FunctionsInternal* functions_;
   std::string target_;

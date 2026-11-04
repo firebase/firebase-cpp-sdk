@@ -69,11 +69,9 @@ JNIEnv* ResolveJniEnv(FunctionsInternal* primary,
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, jobject wrapper_obj)
-    : functions_(functions), obj_(nullptr) {
+    : functions_(functions), future_impl_(kHttpsCallableReferenceFnCount), obj_(nullptr) {
   if (functions_ && functions_->app()) {
-    functions_->future_manager().AllocFutureApi(this,
-                                                kHttpsCallableReferenceFnCount);
-    if (wrapper_obj) {
+    functions_->    if (wrapper_obj) {
       obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(wrapper_obj);
     }
   }
@@ -88,8 +86,7 @@ void HttpsCallableReferenceInternal::Cleanup(
     obj_ = nullptr;
   }
   if (functions_ != nullptr) {
-    functions_->future_manager().ReleaseFutureApi(this);
-    functions_ = nullptr;
+    functions_->    functions_ = nullptr;
   }
 }
 
@@ -99,9 +96,7 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& src)
     : functions_(src.functions_), obj_(nullptr) {
   if (functions_ && functions_->app()) {
-    functions_->future_manager().AllocFutureApi(this,
-                                                kHttpsCallableReferenceFnCount);
-    if (src.obj_ != nullptr) {
+    functions_->    if (src.obj_ != nullptr) {
       obj_ = functions_->app()->GetJNIEnv()->NewGlobalRef(src.obj_);
     }
   }
@@ -127,14 +122,9 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 
   if (functions_ != src.functions_) {
     if (functions_) {
-      functions_->future_manager().ReleaseFutureApi(this);
-    }
+      functions_->    }
     functions_ = src.functions_;
-    if (functions_) {
-      functions_->future_manager().AllocFutureApi(
-          this, kHttpsCallableReferenceFnCount);
-    }
-  }
+      }
   return *this;
 }
 
@@ -142,10 +132,7 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& src) noexcept
     : functions_(std::exchange(src.functions_, nullptr)),
       obj_(std::exchange(src.obj_, nullptr)) {
-  if (functions_) {
-    functions_->future_manager().MoveFutureApi(&src, this);
   }
-}
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     HttpsCallableReferenceInternal&& src) noexcept {
@@ -155,10 +142,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   Cleanup(src.functions_);
   functions_ = std::exchange(src.functions_, nullptr);
   obj_ = std::exchange(src.obj_, nullptr);
-  if (functions_) {
-    functions_->future_manager().MoveFutureApi(&src, this);
-  }
-  return *this;
+    return *this;
 }
 
 Functions* HttpsCallableReferenceInternal::functions() const {
@@ -318,8 +302,5 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
                     : Future<HttpsCallableResult>();
 }
 
-ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
-  return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
-}
 
 }  // namespace firebase::functions::internal

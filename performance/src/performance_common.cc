@@ -2,7 +2,6 @@
 
 #include "performance/src/performance_common.h"
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util.h"
 #include "performance/src/include/firebase/performance.h"

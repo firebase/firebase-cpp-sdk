@@ -80,8 +80,7 @@ FunctionsInternal::~FunctionsInternal() {
     });
   }
   // Force cleanup of any live HttpsCallableReference instances.
-  cleanup_.CleanupAll();
-  if (app_) {
+    if (app_) {
     app_->function_registry()->CallFunction(
         ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
   }

@@ -14,7 +14,6 @@
 
 #include "remote_config/src/cleanup.h"
 
-#include "app/src/cleanup_notifier.h"
 #include "gtest/gtest.h"
 
 namespace firebase::remote_config {
@@ -22,11 +21,7 @@ namespace {
 
 class FakeCleanupOwner {
  public:
-  CleanupNotifier& cleanup_notifier() { return cleanup_notifier_; }
-
- private:
-  CleanupNotifier cleanup_notifier_;
-};
+ private:};
 
 class TrackableCleanupObject {
  public:

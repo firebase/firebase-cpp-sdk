@@ -38,27 +38,22 @@ enum HttpsCallableReferenceFn {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, std::unique_ptr<FIRHTTPSCallablePointer> impl)
-    : functions_(functions), impl_(std::move(impl)) {
+    : functions_(functions), future_impl_(kHttpsCallableReferenceFnCount), impl_(std::move(impl)) {
   if (functions_) {
-    functions_->future_manager().AllocFutureApi(this,
-                                                kHttpsCallableReferenceFnCount);
-  }
+    functions_->  }
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
   if (functions_) {
-    functions_->future_manager().ReleaseFutureApi(this);
-  }
+    functions_->  }
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
-    : functions_(other.functions_),
+    : functions_(other.functions_), future_impl_(kHttpsCallableReferenceFnCount),
       impl_(std::make_unique<FIRHTTPSCallablePointer>(other.impl())) {
   if (functions_) {
-    functions_->future_manager().AllocFutureApi(this,
-                                                kHttpsCallableReferenceFnCount);
-  }
+    functions_->  }
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
@@ -69,26 +64,18 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   auto new_impl = std::make_unique<FIRHTTPSCallablePointer>(other.impl());
   if (functions_ != other.functions_) {
     if (functions_) {
-      functions_->future_manager().ReleaseFutureApi(this);
-    }
+      functions_->    }
     functions_ = other.functions_;
-    if (functions_) {
-      functions_->future_manager().AllocFutureApi(
-          this, kHttpsCallableReferenceFnCount);
-    }
-  }
+      }
   impl_ = std::move(new_impl);
   return *this;
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other) noexcept
-    : functions_(std::exchange(other.functions_, nullptr)),
+    : functions_(std::exchange(other.functions_, nullptr)), future_impl_(kHttpsCallableReferenceFnCount),
       impl_(std::move(other.impl_)) {
-  if (functions_) {
-    functions_->future_manager().MoveFutureApi(&other, this);
   }
-}
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     HttpsCallableReferenceInternal&& other) noexcept {
@@ -96,14 +83,10 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     return *this;
   }
   if (functions_) {
-    functions_->future_manager().ReleaseFutureApi(this);
-  }
+    functions_->  }
   functions_ = std::exchange(other.functions_, nullptr);
   impl_ = std::move(other.impl_);
-  if (functions_) {
-    functions_->future_manager().MoveFutureApi(&other, this);
-  }
-  return *this;
+    return *this;
 }
 
 Functions* HttpsCallableReferenceInternal::functions() const {
@@ -202,8 +185,5 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
                     : Future<HttpsCallableResult>();
 }
 
-ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
-  return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
-}
 
 }  // namespace firebase::functions::internal

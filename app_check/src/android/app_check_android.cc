@@ -482,9 +482,7 @@ JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
 }
 
 AppCheckInternal::AppCheckInternal(App* app)
-    : app_(app), app_check_impl_(nullptr), j_app_check_listener_(nullptr) {
-  future_manager().AllocFutureApi(this, kAppCheckFnCount);
-  if (app_ == nullptr) {
+    : app_(app), future_impl_(kAppCheckFnCount), app_check_impl_(nullptr), j_app_check_listener_(nullptr) {  if (app_ == nullptr) {
     return;
   }
 
@@ -643,10 +641,7 @@ AppCheckInternal::~AppCheckInternal() {
 
     env->DeleteGlobalRef(app_check_impl_);
     app_check_impl_ = nullptr;
-  }
-
-  future_manager().ReleaseFutureApi(this);
-  app_ = nullptr;
+  }  app_ = nullptr;
 
   {
     MutexLock lock(GetRegistryMutex());
@@ -661,9 +656,6 @@ AppCheckInternal::~AppCheckInternal() {
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }
 
-ReferenceCountedFutureImpl* AppCheckInternal::future() {
-  return future_manager().GetFutureApi(this);
-}
 
 void AppCheckInternal::SetAppCheckProviderFactory(
     AppCheckProviderFactory* factory) {

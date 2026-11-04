@@ -374,9 +374,7 @@ FunctionsInternal::~FunctionsInternal() {
   JNIEnv* env = app_->GetJNIEnv();
   // Cancel any pending JNI Task callbacks registered by this instance so their
   // callback data is released, then clean up live HttpsCallableReferences.
-  util::CancelCallbacks(env, jni_task_id_.c_str());
-  cleanup_.CleanupAll();
-  if (obj_) {
+  util::CancelCallbacks(env, jni_task_id_.c_str());  if (obj_) {
     env->DeleteGlobalRef(obj_);
     obj_ = nullptr;
   }

@@ -207,31 +207,25 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     FunctionsInternal* functions, const char* target, bool is_url,
     const HttpsCallableOptions& options)
     : functions_(functions),
+      future_impl_(kHttpsCallableReferenceFnCount),
       target_(target ? target : ""),
       is_url_(is_url),
       options_(options) {
-  if (functions_) {
-    functions_->future_manager().AllocFutureApi(this,
-                                                kHttpsCallableReferenceFnCount);
-  }
+  
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
-  if (functions_) {
-    functions_->future_manager().ReleaseFutureApi(this);
-  }
+  
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
     : functions_(other.functions_),
+      future_impl_(kHttpsCallableReferenceFnCount),
       target_(other.target_),
       is_url_(other.is_url_),
       options_(other.options_) {
-  if (functions_) {
-    functions_->future_manager().AllocFutureApi(this,
-                                                kHttpsCallableReferenceFnCount);
-  }
+  
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
@@ -240,14 +234,9 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     return *this;
   }
   if (functions_ != other.functions_) {
-    if (functions_) {
-      functions_->future_manager().ReleaseFutureApi(this);
-    }
+    
     functions_ = other.functions_;
-    if (functions_) {
-      functions_->future_manager().AllocFutureApi(
-          this, kHttpsCallableReferenceFnCount);
-    }
+    
   }
   target_ = other.target_;
   is_url_ = other.is_url_;
@@ -258,12 +247,11 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other) noexcept
     : functions_(std::exchange(other.functions_, nullptr)),
+      future_impl_(kHttpsCallableReferenceFnCount),
       target_(std::move(other.target_)),
       is_url_(other.is_url_),
       options_(other.options_) {
-  if (functions_) {
-    functions_->future_manager().MoveFutureApi(&other, this);
-  }
+  
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
@@ -271,16 +259,12 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   if (this == &other) {
     return *this;
   }
-  if (functions_) {
-    functions_->future_manager().ReleaseFutureApi(this);
-  }
+  
   functions_ = std::exchange(other.functions_, nullptr);
   target_ = std::move(other.target_);
   is_url_ = other.is_url_;
   options_ = other.options_;
-  if (functions_) {
-    functions_->future_manager().MoveFutureApi(&other, this);
-  }
+  
   return *this;
 }
 
@@ -302,9 +286,6 @@ bool HttpsCallableReferenceInternal::is_valid() const {
   return functions_ != nullptr && !url().empty();
 }
 
-ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
-  return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
-}
 
 Error ErrorFromHttpStatus(int status) {
   switch (status) {

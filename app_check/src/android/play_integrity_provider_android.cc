@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "app/src/app_common.h"
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
@@ -107,7 +106,7 @@ PlayIntegrityProviderFactoryInternal::~PlayIntegrityProviderFactoryInternal() {
   }
   for (auto& [app, raw_provider] : providers) {
     std::unique_ptr<AppCheckProvider> provider(raw_provider);
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+;
     if (notifier != nullptr && provider != nullptr) {
       notifier->UnregisterObject(provider.get());
     }
@@ -186,7 +185,7 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
     created_providers_[app] = raw_provider;
   }
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
+;
   if (notifier != nullptr) {
     notifier->RegisterObject(
         raw_provider, [this, app, raw_provider](void* /*object*/) {

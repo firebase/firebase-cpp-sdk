@@ -22,7 +22,6 @@
 #include <thread>
 #include <vector>
 
-#include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -82,9 +81,9 @@ class FunctionsInternal {
   // Compute the URL for the given function trigger name.
   std::string GetUrl(const std::string& name) const;
 
-  FutureManager& future_manager() { return future_manager_; }
+  
 
-  CleanupNotifier& cleanup() { return cleanup_; }
+  
 
   const std::shared_ptr<FunctionsLifetimeState>& lifetime_state() const {
     return lifetime_state_;
@@ -95,8 +94,8 @@ class FunctionsInternal {
   std::string region_;
   mutable Mutex mutex_;
   std::string emulator_origin_;
-  FutureManager future_manager_;
-  CleanupNotifier cleanup_;
+  
+  
   std::shared_ptr<FunctionsLifetimeState> lifetime_state_;
 };
 

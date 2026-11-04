@@ -91,7 +91,8 @@ class HttpsCallableReferenceInternal {
 #endif  // __OBJC__
 
   // Get the Future for the HttpsCallableReferenceInternal.
-  ReferenceCountedFutureImpl* future();
+  ReferenceCountedFutureImpl* future() { return &future_impl_; }
+  ReferenceCountedFutureImpl future_impl_;
 
   // The FunctionsInternal object we are part of.
   FunctionsInternal* functions_;
