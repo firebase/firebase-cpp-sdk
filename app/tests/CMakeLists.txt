@@ -147,13 +147,6 @@ firebase_cpp_cc_test(firebase_app_assert_release_test
     firebase_app
 )
 
-firebase_cpp_cc_test(firebase_app_optional_test
-  SOURCES
-    optional_test.cc
-  DEPENDS
-    firebase_app
-)
-
 firebase_cpp_cc_test(firebase_app_cleanup_notifier_test
   SOURCES
     cleanup_notifier_test.cc
@@ -185,13 +178,6 @@ firebase_cpp_cc_test(firebase_app_heartbeat_storage_desktop_test
   DEPENDS
     firebase_app
     flatbuffers
-)
-
-firebase_cpp_cc_test(firebase_app_pthread_thread_test
-  SOURCES
-    thread_test.cc
-  DEPENDS
-    firebase_app
 )
 
 firebase_cpp_cc_test(firebase_app_time_tests
@@ -233,13 +219,6 @@ firebase_cpp_cc_test(firebase_app_locale_test
 firebase_cpp_cc_test(firebase_app_callback_test
   SOURCES
     callback_test.cc
-  DEPENDS
-    firebase_app
-)
-
-firebase_cpp_cc_test(firebase_app_reference_count_test
-  SOURCES
-    reference_count_test.cc
   DEPENDS
     firebase_app
 )

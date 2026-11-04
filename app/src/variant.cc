@@ -22,9 +22,8 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
-#include <iomanip>
-#include <sstream>
 #include <string_view>
 #include <utility>
 
@@ -39,56 +38,44 @@ Variant& Variant::operator=(const Variant& other) {
     temp.type_ = kInternalTypeNull;
     temp.Clear(static_cast<Type>(other.type_));
     switch (temp.type_) {
-      case kInternalTypeNull: {
+      case kInternalTypeNull:
         break;
-      }
-      case kInternalTypeInt64: {
+      case kInternalTypeInt64:
         temp.set_int64_value(other.int64_value());
         break;
-      }
-      case kInternalTypeDouble: {
+      case kInternalTypeDouble:
         temp.set_double_value(other.double_value());
         break;
-      }
-      case kInternalTypeBool: {
+      case kInternalTypeBool:
         temp.set_bool_value(other.bool_value());
         break;
-      }
-      case kInternalTypeStaticString: {
+      case kInternalTypeStaticString:
         temp.set_string_value(other.string_value());
         break;
-      }
-      case kInternalTypeMutableString: {
+      case kInternalTypeMutableString:
         temp.set_mutable_string(*other.value_.mutable_string_value);
         break;
-      }
-      case kInternalTypeSmallString: {
+      case kInternalTypeSmallString:
         strcpy(temp.value_.small_string, other.value_.small_string);  // NOLINT
         break;
-      }
-      case kInternalTypeVector: {
+      case kInternalTypeVector:
         temp.set_vector(other.vector());
         break;
-      }
-      case kInternalTypeMap: {
+      case kInternalTypeMap:
         temp.set_map(other.map());
         break;
-      }
-      case kInternalTypeStaticBlob: {
+      case kInternalTypeStaticBlob:
         temp.set_blob_pointer(other.value_.blob_value.ptr,
                               other.value_.blob_value.size);
         break;
-      }
-      case kInternalTypeMutableBlob: {
+      case kInternalTypeMutableBlob:
         temp.set_mutable_blob(other.value_.blob_value.ptr,
                               other.value_.blob_value.size);
         break;
-      }
       case kMaxTypeValue:
-        FIREBASE_ASSERT(false);  // Should never hit this
+        FIREBASE_ASSERT(false);
         break;
     }
-
     std::swap(type_, temp.type_);
     std::swap(value_, temp.value_);
   }
@@ -96,96 +83,81 @@ Variant& Variant::operator=(const Variant& other) {
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-
 Variant& Variant::operator=(Variant&& other) noexcept {
   if (this != &other) {
     Clear();
     type_ = other.type_;
     other.type_ = kInternalTypeNull;
     switch (type_) {
-      case kInternalTypeNull: {
+      case kInternalTypeNull:
         break;
-      }
-      case kInternalTypeInt64: {
+      case kInternalTypeInt64:
         value_.int64_value = other.value_.int64_value;
         break;
-      }
-      case kInternalTypeDouble: {
+      case kInternalTypeDouble:
         value_.double_value = other.value_.double_value;
         break;
-      }
-      case kInternalTypeBool: {
+      case kInternalTypeBool:
         value_.bool_value = other.value_.bool_value;
         break;
-      }
-      case kInternalTypeStaticString: {
+      case kInternalTypeStaticString:
         value_.static_string_value = other.value_.static_string_value;
         other.value_.static_string_value = nullptr;
         break;
-      }
-      case kInternalTypeMutableString: {
+      case kInternalTypeMutableString:
         value_.mutable_string_value = other.value_.mutable_string_value;
         other.value_.mutable_string_value = nullptr;
         break;
-      }
-      case kInternalTypeSmallString: {
+      case kInternalTypeSmallString:
         memcpy(value_.small_string, other.value_.small_string,
                kMaxSmallStringSize);
         other.value_.small_string[0] = '\0';
         break;
-      }
-      case kInternalTypeVector: {
+      case kInternalTypeVector:
         value_.vector_value = other.value_.vector_value;
         other.value_.vector_value = nullptr;
         break;
-      }
-      case kInternalTypeMap: {
+      case kInternalTypeMap:
         value_.map_value = other.value_.map_value;
         other.value_.map_value = nullptr;
         break;
-      }
-      case kInternalTypeStaticBlob: {
+      case kInternalTypeStaticBlob:
         set_static_blob(other.value_.blob_value.ptr,
                         other.value_.blob_value.size);
         break;
-      }
-      case kInternalTypeMutableBlob: {
+      case kInternalTypeMutableBlob:
         set_blob_pointer(other.value_.blob_value.ptr,
                          other.value_.blob_value.size);
         other.value_.blob_value.ptr = nullptr;
         other.value_.blob_value.size = 0;
         break;
-      }
       case kMaxTypeValue:
-        FIREBASE_ASSERT(false);  // Should never hit this
+        FIREBASE_ASSERT(false);
         break;
     }
   }
   return *this;
 }
-
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 bool Variant::operator==(const Variant& other) const {
-  // If types don't match and we aren't both strings or blobs, fail.
   if (type_ != other.type_ && !(is_string() && other.is_string()) &&
-      !(is_blob() && other.is_blob()))
+      !(is_blob() && other.is_blob())) {
     return false;
-  // Now we know their types are equivalent. So:
+  }
   switch (type_) {
     case kInternalTypeNull:
-      return true;  // nulls are always equal
+      return true;
     case kInternalTypeInt64:
       return int64_value() == other.int64_value();
     case kInternalTypeDouble:
-      if (std::isnan(double_value()) && std::isnan(other.double_value())) return true;
-      return double_value() == other.double_value();
+      return (std::isnan(double_value()) && std::isnan(other.double_value())) ||
+             double_value() == other.double_value();
     case kInternalTypeBool:
       return bool_value() == other.bool_value();
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
-      // string == performs string comparison (handles embedded nulls)
       std::string_view l_view =
           type_ == kInternalTypeMutableString
               ? std::string_view(*value_.mutable_string_value)
@@ -197,79 +169,45 @@ bool Variant::operator==(const Variant& other) const {
       return l_view == r_view;
     }
     case kInternalTypeVector:
-      // std::vector == performs element-by-element comparison
       return vector() == other.vector();
     case kInternalTypeMap:
-      // std::map == performs element-by-element comparison
       return map() == other.map();
     case kInternalTypeStaticBlob:
     case kInternalTypeMutableBlob:
-      // Return true if both are static blobs with the same pointers, otherwise
-      // compare the contents. Also the sizes must match.
       return blob_size() == other.blob_size() &&
              ((is_static_blob() && other.is_static_blob() &&
                blob_data() == other.blob_data()) ||
               memcmp(blob_data(), other.blob_data(), blob_size()) == 0);
     case kMaxTypeValue:
-      FIREBASE_ASSERT(false);  // Should never hit this
+      FIREBASE_ASSERT(false);
       break;
   }
-  return false;  // Should never reach this.
+  return false;
 }
 
 bool Variant::operator<(const Variant& other) const {
-  Type left_type = type();
-  Type right_type = other.type();
-
-  // If we are any string type set type to static string as we care about string
-  // value not type of string.
-  if (is_string()) {
-    left_type = kTypeStaticString;
-  }
-
-  // If other is any string type set type to static string as we care about
-  // string value not type of string.
-  if (other.is_string()) {
-    right_type = kTypeStaticString;
-  }
-
-  // If we are any blob type set type to static blob as we care about blob value
-  // not type of blob.
-  if (is_blob()) {
-    left_type = kTypeStaticBlob;
-  }
-
-  // If other is any blob type set type to static blob as we care about blob
-  // value not type of blob.
-  if (other.is_blob()) {
-    right_type = kTypeStaticBlob;
-  }
-
-  // If the types don't match (except count both string types as matching, and
-  // both blob types as matching), compare the types.
-  if (left_type != right_type)
+  Type left_type = is_string() ? kTypeStaticString
+                   : is_blob() ? kTypeStaticBlob
+                               : type();
+  Type right_type = other.is_string() ? kTypeStaticString
+                    : other.is_blob() ? kTypeStaticBlob
+                                      : other.type();
+  if (left_type != right_type) {
     return static_cast<int>(left_type) < static_cast<int>(right_type);
-  // Type is now equal (or both strings, or both blobs).
+  }
   switch (type_) {
-    case kInternalTypeNull: {
-      return false;  // nulls are always equal
-    }
-    case kInternalTypeInt64: {
+    case kInternalTypeNull:
+      return false;
+    case kInternalTypeInt64:
       return int64_value() < other.int64_value();
-    }
     case kInternalTypeDouble: {
-      double l = double_value();
-      double r = other.double_value();
-      bool l_nan = std::isnan(l);
-      bool r_nan = std::isnan(r);
-      if (l_nan && r_nan) return false;
-      if (l_nan) return false;
-      if (r_nan) return true;
+      double l = double_value(), r = other.double_value();
+      if (std::isnan(l)) return false;
+      if (std::isnan(r)) return true;
       return l < r;
     }
-    case kInternalTypeBool: {
+    case kInternalTypeBool:
       return bool_value() < other.bool_value();
-    }
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
@@ -284,29 +222,19 @@ bool Variant::operator<(const Variant& other) const {
       return l_view < r_view;
     }
     case kInternalTypeVector: {
-      auto i = vector().begin();
-      auto j = other.vector().begin();
+      auto i = vector().begin(), j = other.vector().begin();
       for (; i != vector().end() && j != other.vector().end(); ++i, ++j) {
         if (*i != *j) return *i < *j;
       }
-      // The elements we compared are the same, but one might be larger than
-      // the other. Consider the smaller one as < the other.
-      if (i == vector().end() && j != other.vector().end()) return true;
-      if (i != vector().end() && j == other.vector().end()) return false;
-      return false;  // Equal!
+      return i == vector().end() && j != other.vector().end();
     }
     case kInternalTypeMap: {
-      auto i = map().begin();
-      auto j = other.map().begin();
+      auto i = map().begin(), j = other.map().begin();
       for (; i != map().end() && j != other.map().end(); ++i, ++j) {
         if (i->first != j->first) return i->first < j->first;
         if (i->second != j->second) return i->second < j->second;
       }
-      // The elements we compared are the same, but one might be larger than
-      // the other. Consider the smaller one as < the other.
-      if (i == map().end() && j != other.map().end()) return true;
-      if (i != map().end() && j == other.map().end()) return false;
-      return false;  // Equal!
+      return i == map().end() && j != other.map().end();
     }
     case kInternalTypeMutableBlob:
     case kInternalTypeStaticBlob:
@@ -314,34 +242,29 @@ bool Variant::operator<(const Variant& other) const {
                  ? memcmp(blob_data(), other.blob_data(), blob_size()) < 0
                  : blob_size() < other.blob_size();
     case kMaxTypeValue:
-      FIREBASE_ASSERT(false);  // Should never hit this
+      FIREBASE_ASSERT(false);
       break;
   }
-  return false;  // Should never reach this.
+  return false;
 }
 
 void Variant::Clear(Type new_type) {
   switch (type_) {
-    case kInternalTypeNull: {
+    case kInternalTypeNull:
       break;
-    }
-    case kInternalTypeInt64: {
+    case kInternalTypeInt64:
       value_.int64_value = 0;
       break;
-    }
-    case kInternalTypeDouble: {
+    case kInternalTypeDouble:
       value_.double_value = 0;
       break;
-    }
-    case kInternalTypeBool: {
+    case kInternalTypeBool:
       value_.bool_value = false;
       break;
-    }
-    case kInternalTypeStaticString: {
+    case kInternalTypeStaticString:
       value_.static_string_value = nullptr;
       break;
-    }
-    case kInternalTypeMutableString: {
+    case kInternalTypeMutableString:
       if (new_type != kTypeMutableString ||
           value_.mutable_string_value == nullptr) {
         delete value_.mutable_string_value;
@@ -350,12 +273,10 @@ void Variant::Clear(Type new_type) {
         value_.mutable_string_value->clear();
       }
       break;
-    }
-    case kInternalTypeSmallString: {
+    case kInternalTypeSmallString:
       value_.small_string[0] = '\0';
       break;
-    }
-    case kInternalTypeVector: {
+    case kInternalTypeVector:
       if (new_type != kTypeVector || value_.vector_value == nullptr) {
         delete value_.vector_value;
         value_.vector_value = nullptr;
@@ -363,8 +284,7 @@ void Variant::Clear(Type new_type) {
         value_.vector_value->clear();
       }
       break;
-    }
-    case kInternalTypeMap: {
+    case kInternalTypeMap:
       if (new_type != kTypeMap || value_.map_value == nullptr) {
         delete value_.map_value;
         value_.map_value = nullptr;
@@ -372,11 +292,9 @@ void Variant::Clear(Type new_type) {
         value_.map_value->clear();
       }
       break;
-    }
-    case kInternalTypeStaticBlob: {
+    case kInternalTypeStaticBlob:
       set_blob_pointer(nullptr, 0);
       break;
-    }
     case kInternalTypeMutableBlob: {
       uint8_t* prev_data = const_cast<uint8_t*>(value_.blob_value.ptr);
       set_blob_pointer(nullptr, 0);
@@ -384,71 +302,57 @@ void Variant::Clear(Type new_type) {
       break;
     }
     case kMaxTypeValue:
-      FIREBASE_ASSERT(false);  // Should never hit this
+      FIREBASE_ASSERT(false);
       break;
   }
 
   InternalType old_type = type_;
   type_ = static_cast<InternalType>(new_type);
   switch (type_) {
-    case kInternalTypeNull: {
+    case kInternalTypeNull:
       break;
-    }
-    case kInternalTypeInt64: {
+    case kInternalTypeInt64:
       value_.int64_value = 0;
       break;
-    }
-    case kInternalTypeDouble: {
+    case kInternalTypeDouble:
       value_.double_value = 0;
       break;
-    }
-    case kInternalTypeBool: {
+    case kInternalTypeBool:
       value_.bool_value = false;
       break;
-    }
-    case kInternalTypeStaticString: {
+    case kInternalTypeStaticString:
       value_.static_string_value = "";
       break;
-    }
-    case kInternalTypeMutableString: {
+    case kInternalTypeMutableString:
       if (old_type != kInternalTypeMutableString ||
           value_.mutable_string_value == nullptr) {
         value_.mutable_string_value = new std::string();
       }
       break;
-    }
-    case kInternalTypeSmallString: {
+    case kInternalTypeSmallString:
       value_.small_string[0] = '\0';
       break;
-    }
-    case kInternalTypeVector: {
+    case kInternalTypeVector:
       if (old_type != kInternalTypeVector || value_.vector_value == nullptr) {
         value_.vector_value = new std::vector<Variant>(0);
       }
       break;
-    }
-    case kInternalTypeMap: {
+    case kInternalTypeMap:
       if (old_type != kInternalTypeMap || value_.map_value == nullptr) {
         value_.map_value = new std::map<Variant, Variant>();
       }
       break;
-    }
-    case kInternalTypeStaticBlob: {
+    case kInternalTypeStaticBlob:
+    case kInternalTypeMutableBlob:
       set_blob_pointer(nullptr, 0);
       break;
-    }
-    case kInternalTypeMutableBlob: {
-      set_blob_pointer(nullptr, 0);
-      break;
-    }
     case kMaxTypeValue:
-      FIREBASE_ASSERT(false);  // Should never hit this
+      FIREBASE_ASSERT(false);
       break;
   }
 }
 
 const char* const Variant::kTypeNames[] = {
-    // In case you want to iterate through these for some reason.
     "Null",         "Int64",         "Double",      "Bool",
     "StaticString", "MutableString", "Vector",      "Map",
     "StaticBlob",   "MutableBlob",   "SmallString", nullptr,
@@ -458,7 +362,6 @@ void Variant::assert_is_type(Variant::Type type) const {
   static_assert(
       FIREBASE_ARRAYSIZE(Variant::kTypeNames) == Variant::kMaxTypeValue + 1,
       "Type Enum should match kTypeNames");
-
   FIREBASE_ASSERT_MESSAGE(
       this->type() == type,
       "Expected Variant to be of type %s, but it was of type %s.",
@@ -487,93 +390,62 @@ void Variant::assert_is_blob() const {
 #define INT64FORMAT "%I64d"
 #else
 #define INT64FORMAT "%jd"
-#endif  // FIREBASE_PLATFORM_WINDOWS
+#endif
 
 Variant Variant::AsString() const {
-#ifdef FIREBASE_USE_SNPRINTF
-  static const size_t kBufferSize = 64;
-#endif  // FIREBASE_USE_SNPRINTF
+  char buffer[64];
   switch (type_) {
-    case kInternalTypeInt64: {
-#ifdef FIREBASE_USE_SNPRINTF
-      char buffer[kBufferSize];
-      snprintf(buffer, kBufferSize, INT64FORMAT,
+    case kInternalTypeInt64:
+      snprintf(buffer, sizeof(buffer), INT64FORMAT,
                static_cast<intmax_t>(int64_value()));
       return Variant::FromMutableString(buffer);
-#else
-      std::stringstream ss;
-      ss << static_cast<intmax_t>(int64_value());
-      return Variant::FromMutableString(ss.str());
-#endif  // FIREBASE_USE_SNPRINTF
-    }
-    case kInternalTypeDouble: {
-#ifdef FIREBASE_USE_SNPRINTF
-      char buffer[kBufferSize];
-      snprintf(buffer, kBufferSize, "%.16g", double_value());
+    case kInternalTypeDouble:
+      snprintf(buffer, sizeof(buffer), "%.16g", double_value());
       return Variant::FromMutableString(buffer);
-#else
-      std::stringstream ss;
-      ss << std::setprecision(16) << double_value();
-      return Variant::FromMutableString(ss.str());
-#endif  // FIREBASE_USE_SNPRINTF
-    }
-    case kInternalTypeBool: {
-      return bool_value() ? Variant::FromMutableString("true") : Variant::FromMutableString("false");
-    }
-    case kInternalTypeMutableString: {
+    case kInternalTypeBool:
+      return Variant::FromMutableString(bool_value() ? "true" : "false");
+    case kInternalTypeMutableString:
       return Variant::FromMutableString(*value_.mutable_string_value);
-    }
     case kInternalTypeStaticString:
-    case kInternalTypeSmallString: {
+    case kInternalTypeSmallString:
       return Variant::FromMutableString(string_value());
-    }
-    default: {
+    default:
       return Variant::FromMutableString("");
-    }
   }
 }
 
 Variant Variant::AsInt64() const {
   switch (type_) {
-    case kInternalTypeInt64: {
+    case kInternalTypeInt64:
       return *this;
-    }
     case kInternalTypeDouble: {
       double d = double_value();
       if (std::isnan(d)) return Variant::Zero();
-      if (d >= static_cast<double>(INT64_MAX)) {
+      if (d >= static_cast<double>(INT64_MAX))
         return Variant::FromInt64(INT64_MAX);
-      }
-      if (d <= static_cast<double>(INT64_MIN)) {
+      if (d <= static_cast<double>(INT64_MIN))
         return Variant::FromInt64(INT64_MIN);
-      }
       return Variant::FromInt64(static_cast<int64_t>(d));
     }
-    case kInternalTypeBool: {
+    case kInternalTypeBool:
       return bool_value() ? Variant::One() : Variant::Zero();
-    }
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
-    case kInternalTypeSmallString: {
+    case kInternalTypeSmallString:
       return Variant::FromInt64(strtoll(string_value(), nullptr, 10));  // NOLINT
-    }
-    default: {
+    default:
       return Variant::Zero();
-    }
   }
 }
 
 Variant Variant::AsDouble() const {
   switch (type_) {
-    case kInternalTypeInt64: {
+    case kInternalTypeInt64:
       return Variant::FromDouble(static_cast<double>(int64_value()));
-    }
-    case kInternalTypeDouble: {
+    case kInternalTypeDouble:
       return std::isfinite(double_value()) ? *this : Variant::ZeroPointZero();
-    }
-    case kInternalTypeBool: {
+    case kInternalTypeBool:
       return bool_value() ? Variant::OnePointZero() : Variant::ZeroPointZero();
-    }
     case kInternalTypeMutableString:
     case kInternalTypeStaticString:
     case kInternalTypeSmallString: {
@@ -581,9 +453,8 @@ Variant Variant::AsDouble() const {
       return std::isfinite(d) ? Variant::FromDouble(d)
                               : Variant::ZeroPointZero();
     }
-    default: {
+    default:
       return Variant::ZeroPointZero();
-    }
   }
 }
 

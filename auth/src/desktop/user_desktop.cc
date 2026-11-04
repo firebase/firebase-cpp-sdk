@@ -757,66 +757,27 @@ void GetIdTokenResult(AuthData* auth_data, Promise<IdTokenResult> promise, const
 }
 
 void Delete(AuthData* auth_data, Promise<void> promise) {
-  if (auth_data == nullptr) {  // user is not valid
-    return;
-  }
-  if (!ValidateCurrentUser(&promise, auth_data)) {
-    return;
-  }
-
-  typedef DeleteAccountRequest RequestT;
-  auto request =
-      std::make_unique<RequestT>(*auth_data->app, GetApiKey(*auth_data));
-
-  const auto callback = [](AuthDataHandle<void, RequestT>* const promise) {
-    const auto response = GetResponse<DeleteAccountResponse>(*promise->request);
-    if (response.IsSuccessful()) {
-      promise->auth_data->auth->SignOut();
-      promise->promise.Complete();
-    } else {
-      SignOutIfUserNoLongerValid(promise->auth_data->auth,
-                                 response.error_code());
-      FailPromise(&promise->promise, response.error_code()); return;
-    }
-  };
-
-  CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 callback);
+  if (!ValidateCurrentUser(&promise, auth_data)) return;
+  CallAsyncWithFreshToken(
+      auth_data, promise, std::make_unique<DeleteAccountRequest>(*auth_data->app, GetApiKey(*auth_data)),
+      +[](AuthDataHandle<void, DeleteAccountRequest>* const p) {
+        auto response = GetResponse<DeleteAccountResponse>(*p->request);
+        if (response.IsSuccessful()) { p->auth_data->auth->SignOut(); p->promise.Complete(); }
+        else { SignOutIfUserNoLongerValid(p->auth_data->auth, response.error_code()); FailPromise(&p->promise, response.error_code()); }
+      });
 }
 
 void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
-  
-  if (!ValidateCurrentUser(&promise, auth_data)) {
-    return;
-  }
-
+  if (!ValidateCurrentUser(&promise, auth_data)) return;
   std::string language_code_str;
-  {
-    auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-    MutexLock lock(auth_impl->provider_mutex);
-    language_code_str = auth_impl->language_code;
-  }
-  const char* language_code =
-      language_code_str.empty() ? nullptr : language_code_str.c_str();
-
-  typedef GetOobConfirmationCodeRequest RequestT;
-  auto request = RequestT::CreateSendEmailVerificationRequest(
-      *auth_data->app, GetApiKey(*auth_data), language_code);
-
-  const auto callback = [](AuthDataHandle<void, RequestT>* const promise) {
-    const auto response =
-        GetResponse<GetOobConfirmationCodeResponse>(*promise->request);
-    if (response.IsSuccessful()) {
-      promise->promise.Complete();
-    } else {
-      SignOutIfUserNoLongerValid(promise->auth_data->auth,
-                                 response.error_code());
-      FailPromise(&promise->promise, response.error_code()); return;
-    }
-  };
-
-  CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 callback);
+  { auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl); MutexLock lock(auth_impl->provider_mutex); language_code_str = auth_impl->language_code; }
+  CallAsyncWithFreshToken(
+      auth_data, promise, GetOobConfirmationCodeRequest::CreateSendEmailVerificationRequest(*auth_data->app, GetApiKey(*auth_data), language_code_str.empty() ? nullptr : language_code_str.c_str()),
+      +[](AuthDataHandle<void, GetOobConfirmationCodeRequest>* const p) {
+        auto response = GetResponse<GetOobConfirmationCodeResponse>(*p->request);
+        if (response.IsSuccessful()) { p->promise.Complete(); }
+        else { SignOutIfUserNoLongerValid(p->auth_data->auth, response.error_code()); FailPromise(&p->promise, response.error_code()); }
+      });
 }
 
 void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
@@ -859,88 +820,30 @@ void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void>
 }
 
 void Reload(AuthData* auth_data, Promise<void> promise) {
-  if (auth_data == nullptr) {  // user is not valid
-    return;
-  }
-  if (!ValidateCurrentUser(&promise, auth_data)) {
-    return;
-  }
-
+  if (!ValidateCurrentUser(&promise, auth_data)) return;
   std::string id_token;
-  const bool is_user_logged_in = UserView::TryRead(
-      auth_data,
-      [&](const UserView::Reader& user) { id_token = user->id_token; });
-
-  if (!is_user_logged_in) {
-    promise.InvalidateLastResult(); return;
-  }
-
-  typedef GetAccountInfoRequest RequestT;
-  auto request = std::make_unique<RequestT>(
-      *auth_data->app, GetApiKey(*auth_data), id_token.c_str());
-
-  const auto callback = [](AuthDataHandle<void, RequestT>* const promise) {
-    const GetAccountInfoResult account_info = GetAccountInfo(*promise->request);
-    // No listeners will be notified: UID couldn't have changed, because we
-    // are reloading the same user. Token couldn't have changed, because
-    // GetAccountInfoResponse doesn't contain any tokens.
-    if (account_info.IsValid()) {
-      account_info.MergeToCurrentUser(promise->auth_data);
-      TriggerSaveUserFlow(promise->auth_data);
-      promise->promise.Complete();
-    } else {
-      SignOutIfUserNoLongerValid(promise->auth_data->auth, account_info.error());
-      FailPromise(&promise->promise, account_info.error()); return;
-    }
-  };
-
-  CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 callback);
+  bool is_user_logged_in = UserView::TryRead(auth_data, [&](const UserView::Reader& user) { id_token = user->id_token; });
+  if (!is_user_logged_in) { promise.InvalidateLastResult(); return; }
+  CallAsyncWithFreshToken(
+      auth_data, promise, std::make_unique<GetAccountInfoRequest>(*auth_data->app, GetApiKey(*auth_data), id_token.c_str()),
+      +[](AuthDataHandle<void, GetAccountInfoRequest>* const p) {
+        GetAccountInfoResult account_info = GetAccountInfo(*p->request);
+        if (account_info.IsValid()) {
+          account_info.MergeToCurrentUser(p->auth_data);
+          TriggerSaveUserFlow(p->auth_data);
+          p->promise.Complete();
+        } else { SignOutIfUserNoLongerValid(p->auth_data->auth, account_info.error()); FailPromise(&p->promise, account_info.error()); }
+      });
 }
 
 void UpdatePassword(AuthData* auth_data, Promise<void> promise, const char* const password) {
-  if (auth_data == nullptr) {  // user is not valid
-    return;      // invalid future
-  }
-  if (!ValidateCurrentUser(&promise, auth_data)) {
-    return;
-  }
-  if (!ValidatePassword(&promise, password)) {
-    return;
-  }
-
-  std::string language_code_str;
-  {
-    auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-    MutexLock lock(auth_impl->provider_mutex);
-    language_code_str = auth_impl->language_code;
-  }
-  const char* language_code =
-      language_code_str.empty() ? nullptr : language_code_str.c_str();
-
-  typedef SetAccountInfoRequest RequestT;
-  auto request = RequestT::CreateUpdatePasswordRequest(
-      *auth_data->app, GetApiKey(*auth_data), password, language_code);
-
-  CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 PerformSetAccountInfoFlow<void>);
+  if (!ValidateCurrentUser(&promise, auth_data)) return;
+  CallAsyncWithFreshToken(auth_data, promise, SetAccountInfoRequest::CreateUpdatePasswordRequest(*auth_data->app, GetApiKey(*auth_data), password), PerformSetAccountInfoFlow<void>);
 }
 
 void UpdateUserProfile(AuthData* auth_data, Promise<void> promise, const User::UserProfile& profile) {
-  if (auth_data == nullptr) {  // user is not valid
-    return;      // invalid future
-  }
-  if (!ValidateCurrentUser(&promise, auth_data)) {
-    return;
-  }
-
-  typedef SetAccountInfoRequest RequestT;
-  auto request = RequestT::CreateUpdateProfileRequest(
-      *auth_data->app, GetApiKey(*auth_data), profile.display_name,
-      profile.photo_url);
-
-  CallAsyncWithFreshToken(auth_data, promise, std::move(request),
-                                 PerformSetAccountInfoFlow<void>);
+  if (!ValidateCurrentUser(&promise, auth_data)) return;
+  CallAsyncWithFreshToken(auth_data, promise, SetAccountInfoRequest::CreateUpdateProfileRequest(*auth_data->app, GetApiKey(*auth_data), profile.display_name, profile.photo_url), PerformSetAccountInfoFlow<void>);
 }
 
 void Unlink(AuthData* auth_data, Promise<AuthResult> promise, const char* const provider) {

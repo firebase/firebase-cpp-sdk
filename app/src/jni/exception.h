@@ -18,44 +18,33 @@
 #include <jni.h>
 
 #include <string>
+#include <utility>
 
 #include "app/src/jni/local.h"
 #include "app/src/jni/ownership.h"
 #include "app/src/jni/string.h"
 
-namespace firebase {
-namespace jni {
+namespace firebase::jni {
 
 class Env;
 
-// Policy controlling how JNI exceptions are handled at scope exit or call boundaries.
 enum class ExceptionPolicy {
-  // Captures and clears pending JNI exceptions so C++ can handle them cleanly.
   kCaptureAndClear,
-  // Preserves pending JNI exceptions on the JNIEnv* (for JNI callbacks that
-  // intentionally throw a Java exception back to the JVM).
   kPreservePending,
 };
 
-// Wrapper for a non-owning jthrowable reference.
 class Throwable : public Object {
  public:
   using JniType = jthrowable;
-
   constexpr Throwable() noexcept = default;
   explicit constexpr Throwable(jthrowable throwable) noexcept
       : Object(throwable) {}
-
   constexpr jthrowable get() const noexcept {
     return static_cast<jthrowable>(object_);
   }
-
   [[nodiscard]] std::string GetMessage(Env& env) const;
 };
 
-// Saves and clears any currently pending JNI exception on construction, and
-// restores the exact saved exception state on destruction (clearing any
-// secondary exception that occurred within the guarded scope).
 class ExceptionClearGuard {
  public:
   explicit ExceptionClearGuard(JNIEnv* env) noexcept : env_(env) {
@@ -64,17 +53,11 @@ class ExceptionClearGuard {
       env_->ExceptionClear();
     }
   }
-
   explicit ExceptionClearGuard(Env& env) noexcept;
-
   ~ExceptionClearGuard() noexcept {
     if (!env_) return;
-    if (env_->ExceptionCheck()) {
-      env_->ExceptionClear();
-    }
-    if (saved_exception_) {
-      env_->Throw(saved_exception_.get());
-    }
+    if (env_->ExceptionCheck()) env_->ExceptionClear();
+    if (saved_exception_) env_->Throw(saved_exception_.get());
   }
 
   ExceptionClearGuard(const ExceptionClearGuard&) = delete;
@@ -82,10 +65,12 @@ class ExceptionClearGuard {
   ExceptionClearGuard(ExceptionClearGuard&&) = delete;
   ExceptionClearGuard& operator=(ExceptionClearGuard&&) = delete;
 
-  [[nodiscard]] bool had_exception() const noexcept { return saved_exception_.get() != nullptr; }
-  [[nodiscard]] jthrowable saved_exception() const noexcept { return saved_exception_.get(); }
-
-  // Consumes the saved exception so it will not be re-thrown on destruction.
+  [[nodiscard]] bool had_exception() const noexcept {
+    return saved_exception_.get() != nullptr;
+  }
+  [[nodiscard]] jthrowable saved_exception() const noexcept {
+    return saved_exception_.get();
+  }
   [[nodiscard]] ScopedLocalRef<jthrowable> ReleaseSavedException() noexcept {
     return std::move(saved_exception_);
   }
@@ -95,74 +80,60 @@ class ExceptionClearGuard {
   ScopedLocalRef<jthrowable> saved_exception_;
 };
 
-// Extracts a human-readable message from a jthrowable without disturbing any
-// pending exception on `env`.
-[[nodiscard]] inline std::string ExtractExceptionMessage(JNIEnv* env, jthrowable exception) {
+[[nodiscard]] inline std::string ExtractExceptionMessage(JNIEnv* env,
+                                                         jthrowable exception) {
   if (!env || !exception) return std::string();
   ExceptionClearGuard guard(env);
-
-  ScopedLocalRef<jclass> throwable_class(env, env->GetObjectClass(exception), /*adopt_existing_local=*/true);
+  ScopedLocalRef<jclass> throwable_class(env, env->GetObjectClass(exception),
+                                         true);
   if (!throwable_class || env->ExceptionCheck()) {
     env->ExceptionClear();
     return std::string();
   }
 
   auto try_method = [&](const char* method_name) -> std::string {
-    jmethodID mid =
-        env->GetMethodID(throwable_class.get(), method_name,
-                         "()Ljava/lang/String;");
+    jmethodID mid = env->GetMethodID(throwable_class.get(), method_name,
+                                     "()Ljava/lang/String;");
     if (!mid || env->ExceptionCheck()) {
       env->ExceptionClear();
       return std::string();
     }
-    ScopedLocalRef<jobject> msg_obj(
-        env, env->CallObjectMethod(exception, mid), /*adopt_existing_local=*/true);
+    ScopedLocalRef<jobject> msg_obj(env, env->CallObjectMethod(exception, mid),
+                                    true);
     if (env->ExceptionCheck() || !msg_obj) {
       env->ExceptionClear();
       return std::string();
     }
-    std::string result = JStringToString(env, static_cast<jstring>(msg_obj.get()));
-    if (env->ExceptionCheck()) {
-      env->ExceptionClear();
-    }
+    std::string result =
+        JStringToString(env, static_cast<jstring>(msg_obj.get()));
+    if (env->ExceptionCheck()) env->ExceptionClear();
     return result;
   };
 
-  std::string message = try_method("getLocalizedMessage");
-  if (message.empty()) {
-    message = try_method("getMessage");
+  for (const char* name : {"getLocalizedMessage", "getMessage", "toString"}) {
+    std::string message = try_method(name);
+    if (!message.empty()) return message;
   }
-  if (message.empty()) {
-    message = try_method("toString");
-  }
-  return message;
+  return std::string();
 }
 
-// Checks if a JNI exception is pending on `env`, and if so clears it and
-// returns true.
 [[nodiscard]] inline bool CheckAndClearException(JNIEnv* env) noexcept {
-  if (!env) return false;
-  if (env->ExceptionCheck()) {
+  if (env && env->ExceptionCheck()) {
     env->ExceptionClear();
     return true;
   }
   return false;
 }
 
-// Checks if a JNI exception is pending on `env`, and if so extracts its message,
-// clears the exception, and returns the message (or a non-empty fallback).
 [[nodiscard]] inline std::string GetAndClearExceptionMessage(JNIEnv* env) {
   if (!env || !env->ExceptionCheck()) return std::string();
-  ScopedLocalRef<jthrowable> exception(env, env->ExceptionOccurred(), /*adopt_existing_local=*/true);
+  ScopedLocalRef<jthrowable> exception(env, env->ExceptionOccurred(), true);
   env->ExceptionClear();
   if (!exception) return "Unknown JNI exception";
   std::string msg = ExtractExceptionMessage(env, exception.get());
   return msg.empty() ? "Unknown JNI exception" : msg;
 }
 
-// RAII scope guard for JNI callbacks (`JNIEXPORT` functions invoked from Java).
-// Flushes any deferred GlobalRef deletions on entry, and enforces the chosen
-// ExceptionPolicy on scope exit.
 class JniCallbackScope {
  public:
   explicit JniCallbackScope(
@@ -174,10 +145,8 @@ class JniCallbackScope {
       internal::GlobalRefReaper::Flush(env_);
     }
   }
-
   ~JniCallbackScope() noexcept {
-    if (!env_) return;
-    if (policy_ == ExceptionPolicy::kCaptureAndClear &&
+    if (env_ && policy_ == ExceptionPolicy::kCaptureAndClear &&
         env_->ExceptionCheck()) {
       env_->ExceptionDescribe();
       env_->ExceptionClear();
@@ -196,7 +165,6 @@ class JniCallbackScope {
   ExceptionPolicy policy_;
 };
 
-}  // namespace jni
-}  // namespace firebase
+}  // namespace firebase::jni
 
 #endif  // FIREBASE_APP_SRC_JNI_EXCEPTION_H_

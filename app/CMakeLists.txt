@@ -123,25 +123,17 @@ set(common_SRCS
     src/reference_counted_future_impl.cc
     src/scheduler.cc
     src/thread_cpp11.cc
-    src/thread_pthread.cc
     src/time.cc
     src/secure/user_secure_manager.cc
     src/util.cc
     src/variant.cc
     src/base64.cc)
 
-if (MSVC)
-  set(mutex_SRCS src/mutex_windows.cc)
-else()
-  set(mutex_SRCS src/mutex_pthread.cc)
-endif()
-
 set(app_android_SRCS
     src/app_android.cc
     src/google_play_services/availability_android.cc
     ${app_resources_source}
     ${google_api_resources_source}
-    src/jobject_reference.cc
     src/util_android.cc
     src/uuid.cc)
 set(app_ios_SRCS
@@ -243,12 +235,9 @@ set(utility_common_HDRS
     src/filesystem.h
     src/function_registry.h
     src/future_manager.h
-    src/intrusive_list.h
     src/log.h
     src/optional.h
     src/path.h
-    src/pthread_condvar.h
-    src/reference_count.h
     src/reference_counted_future_impl.h
     src/scheduler.h
     src/semaphore.h
@@ -307,7 +296,6 @@ add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
     ${common_SRCS}
-    ${mutex_SRCS}
     ${app_platform_SRCS}
     ${internal_HDRS}
     ${utility_HDRS}

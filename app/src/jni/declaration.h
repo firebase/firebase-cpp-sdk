@@ -81,62 +81,84 @@ enum FieldType {
   kFieldTypeStaticOptional = 3,
 };
 
-// Untyped base class for JNI constructor declarations.
-//
-// Thread-safety & lifetime note: `clazz_` must be a JVM global `jclass`
-// reference whose lifetime is owned by the caller / `Loader` (never a
-// frame-scoped local reference). `Set()` and `Reset()` use acquire/release
-// atomic pointer operations so concurrent readers never observe a partially
-// initialized declaration and no external `libatomic` dependency is needed.
-class ConstructorBase {
+namespace internal {
+
+template <typename IdType>
+class MemberBase {
+ public:
+  constexpr MemberBase(const char* name, const char* sig) noexcept
+      : name_(name ? name : ""), sig_(sig ? sig : "") {}
+  explicit constexpr MemberBase(IdType id) noexcept
+      : name_(""), sig_(""), id_(id) {}
+  constexpr const char* name() const noexcept { return name_; }
+  constexpr const char* sig() const noexcept { return sig_; }
+  IdType id() const noexcept { return id_.load(std::memory_order_acquire); }
+  explicit operator bool() const noexcept { return id() != nullptr; }
+  void Set(IdType id) noexcept { id_.store(id, std::memory_order_release); }
+  void Reset() noexcept { id_.store(nullptr, std::memory_order_release); }
+
+ private:
+  const char* name_ = "";
+  const char* sig_ = "";
+  std::atomic<IdType> id_{nullptr};
+};
+
+template <typename IdType>
+class ClassMemberBase {
  protected:
   struct State {
     jclass clazz;
-    jmethodID id;
+    IdType id;
   };
 
  public:
-  constexpr explicit ConstructorBase(const char* sig) noexcept
-      : sig_(sig ? sig : "") {}
-  explicit constexpr ConstructorBase(jclass global_clazz,
-                                     jmethodID id) noexcept
-      : sig_(""), clazz_(global_clazz), id_(id) {}
-
-  constexpr const char* name() const noexcept { return "<init>"; }
+  constexpr ClassMemberBase(const char* name, const char* sig) noexcept
+      : name_(name ? name : ""), sig_(sig ? sig : "") {}
+  explicit constexpr ClassMemberBase(jclass global_clazz, IdType id) noexcept
+      : name_(""), sig_(""), clazz_(global_clazz), id_(id) {}
+  constexpr const char* name() const noexcept { return name_; }
   constexpr const char* sig() const noexcept { return sig_; }
 
   State Get() const noexcept {
-    jmethodID id = id_.load(std::memory_order_acquire);
+    IdType id = id_.load(std::memory_order_acquire);
     jclass clazz = clazz_.load(std::memory_order_acquire);
     return State{clazz, id};
   }
-
   explicit operator bool() const noexcept {
     State s = Get();
     return s.clazz != nullptr && s.id != nullptr;
   }
-
-  void Set(jclass global_clazz, jmethodID id) noexcept {
+  void Set(jclass global_clazz, IdType id) noexcept {
     clazz_.store(global_clazz, std::memory_order_release);
     id_.store(id, std::memory_order_release);
   }
-
-  void Set(JNIEnv* /*env*/, jclass global_clazz, jmethodID id) noexcept {
+  void Set(JNIEnv*, jclass global_clazz, IdType id) noexcept {
     Set(global_clazz, id);
   }
-
-  void Reset(JNIEnv* /*env*/ = nullptr) noexcept {
+  void Reset(JNIEnv* = nullptr) noexcept {
     id_.store(nullptr, std::memory_order_release);
     clazz_.store(nullptr, std::memory_order_release);
   }
 
  private:
+  const char* name_ = "";
   const char* sig_ = "";
   std::atomic<jclass> clazz_{nullptr};
-  std::atomic<jmethodID> id_{nullptr};
+  std::atomic<IdType> id_{nullptr};
 };
 
-// Typed declaration of a Java constructor for type T (or signature T(Args...)).
+}  // namespace internal
+
+class ConstructorBase : public internal::ClassMemberBase<jmethodID> {
+ public:
+  constexpr explicit ConstructorBase(const char* sig) noexcept
+      : ClassMemberBase("<init>", sig) {}
+  explicit constexpr ConstructorBase(jclass global_clazz,
+                                     jmethodID id) noexcept
+      : ClassMemberBase(global_clazz, id) {}
+  constexpr const char* name() const noexcept { return "<init>"; }
+};
+
 template <typename T>
 class Constructor : public ConstructorBase {
  public:
@@ -155,40 +177,8 @@ class Constructor<T(Args...)> : public ConstructorBase {
   using ConstructorBase::ConstructorBase;
 };
 
-// Untyped base class for JNI instance method declarations.
-class MethodBase {
- public:
-  constexpr MethodBase(const char* name, const char* sig) noexcept
-      : name_(name ? name : ""), sig_(sig ? sig : "") {}
-  explicit constexpr MethodBase(jmethodID id) noexcept
-      : name_(""), sig_(""), id_(id) {}
+using MethodBase = internal::MemberBase<jmethodID>;
 
-  constexpr const char* name() const noexcept { return name_; }
-  constexpr const char* sig() const noexcept { return sig_; }
-  jmethodID id() const noexcept {
-    return id_.load(std::memory_order_acquire);
-  }
-
-  explicit operator bool() const noexcept {
-    return id_.load(std::memory_order_acquire) != nullptr;
-  }
-
-  void Set(jmethodID id) noexcept {
-    id_.store(id, std::memory_order_release);
-  }
-
-  void Reset() noexcept {
-    id_.store(nullptr, std::memory_order_release);
-  }
-
- private:
-  const char* name_ = "";
-  const char* sig_ = "";
-  std::atomic<jmethodID> id_{nullptr};
-};
-
-// Typed declaration of a Java instance method returning T (or signature
-// Ret(Args...)).
 template <typename T>
 class Method : public MethodBase {
  public:
@@ -207,39 +197,8 @@ class Method<Ret(Args...)> : public MethodBase {
   using MethodBase::MethodBase;
 };
 
-// Untyped base class for JNI instance field declarations.
-class FieldBase {
- public:
-  constexpr FieldBase(const char* name, const char* sig) noexcept
-      : name_(name ? name : ""), sig_(sig ? sig : "") {}
-  explicit constexpr FieldBase(jfieldID id) noexcept
-      : name_(""), sig_(""), id_(id) {}
+using FieldBase = internal::MemberBase<jfieldID>;
 
-  constexpr const char* name() const noexcept { return name_; }
-  constexpr const char* sig() const noexcept { return sig_; }
-  jfieldID id() const noexcept {
-    return id_.load(std::memory_order_acquire);
-  }
-
-  explicit operator bool() const noexcept {
-    return id_.load(std::memory_order_acquire) != nullptr;
-  }
-
-  void Set(jfieldID id) noexcept {
-    id_.store(id, std::memory_order_release);
-  }
-
-  void Reset() noexcept {
-    id_.store(nullptr, std::memory_order_release);
-  }
-
- private:
-  const char* name_ = "";
-  const char* sig_ = "";
-  std::atomic<jfieldID> id_{nullptr};
-};
-
-// Typed declaration of a Java instance field of type T.
 template <typename T>
 class Field : public FieldBase {
  public:
@@ -247,60 +206,8 @@ class Field : public FieldBase {
   using FieldBase::FieldBase;
 };
 
-// Untyped base class for JNI static field declarations.
-//
-// `clazz_` must be a JVM global `jclass` reference owned by the caller /
-// `Loader`.
-class StaticFieldBase {
- protected:
-  struct State {
-    jclass clazz;
-    jfieldID id;
-  };
+using StaticFieldBase = internal::ClassMemberBase<jfieldID>;
 
- public:
-  constexpr StaticFieldBase(const char* name, const char* sig) noexcept
-      : name_(name ? name : ""), sig_(sig ? sig : "") {}
-  explicit constexpr StaticFieldBase(jclass global_clazz,
-                                     jfieldID id) noexcept
-      : name_(""), sig_(""), clazz_(global_clazz), id_(id) {}
-
-  constexpr const char* name() const noexcept { return name_; }
-  constexpr const char* sig() const noexcept { return sig_; }
-
-  State Get() const noexcept {
-    jfieldID id = id_.load(std::memory_order_acquire);
-    jclass clazz = clazz_.load(std::memory_order_acquire);
-    return State{clazz, id};
-  }
-
-  explicit operator bool() const noexcept {
-    State s = Get();
-    return s.clazz != nullptr && s.id != nullptr;
-  }
-
-  void Set(jclass global_clazz, jfieldID id) noexcept {
-    clazz_.store(global_clazz, std::memory_order_release);
-    id_.store(id, std::memory_order_release);
-  }
-
-  void Set(JNIEnv* /*env*/, jclass global_clazz, jfieldID id) noexcept {
-    Set(global_clazz, id);
-  }
-
-  void Reset(JNIEnv* /*env*/ = nullptr) noexcept {
-    id_.store(nullptr, std::memory_order_release);
-    clazz_.store(nullptr, std::memory_order_release);
-  }
-
- private:
-  const char* name_ = "";
-  const char* sig_ = "";
-  std::atomic<jclass> clazz_{nullptr};
-  std::atomic<jfieldID> id_{nullptr};
-};
-
-// Typed declaration of a Java static field of type T.
 template <typename T>
 class StaticField : public StaticFieldBase {
  public:
@@ -308,61 +215,8 @@ class StaticField : public StaticFieldBase {
   using StaticFieldBase::StaticFieldBase;
 };
 
-// Untyped base class for JNI static method declarations.
-//
-// `clazz_` must be a JVM global `jclass` reference owned by the caller /
-// `Loader`.
-class StaticMethodBase {
- protected:
-  struct State {
-    jclass clazz;
-    jmethodID id;
-  };
+using StaticMethodBase = internal::ClassMemberBase<jmethodID>;
 
- public:
-  constexpr StaticMethodBase(const char* name, const char* sig) noexcept
-      : name_(name ? name : ""), sig_(sig ? sig : "") {}
-  explicit constexpr StaticMethodBase(jclass global_clazz,
-                                      jmethodID id) noexcept
-      : name_(""), sig_(""), clazz_(global_clazz), id_(id) {}
-
-  constexpr const char* name() const noexcept { return name_; }
-  constexpr const char* sig() const noexcept { return sig_; }
-
-  State Get() const noexcept {
-    jmethodID id = id_.load(std::memory_order_acquire);
-    jclass clazz = clazz_.load(std::memory_order_acquire);
-    return State{clazz, id};
-  }
-
-  explicit operator bool() const noexcept {
-    State s = Get();
-    return s.clazz != nullptr && s.id != nullptr;
-  }
-
-  void Set(jclass global_clazz, jmethodID id) noexcept {
-    clazz_.store(global_clazz, std::memory_order_release);
-    id_.store(id, std::memory_order_release);
-  }
-
-  void Set(JNIEnv* /*env*/, jclass global_clazz, jmethodID id) noexcept {
-    Set(global_clazz, id);
-  }
-
-  void Reset(JNIEnv* /*env*/ = nullptr) noexcept {
-    id_.store(nullptr, std::memory_order_release);
-    clazz_.store(nullptr, std::memory_order_release);
-  }
-
- private:
-  const char* name_ = "";
-  const char* sig_ = "";
-  std::atomic<jclass> clazz_{nullptr};
-  std::atomic<jmethodID> id_{nullptr};
-};
-
-// Typed declaration of a Java static method returning T (or signature
-// Ret(Args...)).
 template <typename T>
 class StaticMethod : public StaticMethodBase {
  public:
@@ -384,9 +238,6 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
 }  // namespace jni
 }  // namespace firebase
 
-// -------------------------------------------------------------------------
-// Boilerplate reduction macro for JNI class/method lookup
-
 #ifndef METHOD_LOOKUP_NONE
 #define METHOD_LOOKUP_NONE(X)
 #endif
@@ -399,22 +250,6 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
   namespace NAMESPACE {                                                       \
   enum Method { METHODS_MACRO(JNI_METHOD_ENUM) kMethodCount };                \
   enum Field { FIELDS_MACRO(JNI_FIELD_ENUM) kFieldCount };                    \
-  inline jclass GetClass();                                                   \
-  inline jmethodID GetMethodId(Method method);                                \
-  inline jfieldID GetFieldId(Field field);                                    \
-  bool CacheMethodIds(JNIEnv* env, jobject activity = nullptr);               \
-  bool CacheFieldIds(JNIEnv* env, jobject activity = nullptr);                \
-  inline void ReleaseClass(JNIEnv* env);                                      \
-  jclass CacheClassFromFiles(                                                 \
-      JNIEnv* env, jobject activity = nullptr,                                \
-      const std::vector<::firebase::internal::EmbeddedFile>* embedded_files = \
-          nullptr,                                                            \
-      ::firebase::util::ClassRequirement optional =                           \
-          ::firebase::util::kClassRequired);                                  \
-  inline bool RegisterNatives(JNIEnv* env, const JNINativeMethod* methods,    \
-                              size_t num_methods);                            \
-  }                                                                           \
-  namespace NAMESPACE {                                                       \
   inline ::firebase::Mutex g_mutex;                                           \
   inline jclass g_class = nullptr;                                            \
   inline bool g_methods_cached = false;                                       \
@@ -428,12 +263,10 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
   inline jmethodID GetMethodId(Method method) { return g_method_ids[method]; }\
   inline jfieldID GetFieldId(Field field) { return g_field_ids[field]; }      \
   inline void ReleaseClassLocked(JNIEnv* env) {                               \
-    for (size_t i = 0; i < static_cast<size_t>(kMethodCount); ++i) {          \
+    for (size_t i = 0; i < static_cast<size_t>(kMethodCount); ++i)            \
       g_method_ids[i] = nullptr;                                              \
-    }                                                                         \
-    for (size_t i = 0; i < static_cast<size_t>(kFieldCount); ++i) {           \
+    for (size_t i = 0; i < static_cast<size_t>(kFieldCount); ++i)             \
       g_field_ids[i] = nullptr;                                               \
-    }                                                                         \
     if (g_class) {                                                            \
       if (env && g_registered_natives) {                                      \
         (void)::firebase::jni::CheckAndClearException(env);                   \
@@ -461,23 +294,19 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
     for (const auto& f : kFields) {                                           \
       if (f.id == -1) break;                                                  \
       if (!f.name || !f.sig) continue;                                        \
-      if (f.type == 1 || f.type == 3) {                                       \
-        g_field_ids[f.id] = env->GetStaticFieldID(g_class, f.name, f.sig);    \
-      } else {                                                                \
-        g_field_ids[f.id] = env->GetFieldID(g_class, f.name, f.sig);          \
-      }                                                                       \
+      g_field_ids[f.id] =                                                     \
+          (f.type == 1 || f.type == 3)                                        \
+              ? env->GetStaticFieldID(g_class, f.name, f.sig)                 \
+              : env->GetFieldID(g_class, f.name, f.sig);                      \
       if (::firebase::jni::CheckAndClearException(env) ||                     \
           !g_field_ids[f.id]) {                                               \
         g_field_ids[f.id] = nullptr;                                          \
-        const bool is_opt = (f.type == 2 || f.type == 3 || f.optional != 0);                                                \
-        if (!is_opt) {                                                        \
-          return false;                                                       \
-        }                                                                     \
+        if (!(f.type == 2 || f.type == 3 || f.optional != 0)) return false;   \
       }                                                                       \
     }                                                                         \
     return true;                                                              \
   }                                                                           \
-  inline bool CacheFieldIds(JNIEnv* env, jobject activity) {                  \
+  inline bool CacheFieldIds(JNIEnv* env, jobject activity = nullptr) {        \
     ::firebase::MutexLock lock(g_mutex);                                      \
     if (!g_class) {                                                           \
       g_class = ::firebase::util::FindClassGlobal(                            \
@@ -492,7 +321,7 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
     }                                                                         \
     return true;                                                              \
   }                                                                           \
-  inline bool CacheMethodIds(JNIEnv* env, jobject activity) {                 \
+  inline bool CacheMethodIds(JNIEnv* env, jobject activity = nullptr) {       \
     ::firebase::MutexLock lock(g_mutex);                                      \
     if (g_methods_cached && g_class) return true;                             \
     if (!g_class) {                                                           \
@@ -514,16 +343,14 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
     for (const auto& m : kMethods) {                                          \
       if (m.id == -1) break;                                                  \
       if (!m.name || !m.sig) continue;                                        \
-      if (m.type == 1 || m.type == 3) {                                       \
-        g_method_ids[m.id] = env->GetStaticMethodID(g_class, m.name, m.sig);  \
-      } else {                                                                \
-        g_method_ids[m.id] = env->GetMethodID(g_class, m.name, m.sig);        \
-      }                                                                       \
+      g_method_ids[m.id] =                                                    \
+          (m.type == 1 || m.type == 3)                                        \
+              ? env->GetStaticMethodID(g_class, m.name, m.sig)                \
+              : env->GetMethodID(g_class, m.name, m.sig);                     \
       if (::firebase::jni::CheckAndClearException(env) ||                     \
           !g_method_ids[m.id]) {                                              \
         g_method_ids[m.id] = nullptr;                                         \
-        const bool is_opt = (m.type == 2 || m.type == 3 || m.optional != 0);                                                \
-        if (!is_opt) {                                                        \
+        if (!(m.type == 2 || m.type == 3 || m.optional != 0)) {               \
           ReleaseClassLocked(env);                                            \
           return false;                                                       \
         }                                                                     \
@@ -541,9 +368,11 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
     ReleaseClassLocked(env);                                                  \
   }                                                                           \
   inline jclass CacheClassFromFiles(                                          \
-      JNIEnv* env, jobject activity,                                          \
-      const std::vector<::firebase::internal::EmbeddedFile>* embedded_files,  \
-      ::firebase::util::ClassRequirement optional) {                          \
+      JNIEnv* env, jobject activity = nullptr,                                \
+      const std::vector<::firebase::internal::EmbeddedFile>* embedded_files = \
+          nullptr,                                                            \
+      ::firebase::util::ClassRequirement optional =                           \
+          ::firebase::util::kClassRequired) {                                 \
     ::firebase::MutexLock lock(g_mutex);                                      \
     if (!g_class) {                                                           \
       g_class = ::firebase::util::FindClassGlobal(                            \
@@ -555,8 +384,9 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
   inline bool RegisterNatives(JNIEnv* env, const JNINativeMethod* methods,    \
                               size_t num_methods) {                           \
     ::firebase::MutexLock lock(g_mutex);                                      \
-    if (g_registered_natives) return false;                                   \
-    if (!env || !g_class || !methods || num_methods == 0) return false;       \
+    if (g_registered_natives || !env || !g_class || !methods ||               \
+        num_methods == 0)                                                     \
+      return false;                                                           \
     (void)::firebase::jni::CheckAndClearException(env);                       \
     const jint status = env->RegisterNatives(                                 \
         g_class, methods, static_cast<jint>(num_methods));                    \
@@ -574,7 +404,6 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
                              Optional, ...)                           \
   {k##Name, StringName, Signature, static_cast<int>(MethodType),      \
    static_cast<int>(Optional)},
-
 #define JNI_METHOD_DATA_EXPAND(...) JNI_METHOD_DATA_IMPL(__VA_ARGS__)
 #define JNI_METHOD_DATA(Name, StringName, Signature, ...) \
   JNI_METHOD_DATA_EXPAND(Name, StringName, Signature, ##__VA_ARGS__, 0, 0, 0)
@@ -583,7 +412,6 @@ class StaticMethod<Ret(Args...)> : public StaticMethodBase {
                             ...)                                              \
   {k##Name, StringName, Signature, static_cast<int>(FieldType),               \
    static_cast<int>(Optional)},
-
 #define JNI_FIELD_DATA_EXPAND(...) JNI_FIELD_DATA_IMPL(__VA_ARGS__)
 #define JNI_FIELD_DATA(Name, StringName, Signature, ...) \
   JNI_FIELD_DATA_EXPAND(Name, StringName, Signature, ##__VA_ARGS__, 0, 0, 0)

@@ -29,8 +29,7 @@
 #include "app/src/jni/string.h"
 #include "app/src/util_android.h"
 
-namespace firebase {
-namespace jni {
+namespace firebase::jni {
 
 JNI_METHOD_LOOKUP_DECLARATION(j_string, METHOD_LOOKUP_NONE, FIELD_LOOKUP_NONE,
                               "java/lang/String")
@@ -44,9 +43,9 @@ JNI_METHOD_LOOKUP_DECLARATION(throwable, JNI_THROWABLE_METHODS,
 JNI_METHOD_LOOKUP_DECLARATION(uri, JNI_URI_METHODS, FIELD_LOOKUP_NONE,
                               "android/net/Uri")
 
-#define JNI_URI_BUILDER_METHODS(X)                                         \
-  X(Constructor, "<init>", "()V")                                          \
-  X(EncodedPath, "encodedPath", "(Ljava/lang/String;)Landroid/net/Uri$Builder;") \
+#define JNI_URI_BUILDER_METHODS(X)                                             \
+  X(Constructor, "<init>", "()V")                                              \
+  X(EncodedPath, "encodedPath", "(Ljava/lang/String;)Landroid/net/Uri$Builder;")\
   X(Build, "build", "()Landroid/net/Uri;")
 JNI_METHOD_LOOKUP_DECLARATION(uribuilder, JNI_URI_BUILDER_METHODS,
                               FIELD_LOOKUP_NONE, "android/net/Uri$Builder")
@@ -100,15 +99,15 @@ JNI_METHOD_LOOKUP_DECLARATION(map, JNI_MAP_METHODS, FIELD_LOOKUP_NONE,
 JNI_METHOD_LOOKUP_DECLARATION(long_class, JNI_LONG_METHODS, FIELD_LOOKUP_NONE,
                               "java/lang/Long")
 
-#define JNI_BUNDLE_METHODS(X)                                                 \
-  X(Constructor, "<init>", "()V")                                             \
-  X(PutString, "putString", "(Ljava/lang/String;Ljava/lang/String;)V")        \
-  X(PutLong, "putLong", "(Ljava/lang/String;J)V")                             \
-  X(PutDouble, "putDouble", "(Ljava/lang/String;D)V")                         \
-  X(PutBundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V")       \
-  X(PutParcelableArray, "putParcelableArray",                                 \
-    "(Ljava/lang/String;[Landroid/os/Parcelable;)V")                          \
-  X(PutParcelableArrayList, "putParcelableArrayList",                         \
+#define JNI_BUNDLE_METHODS(X)                                           \
+  X(Constructor, "<init>", "()V")                                       \
+  X(PutString, "putString", "(Ljava/lang/String;Ljava/lang/String;)V")  \
+  X(PutLong, "putLong", "(Ljava/lang/String;J)V")                       \
+  X(PutDouble, "putDouble", "(Ljava/lang/String;D)V")                   \
+  X(PutBundle, "putBundle", "(Ljava/lang/String;Landroid/os/Bundle;)V") \
+  X(PutParcelableArray, "putParcelableArray",                           \
+    "(Ljava/lang/String;[Landroid/os/Parcelable;)V")                    \
+  X(PutParcelableArrayList, "putParcelableArrayList",                   \
     "(Ljava/lang/String;Ljava/util/ArrayList;)V")
 JNI_METHOD_LOOKUP_DECLARATION(bundle, JNI_BUNDLE_METHODS, FIELD_LOOKUP_NONE,
                               "android/os/Bundle")
@@ -148,9 +147,8 @@ inline void ReleaseCollectionClasses(JNIEnv* env) {
 inline jobject StdVectorToJavaList(JNIEnv* env,
                                    const std::vector<std::string>& vec) {
   if (!env || !array_list::CacheMethodIds(env)) return nullptr;
-  jobject list = env->NewObject(
-      array_list::GetClass(),
-      array_list::GetMethodId(array_list::kConstructor));
+  jobject list = env->NewObject(array_list::GetClass(),
+                                array_list::GetMethodId(array_list::kConstructor));
   if (CheckAndClearException(env) || !list) return nullptr;
   for (const auto& str : vec) {
     jstring j_str = env->NewStringUTF(str.c_str());
@@ -188,8 +186,8 @@ inline void StdMapToJavaMap(JNIEnv* env, jobject* jmap,
 inline jobject StdMapToJavaMap(JNIEnv* env,
                                const std::map<std::string, std::string>& map) {
   if (!env || !hash_map::CacheMethodIds(env)) return nullptr;
-  jobject jmap = env->NewObject(
-      hash_map::GetClass(), hash_map::GetMethodId(hash_map::kConstructor));
+  jobject jmap = env->NewObject(hash_map::GetClass(),
+                                hash_map::GetMethodId(hash_map::kConstructor));
   if (CheckAndClearException(env) || !jmap) return nullptr;
   StdMapToJavaMap(env, &jmap, map);
   return jmap;
@@ -203,23 +201,19 @@ inline std::string JniUriToString(JNIEnv* env, jobject uri_obj) {
     if (path) env->DeleteLocalRef(path);
     return "";
   }
-  std::string result = JStringToString(env, path);
-  env->DeleteLocalRef(path);
-  return result;
+  return JniStringToStringAndReleaseLocalRef(env, path);
 }
 
 inline jobject CharsToJniUri(JNIEnv* env, const char* uri_str) {
   if (!env || !uri_str || !uribuilder::CacheMethodIds(env)) return nullptr;
   jobject uri_object = nullptr;
   jobject builder = env->NewObject(
-      uribuilder::GetClass(),
-      uribuilder::GetMethodId(uribuilder::kConstructor));
+      uribuilder::GetClass(), uribuilder::GetMethodId(uribuilder::kConstructor));
   if (CheckAndClearException(env) || !builder) return nullptr;
   jstring uri_string = env->NewStringUTF(uri_str);
   if (!CheckAndClearException(env) && uri_string) {
     jobject builder_discard = env->CallObjectMethod(
-        builder, uribuilder::GetMethodId(uribuilder::kEncodedPath),
-        uri_string);
+        builder, uribuilder::GetMethodId(uribuilder::kEncodedPath), uri_string);
     if (!CheckAndClearException(env)) {
       uri_object = env->CallObjectMethod(
           builder, uribuilder::GetMethodId(uribuilder::kBuild));
@@ -254,7 +248,6 @@ inline jbyteArray ByteBufferToJavaByteArray(JNIEnv* env, const uint8_t* data,
   return array;
 }
 
-}  // namespace jni
-}  // namespace firebase
+}  // namespace firebase::jni
 
 #endif  // FIREBASE_APP_SRC_JNI_COLLECTION_H_
