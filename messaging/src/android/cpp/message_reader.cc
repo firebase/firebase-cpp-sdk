@@ -1,36 +1,17 @@
-// Copyright 2019 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "messaging/src/android/cpp/message_reader.h"
-
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
-
 #include "app/src/log.h"
 #include "messaging/messaging_generated.h"
 #include "messaging/src/include/firebase/messaging.h"
-
 namespace firebase {
 namespace messaging {
 namespace internal {
-
 using com::google::firebase::messaging::cpp::DataPair;
 using com::google::firebase::messaging::cpp::GetSerializedEvent;
 using com::google::firebase::messaging::cpp::SerializedEvent;
-using com::google::firebase::messaging::cpp::SerializedEventUnion;
 using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedMessage;
 using com::google::firebase::messaging::cpp::
@@ -45,15 +26,12 @@ using com::google::firebase::messaging::cpp::SerializedRegistrationReceived;
 using com::google::firebase::messaging::cpp::SerializedTokenReceived;
 using com::google::firebase::messaging::cpp::SerializedUnregistrationReceived;
 using com::google::firebase::messaging::cpp::VerifySerializedEventBuffer;
-
 static const char kMessageReadError[] =
     "%s Failed to load FCM messages, some messages may have been dropped! "
     "This may be due to, (1) the device being out of space, (2) a crash on "
     "a previous run of the application, (3) a change in internal "
     "serialization format following an upgrade.";
-
 void MessageReader::ReadFromBuffer(const std::string& buffer) const {
-  // Process each serialized message from the buffer.
   const char* ptr = buffer.data();
   size_t remaining = buffer.size();
   while (remaining) {
@@ -62,8 +40,6 @@ void MessageReader::ReadFromBuffer(const std::string& buffer) const {
                "Detected premature end of a FCM message buffer.");
       break;
     }
-    // Get the size of the flatbuffer so we know how far to increment the
-    // pointer on the next iteration.
     int32_t raw_len = 0;
     std::memcpy(&raw_len, ptr, sizeof(int32_t));
     ptr += sizeof(int32_t);
@@ -78,21 +54,11 @@ void MessageReader::ReadFromBuffer(const std::string& buffer) const {
         reinterpret_cast<const uint8_t*>(ptr) + buffer_len);
     ptr += buffer_len;
     remaining -= buffer_len;
-
     ::flatbuffers::Verifier verifier(aligned_buffer.data(), buffer_len);
     if (!VerifySerializedEventBuffer(verifier)) {
-      // If we make a breaking change to the flatbuffers schemas any app that
-      // has serialized events that have not been consumed will not be able to
-      // parse those events anymore. Since the schema now has a union of
-      // different kinds of events that it can represent it should be easier to
-      // extend and breaking changes should not be necessary going forward, but
-      // this is here just in case.
       LogError(kMessageReadError, "FCM buffer verification failed.");
       break;
     }
-
-    // Decode the union of serialized event types and parse the message or
-    // token.
     const SerializedEvent* serialized_event =
         GetSerializedEvent(aligned_buffer.data());
     if (!serialized_event) {
@@ -100,43 +66,30 @@ void MessageReader::ReadFromBuffer(const std::string& buffer) const {
       break;
     }
     switch (serialized_event->event_type()) {
-      case SerializedEventUnion_SerializedMessage: {
-        const SerializedMessage* serialized_message =
-            static_cast<const SerializedMessage*>(serialized_event->event());
-        ConsumeMessage(serialized_message);
+      case SerializedEventUnion_SerializedMessage:
+        ConsumeMessage(
+            static_cast<const SerializedMessage*>(serialized_event->event()));
         break;
-      }
-      case SerializedEventUnion_SerializedTokenReceived: {
-        const SerializedTokenReceived* serialized_token_received =
-            static_cast<const SerializedTokenReceived*>(
-                serialized_event->event());
-        ConsumeTokenReceived(serialized_token_received);
+      case SerializedEventUnion_SerializedTokenReceived:
+        ConsumeTokenReceived(static_cast<const SerializedTokenReceived*>(
+            serialized_event->event()));
         break;
-      }
-      case SerializedEventUnion_SerializedRegistrationReceived: {
-        const SerializedRegistrationReceived* serialized_registration_received =
+      case SerializedEventUnion_SerializedRegistrationReceived:
+        ConsumeRegistrationReceived(
             static_cast<const SerializedRegistrationReceived*>(
-                serialized_event->event());
-        ConsumeRegistrationReceived(serialized_registration_received);
+                serialized_event->event()));
         break;
-      }
-      case SerializedEventUnion_SerializedUnregistrationReceived: {
-        const SerializedUnregistrationReceived*
-            serialized_unregistration_received =
-                static_cast<const SerializedUnregistrationReceived*>(
-                    serialized_event->event());
-        ConsumeUnregistrationReceived(serialized_unregistration_received);
+      case SerializedEventUnion_SerializedUnregistrationReceived:
+        ConsumeUnregistrationReceived(
+            static_cast<const SerializedUnregistrationReceived*>(
+                serialized_event->event()));
         break;
-      }
-      default: {
-        // This should never happen.
+      default:
         LogError(kMessageReadError, "Detected invalid FCM event type.");
         break;
-      }
     }
   }
 }
-
 void MessageReader::ConsumeMessage(
     const SerializedMessage* serialized_message) const {
   if (!serialized_message) return;
@@ -148,17 +101,14 @@ void MessageReader::ConsumeMessage(
   if (serialized_message->data()) {
     flatbuffers::uoffset_t size = serialized_message->data()->size();
     for (flatbuffers::uoffset_t i = 0; i < size; ++i) {
-      const DataPair* pair = serialized_message->data()->Get(i);
-      if (!pair) continue;
-      const char* key = SafeFlatbufferString(pair->key());
-      const char* value = SafeFlatbufferString(pair->value());
-      if (key && value) {
-        message.data[key] = value;
+      if (const DataPair* pair = serialized_message->data()->Get(i)) {
+        const char* key = SafeFlatbufferString(pair->key());
+        const char* value = SafeFlatbufferString(pair->value());
+        if (key && value) message.data[key] = value;
       }
     }
   }
   if (serialized_message->raw_data()) {
-    message.raw_data.reserve(serialized_message->raw_data()->size());
     message.raw_data.assign(serialized_message->raw_data()->begin(),
                             serialized_message->raw_data()->end());
   }
@@ -177,99 +127,73 @@ void MessageReader::ConsumeMessage(
       SafeFlatbufferString(serialized_message->original_priority());
   message.sent_time = serialized_message->sent_time();
   message.time_to_live = serialized_message->time_to_live();
-  if (serialized_message->notification()) {
-    const SerializedNotification* serialized_notification =
-        serialized_message->notification();
-    notification.title = SafeFlatbufferString(serialized_notification->title());
-    notification.body = SafeFlatbufferString(serialized_notification->body());
-    notification.icon = SafeFlatbufferString(serialized_notification->icon());
-    notification.sound = SafeFlatbufferString(serialized_notification->sound());
-    notification.badge = SafeFlatbufferString(serialized_notification->badge());
-    notification.tag = SafeFlatbufferString(serialized_notification->tag());
-    notification.color = SafeFlatbufferString(serialized_notification->color());
-    notification.click_action =
-        SafeFlatbufferString(serialized_notification->click_action());
-    notification.body_loc_key =
-        SafeFlatbufferString(serialized_notification->body_loc_key());
-    if (serialized_notification->body_loc_args()) {
-      flatbuffers::uoffset_t size =
-          serialized_notification->body_loc_args()->size();
+  if (const SerializedNotification* sn = serialized_message->notification()) {
+    notification.title = SafeFlatbufferString(sn->title());
+    notification.body = SafeFlatbufferString(sn->body());
+    notification.icon = SafeFlatbufferString(sn->icon());
+    notification.sound = SafeFlatbufferString(sn->sound());
+    notification.badge = SafeFlatbufferString(sn->badge());
+    notification.tag = SafeFlatbufferString(sn->tag());
+    notification.color = SafeFlatbufferString(sn->color());
+    notification.click_action = SafeFlatbufferString(sn->click_action());
+    notification.body_loc_key = SafeFlatbufferString(sn->body_loc_key());
+    if (sn->body_loc_args()) {
+      flatbuffers::uoffset_t size = sn->body_loc_args()->size();
       notification.body_loc_args.resize(size);
       for (flatbuffers::uoffset_t i = 0; i < size; ++i) {
-        notification.body_loc_args[i] = SafeFlatbufferString(
-            serialized_notification->body_loc_args()->Get(i));
+        notification.body_loc_args[i] =
+            SafeFlatbufferString(sn->body_loc_args()->Get(i));
       }
     }
-    notification.title_loc_key =
-        SafeFlatbufferString(serialized_notification->title_loc_key());
-    if (serialized_notification->title_loc_args()) {
-      flatbuffers::uoffset_t size =
-          serialized_notification->title_loc_args()->size();
+    notification.title_loc_key = SafeFlatbufferString(sn->title_loc_key());
+    if (sn->title_loc_args()) {
+      flatbuffers::uoffset_t size = sn->title_loc_args()->size();
       notification.title_loc_args.resize(size);
       for (flatbuffers::uoffset_t i = 0; i < size; ++i) {
-        notification.title_loc_args[i] = SafeFlatbufferString(
-            serialized_notification->title_loc_args()->Get(i));
+        notification.title_loc_args[i] =
+            SafeFlatbufferString(sn->title_loc_args()->Get(i));
       }
     }
-    android.channel_id =
-        SafeFlatbufferString(serialized_notification->android_channel_id());
-
-    // The notification has been allocated on the stack for speed. Set this
-    // pointer to null before the notification leaves scope or it will be
-    // deleted.
+    android.channel_id = SafeFlatbufferString(sn->android_channel_id());
     notification.android = &android;
     message.notification = &notification;
   }
-
-  // Finally, process the message.
-  if (message_callback_) {
-    message_callback_(message, message_callback_data_);
-  }
-  // Ensure that the stack allocated pointer is null before it goes out of
-  // scope so it doesn't get deleted.
+  if (message_callback_) message_callback_(message, message_callback_data_);
   if (message.notification) {
     message.notification->android = nullptr;
     message.notification = nullptr;
   }
 }
-
-// Convert the SerializedTokenReceived to a token and calls the registered
-// callback.
 void MessageReader::ConsumeTokenReceived(
     const SerializedTokenReceived* serialized_token_received) const {
   if (!serialized_token_received) return;
-  const char* token = SafeFlatbufferString(serialized_token_received->token());
   if (token_callback_) {
-    token_callback_(token, token_callback_data_);
+    token_callback_(SafeFlatbufferString(serialized_token_received->token()),
+                    token_callback_data_);
   }
 }
-
-// Convert the SerializedRegistrationReceived to an installation ID and calls
-// the registered callback.
 void MessageReader::ConsumeRegistrationReceived(
     const SerializedRegistrationReceived* serialized_registration_received)
     const {
   if (!serialized_registration_received) return;
-  const char* installation_id =
-      SafeFlatbufferString(serialized_registration_received->installation_id());
   if (registration_callback_) {
-    registration_callback_(installation_id, registration_callback_data_);
+    registration_callback_(
+        SafeFlatbufferString(
+            serialized_registration_received->installation_id()),
+        registration_callback_data_);
   }
 }
-
-// Convert the SerializedUnregistrationReceived to an installation ID and calls
-// the registered callback.
 void MessageReader::ConsumeUnregistrationReceived(
     const SerializedUnregistrationReceived* serialized_unregistration_received)
     const {
   if (!serialized_unregistration_received) return;
-  const char* installation_id = SafeFlatbufferString(
-      serialized_unregistration_received->installation_id());
   if (unregistration_callback_) {
-    unregistration_callback_(installation_id, unregistration_callback_data_);
+    unregistration_callback_(
+        SafeFlatbufferString(
+            serialized_unregistration_received->installation_id()),
+        unregistration_callback_data_);
   }
 }
-
 }  // namespace internal
 }  // namespace messaging
 }  // namespace firebase

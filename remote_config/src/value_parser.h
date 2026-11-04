@@ -1,20 +1,5 @@
-// Copyright 2024 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_VALUE_PARSER_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_VALUE_PARSER_H_
-
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -25,13 +10,10 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-
 #include "app/src/include/firebase/variant.h"
-
 namespace firebase {
 namespace remote_config {
 namespace internal {
-
 class ValueParser {
  public:
   static bool EqualsIgnoreCase(std::string_view a, std::string_view b) {
@@ -45,19 +27,16 @@ class ValueParser {
     }
     return true;
   }
-
   static bool IsBoolTrue(std::string_view str) {
     return str == "1" || EqualsIgnoreCase(str, "true") ||
            EqualsIgnoreCase(str, "t") || EqualsIgnoreCase(str, "yes") ||
            EqualsIgnoreCase(str, "y") || EqualsIgnoreCase(str, "on");
   }
-
   static bool IsBoolFalse(std::string_view str) {
     return str.empty() || str == "0" || EqualsIgnoreCase(str, "false") ||
            EqualsIgnoreCase(str, "f") || EqualsIgnoreCase(str, "no") ||
            EqualsIgnoreCase(str, "n") || EqualsIgnoreCase(str, "off");
   }
-
   static bool ParseBoolean(std::string_view str, bool* out) {
     if (IsBoolTrue(str)) {
       if (out) *out = true;
@@ -70,7 +49,6 @@ class ValueParser {
     if (out) *out = false;
     return false;
   }
-
   static bool ParseInt64(std::string_view str, int64_t* out) {
     if (str.empty()) {
       if (out) *out = 0;
@@ -122,14 +100,9 @@ class ValueParser {
     if (out) *out = val;
     return true;
   }
-
   static bool IsLong(std::string_view str) {
     return ParseInt64(str, nullptr);
   }
-
-  // Checks whether `str` is a syntactically valid decimal/scientific floating
-  // point string matching `^[+-]?(([0-9]+\.?[0-9]*)|(\.[0-9]+))([eE][+-]?[0-9]+)?$`
-  // without compiling a std::regex.
   static bool IsDoubleSyntax(std::string_view str) {
     if (str.empty()) return false;
     size_t i = 0;
@@ -137,7 +110,6 @@ class ValueParser {
       ++i;
     }
     if (i >= str.size()) return false;
-
     bool has_digits = false;
     while (i < str.size() && str[i] >= '0' && str[i] <= '9') {
       has_digits = true;
@@ -151,7 +123,6 @@ class ValueParser {
       }
     }
     if (!has_digits) return false;
-
     if (i < str.size() && (str[i] == 'e' || str[i] == 'E')) {
       ++i;
       if (i < str.size() && (str[i] == '+' || str[i] == '-')) {
@@ -164,7 +135,6 @@ class ValueParser {
     }
     return i == str.size();
   }
-
   static bool ParseDouble(std::string_view str, double* out) {
     if (!IsDoubleSyntax(str)) {
       if (out) *out = 0.0;
@@ -181,12 +151,9 @@ class ValueParser {
     if (out) *out = val;
     return true;
   }
-
   static bool IsDouble(std::string_view str) {
     return ParseDouble(str, nullptr);
   }
-
-  // Coerces a Remote Config string value to a Variant for GetAll().
   static Variant CoerceToVariant(std::string_view str) {
     if (str.empty()) {
       return Variant::FromMutableString("");
@@ -205,14 +172,12 @@ class ValueParser {
     }
     return Variant::FromMutableString(std::string(str));
   }
-
   static std::string FormatFixedDouble(double val) {
     std::ostringstream ss;
     ss.imbue(std::locale::classic());
     ss << std::fixed << std::setprecision(16) << val;
     return ss.str();
   }
-
   static std::string FormatGeneralDouble(double val) {
     std::ostringstream ss;
     ss.imbue(std::locale::classic());
@@ -220,9 +185,7 @@ class ValueParser {
     return ss.str();
   }
 };
-
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase
-
-#endif  // FIREBASE_REMOTE_CONFIG_SRC_VALUE_PARSER_H_
+#endif

@@ -1,25 +1,9 @@
-// Copyright 2017 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_DESKTOP_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_DESKTOP_H_
-
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <thread>  // NOLINT
-
+#include <thread>
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -32,23 +16,14 @@
 #include "remote_config/src/desktop/notification_channel.h"
 #include "remote_config/src/desktop/rest.h"
 #include "remote_config/src/include/firebase/remote_config.h"
-
 #ifdef FIREBASE_TESTING
 #include "gtest/gtest.h"
-#endif  // FIREBASE_TESTING
-
+#endif
 #ifndef SWIG
 #include "firebase/variant.h"
-#endif  // SWIG
-
+#endif
 namespace firebase::remote_config::internal {
-
 const char* const kFutureNoErrorMessage = "No Error Message";
-
-// Remote Config Client implementation for Desktop support.
-//
-// This class implements functions from `firebase/remote_config.h` header.
-// See `firebase/remote_config.h` for all public functions documentation.
 class RemoteConfigInternal {
  public:
 #ifdef FIREBASE_TESTING
@@ -71,76 +46,52 @@ class RemoteConfigInternal {
   FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsMergeAndRemove);
   FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsValidation);
   FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsPersistence);
-#endif  // FIREBASE_TESTING
-
+#endif
   explicit RemoteConfigInternal(const firebase::App& app,
                                 const RemoteConfigFileManager& file_manager);
-
   explicit RemoteConfigInternal(const firebase::App& app);
-
   RemoteConfigInternal(const RemoteConfigInternal&) = delete;
   RemoteConfigInternal& operator=(const RemoteConfigInternal&) = delete;
   RemoteConfigInternal(RemoteConfigInternal&&) = delete;
   RemoteConfigInternal& operator=(RemoteConfigInternal&&) = delete;
-
   ~RemoteConfigInternal();
-
   Future<ConfigInfo> EnsureInitialized();
   Future<ConfigInfo> EnsureInitializedLastResult();
-
   Future<bool> Activate();
   Future<bool> ActivateLastResult();
-
   Future<bool> FetchAndActivate();
   Future<bool> FetchAndActivateLastResult();
-
   Future<void> Fetch(uint64_t cache_expiration_in_seconds);
   Future<void> FetchLastResult();
-
   Future<void> SetConfigSettings(ConfigSettings settings);
   Future<void> SetConfigSettingsLastResult();
   [[nodiscard]] ConfigSettings GetConfigSettings();
-
   Future<void> SetCustomSignals(
       const std::map<std::string, Variant>& custom_signals);
   Future<void> SetCustomSignalsLastResult();
-
 #ifndef SWIG
   Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,
                            size_t number_of_defaults);
-#endif  // SWIG
+#endif
   Future<void> SetDefaults(const ConfigKeyValue* defaults,
                            size_t number_of_defaults);
   Future<void> SetDefaultsLastResult();
-
   [[nodiscard]] std::string GetConfigSetting(ConfigSetting setting);
   void SetConfigSetting(ConfigSetting setting, const char* value);
-
   [[nodiscard]] bool GetBoolean(const char* key, ValueInfo* info);
-
   [[nodiscard]] std::string GetString(const char* key, ValueInfo* info);
-
   [[nodiscard]] int64_t GetLong(const char* key, ValueInfo* info);
-
   [[nodiscard]] double GetDouble(const char* key, ValueInfo* info);
-
   [[nodiscard]] std::vector<unsigned char> GetData(const char* key,
                                                    ValueInfo* info);
-
   [[nodiscard]] std::vector<std::string> GetKeys();
-
   [[nodiscard]] std::vector<std::string> GetKeysByPrefix(const char* prefix);
-
   [[nodiscard]] std::map<std::string, Variant> GetAll();
-
   bool ActivateFetched();
-
   [[nodiscard]] ConfigInfo GetInfo() const;
-
   [[nodiscard]] ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
-
   [[nodiscard]] static bool IsBoolTrue(const std::string& str);
   [[nodiscard]] static bool IsBoolFalse(const std::string& str);
   [[nodiscard]] static bool ConvertToBool(const std::string& from, bool* out);
@@ -151,105 +102,46 @@ class RemoteConfigInternal {
   [[nodiscard]] static bool ConvertToDouble(const std::string& from,
                                             double* out);
   [[nodiscard]] static Variant StringToVariant(const std::string& from);
-
   [[nodiscard]] bool Initialized() const;
   void Cleanup();
-
-  // When this is deleted, it will clean up all ListenerRegistrations.
   CleanupNotifier& cleanup_notifier() { return cleanup_; }
-
  private:
-  // Open a new thread for saving state in the file. Thread will wait
-  // notifications in loop from the `save_channel_` until it will be closed.
   void AsyncSaveToFile();
-
   void InternalInit();
-
-  // Convert the `firebase::Variant` type to the `std::string` type.
-  //
-  // Supports only boolean, integer, double, string values and binary data;
-  // returns `std::nullopt` for unsupported types or null static strings.
   [[nodiscard]] std::optional<std::string> VariantToString(
       const Variant& variant);
-
-  // Set default values to `configs_.defaults` holder.
   void SetDefaults(const std::map<std::string, std::string>& defaults_map);
-
-  // Returns true and assigns the found record to the `value` if the `active` or
-  // `defaults` holders contains a record for the key.
-  //
-  // Assign `info->source` If info is not nullptr.
   bool CheckValueInActiveAndDefault(const char* key, ValueInfo* info,
                                     std::string* value);
-
-  // Returns true and assigns the found record to the `value` if the `holder`
-  // contains a record for the key (caller must hold `internal_mutex_`).
-  //
-  // Assign `info->source` If info is not nullptr.
   bool CheckValueInConfigLocked(const NamespacedConfigData& config,
                                 ValueSource source, const char* key,
                                 ValueInfo* info, std::string* value);
-
   bool IsCacheExpiredLocked(uint64_t cache_expiration_in_seconds) const;
-
   void FetchInternal();
-
   static const char* const kDefaultNamespace;
   static const char* const kDefaultValueForString;
   static const int64_t kDefaultValueForLong;
   static const double kDefaultValueForDouble;
   static const bool kDefaultValueForBool;
-
   const std::vector<unsigned char> kDefaultValueForData;
-
-  // app
   const firebase::App& app_;
-
-  // Contains all config records and metadata variables.
   LayeredConfigs configs_;
-
-  // Provides saving to the file and load from the file the `configs_` variable.
   RemoteConfigFileManager file_manager_;
-
-  // Used for saving the `configs_` variable to file in background. Will be
-  // created in the constructor and removed in the destructor.
-  //
-  // Wait notifications in loop from `save_channel_` until it will be closed.
   std::thread save_thread_;
-
-  // Thread safety notification channel.
-  //
-  // Call non blocking `save_channel_.Put()` function after changing the
-  // `configs_` variable. Call `save_channel_.Close()` to close the channel.
   NotificationChannel save_channel_;
-
-  // Last value of `Fetch` cache expiration argument in seconds.
   uint64_t cache_expiration_in_seconds_;
-
-  // Tracks whether a scheduled fetch task is currently queued or running on
-  // `scheduler_`. Guarded by `internal_mutex_`.
   bool is_fetch_process_have_task_;
-
   mutable Mutex internal_mutex_;
-
-  // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
   scheduler::Scheduler scheduler_;
-
-  // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the std::shared_ptr never
-  // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<RemoteConfigInternal> ThisRef;
   typedef firebase::internal::SafeReferenceLock<RemoteConfigInternal>
       ThisRefLock;
   ThisRef safe_this_;
-
   RemoteConfigREST rest_;
   bool initialized_;
   ConfigSettings config_settings_;
   CleanupNotifier cleanup_;
 };
-
 }  // namespace firebase::remote_config::internal
-
-#endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_DESKTOP_H_
+#endif

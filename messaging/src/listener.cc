@@ -1,31 +1,8 @@
-// Copyright 2016 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-#include "messaging/src/include/firebase/messaging.h"
-
 #include "messaging/src/common.h"
-
+#include "messaging/src/include/firebase/messaging.h"
 namespace firebase::messaging {
-
-// Non-inline implementation of Listener's virtual destructor
-// to prevent its vtable being emitted in each translation unit.
 Listener::~Listener() = default;
-
 void Listener::OnTokenReceived([[maybe_unused]] const char* token) {}
-
 void Listener::OnRegistrationReceived([[maybe_unused]] const char* installationId) {}
-
 void Listener::OnUnregistrationReceived([[maybe_unused]] const char* installationId) {}
-
 }  // namespace firebase::messaging
