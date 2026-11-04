@@ -37,13 +37,9 @@
 #include "app/src/semaphore.h"
 #include "app/src/util.h"
 #include "auth/src/common.h"
+#include "auth/src/common/promise.h"
 #include "auth/src/data.h"
-#include "auth/src/common/promise.h"
 #include "auth/src/include/firebase/auth/credential.h"
-#include "auth/src/desktop/authentication_result.h"
-#include "auth/src/common/promise.h"
-#include "auth/src/include/firebase/auth/credential.h"
-#include "auth/src/desktop/authentication_result.h"
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
