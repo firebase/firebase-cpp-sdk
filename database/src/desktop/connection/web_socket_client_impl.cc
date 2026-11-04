@@ -43,20 +43,16 @@ using ::firebase::rest::curl::SListAppend;
 using ::firebase::rest::curl::UniqueEasy;
 
 namespace {
-// Size of the stack buffer used for each curl_ws_recv() read pass.
 constexpr size_t kRecvBufferSize = 16384;
-// Maximum reassembled incoming WebSocket message size (64 MiB).
 constexpr size_t kMaxIncomingMessageBytes = 64 * 1024 * 1024;
-// Maximum WebSocket PING control frame payload size per RFC 6455 section 5.5.
 constexpr size_t kMaxPingPayloadBytes = 125;
-// WebSocket close code 1000 (Normal Closure) in network byte order.
 const unsigned char kCloseNormalPayload[2] = {0x03, 0xe8};
 }  // namespace
 
 WebSocketClientImpl::WebSocketClientImpl(
     const std::string& uri, const std::string& user_agent, Logger* logger,
     scheduler::Scheduler* scheduler, const std::string& app_check_token,
-    WebSocketClientEventHandler* handler /*=nullptr*/)
+    WebSocketClientEventHandler* handler)
     : uri_(uri),
       handler_(handler),
       loop_(nullptr),
@@ -65,9 +61,6 @@ WebSocketClientImpl::WebSocketClientImpl(
       request_headers_(nullptr),
       socket_(CURL_SOCKET_BAD),
       state_(kStateIdle),
-      incoming_message_buffer_(),
-      incoming_ping_buffer_(),
-      send_queue_(),
       frame_in_progress_(false),
       current_send_offset_(0),
       user_agent_(user_agent),
@@ -76,32 +69,17 @@ WebSocketClientImpl::WebSocketClientImpl(
       logger_(logger),
       scheduler_(scheduler),
       safe_this_(this) {
-  // Keeps the shared I/O loop (and libcurl's global state) alive for as long
-  // as this client exists.
   firebase::rest::InitTransportCurl();
   loop_ = &CurlIoLoop::Get();
 }
 
 WebSocketClientImpl::~WebSocketClientImpl() {
-  // Clear safe reference immediately so that scheduled callbacks can skip
-  // executing code which requires a reference to this.
   safe_this_.ClearReference();
-
-  // Release the socket, the handshake registration and the easy handle on the
-  // I/O thread, and wait for that to be done: nothing may touch this object
-  // from the I/O thread once we return.
   RunOnLoopAndWait([this]() { TeardownOnLoop(); });
-
   handler_ = nullptr;
-  assert(easy_ == nullptr);
-  assert(socket_ == CURL_SOCKET_BAD);
-
+  assert(easy_ == nullptr && socket_ == CURL_SOCKET_BAD);
   firebase::rest::CleanupTransportCurl();
 }
-
-// ---------------------------------------------------------------------------
-// Cross-thread entry points.
-// ---------------------------------------------------------------------------
 
 bool WebSocketClientImpl::PostToLoop(std::function<void()> fn) {
   std::shared_ptr<bool> alive = alive_;
@@ -120,8 +98,6 @@ void WebSocketClientImpl::RunOnLoopAndWait(std::function<void()> fn) {
     fn();
     done.Post();
   });
-  // The loop cannot have stopped while this client holds a transport
-  // reference; if it somehow did there is no I/O thread left to clean up on.
   FIREBASE_ASSERT_MESSAGE(posted,
                           "WebSocketClientImpl: shared curl I/O loop stopped "
                           "while a client was still alive");
@@ -147,17 +123,12 @@ void WebSocketClientImpl::RefreshAppCheckToken(const std::string& token) {
   app_check_token_ = token;
 }
 
-// ---------------------------------------------------------------------------
-// Handshake (rest::curl::Transfer).
-// ---------------------------------------------------------------------------
-
 void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
   if (state_ == kStateConnecting || state_ == kStateOpen) {
     logger_->LogWarning("websocket has already been connected to %s",
                         uri_.c_str());
     return;
   }
-
   CleanupEasyHandle();
 
   UniqueEasy easy(curl_easy_init());
@@ -170,17 +141,9 @@ void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
 
   SetOpt(easy.get(), CURLOPT_URL, uri_.c_str());
   SetOpt(easy.get(), CURLOPT_PROTOCOLS_STR, "ws,wss");
-  // CURLOPT_CONNECT_ONLY = 2L instructs libcurl to perform the HTTP/1.1
-  // WebSocket Upgrade handshake and stop after receiving 101 Switching
-  // Protocols so framing can be driven via curl_ws_recv() and curl_ws_send().
   SetOpt(easy.get(), CURLOPT_CONNECT_ONLY, 2L);
-  // Handle PING frames explicitly in ReceiveFrames() so standalone PINGs flush
-  // their PONG response immediately without waiting for another frame.
   SetOpt(easy.get(), CURLOPT_WS_OPTIONS,
          static_cast<long>(CURLWS_NOAUTOPONG));  // NOLINT
-  // Peer/hostname verification, TLS 1.2 minimum, and OS trust store selection
-  // are centralized in app/rest/curl/tls_policy.h so REST and WebSocket
-  // connections can never drift apart.
   CURLcode tls_result = firebase::rest::curl::ApplyTlsPolicy(easy.get());
   if (tls_result != CURLE_OK) {
     logger_->LogError("Failed to apply TLS policy for %s: (%d) %s",
@@ -201,31 +164,21 @@ void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
     MutexLock lock(app_check_token_mutex_);
     app_check_token = app_check_token_;
   }
-
-  std::string user_agent_header = "User-Agent: " + user_agent_;
-  SListAppend(&request_headers_, user_agent_header.c_str());
-
+  SListAppend(&request_headers_, ("User-Agent: " + user_agent_).c_str());
   const char* api_client = App::GetUserAgent();
   if (api_client != nullptr && api_client[0] != '\0') {
-    std::string api_client_header =
-        std::string(app_common::kApiClientHeader) + ": " + api_client;
-    SListAppend(&request_headers_, api_client_header.c_str());
+    SListAppend(
+        &request_headers_,
+        (std::string(app_common::kApiClientHeader) + ": " + api_client)
+            .c_str());
   }
-
   if (!app_check_token.empty()) {
-    std::string app_check_header = "X-Firebase-AppCheck: " + app_check_token;
-    SListAppend(&request_headers_, app_check_header.c_str());
+    SListAppend(&request_headers_,
+                ("X-Firebase-AppCheck: " + app_check_token).c_str());
   }
-
   SetOpt(easy.get(), CURLOPT_HTTPHEADER, request_headers_.get());
 
   easy_ = std::move(easy);
-  incoming_message_buffer_.clear();
-  incoming_ping_buffer_.clear();
-  send_queue_.clear();
-  frame_in_progress_ = false;
-  current_send_offset_ = 0;
-
   CURLMcode mc = loop_->Add(*this);
   if (mc != CURLM_OK) {
     logger_->LogError("curl_multi_add_handle failed: %s",
@@ -238,8 +191,6 @@ void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
 }
 
 void WebSocketClientImpl::OnDone(CURLcode result) {
-  // The loop has forgotten this transfer; the handle is still attached to the
-  // multi handle (RemoveFromMultiOnDone() == false).
   if (result != CURLE_OK) {
     logger_->LogDebug(
         "Error occurred while establishing connection to %s: (%d) %s",
@@ -250,10 +201,7 @@ void WebSocketClientImpl::OnDone(CURLcode result) {
     return;
   }
 
-  // Clear the transfer timeout once the WebSocket upgrade succeeds so
-  // long-lived connections are not terminated after timeout_ms.
   SetOpt(easy_.get(), CURLOPT_TIMEOUT_MS, 0L);
-
   curl_socket_t sockfd = CURL_SOCKET_BAD;
   curl_easy_getinfo(easy_.get(), CURLINFO_ACTIVESOCKET, &sockfd);
   if (sockfd == CURL_SOCKET_BAD) {
@@ -270,14 +218,8 @@ void WebSocketClientImpl::OnDone(CURLcode result) {
   loop_->AddExtraFd(socket_, CURL_WAIT_POLLIN,
                     [this](short revents) { Pump(revents); });
   OnConnection();
-  // Drain any WebSocket frames that arrived in the same packet or TLS record
-  // as the HTTP 101 Switching Protocols response, and flush anything queued.
   Pump(CURL_WAIT_POLLIN | CURL_WAIT_POLLOUT);
 }
-
-// ---------------------------------------------------------------------------
-// I/O-thread operations.
-// ---------------------------------------------------------------------------
 
 void WebSocketClientImpl::CloseOnLoop() {
   if (state_ == kStateOpen && easy_ != nullptr) {
@@ -317,7 +259,7 @@ void WebSocketClientImpl::TeardownOnLoop() {
 }
 
 void WebSocketClientImpl::Pump(short revents) {
-  (void)revents;  // Level-triggered: always try both directions.
+  (void)revents;
   if (state_ != kStateOpen) return;
   FlushSendQueue();
   if (state_ == kStateOpen) ReceiveFrames();
@@ -326,16 +268,13 @@ void WebSocketClientImpl::Pump(short revents) {
 
 void WebSocketClientImpl::UpdateExtraFdEvents() {
   if (socket_ == CURL_SOCKET_BAD) return;
-  short events = CURL_WAIT_POLLIN;
-  if (!send_queue_.empty()) events |= CURL_WAIT_POLLOUT;
+  short events =
+      CURL_WAIT_POLLIN | (send_queue_.empty() ? 0 : CURL_WAIT_POLLOUT);
   loop_->SetExtraFdEvents(socket_, events);
 }
 
 void WebSocketClientImpl::FlushSendQueue() {
-  if (!IsWebSocketAvailable()) {
-    return;
-  }
-
+  if (!IsWebSocketAvailable()) return;
   CURL* easy = easy_.get();
   while (!send_queue_.empty() && state_ == kStateOpen) {
     const OutboundFrame& frame = send_queue_.front();
@@ -352,7 +291,6 @@ void WebSocketClientImpl::FlushSendQueue() {
         current_send_offset_ = 0;
         frame_in_progress_ = false;
       } else {
-        // Socket write buffer is full; wait for CURL_WAIT_POLLOUT.
         break;
       }
     } else {
@@ -368,10 +306,7 @@ void WebSocketClientImpl::FlushSendQueue() {
 }
 
 void WebSocketClientImpl::ReceiveFrames() {
-  if (!IsWebSocketAvailable()) {
-    return;
-  }
-
+  if (!IsWebSocketAvailable()) return;
   CURL* easy = easy_.get();
   char buffer[kRecvBufferSize];
 
@@ -380,9 +315,7 @@ void WebSocketClientImpl::ReceiveFrames() {
     const struct curl_ws_frame* meta = nullptr;
     CURLcode res = curl_ws_recv(easy, buffer, sizeof(buffer), &rlen, &meta);
 
-    if (res == CURLE_AGAIN) {
-      break;
-    }
+    if (res == CURLE_AGAIN) break;
     if (res == CURLE_GOT_NOTHING) {
       CleanupEasyHandle();
       state_ = kStateClosed;
@@ -398,10 +331,7 @@ void WebSocketClientImpl::ReceiveFrames() {
       OnDisconnection();
       break;
     }
-
-    if (meta == nullptr) {
-      break;
-    }
+    if (meta == nullptr) break;
 
     if (meta->flags & CURLWS_CLOSE) {
       if (!frame_in_progress_) {
@@ -428,17 +358,11 @@ void WebSocketClientImpl::ReceiveFrames() {
         OnDisconnection();
         break;
       }
-      if (rlen > 0) {
-        incoming_ping_buffer_.append(buffer, rlen);
-      }
+      if (rlen > 0) incoming_ping_buffer_.append(buffer, rlen);
       if (meta->bytesleft == 0) {
         OutboundFrame pong{std::move(incoming_ping_buffer_), CURLWS_PONG};
         incoming_ping_buffer_.clear();
         if (frame_in_progress_ && !send_queue_.empty()) {
-          // A frame is already partially buffered/sent in libcurl's sendbuf;
-          // queue the PONG immediately behind it (coalescing if a PONG is
-          // already waiting, per RFC 6455 section 5.5.3) so we never splice a
-          // control frame mid-frame.
           if (send_queue_.size() > 1 && send_queue_[1].flags == CURLWS_PONG) {
             send_queue_[1].payload = std::move(pong.payload);
           } else {
@@ -452,9 +376,7 @@ void WebSocketClientImpl::ReceiveFrames() {
       continue;
     }
 
-    if (meta->flags & CURLWS_PONG) {
-      continue;
-    }
+    if (meta->flags & CURLWS_PONG) continue;
 
     if (meta->flags & (CURLWS_TEXT | CURLWS_BINARY | CURLWS_CONT)) {
       if (rlen > kMaxIncomingMessageBytes - incoming_message_buffer_.size() ||
@@ -471,9 +393,7 @@ void WebSocketClientImpl::ReceiveFrames() {
         OnDisconnection();
         break;
       }
-      if (rlen > 0) {
-        incoming_message_buffer_.append(buffer, rlen);
-      }
+      if (rlen > 0) incoming_message_buffer_.append(buffer, rlen);
       if (meta->bytesleft == 0 && (meta->flags & CURLWS_CONT) == 0) {
         std::string completed_message;
         completed_message.swap(incoming_message_buffer_);
@@ -489,9 +409,6 @@ void WebSocketClientImpl::CleanupEasyHandle() {
     socket_ = CURL_SOCKET_BAD;
   }
   if (easy_ != nullptr) {
-    // Still registered for the handshake? Remove() detaches it. Otherwise (the
-    // handshake completed and the handle stayed attached) detach it here
-    // before destroying it.
     if (!loop_->Remove(*this)) {
       curl_multi_remove_handle(loop_->multi(), easy_.get());
     }
@@ -509,64 +426,56 @@ bool WebSocketClientImpl::IsWebSocketAvailable() const {
   return state_ == kStateOpen && easy_ != nullptr;
 }
 
-// ---------------------------------------------------------------------------
-// Handler notifications, marshalled to the Database scheduler.
-// ---------------------------------------------------------------------------
-
 void WebSocketClientImpl::OnError() {
   logger_->LogDebug("Error occurred while establishing connection to %s",
                     uri_.c_str());
-  if (handler_) {
-    scheduler_->Schedule(new callback::CallbackValue2<ClientRef, std::string>(
-        safe_this_, uri_, [](ClientRef client_ref, std::string uri) {
-          ClientRefLock lock(&client_ref);
-          auto client = lock.GetReference();
-          if (client != nullptr && client->handler_ != nullptr) {
-            WebSocketClientErrorData error(uri.c_str());
-            client->handler_->OnError(error);
-          }
-        }));
-  }
+  if (!handler_) return;
+  scheduler_->Schedule(new callback::CallbackValue2<ClientRef, std::string>(
+      safe_this_, uri_, [](ClientRef client_ref, std::string uri) {
+        ClientRefLock lock(&client_ref);
+        auto* client = lock.GetReference();
+        if (client != nullptr && client->handler_ != nullptr) {
+          WebSocketClientErrorData error(uri.c_str());
+          client->handler_->OnError(error);
+        }
+      }));
 }
 
 void WebSocketClientImpl::OnConnection() {
-  if (handler_) {
-    scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
-        safe_this_, [](ClientRef client_ref) {
-          ClientRefLock lock(&client_ref);
-          auto client = lock.GetReference();
-          if (client != nullptr && client->handler_ != nullptr) {
-            client->handler_->OnOpen();
-          }
-        }));
-  }
+  if (!handler_) return;
+  scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
+      safe_this_, [](ClientRef client_ref) {
+        ClientRefLock lock(&client_ref);
+        auto* client = lock.GetReference();
+        if (client != nullptr && client->handler_ != nullptr) {
+          client->handler_->OnOpen();
+        }
+      }));
 }
 
 void WebSocketClientImpl::OnMessage(const char* message, size_t length) {
-  if (handler_) {
-    std::string message_string(message, length);
-    scheduler_->Schedule(new callback::CallbackValue2<ClientRef, std::string>(
-        safe_this_, message_string, [](ClientRef client_ref, std::string msg) {
-          ClientRefLock lock(&client_ref);
-          auto client = lock.GetReference();
-          if (client != nullptr && client->handler_ != nullptr) {
-            client->handler_->OnMessage(msg.c_str());
-          }
-        }));
-  }
+  if (!handler_) return;
+  scheduler_->Schedule(new callback::CallbackValue2<ClientRef, std::string>(
+      safe_this_, std::string(message, length),
+      [](ClientRef client_ref, std::string msg) {
+        ClientRefLock lock(&client_ref);
+        auto* client = lock.GetReference();
+        if (client != nullptr && client->handler_ != nullptr) {
+          client->handler_->OnMessage(msg.c_str());
+        }
+      }));
 }
 
 void WebSocketClientImpl::OnDisconnection() {
-  if (handler_) {
-    scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
-        safe_this_, [](ClientRef client_ref) {
-          ClientRefLock lock(&client_ref);
-          auto client = lock.GetReference();
-          if (client != nullptr && client->handler_ != nullptr) {
-            client->handler_->OnClose();
-          }
-        }));
-  }
+  if (!handler_) return;
+  scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
+      safe_this_, [](ClientRef client_ref) {
+        ClientRefLock lock(&client_ref);
+        auto* client = lock.GetReference();
+        if (client != nullptr && client->handler_ != nullptr) {
+          client->handler_->OnClose();
+        }
+      }));
 }
 
 }  // namespace connection

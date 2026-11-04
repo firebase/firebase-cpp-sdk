@@ -34,45 +34,20 @@ class DatabaseInternal;
 namespace internal {
 class Callbacks;
 
-// The Android implementation of MutableData, which encapsulates the data and
-// priority at a location.
 class MutableDataInternal {
  public:
   ~MutableDataInternal();
 
-  // Used to obtain a MutableData instance that encapsulates the data and
-  // priority at the given relative path.
   MutableDataInternal* Child(const char* path);
-
-  // Get all the immediate children of this location.
   std::vector<MutableData> GetChildren();
-
-  // Get the number of children of this location.
   size_t GetChildrenCount();
-
-  // Get the key name of the source location of this data.
   const char* GetKey();
-
-  // Get the key name of the source location of this data.
   std::string GetKeyString();
-
-  // Get the value of the data contained at this location.
   Variant GetValue() const;
-
-  // Get the priority of the data contained at this snapshot.
   Variant GetPriority() const;
-
-  // Does this MutableData have data at a particular location?
   bool HasChild(const char* path) const;
-
-  // Sets the data at this location to the given value.
   void SetValue(const Variant& value);
-
-  // Sets the priority of this field, which controls its sort order relative to
-  // its siblings.
   void SetPriority(const Variant& priority);
-
-  // Returns a pointer to the database this MutableData is from.
   DatabaseInternal* database_internal() const { return db_; }
 
  private:
@@ -84,7 +59,6 @@ class MutableDataInternal {
   }
 
   MutableDataInternal(DatabaseInternal* database, jobject mutable_data_obj);
-
   MutableDataInternal(const MutableDataInternal&) = delete;
   MutableDataInternal& operator=(const MutableDataInternal&) = delete;
 

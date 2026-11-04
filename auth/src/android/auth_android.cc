@@ -512,6 +512,80 @@ static void ReadProviderResult(
   }
 }
 
+void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
+  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+    return env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInAnonymously));
+  });
+}
+
+void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password) {
+  if (!email || email[0] == '\0') { promise.Fail(kAuthErrorMissingEmail, "Email must be provided."); return; }
+  if (!password || password[0] == '\0') { promise.Fail(kAuthErrorMissingPassword, "Password must be provided."); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+    jstring je = env->NewStringUTF(email);
+    jstring jp = env->NewStringUTF(password);
+    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithEmailAndPassword), je, jp);
+    env->DeleteLocalRef(je); env->DeleteLocalRef(jp);
+    return task;
+  });
+}
+
+void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password) {
+  if (!email || email[0] == '\0') { promise.Fail(kAuthErrorMissingEmail, "Email must be provided."); return; }
+  if (!password || password[0] == '\0') { promise.Fail(kAuthErrorMissingPassword, "Password must be provided."); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+    jstring je = env->NewStringUTF(email);
+    jstring jp = env->NewStringUTF(password);
+    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), je, jp);
+    env->DeleteLocalRef(je); env->DeleteLocalRef(jp);
+    return task;
+  });
+}
+
+void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* token) {
+  if (!token || token[0] == '\0') { promise.Fail(kAuthErrorInvalidCustomToken, "Token must be provided."); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+    jstring jt = env->NewStringUTF(token);
+    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCustomToken), jt);
+    env->DeleteLocalRef(jt);
+    return task;
+  });
+}
+
+void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential) {
+  if (!credential.is_valid()) { promise.Fail(kAuthErrorInvalidCredential, "Invalid credential"); return; }
+  // We need to return a User, but JNI signInWithCredential returns an AuthResult.
+  // The original implementation returned User by extracting it. We need ReadUser instead of ReadAuthResult.
+  // Wait, does Android API return AuthResult for signInWithCredential?
+  // Yes, Task<AuthResult>!
+  RunAndroidTaskWithPromise(auth_data, promise, [](jobject result, FutureCallbackData<User>* d, bool success, void* void_data) {
+      if (success && result) {
+          JNIEnv* env = d->env;
+          jobject user_obj = env->CallObjectMethod(result, authresult::GetMethodId(authresult::kGetUser));
+          User* user = static_cast<User*>(void_data);
+          *user = User(d->auth_data, user_obj);
+          env->DeleteLocalRef(user_obj);
+          UpdateCurrentUser(d->auth_data);
+      }
+  }, [=](JNIEnv* env) {
+    jobject jcred = CredentialToJni(env, credential);
+    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential), jcred);
+    env->DeleteLocalRef(jcred);
+    return task;
+  });
+}
+
+void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
+  if (!credential.is_valid()) { promise.Fail(kAuthErrorInvalidCredential, "Invalid credential"); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+    jobject jcred = CredentialToJni(env, credential);
+    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential), jcred);
+    env->DeleteLocalRef(jcred);
+    return task;
+  });
+}
+
+
 void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char* email) {
   if (!email) { promise.Fail(kAuthErrorInvalidEmail, "Email must be provided."); return; }
   RunAndroidTaskWithPromise(auth_data, promise, ReadFetchProvidersForEmailResult, [=](JNIEnv* env) {

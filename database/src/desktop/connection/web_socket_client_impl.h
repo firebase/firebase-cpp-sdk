@@ -43,26 +43,6 @@ namespace database {
 namespace internal {
 namespace connection {
 
-// libcurl-based WebSocket client running on the SDK's shared I/O thread.
-//
-// Threading model
-// ---------------
-// * There is no thread per client. All socket I/O - the HTTP Upgrade
-//   handshake (a curl::Transfer on the process-wide rest::curl::CurlIoLoop)
-//   and, once open, curl_ws_recv()/curl_ws_send() on the CURLOPT_CONNECT_ONLY
-//   socket registered with CurlIoLoop::AddExtraFd() - happens on that single
-//   shared I/O thread, which also services every REST transfer in the process.
-// * Connect(), Close(), Send() and the destructor may be called from any
-//   thread (in practice the Database scheduler thread). They post work to the
-//   I/O thread and return immediately; the destructor posts a teardown and
-//   waits for it, so no I/O-thread work touches this object after it returns.
-// * WebSocketClientEventHandler callbacks (OnOpen/OnMessage/OnClose/OnError)
-//   are never invoked on the I/O thread: they are marshalled to the Database
-//   `scheduler_` through `safe_this_`, which also makes them no-ops after the
-//   client is destroyed. The Database therefore never blocks the I/O thread,
-//   and a slow Database never stalls other products' network traffic.
-// * The connection holds a rest::InitTransportCurl() reference for its whole
-//   lifetime, which is what keeps the shared loop alive.
 class WebSocketClientImpl : public WebSocketClientInterface,
                             private firebase::rest::curl::Transfer {
  public:
@@ -72,20 +52,12 @@ class WebSocketClientImpl : public WebSocketClientInterface,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
-  // WebSocketClientImpl is neither copyable nor movable.
   WebSocketClientImpl(const WebSocketClientImpl&) = delete;
   WebSocketClientImpl& operator=(const WebSocketClientImpl&) = delete;
 
-  // BEGIN WebSocketClientInterface
   void Connect(int timeout_ms) override;
   void Close() override;
   void Send(const char* msg) override;
-  // END WebSocketClientInterface
-
-  // Refresh the stored App Check token being used by the connection.
-  // This doesn't change the connection itself, just the data used for
-  // establishing new connections.
-  // Expect to be called from scheduler thread.
   void RefreshAppCheckToken(const std::string& token);
 
  private:
@@ -96,119 +68,54 @@ class WebSocketClientImpl : public WebSocketClientInterface,
     kStateClosed,
   };
 
-  // rest::curl::Transfer - the HTTP Upgrade handshake. I/O thread only.
   CURL* easy() override { return easy_.get(); }
   void OnDone(CURLcode result) override;
-  // The connect-only handle must stay attached to the multi handle while the
-  // WebSocket is in use; removing it would close the connection.
   bool RemoveFromMultiOnDone() override { return false; }
 
-  // Runs fn on the I/O thread if this client is still alive when it gets
-  // there. Returns false if the loop is no longer accepting work.
   bool PostToLoop(std::function<void()> fn);
-  // Runs fn on the I/O thread and blocks until it has completed (runs inline
-  // if already on the I/O thread).
   void RunOnLoopAndWait(std::function<void()> fn);
 
-  // The following run on the I/O thread only.
-
-  // Start the asynchronous WebSocket handshake.
   void ConnectOnLoop(int timeout_ms);
-  // Gracefully close the WebSocket connection and notify the handler.
   void CloseOnLoop();
-  // Queue and flush an outbound text message.
   void SendOnLoop(const std::string& msg);
-  // Destructor path: release every I/O-thread resource without callbacks.
   void TeardownOnLoop();
 
-  // Extra-fd readiness callback while open: flush, receive, re-arm.
   void Pump(short revents);
-  // Attempt to flush any queued outbound messages via curl_ws_send().
   void FlushSendQueue();
-  // Drain all available incoming WebSocket frames via curl_ws_recv().
   void ReceiveFrames();
-  // Re-arm the extra fd for POLLIN plus POLLOUT if data is waiting.
   void UpdateExtraFdEvents();
-  // Unregister the socket and handshake transfer, detach and destroy the easy
-  // handle and reset all per-connection buffers.
   void CleanupEasyHandle();
-  // Check if the WebSocket connection is currently established and open.
   bool IsWebSocketAvailable() const;
 
-  // Event notifications matching the WebSocketClientEventHandler contract;
-  // each one marshals to scheduler_.
   void OnError();
   void OnConnection();
   void OnMessage(const char* message, size_t length);
   void OnDisconnection();
-
-  // The server URI to connect to ("ws://..." or "wss://...").
-  const std::string uri_;
-
-  // The event handler for connection events.
-  WebSocketClientEventHandler* handler_;
-
-  // The shared I/O loop. Valid for the lifetime of this object because the
-  // constructor acquires (and the destructor releases) a transport reference.
-  firebase::rest::curl::CurlIoLoop* loop_;
-
-  // Cleared by TeardownOnLoop(); work posted to the I/O thread checks it so a
-  // lambda that runs after teardown is a no-op.
-  std::shared_ptr<bool> alive_;
-
-  // The active libcurl easy handle for the WebSocket connection.
-  firebase::rest::curl::UniqueEasy easy_;
-
-  // HTTP Upgrade request headers associated with easy_.
-  firebase::rest::curl::UniqueSList request_headers_;
-
-  // The connected socket registered with the loop while open, otherwise
-  // CURL_SOCKET_BAD.
-  curl_socket_t socket_;
-
-  // Current connection state.
-  State state_;
-
-  // Buffer for reassembling multi-chunk or fragmented (CURLWS_CONT) incoming
-  // WebSocket data frames.
-  std::string incoming_message_buffer_;
 
   struct OutboundFrame {
     std::string payload;
     unsigned int flags;
   };
 
-  // Buffer for reassembling incoming PING payloads if split across chunks.
+  const std::string uri_;
+  WebSocketClientEventHandler* handler_;
+  firebase::rest::curl::CurlIoLoop* loop_;
+  std::shared_ptr<bool> alive_;
+  firebase::rest::curl::UniqueEasy easy_;
+  firebase::rest::curl::UniqueSList request_headers_;
+  curl_socket_t socket_;
+  State state_;
+  std::string incoming_message_buffer_;
   std::string incoming_ping_buffer_;
-
-  // Queue of outbound WebSocket frames (CURLWS_TEXT data frames and
-  // CURLWS_PONG control replies) waiting to be sent over the socket.
   std::deque<OutboundFrame> send_queue_;
-
-  // True once curl_ws_send() has been invoked for send_queue_.front() and
-  // libcurl may hold encoded header/payload bytes in its internal sendbuf,
-  // even when curl_ws_send() returned CURLE_AGAIN with sent == 0.
   bool frame_in_progress_;
-
-  // Byte offset into send_queue_.front().payload for partial non-blocking
-  // writes.
   size_t current_send_offset_;
-
-  // User agent used when opening the connection.
   std::string user_agent_;
-
-  // Mutex guarding app_check_token_ (written from the scheduler thread, read
-  // on the I/O thread when connecting).
   Mutex app_check_token_mutex_;
-
-  // App Check token used when opening the connection.
   std::string app_check_token_;
-
   Logger* logger_;
-
   scheduler::Scheduler* scheduler_;
 
-  // Safe reference to this. Set in constructor and cleared in destructor.
   typedef firebase::internal::SafeReference<WebSocketClientImpl> ClientRef;
   typedef firebase::internal::SafeReferenceLock<WebSocketClientImpl>
       ClientRefLock;

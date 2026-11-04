@@ -49,43 +49,33 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   Repo(App* app, DatabaseInternal* database, const char* url, Logger* logger,
        bool persistence_enabled);
-
   ~Repo() override;
 
   connection::PersistentConnection* connection() { return connection_.get(); }
 
   void AddEventCallback(std::unique_ptr<EventRegistration> event_registration);
-
   void RemoveEventCallback(void* listener_ptr, const QuerySpec& query_spec);
 
   void OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                             ReferenceCountedFutureImpl* ref_future,
                             const Path& path, const Variant& data);
-
   void OnDisconnectCancel(const SafeFutureHandle<void>& handle,
                           ReferenceCountedFutureImpl* ref_future,
                           const Path& path);
-
   void OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                           ReferenceCountedFutureImpl* ref_future,
                           const Path& path, const Variant& data);
 
   void PurgeOutstandingWrites();
-
   void SetValue(const Path& path, const Variant& data,
                 ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle);
-
   void UpdateChildren(const Path& path, const Variant& data,
                       ReferenceCountedFutureImpl* api,
                       SafeFutureHandle<void> handle);
-
   void AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
                                     Error error);
-
   void PostEvents(const std::vector<Event>& events);
-
   void SetKeepSynchronized(const QuerySpec& query_spec, bool keep_synchronized);
-
   void StartTransaction(const Path& path,
                         DoTransactionWithContext transaction_function,
                         void* context, void (*delete_context)(void*),
@@ -96,110 +86,57 @@ class Repo : public connection::PersistentConnectionEventHandler {
   SyncTree* server_sync_tree() { return server_sync_tree_.get(); }
 
   void OnConnect() override;
-
   void OnDisconnect() override;
-
   void OnAuthStatus(bool auth_ok) override;
-
   void OnServerInfoUpdate(const std::string& key, const Variant& value);
-
   void OnServerInfoUpdate(const std::map<Variant, Variant>& updates) override;
-
   void OnDataUpdate(const Path& path, const Variant& payload_data,
                     bool is_merge, const Tag& tag) override;
 
   const std::string& url() const { return url_; }
-
   static scheduler::Scheduler& scheduler() { return *s_scheduler_; }
-
   ThisRef& this_ref() { return safe_this_; }
 
  private:
-  WriteId GetNextWriteId();
-
+  WriteId GetNextWriteId() { return next_write_id_++; }
   Path AbortTransactions(const Path& path, Error reason);
-
   void AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
                                Error reason);
-
-  // Defers any initialization that is potentially expensive (e.g. disk access)
-  // and must be run on the run loop
   void DeferredInitialization();
-
   Path RerunTransactions(const Path& changed_path);
-
   void SendAllReadyTransactions();
-
   void SendReadyTransactions(Tree<std::vector<TransactionDataPtr>>* node);
-
   void SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                             const Path& path);
-
   void HandleTransactionResponse(const connection::ResponsePtr& ptr);
-
   void RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                              const Path& path);
-
   void PruneCompletedTransactions(Tree<std::vector<TransactionDataPtr>>* node);
-
   Tree<std::vector<TransactionDataPtr>>* GetAncestorTransactionNode(Path path);
-
   std::vector<TransactionDataPtr> BuildTransactionQueue(
       Tree<std::vector<TransactionDataPtr>>* transactions);
-
   void AggregateTransactionQueues(std::vector<TransactionDataPtr>* queue,
                                   Tree<std::vector<TransactionDataPtr>>* node);
-
-  Variant GetLatestState(const Path& path) {
-    return GetLatestState(path, std::vector<WriteId>());
-  }
-
-  Variant GetLatestState(const Path& path, std::vector<WriteId> sets_to_ignore);
-
+  Variant GetLatestState(const Path& path,
+                         std::vector<WriteId> sets_to_ignore = {});
   void RunOnDisconnectEvents();
-
   void UpdateInfo(const std::string& key, const Variant& value);
-
-  // Callback function used to listen for App Check token changes, and updating
-  // the connection with them.
   static void OnAppCheckTokenChanged(const std::string& token, void* context);
 
   DatabaseInternal* database_;
-
   SparseSnapshotTree on_disconnect_;
-
-  // The scheduler shared with every DatabaseInternal. It is designed to
-  // out-live any class which is using it, so that it is safe to use even in
-  // destructor.
   static scheduler::Scheduler* s_scheduler_;
-
-  // Caches information about the connection to the host.
   connection::HostInfo host_info_;
-
-  // The database URL. A cached version of host_info_.ToString().
   std::string url_;
-
   bool persistence_enabled_;
-
-  // Firebase websocket connection with wire protocol support
   std::unique_ptr<connection::PersistentConnection> connection_;
-
   std::unique_ptr<SyncTree> info_sync_tree_;
-
   std::unique_ptr<SyncTree> server_sync_tree_;
-
   Variant info_data_;
-
-  int64_t server_time_offset_;
-
-  WriteId next_write_id_;
-
+  int64_t server_time_offset_ = 0;
+  WriteId next_write_id_ = 0;
   Tree<std::vector<TransactionDataPtr>> transaction_queue_tree_;
-
-  // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied to any thread.
   ThisRef safe_this_;
-
   Logger* logger_;
 };
 

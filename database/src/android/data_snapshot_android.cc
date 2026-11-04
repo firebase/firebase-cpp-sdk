@@ -51,21 +51,16 @@ JNI_METHOD_LOOKUP_DECLARATION(
     data_snapshot, DATA_SNAPSHOT_METHODS, FIELD_LOOKUP_NONE,
     PROGUARD_KEEP_CLASS "com/google/firebase/database/DataSnapshot")
 
-
-
 DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* db, jobject obj)
-    : db_(db) {
-  obj_ = obj ? db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj) : nullptr;
-}
+    : db_(db),
+      obj_(obj ? db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj) : nullptr) {}
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& src)
-    : db_(src.db_) {
-  {
-    MutexLock lock(src.key_mutex_);
-    cached_key_ = src.cached_key_;
-  }
-  obj_ = src.obj_ ? db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_)
-                  : nullptr;
+    : db_(src.db_),
+      obj_(src.obj_ ? db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_)
+                    : nullptr) {
+  MutexLock lock(src.key_mutex_);
+  cached_key_ = src.cached_key_;
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
@@ -76,28 +71,22 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
     MutexLock src_lock(src.key_mutex_);
     src_key = src.cached_key_;
   }
-  if (obj_ != nullptr) {
-    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
-  }
+  if (obj_ != nullptr) db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
   db_ = src.db_;
   {
     MutexLock lock(key_mutex_);
     cached_key_ = std::move(src_key);
   }
-  obj_ = src.obj_ ? db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_)
-                  : nullptr;
+  obj_ =
+      src.obj_ ? db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_) : nullptr;
   return *this;
 }
 
-DataSnapshotInternal::DataSnapshotInternal(
-    DataSnapshotInternal&& src) noexcept
-    : db_(src.db_) {
-  {
-    MutexLock src_lock(src.key_mutex_);
-    cached_key_ = std::move(src.cached_key_);
-  }
-  obj_ = src.obj_;
+DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& src) noexcept
+    : db_(src.db_), obj_(src.obj_) {
   src.obj_ = nullptr;
+  MutexLock src_lock(src.key_mutex_);
+  cached_key_ = std::move(src.cached_key_);
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
@@ -108,9 +97,7 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
     MutexLock src_lock(src.key_mutex_);
     src_key = std::move(src.cached_key_);
   }
-  if (obj_ != nullptr) {
-    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
-  }
+  if (obj_ != nullptr) db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
   db_ = src.db_;
   {
     MutexLock lock(key_mutex_);
@@ -129,9 +116,7 @@ DataSnapshotInternal::~DataSnapshotInternal() {
 }
 
 bool DataSnapshotInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  return data_snapshot::CacheMethodIds(env, activity);
+  return data_snapshot::CacheMethodIds(app->GetJNIEnv(), app->activity());
 }
 
 void DataSnapshotInternal::Terminate(App* app) {
@@ -175,7 +160,6 @@ std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   std::vector<DataSnapshot> result;
   result.reserve(GetChildrenCount());
-  // iterable = snapshot.getChildren()
   jobject iterable = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetChildren));
   if (::firebase::jni::CheckAndClearException(env) || iterable == nullptr) {
@@ -183,57 +167,42 @@ std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
     return result;
   }
   jclass iterable_class = env->GetObjectClass(iterable);
-  if (::firebase::jni::CheckAndClearException(env) ||
-      iterable_class == nullptr) {
-    if (iterable_class != nullptr) env->DeleteLocalRef(iterable_class);
+  jmethodID iterator_mid =
+      iterable_class
+          ? env->GetMethodID(iterable_class, "iterator",
+                             "()Ljava/util/Iterator;")
+          : nullptr;
+  if (iterable_class) env->DeleteLocalRef(iterable_class);
+  if (::firebase::jni::CheckAndClearException(env) || iterator_mid == nullptr) {
     env->DeleteLocalRef(iterable);
     return result;
   }
-  jmethodID iterator_method =
-      env->GetMethodID(iterable_class, "iterator", "()Ljava/util/Iterator;");
-  env->DeleteLocalRef(iterable_class);
-  if (::firebase::jni::CheckAndClearException(env) ||
-      iterator_method == nullptr) {
-    env->DeleteLocalRef(iterable);
-    return result;
-  }
-  // iterator = iterable.iterator()
-  jobject iterator = env->CallObjectMethod(iterable, iterator_method);
+  jobject iterator = env->CallObjectMethod(iterable, iterator_mid);
   env->DeleteLocalRef(iterable);
   if (::firebase::jni::CheckAndClearException(env) || iterator == nullptr) {
     if (iterator != nullptr) env->DeleteLocalRef(iterator);
     return result;
   }
   jclass iterator_class = env->GetObjectClass(iterator);
-  if (::firebase::jni::CheckAndClearException(env) ||
-      iterator_class == nullptr) {
-    if (iterator_class != nullptr) env->DeleteLocalRef(iterator_class);
+  jmethodID has_next_mid =
+      iterator_class ? env->GetMethodID(iterator_class, "hasNext", "()Z")
+                     : nullptr;
+  if (::firebase::jni::CheckAndClearException(env) || has_next_mid == nullptr) {
+    if (iterator_class) env->DeleteLocalRef(iterator_class);
     env->DeleteLocalRef(iterator);
     return result;
   }
-  jmethodID has_next_method =
-      env->GetMethodID(iterator_class, "hasNext", "()Z");
-  if (::firebase::jni::CheckAndClearException(env) ||
-      has_next_method == nullptr) {
-    env->DeleteLocalRef(iterator_class);
-    env->DeleteLocalRef(iterator);
-    return result;
-  }
-  jmethodID next_method =
+  jmethodID next_mid =
       env->GetMethodID(iterator_class, "next", "()Ljava/lang/Object;");
   env->DeleteLocalRef(iterator_class);
-  if (::firebase::jni::CheckAndClearException(env) || next_method == nullptr) {
+  if (::firebase::jni::CheckAndClearException(env) || next_mid == nullptr) {
     env->DeleteLocalRef(iterator);
     return result;
   }
-  // while (iterator.hasNext())
   while (true) {
-    jboolean has_next = env->CallBooleanMethod(iterator, has_next_method);
-    if (::firebase::jni::CheckAndClearException(env) || !has_next) {
-      break;
-    }
-    // DataSnapshot java_snapshot = iterator.next();
-    jobject java_snapshot = env->CallObjectMethod(iterator, next_method);
+    jboolean has_next = env->CallBooleanMethod(iterator, has_next_mid);
+    if (::firebase::jni::CheckAndClearException(env) || !has_next) break;
+    jobject java_snapshot = env->CallObjectMethod(iterator, next_mid);
     if (::firebase::jni::CheckAndClearException(env) ||
         java_snapshot == nullptr) {
       if (java_snapshot != nullptr) env->DeleteLocalRef(java_snapshot);
@@ -251,20 +220,16 @@ size_t DataSnapshotInternal::GetChildrenCount() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jlong count = env->CallLongMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetChildrenCount));
-  if (::firebase::jni::CheckAndClearException(env) || count < 0) {
-    return 0;
-  }
-  return static_cast<size_t>(count);
+  return (::firebase::jni::CheckAndClearException(env) || count < 0)
+             ? 0
+             : static_cast<size_t>(count);
 }
 
 bool DataSnapshotInternal::HasChildren() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jboolean has_children = env->CallBooleanMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kHasChildren));
-  if (::firebase::jni::CheckAndClearException(env)) {
-    return false;
-  }
-  return has_children;
+  return !::firebase::jni::CheckAndClearException(env) && has_children;
 }
 
 const char* DataSnapshotInternal::GetKey() {
@@ -274,19 +239,16 @@ const char* DataSnapshotInternal::GetKey() {
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, data_snapshot::GetMethodId(data_snapshot::kGetKey)));
     if (::firebase::util::LogException(env, kLogLevelError,
-                           "DataSnapshot::GetKey() failed")) {
+                                       "DataSnapshot::GetKey() failed")) {
       if (key_string != nullptr) env->DeleteLocalRef(key_string);
       return nullptr;
     }
     if (key_string == nullptr) {
-      // key_string will be null if this is a snapshot of the Root.
       cached_key_ = Variant::EmptyMutableString();
     } else {
       const char* key = env->GetStringUTFChars(key_string, nullptr);
       if (::firebase::jni::CheckAndClearException(env) || key == nullptr) {
-        if (key != nullptr) {
-          env->ReleaseStringUTFChars(key_string, key);
-        }
+        if (key != nullptr) env->ReleaseStringUTFChars(key_string, key);
         env->DeleteLocalRef(key_string);
         return nullptr;
       }
@@ -303,10 +265,10 @@ std::string DataSnapshotInternal::GetKeyString() {
   return key != nullptr ? std::string(key) : std::string();
 }
 
-Variant DataSnapshotInternal::GetValue() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject value_obj = env->CallObjectMethod(
-      obj_, data_snapshot::GetMethodId(data_snapshot::kGetValue));
+static Variant CallJavaVariantGetter(JNIEnv* env, jobject obj,
+                                     data_snapshot::Method method) {
+  jobject value_obj =
+      env->CallObjectMethod(obj, data_snapshot::GetMethodId(method));
   if (::firebase::jni::CheckAndClearException(env)) {
     if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
     return Variant::Null();
@@ -316,34 +278,29 @@ Variant DataSnapshotInternal::GetValue() const {
   return v;
 }
 
+Variant DataSnapshotInternal::GetValue() const {
+  return CallJavaVariantGetter(db_->GetApp()->GetJNIEnv(), obj_,
+                               data_snapshot::kGetValue);
+}
+
 Variant DataSnapshotInternal::GetPriority() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject value_obj = env->CallObjectMethod(
-      obj_, data_snapshot::GetMethodId(data_snapshot::kGetPriority));
-  if (::firebase::jni::CheckAndClearException(env)) {
-    if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
-    return Variant::Null();
-  }
-  Variant v = ::firebase::util::JavaObjectToVariant(env, value_obj);
-  if (value_obj != nullptr) env->DeleteLocalRef(value_obj);
-  return v;
+  return CallJavaVariantGetter(db_->GetApp()->GetJNIEnv(), obj_,
+                               data_snapshot::kGetPriority);
 }
 
 DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
-  jobject database_reference_obj = env->CallObjectMethod(
+  jobject ref_obj = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetRef));
   if (::firebase::util::LogException(env, kLogLevelWarning,
-                         "DataSnapshot::GetReference() failed") ||
-      database_reference_obj == nullptr) {
-    if (database_reference_obj != nullptr) {
-      env->DeleteLocalRef(database_reference_obj);
-    }
+                                     "DataSnapshot::GetReference() failed") ||
+      ref_obj == nullptr) {
+    if (ref_obj != nullptr) env->DeleteLocalRef(ref_obj);
     return nullptr;
   }
   DatabaseReferenceInternal* internal =
-      new DatabaseReferenceInternal(db_, database_reference_obj);
-  env->DeleteLocalRef(database_reference_obj);
+      new DatabaseReferenceInternal(db_, ref_obj);
+  env->DeleteLocalRef(ref_obj);
   return internal;
 }
 
@@ -358,11 +315,9 @@ bool DataSnapshotInternal::HasChild(const char* path) const {
   jboolean has_child = env->CallBooleanMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kHasChild), path_string);
   env->DeleteLocalRef(path_string);
-  if (::firebase::util::LogException(env, kLogLevelWarning,
-                         "DataSnapshot::HasChild() failed")) {
-    return false;
-  }
-  return has_child;
+  return !::firebase::util::LogException(env, kLogLevelWarning,
+                                         "DataSnapshot::HasChild() failed") &&
+         has_child;
 }
 
 }  // namespace internal

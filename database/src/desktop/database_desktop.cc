@@ -43,8 +43,6 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
-// Referenced by database/src/common/database.cc and database_reference.cc to
-// synchronize DatabaseReference construction, copy/move, and cleanup.
 Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
@@ -105,9 +103,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
       safe_this_(this),
       repo_(nullptr) {
   assert(url);
-
   if (app_ != nullptr) {
-    // Spin up the token auto-update thread in Auth.
     app_->function_registry()->CallFunction(
         ::firebase::internal::FnAuthStartTokenListener, app_, nullptr, nullptr);
   }
@@ -120,11 +116,9 @@ DatabaseInternal::~DatabaseInternal() {
     app_->function_registry()->CallFunction(
         ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
   }
-  {
-    MutexLock lock(repo_mutex_);
-    repo_.reset(nullptr);
-    repo_lifetime_objects_.clear();
-  }
+  MutexLock lock(repo_mutex_);
+  repo_.reset(nullptr);
+  repo_lifetime_objects_.clear();
 }
 
 App* DatabaseInternal::GetApp() const { return app_; }
@@ -149,23 +143,18 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
     return DatabaseReference();
   }
   ParseUrl parser;
-  auto result = parser.Parse(url);
-  if (result != ParseUrl::kParseOk) {
+  if (parser.Parse(url) != ParseUrl::kParseOk) {
     logger_.LogError("Url is not valid: %s", url);
     return DatabaseReference();
   }
-
   connection::HostInfo host_info(parser.hostname.c_str(), parser.ns.c_str(),
                                  parser.secure);
-
   if (host_info.ToString() != database_url()) {
     logger_.LogError(
-        "The hostname of this url (%s) is different from the database url "
-        "(%s)",
+        "The hostname of this url (%s) is different from the database url (%s)",
         url, database_url());
     return DatabaseReference();
   }
-
   EnsureRepo();
   return DatabaseReference(
       new DatabaseReferenceInternal(this, Path(parser.path)));
@@ -176,9 +165,7 @@ void DatabaseInternal::GoOffline() {
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          lock.GetReference()->connection()->Interrupt();
-        }
+        if (auto* r = lock.GetReference()) r->connection()->Interrupt();
       },
       repo_ref));
 }
@@ -188,9 +175,7 @@ void DatabaseInternal::GoOnline() {
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          lock.GetReference()->connection()->Resume();
-        }
+        if (auto* r = lock.GetReference()) r->connection()->Resume();
       },
       repo_ref));
 }
@@ -200,24 +185,18 @@ void DatabaseInternal::PurgeOutstandingWrites() {
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          lock.GetReference()->PurgeOutstandingWrites();
-        }
+        if (auto* r = lock.GetReference()) r->PurgeOutstandingWrites();
       },
       repo_ref));
 }
 
 const char* DatabaseInternal::GetSdkVersion() const {
-  static const char kSdkVersion[] = "Firebase Realtime Database 0.0.1";
-  return kSdkVersion;
+  return "Firebase Realtime Database 0.0.1";
 }
 
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
   MutexLock lock(repo_mutex_);
-  // Only set persistence if the repo has not yet been initialized.
-  if (!repo_) {
-    persistence_enabled_ = enabled;
-  }
+  if (!repo_) persistence_enabled_ = enabled;
 }
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
@@ -230,16 +209,10 @@ bool DatabaseInternal::RegisterValueListener(
     const QuerySpec& spec, ValueListener* listener,
     ValueListenerCleanupData cleanup_data) {
   MutexLock lock(listener_mutex_);
-  if (value_listeners_by_query_.Register(spec, listener)) {
-    auto key = std::make_pair(spec, listener);
-    auto found = cleanup_value_listener_lookup_.find(key);
-    if (found == cleanup_value_listener_lookup_.end()) {
-      cleanup_value_listener_lookup_.insert(
-          std::make_pair(std::move(key), std::move(cleanup_data)));
-    }
-    return true;
-  }
-  return false;
+  if (!value_listeners_by_query_.Register(spec, listener)) return false;
+  cleanup_value_listener_lookup_.try_emplace(std::make_pair(spec, listener),
+                                             std::move(cleanup_data));
+  return true;
 }
 
 bool DatabaseInternal::UnregisterValueListener(const QuerySpec& spec,
@@ -251,11 +224,9 @@ bool DatabaseInternal::UnregisterValueListener(const QuerySpec& spec,
 bool DatabaseInternal::UnregisterValueListenerLocked(const QuerySpec& spec,
                                                      ValueListener* listener) {
   RemoveActiveEventRegistrationsLocked(spec, static_cast<void*>(listener));
-  if (value_listeners_by_query_.Unregister(spec, listener)) {
-    cleanup_value_listener_lookup_.erase(std::make_pair(spec, listener));
-    return true;
-  }
-  return false;
+  if (!value_listeners_by_query_.Unregister(spec, listener)) return false;
+  cleanup_value_listener_lookup_.erase(std::make_pair(spec, listener));
+  return true;
 }
 
 void DatabaseInternal::UnregisterAllValueListeners(const QuerySpec& spec) {
@@ -272,16 +243,10 @@ bool DatabaseInternal::RegisterChildListener(
     const QuerySpec& spec, ChildListener* listener,
     ChildListenerCleanupData cleanup_data) {
   MutexLock lock(listener_mutex_);
-  if (child_listeners_by_query_.Register(spec, listener)) {
-    auto key = std::make_pair(spec, listener);
-    auto found = cleanup_child_listener_lookup_.find(key);
-    if (found == cleanup_child_listener_lookup_.end()) {
-      cleanup_child_listener_lookup_.insert(
-          std::make_pair(std::move(key), std::move(cleanup_data)));
-    }
-    return true;
-  }
-  return false;
+  if (!child_listeners_by_query_.Register(spec, listener)) return false;
+  cleanup_child_listener_lookup_.try_emplace(std::make_pair(spec, listener),
+                                             std::move(cleanup_data));
+  return true;
 }
 
 bool DatabaseInternal::UnregisterChildListener(const QuerySpec& spec,
@@ -293,11 +258,9 @@ bool DatabaseInternal::UnregisterChildListener(const QuerySpec& spec,
 bool DatabaseInternal::UnregisterChildListenerLocked(const QuerySpec& spec,
                                                      ChildListener* listener) {
   RemoveActiveEventRegistrationsLocked(spec, static_cast<void*>(listener));
-  if (child_listeners_by_query_.Unregister(spec, listener)) {
-    cleanup_child_listener_lookup_.erase(std::make_pair(spec, listener));
-    return true;
-  }
-  return false;
+  if (!child_listeners_by_query_.Unregister(spec, listener)) return false;
+  cleanup_child_listener_lookup_.erase(std::make_pair(spec, listener));
+  return true;
 }
 
 void DatabaseInternal::UnregisterAllChildListeners(const QuerySpec& spec) {
@@ -323,21 +286,15 @@ void DatabaseInternal::RemoveEventRegistration(
     EventRegistration* event_registration) {
   MutexLock lock(listener_mutex_);
   auto query_it = event_registration_lookup_.find(query_spec);
-  if (query_it == event_registration_lookup_.end()) {
-    return;
-  }
+  if (query_it == event_registration_lookup_.end()) return;
   auto& listener_map = query_it->second;
   auto listener_it = listener_map.find(listener_ptr);
-  if (listener_it == listener_map.end()) {
-    return;
-  }
+  if (listener_it == listener_map.end()) return;
   auto& vec = listener_it->second;
   vec.erase(std::remove(vec.begin(), vec.end(), event_registration), vec.end());
   if (vec.empty()) {
     listener_map.erase(listener_it);
-    if (listener_map.empty()) {
-      event_registration_lookup_.erase(query_it);
-    }
+    if (listener_map.empty()) event_registration_lookup_.erase(query_it);
   }
 }
 
@@ -350,9 +307,7 @@ void DatabaseInternal::RemoveActiveEventRegistrations(
 void DatabaseInternal::RemoveActiveEventRegistrationsLocked(
     const QuerySpec& query_spec, void* listener_ptr) {
   auto query_it = event_registration_lookup_.find(query_spec);
-  if (query_it == event_registration_lookup_.end()) {
-    return;
-  }
+  if (query_it == event_registration_lookup_.end()) return;
   auto& listener_map = query_it->second;
   if (listener_ptr != nullptr) {
     auto listener_it = listener_map.find(listener_ptr);
@@ -363,13 +318,11 @@ void DatabaseInternal::RemoveActiveEventRegistrationsLocked(
         }
       }
       listener_map.erase(listener_it);
-      if (listener_map.empty()) {
-        event_registration_lookup_.erase(query_it);
-      }
+      if (listener_map.empty()) event_registration_lookup_.erase(query_it);
     }
   } else {
-    for (auto& kv : listener_map) {
-      for (auto* registration : kv.second) {
+    for (auto& [ptr, regs] : listener_map) {
+      for (auto* registration : regs) {
         if (registration->status() == EventRegistration::kActive) {
           registration->set_status(EventRegistration::kRemoved);
         }
@@ -389,12 +342,7 @@ Repo* DatabaseInternal::EnsureRepo() {
 }
 
 Repo::ThisRef DatabaseInternal::EnsureRepoRef() {
-  MutexLock lock(repo_mutex_);
-  if (!repo_) {
-    repo_ = std::make_unique<Repo>(app_, this, database_url_.c_str(), &logger_,
-                                   persistence_enabled_);
-  }
-  return repo_->this_ref();
+  return EnsureRepo()->this_ref();
 }
 
 }  // namespace internal

@@ -33,9 +33,6 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-// Defined here for iOS builds and referenced by
-// database/src/common/database_reference.cc to synchronize DatabaseReference
-// construction, copy/move, and destruction across threads.
 Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 DatabaseInternal::DatabaseInternal(App* app)
@@ -90,32 +87,26 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
 DatabaseInternal::~DatabaseInternal() {
   this_ref_.ClearReference();
   cleanup_.CleanupAll();
-  // Collect pending callback states and transient listeners under
-  // listener_mutex_, then release the mutex before detaching FIRDatabaseQuery
-  // observers or deleting listeners to avoid lock-order inversion.
   std::vector<FIRCPPDatabaseQueryCallbackStatePointer> callbacks_to_remove;
   std::set<ValueListener*> single_listeners_to_delete;
   {
     MutexLock lock(listener_mutex_);
     callbacks_to_remove.reserve(cleanup_value_listener_lookup_.size() +
                                 cleanup_child_listener_lookup_.size());
-    for (auto& kv : cleanup_value_listener_lookup_) {
-      callbacks_to_remove.push_back(std::move(kv.second));
+    for (auto& [k, v] : cleanup_value_listener_lookup_) {
+      callbacks_to_remove.push_back(std::move(v));
     }
     cleanup_value_listener_lookup_.clear();
-    for (auto& kv : cleanup_child_listener_lookup_) {
-      callbacks_to_remove.push_back(std::move(kv.second));
+    for (auto& [k, v] : cleanup_child_listener_lookup_) {
+      callbacks_to_remove.push_back(std::move(v));
     }
     cleanup_child_listener_lookup_.clear();
     single_listeners_to_delete = std::move(single_value_listeners_);
-    single_value_listeners_.clear();
   }
   for (auto& callback_state : callbacks_to_remove) {
     [callback_state.get() removeAllObservers];
   }
-  for (ValueListener* listener : single_listeners_to_delete) {
-    delete listener;
-  }
+  for (ValueListener* listener : single_listeners_to_delete) delete listener;
   impl_.reset();
 }
 
@@ -137,13 +128,10 @@ DatabaseReference DatabaseInternal::GetReference(const char* path) const {
         const_cast<DatabaseInternal*>(this),
         std::make_unique<FIRDatabaseReferencePointer>(
             [impl() referenceWithPath:path_str])));
-  } @catch (NSException* exception) {
-    const char* reason = exception.reason.UTF8String
-                             ? exception.reason.UTF8String
-                             : "Unknown exception";
+  } @catch (NSException* e) {
     logger_.LogWarning(
         "Database::GetReference(): Invalid path specified: %s (%s)", path,
-        reason);
+        e.reason.UTF8String ? e.reason.UTF8String : "Unknown exception");
     return DatabaseReference();
   }
 }
@@ -157,20 +145,16 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
         const_cast<DatabaseInternal*>(this),
         std::make_unique<FIRDatabaseReferencePointer>(
             [impl() referenceFromURL:url_str])));
-  } @catch (NSException* exception) {
-    const char* reason = exception.reason.UTF8String
-                             ? exception.reason.UTF8String
-                             : "Unknown exception";
-    logger_.LogWarning("Database::GetReferenceFromUrl(): Invalid URL '%s': %s",
-                       url, reason);
+  } @catch (NSException* e) {
+    logger_.LogWarning(
+        "Database::GetReferenceFromUrl(): Invalid URL '%s': %s", url,
+        e.reason.UTF8String ? e.reason.UTF8String : "Unknown exception");
     return DatabaseReference();
   }
 }
 
 void DatabaseInternal::GoOffline() { [impl() goOffline]; }
-
 void DatabaseInternal::GoOnline() { [impl() goOnline]; }
-
 void DatabaseInternal::PurgeOutstandingWrites() {
   [impl() purgeOutstandingWrites];
 }
@@ -185,166 +169,133 @@ void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
   @try {
     impl().persistenceEnabled = enabled;
   } @catch (NSException* e) {
-    const char* reason =
-        e.reason.UTF8String ? e.reason.UTF8String : "Unknown exception";
-    logger_.LogError("SetPersistenceEnabled error: %s", reason);
+    logger_.LogError(
+        "SetPersistenceEnabled error: %s",
+        e.reason.UTF8String ? e.reason.UTF8String : "Unknown exception");
   }
 }
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
-  // iOS FIRDatabase only supports logging or not logging. Since the default
-  // logging level (Info) should be quiet except for notices that can be
-  // resolved by the developer fixing their code, logging is enabled for only
-  // kLogLevelVerbose & kLogLevelDebug.
-  switch (log_level) {
-    case kLogLevelVerbose:
-      FIREBASE_CASE_FALLTHROUGH;
-    case kLogLevelDebug:
-      [FIRDatabase setLoggingEnabled:YES];
-      break;
-    case kLogLevelInfo:
-      FIREBASE_CASE_FALLTHROUGH;
-    case kLogLevelWarning:
-      FIREBASE_CASE_FALLTHROUGH;
-    case kLogLevelError:
-      FIREBASE_CASE_FALLTHROUGH;
-    case kLogLevelAssert:
-      [FIRDatabase setLoggingEnabled:NO];
-      break;
-  }
+  [FIRDatabase setLoggingEnabled:(log_level == kLogLevelVerbose ||
+                                  log_level == kLogLevelDebug)
+                                     ? YES
+                                     : NO];
   logger_.SetLogLevel(log_level);
 }
 
 LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
 
+template <typename ListenerT>
+static bool RegisterListenerHelper(
+    Mutex* mutex, ListenerCollection<ListenerT>* collection,
+    std::map<std::pair<internal::QuerySpec, ListenerT*>,
+             FIRCPPDatabaseQueryCallbackStatePointer>* lookup,
+    const internal::QuerySpec& spec, ListenerT* listener,
+    FIRCPPDatabaseQueryCallbackState* callback_state) {
+  MutexLock lock(*mutex);
+  if (!collection->Register(spec, listener)) return false;
+  lookup->try_emplace(std::make_pair(spec, listener),
+                      FIRCPPDatabaseQueryCallbackStatePointer(callback_state));
+  return true;
+}
+
+template <typename ListenerT>
+static bool UnregisterListenerHelper(
+    Mutex* mutex, ListenerCollection<ListenerT>* collection,
+    std::map<std::pair<internal::QuerySpec, ListenerT*>,
+             FIRCPPDatabaseQueryCallbackStatePointer>* lookup,
+    const internal::QuerySpec& spec, ListenerT* listener) {
+  FIRCPPDatabaseQueryCallbackStatePointer callback_to_remove(nil);
+  bool unregistered = false;
+  {
+    MutexLock lock(*mutex);
+    if (collection->Unregister(spec, listener)) {
+      unregistered = true;
+      auto found = lookup->find(std::make_pair(spec, listener));
+      if (found != lookup->end()) {
+        callback_to_remove = std::move(found->second);
+        lookup->erase(found);
+      }
+    }
+  }
+  if (callback_to_remove.get() != nil) {
+    [callback_to_remove.get() removeAllObservers];
+  }
+  return unregistered;
+}
+
+template <typename ListenerT>
+static void UnregisterAllListenersHelper(
+    Mutex* mutex, ListenerCollection<ListenerT>* collection,
+    std::map<std::pair<internal::QuerySpec, ListenerT*>,
+             FIRCPPDatabaseQueryCallbackStatePointer>* lookup,
+    const internal::QuerySpec& spec) {
+  std::vector<FIRCPPDatabaseQueryCallbackStatePointer> callbacks_to_remove;
+  {
+    MutexLock lock(*mutex);
+    std::vector<ListenerT*> listeners;
+    if (collection->Get(spec, &listeners)) {
+      callbacks_to_remove.reserve(listeners.size());
+      for (ListenerT* listener : listeners) {
+        if (collection->Unregister(spec, listener)) {
+          auto found = lookup->find(std::make_pair(spec, listener));
+          if (found != lookup->end()) {
+            callbacks_to_remove.push_back(std::move(found->second));
+            lookup->erase(found);
+          }
+        }
+      }
+    }
+  }
+  for (auto& callback_state : callbacks_to_remove) {
+    [callback_state.get() removeAllObservers];
+  }
+}
+
 bool DatabaseInternal::RegisterValueListener(
     const internal::QuerySpec& spec, ValueListener* listener,
     FIRCPPDatabaseQueryCallbackState* callback_state) {
-  MutexLock lock(listener_mutex_);
-  if (value_listeners_by_query_.Register(spec, listener)) {
-    auto key = std::make_pair(spec, listener);
-    auto found = cleanup_value_listener_lookup_.find(key);
-    if (found == cleanup_value_listener_lookup_.end()) {
-      cleanup_value_listener_lookup_.insert(std::make_pair(
-          key, FIRCPPDatabaseQueryCallbackStatePointer(callback_state)));
-    }
-    return true;
-  }
-  return false;
+  return RegisterListenerHelper(
+      &listener_mutex_, &value_listeners_by_query_,
+      &cleanup_value_listener_lookup_, spec, listener, callback_state);
 }
 
 bool DatabaseInternal::UnregisterValueListener(
     const internal::QuerySpec& spec, ValueListener* listener,
     [[maybe_unused]] FIRDatabaseQuery* query_impl) {
-  FIRCPPDatabaseQueryCallbackStatePointer callback_to_remove(nil);
-  bool unregistered = false;
-  {
-    MutexLock lock(listener_mutex_);
-    if (value_listeners_by_query_.Unregister(spec, listener)) {
-      unregistered = true;
-      auto found =
-          cleanup_value_listener_lookup_.find(std::make_pair(spec, listener));
-      if (found != cleanup_value_listener_lookup_.end()) {
-        callback_to_remove = std::move(found->second);
-        cleanup_value_listener_lookup_.erase(found);
-      }
-    }
-  }
-  if (callback_to_remove.get() != nil) {
-    [callback_to_remove.get() removeAllObservers];
-  }
-  return unregistered;
+  return UnregisterListenerHelper(&listener_mutex_, &value_listeners_by_query_,
+                                  &cleanup_value_listener_lookup_, spec,
+                                  listener);
 }
 
 void DatabaseInternal::UnregisterAllValueListeners(
     const internal::QuerySpec& spec,
     [[maybe_unused]] FIRDatabaseQuery* query_impl) {
-  std::vector<FIRCPPDatabaseQueryCallbackStatePointer> callbacks_to_remove;
-  {
-    MutexLock lock(listener_mutex_);
-    std::vector<ValueListener*> listeners;
-    if (value_listeners_by_query_.Get(spec, &listeners)) {
-      callbacks_to_remove.reserve(listeners.size());
-      for (ValueListener* listener : listeners) {
-        if (value_listeners_by_query_.Unregister(spec, listener)) {
-          auto found = cleanup_value_listener_lookup_.find(
-              std::make_pair(spec, listener));
-          if (found != cleanup_value_listener_lookup_.end()) {
-            callbacks_to_remove.push_back(std::move(found->second));
-            cleanup_value_listener_lookup_.erase(found);
-          }
-        }
-      }
-    }
-  }
-  for (auto& callback_state : callbacks_to_remove) {
-    [callback_state.get() removeAllObservers];
-  }
+  UnregisterAllListenersHelper(&listener_mutex_, &value_listeners_by_query_,
+                               &cleanup_value_listener_lookup_, spec);
 }
 
 bool DatabaseInternal::RegisterChildListener(
     const internal::QuerySpec& spec, ChildListener* listener,
     FIRCPPDatabaseQueryCallbackState* _Nonnull callback_state) {
-  MutexLock lock(listener_mutex_);
-  if (child_listeners_by_query_.Register(spec, listener)) {
-    auto key = std::make_pair(spec, listener);
-    auto found = cleanup_child_listener_lookup_.find(key);
-    if (found == cleanup_child_listener_lookup_.end()) {
-      cleanup_child_listener_lookup_.insert(std::make_pair(
-          key, FIRCPPDatabaseQueryCallbackStatePointer(callback_state)));
-    }
-    return true;
-  }
-  return false;
+  return RegisterListenerHelper(
+      &listener_mutex_, &child_listeners_by_query_,
+      &cleanup_child_listener_lookup_, spec, listener, callback_state);
 }
 
 bool DatabaseInternal::UnregisterChildListener(
     const internal::QuerySpec& spec, ChildListener* listener,
     [[maybe_unused]] FIRDatabaseQuery* query_impl) {
-  FIRCPPDatabaseQueryCallbackStatePointer callback_to_remove(nil);
-  bool unregistered = false;
-  {
-    MutexLock lock(listener_mutex_);
-    if (child_listeners_by_query_.Unregister(spec, listener)) {
-      unregistered = true;
-      auto found =
-          cleanup_child_listener_lookup_.find(std::make_pair(spec, listener));
-      if (found != cleanup_child_listener_lookup_.end()) {
-        callback_to_remove = std::move(found->second);
-        cleanup_child_listener_lookup_.erase(found);
-      }
-    }
-  }
-  if (callback_to_remove.get() != nil) {
-    [callback_to_remove.get() removeAllObservers];
-  }
-  return unregistered;
+  return UnregisterListenerHelper(&listener_mutex_, &child_listeners_by_query_,
+                                  &cleanup_child_listener_lookup_, spec,
+                                  listener);
 }
 
 void DatabaseInternal::UnregisterAllChildListeners(
     const internal::QuerySpec& spec,
     [[maybe_unused]] FIRDatabaseQuery* query_impl) {
-  std::vector<FIRCPPDatabaseQueryCallbackStatePointer> callbacks_to_remove;
-  {
-    MutexLock lock(listener_mutex_);
-    std::vector<ChildListener*> listeners;
-    if (child_listeners_by_query_.Get(spec, &listeners)) {
-      callbacks_to_remove.reserve(listeners.size());
-      for (ChildListener* listener : listeners) {
-        if (child_listeners_by_query_.Unregister(spec, listener)) {
-          auto found = cleanup_child_listener_lookup_.find(
-              std::make_pair(spec, listener));
-          if (found != cleanup_child_listener_lookup_.end()) {
-            callbacks_to_remove.push_back(std::move(found->second));
-            cleanup_child_listener_lookup_.erase(found);
-          }
-        }
-      }
-    }
-  }
-  for (auto& callback_state : callbacks_to_remove) {
-    [callback_state.get() removeAllObservers];
-  }
+  UnregisterAllListenersHelper(&listener_mutex_, &child_listeners_by_query_,
+                               &cleanup_child_listener_lookup_, spec);
 }
 
 bool DatabaseInternal::initialized() const { return impl() != nullptr; }

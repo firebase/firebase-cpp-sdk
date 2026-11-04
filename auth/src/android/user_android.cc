@@ -675,19 +675,14 @@ void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, con
 }
 
 void Reload(AuthData* auth_data, Promise<void> promise) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jobject pending_result =
-      env->CallObjectMethod(user_local, user::GetMethodId(user::kReload));
-  env->DeleteLocalRef(user_local);
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, UpdateUserOnSuccess, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kReload));
+    env->DeleteLocalRef(user_local);
+    return task;
+  });
 }
 
 void Reauthenticate(AuthData* auth_data, Promise<void> promise, const Credential& credential) {
@@ -726,58 +721,39 @@ Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuth
 }
 
 void SendEmailVerification(AuthData* auth_data, Promise<void> promise) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jobject pending_result = env->CallObjectMethod(
-      user_local, user::GetMethodId(user::kSendEmailVerification));
-  env->DeleteLocalRef(user_local);
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, UpdateUserOnSuccess, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kSendEmailVerification));
+    env->DeleteLocalRef(user_local);
+    return task;
+  });
 }
 
 void SendEmailVerificationBeforeUpdatingEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  if (!email || strlen(email) == 0) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingEmail,
-                     "Email must be provided.");
-    return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jstring j_email = env->NewStringUTF(email);
-  jobject pending_result = env->CallObjectMethod(
-      user_local, user::GetMethodId(user::kVerifyBeforeUpdateEmail), j_email);
-  env->DeleteLocalRef(user_local);
-  env->DeleteLocalRef(j_email);
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  if (!email || strlen(email) == 0) { promise.Fail(kAuthErrorMissingEmail, "Email must be provided."); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, UpdateUserOnSuccess, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jstring j_email = env->NewStringUTF(email);
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kVerifyBeforeUpdateEmail), j_email);
+    env->DeleteLocalRef(j_email);
+    env->DeleteLocalRef(user_local);
+    return task;
+  });
 }
 
 void Delete(AuthData* auth_data, Promise<void> promise) {
-  if (!ValidUser(auth_data)) {
-    promise.Fail(kAuthErrorFailure, "Invalid user"); return;
-  }
-  JNIEnv* env = Env(auth_data);
-
-  jobject user_local = AcquireUserLocalRef(env, auth_data);
-  if (user_local == nullptr) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorFailure, "User is no longer valid.");
-    return;
-  }
-  jobject pending_result =
-      env->CallObjectMethod(user_local, user::GetMethodId(user::kDelete));
-  env->DeleteLocalRef(user_local);
+  if (!ValidUser(auth_data)) { promise.Fail(kAuthErrorFailure, "Invalid user"); return; }
+  RunAndroidTaskWithPromise(auth_data, promise, UpdateUserOnSuccess, [=](JNIEnv* env) {
+    jobject user_local = AcquireUserLocalRef(env, auth_data);
+    if (!user_local) return (jobject)nullptr;
+    jobject task = env->CallObjectMethod(user_local, user::GetMethodId(user::kDelete));
+    env->DeleteLocalRef(user_local);
+    return task;
+  });
 }
 
 UserMetadata User::metadata() const {

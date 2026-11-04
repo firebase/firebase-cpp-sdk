@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/core/repo.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <string>
@@ -57,31 +58,47 @@ static Mutex g_scheduler_mutex;  // NOLINT
 static int g_scheduler_ref_count = 0;
 scheduler::Scheduler* Repo::s_scheduler_;
 
-// Transaction Response class to pass to PersistentConnection.
-// This is used to capture all the data to use when ResponseCallback is
-// triggered.
-class TransactionResponse : public connection::Response {
+namespace {
+class RepoResponseBase : public connection::Response {
  public:
-  TransactionResponse(const Repo::ThisRef& repo,
-                      const DatabaseInternal::ThisRef& db_ref, bool has_db,
-                      const Path& path,
-                      const std::vector<TransactionDataPtr> queue,
-                      ResponseCallback callback)
+  RepoResponseBase(const Repo::ThisRef& repo, DatabaseInternal* db,
+                   const Path& path, ResponseCallback callback)
       : connection::Response(callback),
         repo_ref_(repo),
-        db_ref_(db_ref),
-        has_db_(has_db),
-        path_(path),
-        queue_(queue),
-        handled_(false) {}
+        db_ref_(db ? db->this_ref() : DatabaseInternal::ThisRef(nullptr)),
+        has_db_(db != nullptr),
+        path_(path) {}
+
+  Repo::ThisRef& repo_ref() { return repo_ref_; }
+  const Path& path() const { return path_; }
+
+ protected:
+  bool IsDbValid() {
+    if (!has_db_) return true;
+    DatabaseInternal::ThisRefLock lock(&db_ref_);
+    return lock.GetReference() != nullptr;
+  }
+
+  Repo::ThisRef repo_ref_;
+  DatabaseInternal::ThisRef db_ref_;
+  bool has_db_;
+  Path path_;
+  bool completed_ = false;
+};
+
+class TransactionResponse : public RepoResponseBase {
+ public:
+  TransactionResponse(const Repo::ThisRef& repo, DatabaseInternal* db,
+                      const Path& path, std::vector<TransactionDataPtr> queue,
+                      ResponseCallback callback)
+      : RepoResponseBase(repo, db, path, callback), queue_(std::move(queue)) {}
 
   ~TransactionResponse() override { FailUncompletedTransactions(); }
-
-  void MarkHandled() { handled_ = true; }
+  void MarkHandled() { completed_ = true; }
 
   void FailUncompletedTransactions() {
-    if (handled_) return;
-    handled_ = true;
+    if (completed_) return;
+    completed_ = true;
     if (!IsDbValid()) return;
     for (auto& transaction : queue_) {
       if (transaction &&
@@ -95,39 +112,115 @@ class TransactionResponse : public connection::Response {
     }
   }
 
-  Repo::ThisRef& repo_ref() { return repo_ref_; }
-  const Path& path() { return path_; }
   std::vector<TransactionDataPtr>& queue() { return queue_; }
 
  private:
-  bool IsDbValid() {
-    if (!has_db_) return true;
-    DatabaseInternal::ThisRefLock lock(&db_ref_);
-    return lock.GetReference() != nullptr;
+  std::vector<TransactionDataPtr> queue_;
+};
+
+class OnDisconnectResponse : public RepoResponseBase {
+ public:
+  OnDisconnectResponse(const Repo::ThisRef& repo_ref, DatabaseInternal* db,
+                       const SafeFutureHandle<void>& handle,
+                       ReferenceCountedFutureImpl* ref_future, const Path& path,
+                       const Variant& data, ResponseCallback callback)
+      : RepoResponseBase(repo_ref, db, path, callback),
+        handle_(handle),
+        ref_future_(ref_future),
+        data_(data) {
+    assert(ref_future != nullptr);
   }
 
-  // Database reference to call HandleTransactionResponse()
-  Repo::ThisRef repo_ref_;
-  DatabaseInternal::ThisRef db_ref_;
-  bool has_db_;
+  ~OnDisconnectResponse() override {
+    if (!completed_ && IsDbValid() && ref_future_) {
+      ref_future_->Complete(handle_, kErrorUnknownError,
+                            "The database is being destroyed.");
+    }
+  }
 
-  // Database path for this write request
-  Path path_;
+  void MarkComplete() {
+    completed_ = true;
+    if (IsDbValid() && ref_future_) {
+      if (!HasError()) {
+        ref_future_->Complete(handle_, kErrorNone);
+      } else {
+        ref_future_->Complete(handle_, GetErrorCode(),
+                              GetErrorMessage().c_str());
+      }
+    }
+  }
 
-  // All the transaction used for this write request
-  std::vector<TransactionDataPtr> queue_;
+  const Variant& data() const { return data_; }
 
-  bool handled_;
+ private:
+  SafeFutureHandle<void> handle_;
+  ReferenceCountedFutureImpl* ref_future_;
+  Variant data_;
 };
+
+class SetValueResponse : public RepoResponseBase {
+ public:
+  SetValueResponse(const Repo::ThisRef& repo, DatabaseInternal* db,
+                   const Path& path, WriteId write_id,
+                   ReferenceCountedFutureImpl* api,
+                   SafeFutureHandle<void> handle)
+      : RepoResponseBase(
+            repo, db, path,
+            [](const connection::ResponsePtr& ptr) {
+              auto* response = static_cast<SetValueResponse*>(ptr.get());
+              Repo::ThisRefLock lock(&response->repo_ref());
+              if (Repo* r = lock.GetReference()) {
+                r->AckWriteAndRerunTransactions(response->write_id(),
+                                                response->path(),
+                                                response->GetErrorCode());
+              }
+              response->MarkComplete();
+            }),
+        write_id_(write_id),
+        api_(api),
+        handle_(handle) {}
+
+  ~SetValueResponse() override {
+    if (!completed_ && IsDbValid() && api_) {
+      api_->Complete(handle_, kErrorUnknownError,
+                     "The database is being destroyed.");
+    }
+  }
+
+  void MarkComplete() {
+    completed_ = true;
+    if (IsDbValid() && api_) {
+      api_->Complete(handle_, GetErrorCode(),
+                     ::firebase::database::GetErrorMessage(GetErrorCode()));
+    }
+  }
+
+  WriteId write_id() const { return write_id_; }
+
+ private:
+  WriteId write_id_;
+  ReferenceCountedFutureImpl* api_;
+  SafeFutureHandle<void> handle_;
+};
+
+class NoopListener : public ValueListener {
+ public:
+  ~NoopListener() override = default;
+  void OnValueChanged(const DataSnapshot&) override {}
+  void OnCancelled(const Error&, const char*) override {}
+};
+
+struct FutureToComplete {
+  TransactionDataPtr transaction;
+  Error abort_reason;
+  Variant node;
+};
+}  // namespace
 
 Repo::Repo(App* app, DatabaseInternal* database, const char* url,
            Logger* logger, bool persistence_enabled)
     : database_(database),
-      host_info_(),
       persistence_enabled_(persistence_enabled),
-      connection_(),
-      server_time_offset_(0),
-      next_write_id_(0),
       safe_this_(this),
       logger_(logger) {
   {
@@ -145,42 +238,29 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url,
     url_ = host_info_.ToString();
   }
 
-  connection_.reset(new connection::PersistentConnection(
-      app, host_info_, this, s_scheduler_, logger_));
-  // Kick off any expensive additional initialization
+  connection_ = std::make_unique<connection::PersistentConnection>(
+      app, host_info_, this, s_scheduler_, logger_);
   s_scheduler_->Schedule(NewCallback(
       [](ThisRef ref) {
         ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr) {
-          lock.GetReference()->DeferredInitialization();
-        }
+        if (Repo* r = lock.GetReference()) r->DeferredInitialization();
       },
       safe_this_));
 
-  // Schedule the connection to initialize after the SyncTree is set up.
-  if (!url_.empty()) {
-    connection_->ScheduleInitialize();
-  }
+  if (!url_.empty()) connection_->ScheduleInitialize();
 }
 
 Repo::~Repo() {
-  // Terminate the connection immediately to prevent messages from arriving
-  // while the SyncTree is being torn down.
   safe_this_.ClearReference();
-
-  // Remove the App Check token listener before tearing down connection_.
   if (database_ && database_->GetApp()) {
-    auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
     database_->GetApp()->function_registry()->CallFunction(
         ::firebase::internal::FnAppCheckRemoveListener, database_->GetApp(),
-        callback, this);
+        reinterpret_cast<void*>(OnAppCheckTokenChanged), this);
   }
-
-  connection_.reset(nullptr);
+  connection_.reset();
   {
     MutexLock lock(g_scheduler_mutex);
-    if (g_scheduler_ref_count) g_scheduler_ref_count--;
-    if (g_scheduler_ref_count == 0) {
+    if (g_scheduler_ref_count && --g_scheduler_ref_count == 0) {
       delete s_scheduler_;
       s_scheduler_ = nullptr;
     }
@@ -189,125 +269,46 @@ Repo::~Repo() {
 
 void Repo::AddEventCallback(
     std::unique_ptr<EventRegistration> event_registration) {
-  std::vector<Event> events;
-  if (StringStartsWith(event_registration->query_spec().path.str(), kDotInfo)) {
-    if (!info_sync_tree_) return;
-    events =
-        info_sync_tree_->AddEventRegistration(std::move(event_registration));
-  } else {
-    if (!server_sync_tree_) return;
-    events =
-        server_sync_tree_->AddEventRegistration(std::move(event_registration));
-  }
-  PostEvents(events);
+  SyncTree* tree =
+      StringStartsWith(event_registration->query_spec().path.str(), kDotInfo)
+          ? info_sync_tree_.get()
+          : server_sync_tree_.get();
+  if (tree) PostEvents(tree->AddEventRegistration(std::move(event_registration)));
 }
 
 void Repo::RemoveEventCallback(void* listener_ptr,
                                const QuerySpec& query_spec) {
-  std::vector<Event> events;
-  if (StringStartsWith(query_spec.path.str(), kDotInfo)) {
-    if (!info_sync_tree_) return;
-    events = info_sync_tree_->RemoveEventRegistration(query_spec, listener_ptr,
-                                                      kErrorNone);
-  } else {
-    if (!server_sync_tree_) return;
-    events = server_sync_tree_->RemoveEventRegistration(
-        query_spec, listener_ptr, kErrorNone);
+  SyncTree* tree = StringStartsWith(query_spec.path.str(), kDotInfo)
+                       ? info_sync_tree_.get()
+                       : server_sync_tree_.get();
+  if (tree) {
+    PostEvents(
+        tree->RemoveEventRegistration(query_spec, listener_ptr, kErrorNone));
   }
-  PostEvents(events);
 }
-
-class OnDisconnectResponse : public connection::Response {
- public:
-  OnDisconnectResponse(const Repo::ThisRef& repo_ref,
-                       const DatabaseInternal::ThisRef& db_ref, bool has_db,
-                       const SafeFutureHandle<void>& handle,
-                       ReferenceCountedFutureImpl* ref_future, const Path& path,
-                       const Variant& data, ResponseCallback callback)
-      : connection::Response(callback),
-        repo_ref_(repo_ref),
-        db_ref_(db_ref),
-        has_db_(has_db),
-        handle_(handle),
-        ref_future_(ref_future),
-        path_(path),
-        data_(data),
-        completed_(false) {
-    assert(ref_future != nullptr);
-  }
-
-  ~OnDisconnectResponse() override {
-    if (!completed_) {
-      if (IsDbValid() && ref_future_) {
-        ref_future_->Complete(handle_, kErrorUnknownError, "The database is being destroyed.");
-      }
-    }
-  }
-
-  void MarkComplete() {
-    completed_ = true;
-    if (IsDbValid() && ref_future_) {
-      if (!HasError()) {
-        ref_future_->Complete(handle_, kErrorNone);
-      } else {
-        ref_future_->Complete(handle_, GetErrorCode(),
-                              GetErrorMessage().c_str());
-      }
-    }
-  }
-
-  Repo::ThisRef& repo_ref() { return repo_ref_; }
-  const Path& path() const { return path_; }
-  const Variant& data() const { return data_; }
-
- private:
-  bool IsDbValid() {
-    if (!has_db_) return true;
-    DatabaseInternal::ThisRefLock lock(&db_ref_);
-    return lock.GetReference() != nullptr;
-  }
-
-  Repo::ThisRef repo_ref_;
-  DatabaseInternal::ThisRef db_ref_;
-  bool has_db_;
-  SafeFutureHandle<void> handle_;
-  ReferenceCountedFutureImpl* ref_future_;
-  Path path_;
-  Variant data_;
-  bool completed_;
-};
 
 void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                                 ReferenceCountedFutureImpl* ref_future,
                                 const Path& path, const Variant& data) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      safe_this_,
-      database_ ? database_->this_ref() : DatabaseInternal::ThisRef(nullptr),
-      database_ != nullptr, handle, ref_future, path, data,
+      safe_this_, database_, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
-        OnDisconnectResponse* response =
-            static_cast<OnDisconnectResponse*>(ptr.get());
-        assert(response);
-        if (!response->HasError()) {
-          ThisRefLock lock(&response->repo_ref());
-          if (lock.GetReference() != nullptr) {
-            lock.GetReference()->on_disconnect_.Remember(response->path(),
-                                                         response->data());
+        auto* resp = static_cast<OnDisconnectResponse*>(ptr.get());
+        if (!resp->HasError()) {
+          ThisRefLock lock(&resp->repo_ref());
+          if (Repo* r = lock.GetReference()) {
+            r->on_disconnect_.Remember(resp->path(), resp->data());
           }
         }
-        response->MarkComplete();
+        resp->MarkComplete();
       });
 
   Repo::scheduler().Schedule(NewCallback(
       [](ThisRef ref, connection::ResponsePtr ptr) {
         ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr &&
-            lock.GetReference()->connection() != nullptr) {
-          OnDisconnectResponse* response =
-              static_cast<OnDisconnectResponse*>(ptr.get());
-          assert(response);
-          lock.GetReference()->connection()->OnDisconnectPut(
-              response->path(), response->data(), ptr);
+        if (Repo* r = lock.GetReference(); r && r->connection()) {
+          auto* resp = static_cast<OnDisconnectResponse*>(ptr.get());
+          r->connection()->OnDisconnectPut(resp->path(), resp->data(), ptr);
         }
       },
       safe_this_, response));
@@ -317,32 +318,24 @@ void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      safe_this_,
-      database_ ? database_->this_ref() : DatabaseInternal::ThisRef(nullptr),
-      database_ != nullptr, handle, ref_future, path, Variant::Null(),
+      safe_this_, database_, handle, ref_future, path, Variant::Null(),
       [](const connection::ResponsePtr& ptr) {
-        OnDisconnectResponse* response =
-            static_cast<OnDisconnectResponse*>(ptr.get());
-        assert(response);
-        if (!response->HasError()) {
-          ThisRefLock lock(&response->repo_ref());
-          if (lock.GetReference() != nullptr) {
-            lock.GetReference()->on_disconnect_.Forget(response->path());
+        auto* resp = static_cast<OnDisconnectResponse*>(ptr.get());
+        if (!resp->HasError()) {
+          ThisRefLock lock(&resp->repo_ref());
+          if (Repo* r = lock.GetReference()) {
+            r->on_disconnect_.Forget(resp->path());
           }
         }
-        response->MarkComplete();
+        resp->MarkComplete();
       });
 
   Repo::scheduler().Schedule(NewCallback(
       [](ThisRef ref, connection::ResponsePtr ptr) {
         ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr &&
-            lock.GetReference()->connection() != nullptr) {
-          OnDisconnectResponse* response =
-              static_cast<OnDisconnectResponse*>(ptr.get());
-          assert(response);
-          lock.GetReference()->connection()->OnDisconnectCancel(
-              response->path(), ptr);
+        if (Repo* r = lock.GetReference(); r && r->connection()) {
+          auto* resp = static_cast<OnDisconnectResponse*>(ptr.get());
+          r->connection()->OnDisconnectCancel(resp->path(), ptr);
         }
       },
       safe_this_, response));
@@ -352,122 +345,37 @@ void Repo::OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path, const Variant& data) {
   connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
-      safe_this_,
-      database_ ? database_->this_ref() : DatabaseInternal::ThisRef(nullptr),
-      database_ != nullptr, handle, ref_future, path, data,
+      safe_this_, database_, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
-        OnDisconnectResponse* response =
-            static_cast<OnDisconnectResponse*>(ptr.get());
-        assert(response);
-        if (!response->HasError()) {
-          ThisRefLock lock(&response->repo_ref());
-          if (lock.GetReference() != nullptr && response->data().is_map()) {
-            for (const auto& kvp : response->data().map()) {
-              const Variant& key = kvp.first;
-              const Variant& value = kvp.second;
-              lock.GetReference()->on_disconnect_.Remember(
-                  response->path().GetChild(key.AsString().string_value()),
-                  value);
+        auto* resp = static_cast<OnDisconnectResponse*>(ptr.get());
+        if (!resp->HasError()) {
+          ThisRefLock lock(&resp->repo_ref());
+          if (Repo* r = lock.GetReference(); r && resp->data().is_map()) {
+            for (const auto& [key, val] : resp->data().map()) {
+              r->on_disconnect_.Remember(
+                  resp->path().GetChild(key.AsString().string_value()), val);
             }
           }
         }
-        response->MarkComplete();
+        resp->MarkComplete();
       });
 
   Repo::scheduler().Schedule(NewCallback(
       [](ThisRef ref, connection::ResponsePtr ptr) {
         ThisRefLock lock(&ref);
-        if (lock.GetReference() != nullptr &&
-            lock.GetReference()->connection() != nullptr) {
-          OnDisconnectResponse* response =
-              static_cast<OnDisconnectResponse*>(ptr.get());
-          assert(response);
-          lock.GetReference()->connection()->OnDisconnectMerge(
-              response->path(), response->data(), ptr);
+        if (Repo* r = lock.GetReference(); r && r->connection()) {
+          auto* resp = static_cast<OnDisconnectResponse*>(ptr.get());
+          r->connection()->OnDisconnectMerge(resp->path(), resp->data(), ptr);
         }
       },
       safe_this_, response));
 }
 
 void Repo::PurgeOutstandingWrites() {
-  if (server_sync_tree_) {
-    std::vector<Event> events = server_sync_tree_->RemoveAllWrites();
-    PostEvents(events);
-  }
-  // Abort any transactions
+  if (server_sync_tree_) PostEvents(server_sync_tree_->RemoveAllWrites());
   AbortTransactions(Path(), kErrorWriteCanceled);
-  // Remove outstanding writes from connection
-  if (connection_) {
-    connection_->PurgeOutstandingWrites();
-  }
+  if (connection_) connection_->PurgeOutstandingWrites();
 }
-
-// Transaction Response class to pass to PersistentConnection.
-// This is used to capture all the data to use when ResponseCallback is
-// triggered.
-class SetValueResponse : public connection::Response {
- public:
-  SetValueResponse(const Repo::ThisRef& repo,
-                   const DatabaseInternal::ThisRef& db_ref, bool has_db,
-                   const Path& path, WriteId write_id,
-                   ReferenceCountedFutureImpl* api,
-                   SafeFutureHandle<void> handle, ResponseCallback callback)
-      : connection::Response(callback),
-        repo_ref_(repo),
-        db_ref_(db_ref),
-        has_db_(has_db),
-        path_(path),
-        write_id_(write_id),
-        api_(api),
-        handle_(handle),
-        completed_(false) {}
-
-  ~SetValueResponse() override {
-    if (!completed_) {
-      if (IsDbValid() && api_) {
-        api_->Complete(handle_, kErrorUnknownError,
-                       "The database is being destroyed.");
-      }
-    }
-  }
-
-  void MarkComplete() {
-    completed_ = true;
-    if (IsDbValid() && api_) {
-      api_->Complete(handle_, GetErrorCode(),
-                     ::firebase::database::GetErrorMessage(GetErrorCode()));
-    }
-  }
-
-  Repo::ThisRef& repo_ref() { return repo_ref_; }
-  const Path& path() { return path_; }
-  WriteId write_id() { return write_id_; }
-  ReferenceCountedFutureImpl* api() { return api_; }
-  SafeFutureHandle<void> handle() { return handle_; }
-
- private:
-  bool IsDbValid() {
-    if (!has_db_) return true;
-    DatabaseInternal::ThisRefLock lock(&db_ref_);
-    return lock.GetReference() != nullptr;
-  }
-
-  // Repo reference
-  Repo::ThisRef repo_ref_;
-  DatabaseInternal::ThisRef db_ref_;
-  bool has_db_;
-
-  // Database path for this write request
-  Path path_;
-
-  WriteId write_id_;
-
-  ReferenceCountedFutureImpl* api_;
-
-  SafeFutureHandle<void> handle_;
-
-  bool completed_;
-};
 
 void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
                     ReferenceCountedFutureImpl* api,
@@ -482,34 +390,14 @@ void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
   Variant server_values = GenerateServerValues(server_time_offset_);
   Variant new_data =
       ResolveDeferredValueSnapshot(new_data_unresolved, server_values);
-
   WriteId write_id = GetNextWriteId();
-  std::vector<Event> events = server_sync_tree_->ApplyUserOverwrite(
-      path, new_data_unresolved, new_data, write_id, kOverwriteVisible,
-      kPersist);
-  PostEvents(events);
-
+  PostEvents(server_sync_tree_->ApplyUserOverwrite(path, new_data_unresolved,
+                                                   new_data, write_id,
+                                                   kOverwriteVisible, kPersist));
   connection_->Put(path, new_data_unresolved,
                    std::make_shared<SetValueResponse>(
-                       safe_this_,
-                       database_ ? database_->this_ref()
-                                 : DatabaseInternal::ThisRef(nullptr),
-                       database_ != nullptr, path, write_id, api, handle,
-                       [](const connection::ResponsePtr& ptr) {
-                         auto* response =
-                             static_cast<SetValueResponse*>(ptr.get());
-                         Repo::ThisRefLock lock(&response->repo_ref());
-                         Repo* repo = lock.GetReference();
-                         if (repo != nullptr) {
-                           repo->AckWriteAndRerunTransactions(
-                               response->write_id(), response->path(),
-                               response->GetErrorCode());
-                         }
-                         response->MarkComplete();
-                       }));
-
-  Path affected_path = AbortTransactions(path, kErrorOverriddenBySet);
-  RerunTransactions(affected_path);
+                       safe_this_, database_, path, write_id, api, handle));
+  RerunTransactions(AbortTransactions(path, kErrorOverriddenBySet));
 }
 
 void Repo::UpdateChildren(const Path& path, const Variant& data,
@@ -517,7 +405,6 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
                           SafeFutureHandle<void> handle) {
   CompoundWrite updates = CompoundWrite::FromVariantMerge(data);
   if (updates.IsEmpty()) {
-    // Dispatch on complete.
     api->Complete(handle, kErrorNone, "");
     return;
   }
@@ -528,96 +415,54 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
     }
     return;
   }
-
-  // Start with our existing data and merge each child into it.
   Variant server_values = GenerateServerValues(server_time_offset_);
   CompoundWrite resolved = ResolveDeferredValueMerge(updates, server_values);
-
   WriteId write_id = GetNextWriteId();
-  std::vector<Event> events = server_sync_tree_->ApplyUserMerge(
-      path, updates, resolved, write_id, kPersist);
-  PostEvents(events);
-
+  PostEvents(server_sync_tree_->ApplyUserMerge(path, updates, resolved,
+                                               write_id, kPersist));
   connection_->Merge(path, data,
                      std::make_shared<SetValueResponse>(
-                         safe_this_,
-                         database_ ? database_->this_ref()
-                                   : DatabaseInternal::ThisRef(nullptr),
-                         database_ != nullptr, path, write_id, api, handle,
-                         [](const connection::ResponsePtr& ptr) {
-                           auto* response =
-                               static_cast<SetValueResponse*>(ptr.get());
-                           Repo::ThisRefLock lock(&response->repo_ref());
-                           Repo* repo = lock.GetReference();
-                           if (repo != nullptr) {
-                             repo->AckWriteAndRerunTransactions(
-                                 response->write_id(), response->path(),
-                                 response->GetErrorCode());
-                           }
-                           response->MarkComplete();
-                         }));
-
+                         safe_this_, database_, path, write_id, api, handle));
   updates.write_tree().CallOnEach(
-      Path(), [this, &path](const Path& relative_child_path,
-                            const Variant& variant) {
-        (void)variant;
-        Path affected_path = this->AbortTransactions(
-            path.GetChild(relative_child_path), kErrorOverriddenBySet);
-        this->RerunTransactions(affected_path);
+      Path(), [this, &path](const Path& rel_path, const Variant&) {
+        RerunTransactions(AbortTransactions(path.GetChild(rel_path),
+                                            kErrorOverriddenBySet));
       });
 }
 
 void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
                                         Error error) {
-  if (error == kErrorWriteCanceled) {
-    // This write was already removed, we just need to ignore it...
-    return;
-  }
-
-  bool success = (error == kErrorNone);
-  AckStatus ack_status = success ? kAckConfirm : kAckRevert;
+  if (error == kErrorWriteCanceled) return;
+  AckStatus ack_status = (error == kErrorNone) ? kAckConfirm : kAckRevert;
   std::vector<Event> events = server_sync_tree_->AckUserWrite(
       write_id, ack_status, kPersist, server_time_offset_);
-  if (!events.empty()) {
-    RerunTransactions(path);
-  }
+  if (!events.empty()) RerunTransactions(path);
   PostEvents(events);
 }
 
 static std::unique_ptr<PersistenceManagerInterface> CreatePersistenceManager(
     const char* app_data_path, LoggerBase* logger) {
   static const uint64_t kDefaultCacheSize = 10 * 1024 * 1024;
-
-  auto persistence_storage_engine =
-      std::make_unique<LevelDbPersistenceStorageEngine>(logger);
-
-  if (!persistence_storage_engine->Initialize(app_data_path)) {
+  auto engine = std::make_unique<LevelDbPersistenceStorageEngine>(logger);
+  if (!engine->Initialize(app_data_path)) {
     logger->LogError("Could not initialize persistence");
-    return std::unique_ptr<PersistenceManager>();
+    return nullptr;
   }
-  auto tracked_query_manager = std::make_unique<TrackedQueryManager>(
-      persistence_storage_engine.get(), logger);
-
-  auto cache_policy = std::make_unique<LRUCachePolicy>(kDefaultCacheSize);
-
+  auto tracked_query_manager =
+      std::make_unique<TrackedQueryManager>(engine.get(), logger);
   return std::make_unique<PersistenceManager>(
-      std::move(persistence_storage_engine), std::move(tracked_query_manager),
-      std::move(cache_policy), logger);
+      std::move(engine), std::move(tracked_query_manager),
+      std::make_unique<LRUCachePolicy>(kDefaultCacheSize), logger);
 }
 
-// Defers any initialization that is potentially expensive (e.g. disk access).
 void Repo::DeferredInitialization() {
-  // Add App Check state listener
   if (database_ && database_->GetApp()) {
-    auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
     database_->GetApp()->function_registry()->CallFunction(
         ::firebase::internal::FnAppCheckAddListener, database_->GetApp(),
-        callback, this);
+        reinterpret_cast<void*>(OnAppCheckTokenChanged), this);
   }
 
-  // Set up server sync tree.
   {
-    auto pending_write_tree = std::make_unique<WriteTree>();
     std::unique_ptr<PersistenceManagerInterface> persistence_manager;
     if (persistence_enabled_) {
       const char* package_name =
@@ -630,19 +475,15 @@ void Repo::DeferredInitialization() {
       } else if (url_.empty() || slash_pos == std::string::npos) {
         logger_->LogError("Could not initialize persistence: No database url.");
       } else {
-        std::string url_domain = url_.substr(slash_pos + strlen("//"));
-        std::string database_path = package_name;
-        database_path += "/";
-        database_path += url_domain;
-
-        std::string app_data_path_error;
+        std::string database_path =
+            std::string(package_name) + "/" + url_.substr(slash_pos + 2);
+        std::string err;
         std::string app_data_path =
-            AppDataDir(database_path.c_str(),
-                       /* should_create = */ true, &app_data_path_error);
+            AppDataDir(database_path.c_str(), true, &err);
         if (app_data_path.empty()) {
           logger_->LogError(
               "Could not initialize persistence: App data directory error: %s",
-              app_data_path_error.c_str());
+              err.c_str());
         } else {
           logger_->LogDebug("app_data_path: %s", app_data_path.c_str());
           persistence_manager =
@@ -653,29 +494,23 @@ void Repo::DeferredInitialization() {
     if (!persistence_manager) {
       persistence_manager = std::make_unique<NoopPersistenceManager>();
     }
-
-    // Set up listen provider.
     auto listen_provider = std::make_unique<WebSocketListenProvider>(
         this, connection_.get(), logger_);
-    WebSocketListenProvider* listen_provider_ptr = listen_provider.get();
-
-    // Set up sync Tree.
+    auto* listen_provider_ptr = listen_provider.get();
     server_sync_tree_ = std::make_unique<SyncTree>(
-        std::move(pending_write_tree), std::move(persistence_manager),
+        std::make_unique<WriteTree>(), std::move(persistence_manager),
         std::move(listen_provider));
     listen_provider_ptr->set_sync_tree(server_sync_tree_.get());
   }
 
-  // Set up info sync tree.
   {
-    auto pending_write_tree = std::make_unique<WriteTree>();
-    auto persistence_manager = std::make_unique<NoopPersistenceManager>();
     auto listen_provider =
         std::make_unique<InfoListenProvider>(this, &info_data_);
-    InfoListenProvider* listen_provider_ptr = listen_provider.get();
-    info_sync_tree_ = std::make_unique<SyncTree>(std::move(pending_write_tree),
-                                                 std::move(persistence_manager),
-                                                 std::move(listen_provider));
+    auto* listen_provider_ptr = listen_provider.get();
+    info_sync_tree_ = std::make_unique<SyncTree>(
+        std::make_unique<WriteTree>(),
+        std::make_unique<NoopPersistenceManager>(),
+        std::move(listen_provider));
     listen_provider_ptr->set_sync_tree(info_sync_tree_.get());
   }
 
@@ -695,13 +530,11 @@ void Repo::PostEvents(const std::vector<Event>& events) {
 
 void Repo::OnConnect() {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
-
   OnServerInfoUpdate(kDotInfoConnected, true);
 }
 
 void Repo::OnDisconnect() {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
-
   OnServerInfoUpdate(kDotInfoConnected, false);
   RunOnDisconnectEvents();
 }
@@ -711,22 +544,19 @@ void Repo::RunOnDisconnectEvents() {
   SparseSnapshotTree resolved_tree =
       ResolveDeferredValueTree(on_disconnect_, server_values);
   std::vector<Event> events;
-
-  resolved_tree.ForEachTree(Path(), [this, &events](const Path& prefix_path,
-                                                    const Variant& node) {
-    Extend(&events, server_sync_tree_->ApplyServerOverwrite(prefix_path, node));
-    Path affected_path = AbortTransactions(prefix_path, kErrorOverriddenBySet);
-    RerunTransactions(affected_path);
-  });
-
+  resolved_tree.ForEachTree(
+      Path(), [this, &events](const Path& prefix_path, const Variant& node) {
+        Extend(&events,
+               server_sync_tree_->ApplyServerOverwrite(prefix_path, node));
+        RerunTransactions(
+            AbortTransactions(prefix_path, kErrorOverriddenBySet));
+      });
   on_disconnect_.Clear();
-
   PostEvents(events);
 }
 
 void Repo::OnAuthStatus(bool auth_ok) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
-
   OnServerInfoUpdate(kDotInfoAuthenticated, auth_ok);
 }
 
@@ -736,58 +566,35 @@ void Repo::OnServerInfoUpdate(const std::string& key, const Variant& value) {
 
 void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
-
-  for (const auto& element : updates) {
-    const Variant& key = element.first;
-    const Variant& value = element.second;
-    UpdateInfo(key.AsString().mutable_string(), value);
+  for (const auto& [key, val] : updates) {
+    UpdateInfo(key.AsString().mutable_string(), val);
   }
 }
 
 void Repo::OnDataUpdate(const Path& path, const Variant& data, bool is_merge,
                         const Tag& tag) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
-
   std::vector<Event> events;
   if (tag.has_value()) {
-    if (is_merge) {
-      std::map<Path, Variant> changed_children = VariantToPathMap(data);
-      events =
-          server_sync_tree_->ApplyTaggedQueryMerge(path, changed_children, tag);
-    } else {
-      events = server_sync_tree_->ApplyTaggedQueryOverwrite(path, data, tag);
-    }
+    events = is_merge ? server_sync_tree_->ApplyTaggedQueryMerge(
+                            path, VariantToPathMap(data), tag)
+                      : server_sync_tree_->ApplyTaggedQueryOverwrite(path, data,
+                                                                     tag);
   } else {
-    if (is_merge) {
-      std::map<Path, Variant> changed_children = VariantToPathMap(data);
-      events = server_sync_tree_->ApplyServerMerge(path, changed_children);
-    } else {
-      events = server_sync_tree_->ApplyServerOverwrite(path, data);
-    }
+    events = is_merge ? server_sync_tree_->ApplyServerMerge(
+                            path, VariantToPathMap(data))
+                      : server_sync_tree_->ApplyServerOverwrite(path, data);
   }
-  if (events.size() > 0) {
-    // Since we have a listener outstanding for each transaction, receiving any
-    // events is a proxy for some change having occurred.
-    RerunTransactions(path);
-  }
+  if (!events.empty()) RerunTransactions(path);
   PostEvents(events);
 }
 
 void Repo::SetKeepSynchronized(const QuerySpec& query_spec,
                                bool keep_synchronized) {
-  if (!server_sync_tree_) return;
-  server_sync_tree_->SetKeepSynchronized(query_spec, keep_synchronized);
-}
-
-class NoopListener : public ValueListener {
- public:
-  virtual ~NoopListener() {}
-  void OnValueChanged(const DataSnapshot& snapshot) { (void)snapshot; }
-  void OnCancelled(const Error& error, const char* error_message) {
-    (void)error;
-    (void)error_message;
+  if (server_sync_tree_) {
+    server_sync_tree_->SetKeepSynchronized(query_spec, keep_synchronized);
   }
-};
+}
 
 void Repo::StartTransaction(const Path& path,
                             DoTransactionWithContext transaction_function,
@@ -803,67 +610,54 @@ void Repo::StartTransaction(const Path& path,
     }
     return;
   }
-  // Make sure we're listening on this node.
-  // Note: we can't do this asynchronously. To preserve event ordering, it has
-  // to be done in this block.  This is ok, this block is guaranteed to be our
-  // own event loop
-  std::unique_ptr<NoopListener> listener = std::make_unique<NoopListener>();
+  auto listener = std::make_unique<NoopListener>();
   NoopListener* listener_ptr = listener.get();
   QuerySpec query_spec(path);
   AddEventCallback(std::make_unique<ValueEventRegistration>(
       database_, listener_ptr, query_spec));
 
-  TransactionDataPtr transaction_data = std::make_shared<TransactionData>(
+  auto transaction_data = std::make_shared<TransactionData>(
       handle, api, query_spec.path, transaction_function, context,
       delete_context, trigger_local_events, std::move(listener));
 
-  // Run transaction initially.
   Variant current_state = GetLatestState(path);
   transaction_data->current_input_snapshot = current_state;
-  MutableDataInternal* mutable_data_impl =
-      new MutableDataInternal(database_, current_state);
+  auto* mutable_data_impl = new MutableDataInternal(database_, current_state);
   MutableData mutable_current(mutable_data_impl);
 
-  TransactionResult result = transaction_function(&mutable_current, context);
-  if (result != kTransactionResultSuccess) {
-    // Abort the transaction.
+  if (transaction_function(&mutable_current, context) !=
+      kTransactionResultSuccess) {
     transaction_data->current_output_snapshot_raw = Variant::Null();
     transaction_data->current_output_snapshot_resolved = Variant::Null();
     transaction_data->status = TransactionData::kStatusNeedsAbort;
     transaction_data->ref_future->Complete(transaction_data->future_handle,
                                            kErrorWriteCanceled);
-    // If there was an error, the listener must be removed to prevent calls to
-    // it in case the listener is destroyed.
     RemoveEventCallback(listener_ptr, query_spec);
-  } else {
-    // Mark as run and add to our queue.
-    transaction_data->status = TransactionData::kStatusRun;
-
-    auto* queue_node = transaction_queue_tree_.GetOrMakeSubtree(path);
-    if (!queue_node->value().has_value()) {
-      queue_node->set_value(std::vector<TransactionDataPtr>());
-    }
-    queue_node->value()->push_back(transaction_data);
-
-    Variant server_values = GenerateServerValues(server_time_offset_);
-    const Variant* new_node_unresolved = mutable_data_impl->GetNode();
-    Variant new_node_resolved =
-        ResolveDeferredValueSnapshot(*new_node_unresolved, server_values);
-
-    transaction_data->current_output_snapshot_raw = *new_node_unresolved;
-    transaction_data->current_output_snapshot_resolved = new_node_resolved;
-    transaction_data->current_write_id = GetNextWriteId();
-
-    std::vector<Event> events = server_sync_tree_->ApplyUserOverwrite(
-        path, *new_node_unresolved, new_node_resolved,
-        transaction_data->current_write_id,
-        trigger_local_events ? kOverwriteVisible : kOverwriteInvisible,
-        kDoNotPersist);
-
-    PostEvents(events);
-
-    SendAllReadyTransactions();
+    return;
   }
+
+  transaction_data->status = TransactionData::kStatusRun;
+  auto* queue_node = transaction_queue_tree_.GetOrMakeSubtree(path);
+  if (!queue_node->value().has_value()) {
+    queue_node->set_value(std::vector<TransactionDataPtr>());
+  }
+  queue_node->value()->push_back(transaction_data);
+
+  Variant server_values = GenerateServerValues(server_time_offset_);
+  const Variant* new_node_unresolved = mutable_data_impl->GetNode();
+  Variant new_node_resolved =
+      ResolveDeferredValueSnapshot(*new_node_unresolved, server_values);
+
+  transaction_data->current_output_snapshot_raw = *new_node_unresolved;
+  transaction_data->current_output_snapshot_resolved = new_node_resolved;
+  transaction_data->current_write_id = GetNextWriteId();
+
+  PostEvents(server_sync_tree_->ApplyUserOverwrite(
+      path, *new_node_unresolved, new_node_resolved,
+      transaction_data->current_write_id,
+      trigger_local_events ? kOverwriteVisible : kOverwriteInvisible,
+      kDoNotPersist));
+  SendAllReadyTransactions();
 }
 
 void Repo::SendAllReadyTransactions() {
@@ -872,22 +666,14 @@ void Repo::SendAllReadyTransactions() {
 }
 
 void Repo::SendReadyTransactions(Tree<std::vector<TransactionDataPtr>>* node) {
-  std::optional<std::vector<TransactionDataPtr>> queue = node->value();
-  if (queue.has_value()) {
-    queue = BuildTransactionQueue(node);
-    assert(queue->size() != 0);
-
-    bool all_run = true;
-    for (const TransactionDataPtr& transaction : *queue) {
-      if (transaction->status != TransactionData::kStatusRun) {
-        all_run = false;
-        break;
-      }
-    }
-    // If they're all run (and not sent), we can send them.  Else, we must wait.
-    if (all_run) {
-      SendTransactionQueue(*queue, node->GetPath());
-    }
+  if (node->value().has_value()) {
+    auto queue = BuildTransactionQueue(node);
+    assert(!queue.empty());
+    bool all_run = std::all_of(
+        queue.begin(), queue.end(), [](const TransactionDataPtr& tx) {
+          return tx->status == TransactionData::kStatusRun;
+        });
+    if (all_run) SendTransactionQueue(queue, node->GetPath());
   } else {
     for (auto& child : node->children()) {
       SendReadyTransactions(&child.second);
@@ -897,120 +683,84 @@ void Repo::SendReadyTransactions(Tree<std::vector<TransactionDataPtr>>* node) {
 
 Path Repo::AbortTransactions(const Path& path, Error reason) {
   Path affected_path = GetAncestorTransactionNode(path)->GetPath();
-
-  Tree<std::vector<TransactionDataPtr>>* transaction_node =
-      transaction_queue_tree_.GetOrMakeSubtree(path);
-
+  auto* transaction_node = transaction_queue_tree_.GetOrMakeSubtree(path);
   transaction_node->CallOnEachAncestor(
       [this, reason](Tree<std::vector<TransactionDataPtr>>* tree) {
         AbortTransactionsAtNode(tree, reason);
         return false;
       });
-
   AbortTransactionsAtNode(transaction_node, reason);
-
   transaction_node->CallOnEachDescendant(
       [this, reason](Tree<std::vector<TransactionDataPtr>>* tree) {
         AbortTransactionsAtNode(tree, reason);
       });
-
   PruneCompletedTransactions(&transaction_queue_tree_);
-
   return affected_path;
 }
 
 void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
                                    Error reason) {
   std::optional<std::vector<TransactionDataPtr>>& queue = node->value();
+  if (!queue.has_value()) return;
+
   std::vector<Event> events;
+  std::vector<FutureToComplete> futures_to_complete;
+  Error abort_error = (reason == kErrorOverriddenBySet) ? kErrorOverriddenBySet
+                                                        : kErrorWriteCanceled;
+  FIREBASE_DEV_ASSERT_MESSAGE(
+      reason == kErrorOverriddenBySet || reason == kErrorWriteCanceled,
+      "Unknown transaction abort reason");
 
-  if (queue.has_value()) {
-    struct FutureToComplete {
-      FutureToComplete(const TransactionDataPtr& transaction, Error abort_error)
-          : transaction(transaction), abort_error(abort_error) {}
-      TransactionDataPtr transaction;
-      Error abort_error;
-    };
-    std::vector<FutureToComplete> futures_to_complete;
-
-    Error abort_error;
-    if (reason == kErrorOverriddenBySet) {
-      abort_error = kErrorOverriddenBySet;
+  int last_sent = -1;
+  for (int i = 0; i < static_cast<int>(queue->size()); ++i) {
+    const TransactionDataPtr& transaction = (*queue)[i];
+    if (transaction->status == TransactionData::kStatusSentNeedsAbort) {
+      FIREBASE_DEV_ASSERT_MESSAGE(
+          last_sent == i - 1,
+          "All sent items should be at beginning of queue.");
+      last_sent = i;
+    } else if (transaction->status == TransactionData::kStatusSent) {
+      FIREBASE_DEV_ASSERT_MESSAGE(
+          last_sent == i - 1,
+          "All sent items should be at beginning of queue.");
+      last_sent = i;
+      transaction->status = TransactionData::kStatusSentNeedsAbort;
+      transaction->abort_reason = abort_error;
     } else {
-      FIREBASE_DEV_ASSERT_MESSAGE(reason == kErrorWriteCanceled,
-                                  "Unknown transaction abort reason");
-      abort_error = kErrorWriteCanceled;
-    }
-
-    int last_sent = -1;
-    for (int i = 0; i < static_cast<int>(queue->size()); ++i) {
-      const TransactionDataPtr& transaction = (*queue)[i];
-      if (transaction->status == TransactionData::kStatusSentNeedsAbort) {
-        FIREBASE_DEV_ASSERT_MESSAGE(
-            last_sent == i - 1,
-            "All sent items should be at beginning of queue.");
-        last_sent = i;
-      } else if (transaction->status == TransactionData::kStatusSent) {
-        FIREBASE_DEV_ASSERT_MESSAGE(
-            last_sent == i - 1,
-            "All sent items should be at beginning of queue.");
-        last_sent = i;
-        // Mark transaction for abort when it comes back.
-        transaction->status = TransactionData::kStatusSentNeedsAbort;
-        transaction->abort_reason = abort_error;
-      } else {
-        FIREBASE_DEV_ASSERT_MESSAGE(
-            transaction->status == TransactionData::kStatusRun,
-            "Unexpected transaction status in abort");
-        // We can abort this immediately.
-        RemoveEventCallback(transaction->outstanding_listener.get(),
-                            QuerySpec(transaction->path));
-        if (reason == kErrorOverriddenBySet) {
-          Extend(&events, server_sync_tree_->AckUserWrite(
-                              transaction->current_write_id, kAckRevert,
-                              kDoNotPersist, server_time_offset_));
-        } else {
-          FIREBASE_DEV_ASSERT_MESSAGE(reason == kErrorWriteCanceled,
-                                      "Unknown transaction abort reason");
-          // If it was cancelled, it was already removed from the sync tree
-        }
-        futures_to_complete.push_back(
-            FutureToComplete(transaction, abort_error));
+      FIREBASE_DEV_ASSERT_MESSAGE(
+          transaction->status == TransactionData::kStatusRun,
+          "Unexpected transaction status in abort");
+      RemoveEventCallback(transaction->outstanding_listener.get(),
+                          QuerySpec(transaction->path));
+      if (reason == kErrorOverriddenBySet) {
+        Extend(&events, server_sync_tree_->AckUserWrite(
+                            transaction->current_write_id, kAckRevert,
+                            kDoNotPersist, server_time_offset_));
       }
+      futures_to_complete.push_back(
+          {transaction, abort_error, Variant::Null()});
     }
+  }
 
-    if (last_sent == -1) {
-      // We're not waiting for any sent transactions. We can clear the queue
-      node->value().reset();
-    } else {
-      // Remove the transactions we aborted
-      queue->erase(queue->begin() + last_sent + 1, queue->end());
-    }
+  if (last_sent == -1) {
+    node->value().reset();
+  } else {
+    queue->erase(queue->begin() + last_sent + 1, queue->end());
+  }
 
-    // Now fire the callbacks.
-    PostEvents(events);
-
-    for (auto& future_to_complete : futures_to_complete) {
-      TransactionDataPtr& transaction = future_to_complete.transaction;
-      Error abort_error = future_to_complete.abort_error;
-
-      transaction->ref_future->Complete(transaction->future_handle, abort_error,
-                                        GetErrorMessage(abort_error));
-    }
+  PostEvents(events);
+  for (auto& ftc : futures_to_complete) {
+    ftc.transaction->ref_future->Complete(ftc.transaction->future_handle,
+                                          ftc.abort_reason,
+                                          GetErrorMessage(ftc.abort_reason));
   }
 }
 
-WriteId Repo::GetNextWriteId() { return next_write_id_++; }
-
 Path Repo::RerunTransactions(const Path& changed_path) {
-  Tree<std::vector<TransactionDataPtr>>* root_most_transaction_node =
-      GetAncestorTransactionNode(changed_path);
+  auto* root_most_transaction_node = GetAncestorTransactionNode(changed_path);
   Path path = root_most_transaction_node->GetPath();
-
-  std::vector<TransactionDataPtr> queue =
-      BuildTransactionQueue(root_most_transaction_node);
-  RerunTransactionQueue(queue, path);
-
+  RerunTransactionQueue(BuildTransactionQueue(root_most_transaction_node),
+                        path);
   return path;
 }
 
@@ -1026,22 +776,12 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
     sets_to_ignore.push_back(transaction->current_write_id);
   }
 
-  // Get the value of the location before the change.  Get it from the
-  // listener of the first transaction for sake of ease.
   Variant latest_state = GetLatestState(path, sets_to_ignore);
-  if (HasVector(latest_state)) {
-    ConvertVectorToMap(&latest_state);
-  }
+  if (HasVector(latest_state)) ConvertVectorToMap(&latest_state);
   Variant snap_to_send = latest_state;
-
   std::string hash;
   GetHash(latest_state, &hash);
 
-  // Get the final result from all the transaction from current location and
-  // child location.
-  // Note that this part will not be correct until SyncTree is ready
-  // because the transactions which run on child location always get
-  // out-of-date local cache until server pushes the update
   for (const TransactionDataPtr& transaction : queue) {
     FIREBASE_DEV_ASSERT_MESSAGE(
         transaction->status == TransactionData::kStatusRun,
@@ -1053,26 +793,19 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
     SetVariantAtPath(&snap_to_send, *relative_path,
                      transaction->current_output_snapshot_raw);
   }
-  if (HasVector(snap_to_send)) {
-    ConvertVectorToMap(&snap_to_send);
-  }
+  if (HasVector(snap_to_send)) ConvertVectorToMap(&snap_to_send);
 
   connection::ResponsePtr response = std::make_shared<TransactionResponse>(
-      safe_this_,
-      database_ ? database_->this_ref() : DatabaseInternal::ThisRef(nullptr),
-      database_ != nullptr, path, queue,
+      safe_this_, database_, path, queue,
       [](const connection::ResponsePtr& ptr) {
-        TransactionResponse* response =
-            static_cast<TransactionResponse*>(ptr.get());
-
-        FIREBASE_DEV_ASSERT(response);
-
-        ThisRefLock lock(&response->repo_ref());
-        if (lock.GetReference() != nullptr) {
-          response->MarkHandled();
-          lock.GetReference()->HandleTransactionResponse(ptr);
+        auto* resp = static_cast<TransactionResponse*>(ptr.get());
+        FIREBASE_DEV_ASSERT(resp);
+        ThisRefLock lock(&resp->repo_ref());
+        if (Repo* r = lock.GetReference()) {
+          resp->MarkHandled();
+          r->HandleTransactionResponse(ptr);
         } else {
-          response->FailUncompletedTransactions();
+          resp->FailUncompletedTransactions();
         }
       });
 
@@ -1080,74 +813,50 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
 }
 
 void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
-  TransactionResponse* response = static_cast<TransactionResponse*>(ptr.get());
+  auto* response = static_cast<TransactionResponse*>(ptr.get());
+  assert(response);
   const Path& path = response->path();
 
-  assert(response);
-
-  std::vector<Event> events;
-
   if (!response->HasError()) {
-    struct FutureToComplete {
-      FutureToComplete(const TransactionDataPtr& transaction,
-                       const Variant& node)
-          : transaction(transaction), node(node) {}
-      TransactionDataPtr transaction;
-      Variant node;
-    };
+    std::vector<Event> events;
     std::vector<FutureToComplete> futures_to_complete;
     futures_to_complete.reserve(response->queue().size());
 
     for (auto& transaction : response->queue()) {
       transaction->status = TransactionData::kStatusComplete;
-
       Extend(&events, server_sync_tree_->AckUserWrite(
                           transaction->current_write_id, kAckConfirm,
                           kDoNotPersist, server_time_offset_));
-
-      futures_to_complete.push_back(FutureToComplete(
-          transaction, transaction->current_output_snapshot_resolved));
+      futures_to_complete.push_back(
+          {transaction, kErrorNone,
+           transaction->current_output_snapshot_resolved});
     }
 
-    // Now remove the completed transactions.
     PruneCompletedTransactions(transaction_queue_tree_.GetChild(path));
-
-    // There may be pending transactions that we can now send
     SendAllReadyTransactions();
-
-    // Fire the appropriate events to the listeners.
     PostEvents(events);
 
-    // Finally, complete the futures.
-    for (auto& future_to_complete : futures_to_complete) {
-      TransactionDataPtr& transaction = future_to_complete.transaction;
-      const Variant& node = future_to_complete.node;
-
+    for (auto& ftc : futures_to_complete) {
       DataSnapshot snapshot(new DataSnapshotInternal(
-          database_, node, QuerySpec(transaction->path)));
-      transaction->ref_future->CompleteWithResult(transaction->future_handle,
-                                                  kErrorNone, snapshot);
-
-      RemoveEventCallback(transaction->outstanding_listener.get(),
-                          QuerySpec(transaction->path));
+          database_, ftc.node, QuerySpec(ftc.transaction->path)));
+      ftc.transaction->ref_future->CompleteWithResult(
+          ftc.transaction->future_handle, kErrorNone, snapshot);
+      RemoveEventCallback(ftc.transaction->outstanding_listener.get(),
+                          QuerySpec(ftc.transaction->path));
     }
   } else {
-    // Transactions are no longer sent. Update their status appropriately.
     if (response->GetErrorCode() == kErrorDataStale) {
-      for (auto& transaction : response->queue()) {
-        if (transaction->status == TransactionData::kStatusSentNeedsAbort) {
-          transaction->status = TransactionData::kStatusNeedsAbort;
-        } else {
-          transaction->status = TransactionData::kStatusRun;
-        }
+      for (auto& tx : response->queue()) {
+        tx->status = (tx->status == TransactionData::kStatusSentNeedsAbort)
+                         ? TransactionData::kStatusNeedsAbort
+                         : TransactionData::kStatusRun;
       }
     } else {
-      for (auto& transaction : response->queue()) {
-        transaction->status = TransactionData::kStatusNeedsAbort;
-        transaction->abort_reason = response->GetErrorCode();
+      for (auto& tx : response->queue()) {
+        tx->status = TransactionData::kStatusNeedsAbort;
+        tx->abort_reason = response->GetErrorCode();
       }
     }
-
     RerunTransactions(response->path());
   }
 }
@@ -1156,22 +865,9 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                                  const Path& path) {
   logger_->LogDebug("RerunTransactionQueue @ %s (# of transaction : %d)",
                     path.c_str(), static_cast<int>(queue.size()));
+  if (queue.empty()) return;
 
-  if (queue.empty()) {
-    // Nothing to do!
-    return;
-  }
-
-  struct FutureToComplete {
-    FutureToComplete(TransactionDataPtr transaction, Error abort_reason,
-                     Variant node)
-        : transaction(transaction), abort_reason(abort_reason), node(node) {}
-    TransactionDataPtr transaction;
-    Error abort_reason;
-    Variant node;
-  };
   std::vector<FutureToComplete> futures_to_complete;
-
   std::vector<WriteId> sets_to_ignore;
   sets_to_ignore.reserve(queue.size());
   for (const TransactionDataPtr& transaction : queue) {
@@ -1181,6 +877,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   for (const TransactionDataPtr& transaction : queue) {
     auto relative_path = Path::GetRelative(path, transaction->path);
     assert(relative_path.has_value());
+    (void)relative_path;
 
     bool abort_transaction = false;
     Error abort_reason = kErrorNone;
@@ -1202,25 +899,18 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                             transaction->current_write_id, kAckRevert,
                             kDoNotPersist, server_time_offset_));
       } else {
-        // This code rerun a transaction
         Variant current_input =
             GetLatestState(transaction->path, sets_to_ignore);
-        // TODO(chkuang): Make sure the local cache does not contain vector.
-        //                Gently convert everything for now.
-        if (HasVector(current_input)) {
-          ConvertVectorToMap(&current_input);
-        }
-
+        if (HasVector(current_input)) ConvertVectorToMap(&current_input);
         transaction->current_input_snapshot = current_input;
 
-        MutableDataInternal* mutable_data_impl =
+        auto* mutable_data_impl =
             new MutableDataInternal(database_, current_input);
         MutableData mutable_data(mutable_data_impl);
-        TransactionResult result = transaction->transaction_function(
-            &mutable_data, transaction->context);
-        if (result == kTransactionResultSuccess) {
+        if (transaction->transaction_function(&mutable_data,
+                                              transaction->context) ==
+            kTransactionResultSuccess) {
           WriteId old_write_id = transaction->current_write_id;
-
           Variant server_values = GenerateServerValues(server_time_offset_);
           Variant* new_data_node = mutable_data_impl->GetNode();
           Variant new_node_resolved =
@@ -1255,20 +945,14 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
 
     if (abort_transaction) {
       transaction->status = TransactionData::kStatusComplete;
-
-      futures_to_complete.push_back(FutureToComplete(
-          transaction, abort_reason, transaction->current_input_snapshot));
-
-      // Removing a callback can trigger pruning which can muck with
-      // merged_data/visible_data (as it prunes data). So defer removing the
-      // callback until later.
+      futures_to_complete.push_back(
+          {transaction, abort_reason, transaction->current_input_snapshot});
       Repo::scheduler().Schedule(NewCallback(
-          [](ThisRef ref, TransactionDataPtr transaction) {
+          [](ThisRef ref, TransactionDataPtr tx) {
             ThisRefLock lock(&ref);
-            if (lock.GetReference() != nullptr) {
-              lock.GetReference()->RemoveEventCallback(
-                  transaction->outstanding_listener.get(),
-                  QuerySpec(transaction->path));
+            if (Repo* r = lock.GetReference()) {
+              r->RemoveEventCallback(tx->outstanding_listener.get(),
+                                     QuerySpec(tx->path));
             }
           },
           safe_this_, transaction));
@@ -1276,16 +960,12 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   }
   PruneCompletedTransactions(&transaction_queue_tree_);
 
-  for (auto& future_to_complete : futures_to_complete) {
-    TransactionDataPtr& transaction = future_to_complete.transaction;
-    Error& abort_reason = future_to_complete.abort_reason;
-    Variant& node = future_to_complete.node;
+  for (auto& ftc : futures_to_complete) {
     DataSnapshot snapshot(new DataSnapshotInternal(
-        database_, node, QuerySpec(transaction->path)));
-    transaction->ref_future->CompleteWithResult(transaction->future_handle,
-                                                abort_reason, snapshot);
+        database_, ftc.node, QuerySpec(ftc.transaction->path)));
+    ftc.transaction->ref_future->CompleteWithResult(
+        ftc.transaction->future_handle, ftc.abort_reason, snapshot);
   }
-
   SendAllReadyTransactions();
 }
 
@@ -1299,63 +979,47 @@ Variant Repo::GetLatestState(const Path& path,
 void Repo::PruneCompletedTransactions(
     Tree<std::vector<TransactionDataPtr>>* node) {
   if (!node) return;
-  std::optional<std::vector<TransactionDataPtr>>& queue = node->value();
-  if (queue.has_value()) {
+  if (auto& queue = node->value(); queue.has_value()) {
     queue->erase(std::remove_if(queue->begin(), queue->end(),
-                                [](const TransactionDataPtr& transaction) {
-                                  return transaction->status ==
+                                [](const TransactionDataPtr& tx) {
+                                  return tx->status ==
                                          TransactionData::kStatusComplete;
                                 }),
                  queue->end());
-    if (queue->empty()) {
-      node->value().reset();
-    }
+    if (queue->empty()) node->value().reset();
   }
   for (auto it = node->children().begin(); it != node->children().end();) {
     PruneCompletedTransactions(&it->second);
-    if (it->second.IsEmpty()) {
-      it = node->children().erase(it);
-    } else {
-      ++it;
-    }
+    it = it->second.IsEmpty() ? node->children().erase(it) : std::next(it);
   }
 }
 
 Tree<std::vector<TransactionDataPtr>>* Repo::GetAncestorTransactionNode(
     Path path) {
-  Tree<std::vector<TransactionDataPtr>>* transaction_node =
-      &transaction_queue_tree_;
-  while (!path.empty() && !transaction_node->value().has_value()) {
-    transaction_node =
-        transaction_node->GetOrMakeSubtree(path.FrontDirectory());
+  auto* node = &transaction_queue_tree_;
+  while (!path.empty() && !node->value().has_value()) {
+    node = node->GetOrMakeSubtree(path.FrontDirectory());
     path = path.PopFrontDirectory();
   }
-  return transaction_node;
+  return node;
 }
 
 std::vector<TransactionDataPtr> Repo::BuildTransactionQueue(
     Tree<std::vector<TransactionDataPtr>>* transaction_node) {
   std::vector<TransactionDataPtr> queue;
   AggregateTransactionQueues(&queue, transaction_node);
-
   std::sort(queue.begin(), queue.end(),
             [](const TransactionDataPtr& a, const TransactionDataPtr& b) {
               return *a < *b;
             });
-
   return queue;
 }
 
 void Repo::AggregateTransactionQueues(
     std::vector<TransactionDataPtr>* queue,
     Tree<std::vector<TransactionDataPtr>>* node) {
-  std::optional<std::vector<TransactionDataPtr>>& child_queue = node->value();
-  if (child_queue.has_value()) {
-    Extend(queue, *child_queue);
-  }
-
-  for (auto& key_subtree_pair : node->children()) {
-    Tree<std::vector<TransactionDataPtr>>& subtree = key_subtree_pair.second;
+  if (node->value().has_value()) Extend(queue, *node->value());
+  for (auto& [key, subtree] : node->children()) {
     AggregateTransactionQueues(queue, &subtree);
   }
 }
@@ -1369,14 +1033,10 @@ void Repo::UpdateInfo(const std::string& key, const Variant& value) {
   PostEvents(info_sync_tree_->ApplyServerOverwrite(path, value));
 }
 
-// static
 void Repo::OnAppCheckTokenChanged(const std::string& token, void* context) {
-  auto repo = static_cast<Repo*>(context);
-  if (repo) {
+  if (auto* repo = static_cast<Repo*>(context)) {
     ThisRefLock lock(&repo->this_ref());
-    if (lock.GetReference() != nullptr) {
-      lock.GetReference()->connection_->RefreshAppCheckToken(token);
-    }
+    if (Repo* r = lock.GetReference()) r->connection_->RefreshAppCheckToken(token);
   }
 }
 
