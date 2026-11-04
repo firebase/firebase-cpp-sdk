@@ -74,10 +74,8 @@ set(log_common_SRCS
     src/logger.h)
 set(log_common_HDRS)
 set(log_android_SRCS
-    src/jobject_reference.cc
     src/log_android.cc
-    src/log_android_callback.cc
-    src/util_android.cc)
+    src/log_android_callback.cc)
 set(log_android_HDRS
     src/jobject_reference.h
     src/util_android.h)
@@ -147,7 +145,6 @@ set(app_android_SRCS
 set(app_ios_SRCS
     src/app_ios.mm
     src/util_apple.mm
-    src/util_ios.mm
     src/uuid_ios_darwin.mm)
 
 
