@@ -1,16 +1,4 @@
 // Copyright 2018 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "storage/src/desktop/rest_operation.h"
 
@@ -33,49 +21,17 @@
 
 namespace firebase::storage::internal {
 
-// Note: RestOperation is an internal desktop-only implementation class within
-// libfirebase_storage and is never exposed in the public SDK ABI.
-
-namespace {
-
-// Rejects a Start() call that has no StorageInternal to own the operation.
-// Ownership of request and response is already held by the caller's
-// std::unique_ptrs, which destroy them automatically on return (destroying an
-// uncompleted BlockingResponse fails its future with kErrorCancelled).
-bool RejectStartWithoutStorage(StorageInternal* storage_internal,
-                               Controller* controller_out) {
-  if (storage_internal != nullptr) {
-    return false;
-  }
-  if (controller_out) {
-    *controller_out = Controller();
-  }
-  return true;
-}
-
-}  // namespace
-
-// RAII helper registering the current thread as an in-flight notifier. It only
-// holds a shared_ptr to NotifyState, so its destructor never touches the
-// RestOperation, which may have been destroyed by the user callback.
 class RestOperation::NotifyScope {
  public:
   NotifyScope() = default;
-
-  // Registers the calling thread unless the operation is shutting down;
-  // check active() before invoking the callback.
   explicit NotifyScope(std::shared_ptr<NotifyState> state) {
     Enter(std::move(state));
   }
   ~NotifyScope() {
-    if (!active_) {
-      return;
-    }
+    if (!active_) return;
     std::lock_guard<std::mutex> lock(state_->mutex);
     auto it = std::find(state_->threads.begin(), state_->threads.end(), id_);
-    if (it != state_->threads.end()) {
-      state_->threads.erase(it);
-    }
+    if (it != state_->threads.end()) state_->threads.erase(it);
     state_->cv.notify_all();
   }
 
@@ -83,9 +39,7 @@ class RestOperation::NotifyScope {
   NotifyScope& operator=(const NotifyScope&) = delete;
 
   bool Enter(std::shared_ptr<NotifyState> state) {
-    if (active_ || !state) {
-      return active_;
-    }
+    if (active_ || !state) return active_;
     state_ = std::move(state);
     id_ = std::this_thread::get_id();
     std::lock_guard<std::mutex> lock(state_->mutex);
@@ -95,7 +49,6 @@ class RestOperation::NotifyScope {
     }
     return active_;
   }
-
   bool active() const { return active_; }
 
  private:
@@ -109,19 +62,17 @@ void RestOperation::Start(StorageInternal* storage_internal,
                           rest::Request* request, Notifier* request_notifier,
                           BlockingResponse* response, Listener* listener,
                           FutureHandle handle, Controller* controller_out) {
-  std::unique_ptr<rest::Request> request_holder(request);
-  std::unique_ptr<BlockingResponse> response_holder(response);
-  if (RejectStartWithoutStorage(storage_internal, controller_out)) {
+  std::unique_ptr<rest::Request> req_holder(request);
+  std::unique_ptr<BlockingResponse> resp_holder(response);
+  if (!storage_internal) {
+    if (controller_out) *controller_out = Controller();
     return;
   }
-  std::shared_ptr<ListenerSharedState> listener_state =
+  auto listener_state =
       (listener && listener->impl_) ? listener->impl_->shared_state() : nullptr;
-  // Ownership is transferred to storage_internal (operations list + cleanup
-  // notifier), which deletes the operation once it completes or on shutdown.
-  new RestOperation(storage_internal, storage_reference,
-                    std::move(request_holder), request_notifier,
-                    std::move(response_holder), listener, listener_state,
-                    handle, controller_out);
+  new RestOperation(storage_internal, storage_reference, std::move(req_holder),
+                    request_notifier, std::move(resp_holder), listener,
+                    listener_state, handle, controller_out);
 }
 
 void RestOperation::Start(
@@ -130,16 +81,15 @@ void RestOperation::Start(
     Notifier* request_notifier, BlockingResponse* response,
     const std::shared_ptr<ListenerSharedState>& listener_state,
     FutureHandle handle, Controller* controller_out) {
-  std::unique_ptr<rest::Request> request_holder(request);
-  std::unique_ptr<BlockingResponse> response_holder(response);
-  if (RejectStartWithoutStorage(storage_internal, controller_out)) {
+  std::unique_ptr<rest::Request> req_holder(request);
+  std::unique_ptr<BlockingResponse> resp_holder(response);
+  if (!storage_internal) {
+    if (controller_out) *controller_out = Controller();
     return;
   }
-  // Ownership is transferred to storage_internal (see above).
-  new RestOperation(storage_internal, storage_reference,
-                    std::move(request_holder), request_notifier,
-                    std::move(response_holder), nullptr, listener_state,
-                    handle, controller_out);
+  new RestOperation(storage_internal, storage_reference, std::move(req_holder),
+                    request_notifier, std::move(resp_holder), nullptr,
+                    listener_state, handle, controller_out);
 }
 
 RestOperation::RestOperation(
@@ -157,9 +107,7 @@ RestOperation::RestOperation(
   op_handle_->op = this;
   transport_.set_is_async(true);
 
-  if (!controller_.internal_) {
-    controller_.internal_ = new ControllerInternal();
-  }
+  if (!controller_.internal_) controller_.internal_ = new ControllerInternal();
   controller_.internal_->Initialize(storage_reference, this);
   listener_controller_ = std::make_shared<storage::Controller>(controller_);
 
@@ -168,8 +116,7 @@ RestOperation::RestOperation(
   } else if (listener_state) {
     MutexLock lock(mutex_);
     std::lock_guard<std::mutex> state_lock(listener_state->mutex);
-    if (listener_state->listener != nullptr &&
-        listener_state->listener_internal != nullptr) {
+    if (listener_state->listener && listener_state->listener_internal) {
       listener_internal_ = listener_state->listener_internal;
       listener_state_ = listener_state;
       listener_state->rest_operation = this;
@@ -179,30 +126,16 @@ RestOperation::RestOperation(
     }
   }
 
-  // Start() guarantees a non-null storage_internal_, which owns this object.
-  // The cleanup callback identifies this operation by its unique id rather
-  // than by address, so it can never delete a different operation that was
-  // later allocated at the same address.
-  {
-    StorageInternal* owner = storage_internal_;
-    operation_id_ = owner->AddOperation(this);
-  }
+  operation_id_ = storage_internal_->AddOperation(this);
 
   if (response_) {
     response_->set_update_callback(
         [](Notifier::UpdateCallbackType update_type, void* data) {
-          RestOperation* operation = reinterpret_cast<RestOperation*>(data);
-          switch (update_type) {
-            case Notifier::kUpdateCallbackTypeProgress:
-              operation->NotifyListenerOfProgress();
-              break;
-            case Notifier::kUpdateCallbackTypeComplete:
-            case Notifier::kUpdateCallbackTypeFailed:
-              // Mark operation complete so
-              // StorageInternal::CleanupCompletedOperations() can delete it
-              // once construction has finished.
-              operation->is_complete_.store(true);
-              break;
+          auto* op = static_cast<RestOperation*>(data);
+          if (update_type == Notifier::kUpdateCallbackTypeProgress) {
+            op->NotifyListenerOfProgress();
+          } else {
+            op->is_complete_.store(true);
           }
         },
         this);
@@ -210,37 +143,14 @@ RestOperation::RestOperation(
   if (request_notifier_) {
     request_notifier_->set_update_callback(
         [](Notifier::UpdateCallbackType update_type, void* data) {
-          RestOperation* operation = reinterpret_cast<RestOperation*>(data);
           if (update_type == Notifier::kUpdateCallbackTypeProgress) {
-            operation->NotifyListenerOfProgress();
+            static_cast<RestOperation*>(data)->NotifyListenerOfProgress();
           }
         },
         this);
   }
 
-  if (controller_out) {
-    *controller_out = controller_;
-  }
-
-  // Publish rest_controller_ atomically with starting the transfer, so that
-  // Pause()/Resume()/Cancel()/bytes_transferred() work from the very first
-  // progress callback. TransportCurl::PerformInternal() populates
-  // *controller_out *before* it posts the transfer to the curl I/O thread, and
-  // mutex_ is held until Perform() returns, so:
-  //  * every progress callback on the I/O thread (which starts with
-  //    NotifyListenerOfProgress() taking mutex_) and every Pause()/Resume()/
-  //    Cancel()/byte-count query from another thread observes the controller;
-  //  * nobody can read rest_controller_ while Perform() is writing it.
-  // In the normal (async) path Perform() only allocates and posts the
-  // transfer; it takes no lock but leaf locks inside the transport, so holding
-  // mutex_ across it cannot invert any lock order. Perform() only runs
-  // callbacks synchronously if the curl I/O loop has already stopped
-  // (AbortWithoutLoop()), which cannot happen while storage_internal_ (which
-  // holds a reference on the loop from its constructor until the very end of
-  // its destructor, after every operation is gone) is alive. Even then, mutex_
-  // is recursive, and NotifyListenerOfProgress() suppresses listener dispatch
-  // on this thread while perform_thread_ is set, so no user callback ever runs
-  // with mutex_ held.
+  if (controller_out) *controller_out = controller_;
   {
     MutexLock lock(mutex_);
     perform_thread_ = std::this_thread::get_id();
@@ -256,25 +166,13 @@ RestOperation::~RestOperation() {
     std::lock_guard<std::mutex> lock(notify_state->mutex);
     notify_state->shutting_down = true;
   }
-  if (response_) {
-    response_->set_update_callback(nullptr, nullptr);
-  }
-  if (request_notifier_) {
-    request_notifier_->set_update_callback(nullptr, nullptr);
-  }
-  // Cancel() also acquires and releases mutex_, ensuring any thread that
-  // entered Pause() or NotifyListenerOfProgress() before shutting_down was set
-  // has either registered in notify_state->threads or exited mutex_ before we
-  // wait below.
+  if (response_) response_->set_update_callback(nullptr, nullptr);
+  if (request_notifier_) request_notifier_->set_update_callback(nullptr, nullptr);
   Cancel();
 
-  // Wait for any in-flight progress/pause notification on other threads to
-  // finish before destroying controller_.
-  // A notification on this thread (i.e. the user callback destroyed this
-  // operation) is not waited for; its NotifyScope only touches notify_state.
   {
     std::unique_lock<std::mutex> lock(notify_state->mutex);
-    const std::thread::id self_id = std::this_thread::get_id();
+    const auto self_id = std::this_thread::get_id();
     notify_state->cv.wait(lock, [&notify_state, self_id]() {
       return std::all_of(
           notify_state->threads.begin(), notify_state->threads.end(),
@@ -290,7 +188,6 @@ RestOperation::~RestOperation() {
   }
 
   set_listener(nullptr);
-
   {
     std::shared_ptr<ListenerSharedState> state;
     {
@@ -306,10 +203,7 @@ RestOperation::~RestOperation() {
       }
     }
   }
-
-  if (storage_internal_) {
-    storage_internal_->RemoveOperation(this);
-  }
+  if (storage_internal_) storage_internal_->RemoveOperation(this);
 }
 
 bool RestOperation::Pause() {
@@ -326,8 +220,6 @@ bool RestOperation::Pause() {
     }
   }
   if (scope.active()) {
-    // The user callback may destroy this operation, so only stack-owned values
-    // (scope, state, controller, paused) are used once it has been invoked.
     ListenerInternal::NotifyPaused(std::move(state), controller.get());
   }
   return paused;
@@ -363,12 +255,6 @@ bool RestOperation::is_complete() const {
 }
 
 void RestOperation::NotifyListenerOfProgress() {
-  // Runs on the curl I/O thread. The user's Listener is never invoked here:
-  // a Listener may delete its Storage, App or this operation, and doing so on
-  // the I/O thread would block it on itself (~TransportCurl() waits for
-  // transfers that only the I/O thread can finish). Instead the notification
-  // is posted to the StorageInternal's CallbackDispatcher, with shared copies
-  // of everything it needs, so it never touches `this`.
   NotifyScope scope;
   std::shared_ptr<ListenerSharedState> state;
   std::shared_ptr<storage::Controller> controller;
@@ -377,15 +263,8 @@ void RestOperation::NotifyListenerOfProgress() {
   StorageInternal* storage_internal = nullptr;
   {
     MutexLock lock(mutex_);
-    if (perform_thread_ == std::this_thread::get_id()) {
-      // Synchronous callback from inside transport_.Perform() in the
-      // constructor, which holds mutex_ (see there). Skip this progress
-      // update; the final result is still reported through the response's
-      // future.
-      return;
-    }
-    if (!listener_state_ || storage_internal_ == nullptr ||
-        !scope.Enter(notify_state_)) {
+    if (perform_thread_ == std::this_thread::get_id() || !listener_state_ ||
+        !storage_internal_ || !scope.Enter(notify_state_)) {
       return;
     }
     state = listener_state_;
@@ -394,39 +273,25 @@ void RestOperation::NotifyListenerOfProgress() {
     pending = progress_pending_;
     storage_internal = storage_internal_;
   }
-  // ~RestOperation() waits for `scope`, so `storage_internal` remains valid
-  // until Post() returns.
-  if (pending->exchange(true)) {
-    return;  // A queued notification will report the latest progress.
-  }
+  if (pending->exchange(true)) return;
   const bool posted = storage_internal->listener_dispatcher().Post(
       [state = std::move(state), controller = std::move(controller),
        handle = std::move(handle), pending]() {
-        // Cleared before sampling, so progress made from here on is
-        // reported by a new notification.
         pending->store(false);
-        // Dropped if the listener was detached from, or re-attached to
-        // another operation than, this one in the meantime.
-        ListenerInternal::NotifyProgress(state, controller.get(),
-                                         handle.get());
+        ListenerInternal::NotifyProgress(state, controller.get(), handle.get());
       });
-  if (!posted) {
-    pending->store(false);
-  }
+  if (!posted) pending->store(false);
 }
 
 void RestOperation::set_listener(Listener* listener) {
   MutexLock lifecycle_lock(listener_mutex_);
   ListenerInternal* new_impl = listener ? listener->impl_ : nullptr;
-  std::shared_ptr<ListenerSharedState> new_state =
-      new_impl ? new_impl->shared_state() : nullptr;
+  auto new_state = new_impl ? new_impl->shared_state() : nullptr;
   ListenerInternal* old_impl = nullptr;
   std::shared_ptr<ListenerSharedState> old_state;
   {
     MutexLock lock(mutex_);
-    if (listener_internal_ == new_impl) {
-      return;
-    }
+    if (listener_internal_ == new_impl) return;
     old_impl = listener_internal_;
     old_state = std::move(listener_state_);
     listener_internal_ = new_impl;
@@ -439,9 +304,7 @@ void RestOperation::set_listener(Listener* listener) {
       old_state->op_handle.reset();
     }
   }
-  if (new_impl) {
-    new_impl->set_rest_operation(this);
-  }
+  if (new_impl) new_impl->set_rest_operation(this);
 }
 
 void RestOperation::AttachListenerState(

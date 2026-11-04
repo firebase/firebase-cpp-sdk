@@ -1,16 +1,4 @@
 // Copyright 2018 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "storage/src/desktop/listener_desktop.h"
 
@@ -25,6 +13,29 @@
 #include "storage/src/include/firebase/storage/listener.h"
 
 namespace firebase::storage::internal {
+namespace {
+
+class CallbackThreadScope {
+ public:
+  CallbackThreadScope(std::shared_ptr<ListenerSharedState> state,
+                      std::thread::id id)
+      : state_(std::move(state)), id_(id) {}
+  ~CallbackThreadScope() {
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    auto it = std::find(state_->callback_threads.begin(),
+                        state_->callback_threads.end(), id_);
+    if (it != state_->callback_threads.end()) {
+      state_->callback_threads.erase(it);
+    }
+    state_->cv.notify_all();
+  }
+
+ private:
+  std::shared_ptr<ListenerSharedState> state_;
+  std::thread::id id_;
+};
+
+}  // namespace
 
 ListenerInternal::ListenerInternal(Listener* listener)
     : state_(std::make_shared<SharedState>()) {
@@ -45,97 +56,47 @@ void ListenerInternal::Detach() {
     old_op = state->rest_operation;
     old_handle = std::move(state->op_handle);
     state->rest_operation = nullptr;
-    const std::thread::id self_id = std::this_thread::get_id();
+    const auto self_id = std::this_thread::get_id();
     state->cv.wait(lock, [&state, self_id]() {
-      return std::all_of(
-          state->callback_threads.begin(), state->callback_threads.end(),
-          [self_id](const std::thread::id& id) { return id == self_id; });
+      return std::all_of(state->callback_threads.begin(),
+                         state->callback_threads.end(),
+                         [self_id](const auto& id) { return id == self_id; });
     });
   }
   if (old_op && old_handle) {
     std::lock_guard<std::recursive_mutex> op_lock(old_handle->mutex);
-    if (old_handle->op == old_op) {
-      old_op->DetachListener(this);
-    }
+    if (old_handle->op == old_op) old_op->DetachListener(this);
   }
 }
 
-namespace {
-
-// Removes the calling thread from `state->callback_threads` and wakes any
-// thread blocked in ListenerInternal::Detach() when it goes out of scope, even
-// if the user callback throws.
-class CallbackThreadScope {
- public:
-  CallbackThreadScope(std::shared_ptr<ListenerSharedState> state,
-                      std::thread::id id)
-      : state_(std::move(state)), id_(id) {}
-  ~CallbackThreadScope() {
-    std::lock_guard<std::mutex> lock(state_->mutex);
-    auto it = std::find(state_->callback_threads.begin(),
-                        state_->callback_threads.end(), id_);
-    if (it != state_->callback_threads.end()) {
-      state_->callback_threads.erase(it);
-    }
-    state_->cv.notify_all();
-  }
-
-  CallbackThreadScope(const CallbackThreadScope&) = delete;
-  CallbackThreadScope& operator=(const CallbackThreadScope&) = delete;
-
- private:
-  std::shared_ptr<ListenerSharedState> state_;
-  std::thread::id id_;
-};
-
-}  // namespace
-
 void ListenerInternal::NotifyProgress(Controller* controller) {
-  // Copy state_ so the callee owns a reference independent of `this`.
   NotifyProgress(std::shared_ptr<SharedState>(state_), controller);
 }
 
 void ListenerInternal::NotifyProgress(
     std::shared_ptr<SharedState> state, Controller* controller,
     const RestOperation::OperationHandle* expected_handle) {
-  if (!state || !controller) {
-    return;
-  }
+  if (!state || !controller) return;
   if (expected_handle != nullptr) {
     std::lock_guard<std::mutex> lock(state->mutex);
-    if (state->op_handle.get() != expected_handle) {
-      return;  // Detached, or re-attached to a different operation.
-    }
+    if (state->op_handle.get() != expected_handle) return;
   }
-  // Sample the byte counts BEFORE taking state->mutex. Reading them goes
-  // through ControllerInternal, which locks the operation's
-  // OperationHandle::mutex (and then RestOperation::mutex_), whereas
-  // set_rest_operation() locks OperationHandle::mutex before state->mutex.
-  // Querying the controller under state->mutex would therefore be an AB/BA
-  // deadlock. state->mutex is only ever a leaf lock here.
-  const int64_t new_bytes_transferred = controller->bytes_transferred();
-  const int64_t new_total_byte_count = controller->total_byte_count();
+  const int64_t new_bytes = controller->bytes_transferred();
+  const int64_t new_total = controller->total_byte_count();
 
   Listener* target = nullptr;
-  const std::thread::id self_id = std::this_thread::get_id();
+  const auto self_id = std::this_thread::get_id();
   {
     std::lock_guard<std::mutex> lock(state->mutex);
     if (!state->listener ||
-        (expected_handle != nullptr &&
-         state->op_handle.get() != expected_handle)) {
+        (expected_handle && state->op_handle.get() != expected_handle)) {
       return;
     }
-    // Progress is monotonic. Since the counts were sampled outside the lock,
-    // two notifying threads may get here out of order; a sample older than the
-    // last reported one is dropped rather than moving progress backwards.
-    // (bytes_transferred is reset to -1 whenever a new operation is attached,
-    // so the first sample of an operation is always accepted.)
-    const bool stale = new_bytes_transferred < state->bytes_transferred;
-    const bool changed = new_bytes_transferred > state->bytes_transferred ||
-                         new_total_byte_count != state->total_byte_count;
-    if (!stale && changed) {
-      state->bytes_transferred = new_bytes_transferred;
-      state->total_byte_count = new_total_byte_count;
+    if (new_bytes >= state->bytes_transferred &&
+        (new_bytes > state->bytes_transferred ||
+         new_total != state->total_byte_count)) {
+      state->bytes_transferred = new_bytes;
+      state->total_byte_count = new_total;
       target = state->listener;
       state->callback_threads.push_back(self_id);
     }
@@ -147,22 +108,17 @@ void ListenerInternal::NotifyProgress(
 }
 
 void ListenerInternal::NotifyPaused(Controller* controller) {
-  // Copy state_ so the callee owns a reference independent of `this`.
   NotifyPaused(std::shared_ptr<SharedState>(state_), controller);
 }
 
 void ListenerInternal::NotifyPaused(std::shared_ptr<SharedState> state,
                                     Controller* controller) {
-  if (!state || !controller) {
-    return;
-  }
+  if (!state || !controller) return;
   Listener* target = nullptr;
-  const std::thread::id self_id = std::this_thread::get_id();
+  const auto self_id = std::this_thread::get_id();
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    if (!state->listener) {
-      return;
-    }
+    if (!state->listener) return;
     target = state->listener;
     state->callback_threads.push_back(self_id);
   }
@@ -174,13 +130,10 @@ void ListenerInternal::set_rest_operation(RestOperation* operation) {
   std::shared_ptr<SharedState> state = state_;
   RestOperation* prev_op = nullptr;
   std::shared_ptr<RestOperation::OperationHandle> prev_handle;
-  std::shared_ptr<RestOperation::OperationHandle> new_handle =
-      operation ? operation->operation_handle() : nullptr;
+  auto new_handle = operation ? operation->operation_handle() : nullptr;
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    if (state->listener == nullptr && operation != nullptr) {
-      return;
-    }
+    if (!state->listener && operation) return;
     prev_op = state->rest_operation;
     prev_handle = std::move(state->op_handle);
     state->rest_operation = operation;
@@ -192,9 +145,7 @@ void ListenerInternal::set_rest_operation(RestOperation* operation) {
   }
   if (prev_op && prev_op != operation && prev_handle) {
     std::lock_guard<std::recursive_mutex> op_lock(prev_handle->mutex);
-    if (prev_handle->op == prev_op) {
-      prev_op->DetachListener(this);
-    }
+    if (prev_handle->op == prev_op) prev_op->DetachListener(this);
   }
   if (operation && new_handle) {
     std::lock_guard<std::recursive_mutex> op_lock(new_handle->mutex);
@@ -202,13 +153,10 @@ void ListenerInternal::set_rest_operation(RestOperation* operation) {
       bool should_register = false;
       {
         std::lock_guard<std::mutex> lock(state->mutex);
-        if (state->rest_operation == operation && state->listener != nullptr) {
-          should_register = true;
-        }
+        should_register =
+            (state->rest_operation == operation && state->listener != nullptr);
       }
-      if (should_register) {
-        operation->AttachListenerState(this, state);
-      }
+      if (should_register) operation->AttachListenerState(this, state);
     }
   }
 }

@@ -1,16 +1,4 @@
 // Copyright 2017 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
@@ -36,22 +24,14 @@ namespace firebase::storage::internal {
 
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
-  kStorageReferenceFnDeleteInternal,
   kStorageReferenceFnGetBytes,
-  kStorageReferenceFnGetBytesInternal,
   kStorageReferenceFnGetFile,
-  kStorageReferenceFnGetFileInternal,
   kStorageReferenceFnGetDownloadUrl,
   kStorageReferenceFnGetMetadata,
-  kStorageReferenceFnGetMetadataInternal,
   kStorageReferenceFnUpdateMetadata,
-  kStorageReferenceFnUpdateMetadataInternal,
   kStorageReferenceFnPutBytes,
-  kStorageReferenceFnPutBytesInternal,
   kStorageReferenceFnPutFile,
-  kStorageReferenceFnPutFileInternal,
   kStorageReferenceFnList,
-  kStorageReferenceFnListInternal,
   kStorageReferenceFnListAll,
   kStorageReferenceFnCount,
 };
@@ -76,112 +56,68 @@ class StorageReferenceInternal {
   StorageReferenceInternal(StorageReferenceInternal&& other) noexcept;
   StorageReferenceInternal& operator=(
       StorageReferenceInternal&& other) noexcept;
-
   ~StorageReferenceInternal();
 
   template <class FutureType, class PrepareFunc>
-  void RunAsyncOp(SafeFutureHandle<FutureType> final_handle, double max_retry_time, Controller* controller_out, PrepareFunc prepare_func);
+  void RunAsyncOp(SafeFutureHandle<FutureType> final_handle,
+                  double max_retry_time, Controller* controller_out,
+                  PrepareFunc prepare_func);
 
-
-  // Gets the storage to which we refer.
   Storage* storage() const;
-
-  // Ownership convention for the factory methods below (Child(), GetParent()):
-  // they return a newly allocated object (or null) and transfer ownership to
-  // the caller. They return a raw pointer rather than std::unique_ptr because
-  // the platform-independent layer (storage/src/common/storage_reference.cc,
-  // shared with the Android and iOS implementations) adopts the result
-  // directly via StorageReference(StorageReferenceInternal*), which then owns
-  // and deletes it. Desktop-internal callers must adopt the result
-  // immediately, e.g. with Adopt() or a std::unique_ptr.
-
-  // Gets a reference to a location relative to this one, or null if `path`
-  // is null. The caller owns the result (see above).
   StorageReferenceInternal* Child(const char* path) const;
-
-  // Return the Google Cloud Storage bucket that holds this object.
   std::string bucket() const;
-
-  // Return the full path of the object.
   std::string full_path() const;
-
-  // Returns the short name of this object.
   std::string name() const;
-
-  // Returns a new instance pointing to the parent location, or null if this
-  // instance references the root location. The caller owns the result (see
-  // the ownership convention above Child()).
   StorageReferenceInternal* GetParent() const;
 
-  // Deletes the object at the current path.
-  void DeleteImpl(SafeFutureHandle<void> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously downloads the object from this StorageReference.
+  void DeleteImpl(SafeFutureHandle<void> handle,
+                  ReferenceCountedFutureImpl* api);
   void GetFileImpl(const char* path, Listener* listener,
-                         Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously downloads the object from this StorageReference.
+                   Controller* controller_out, SafeFutureHandle<size_t> handle,
+                   ReferenceCountedFutureImpl* api);
   void GetBytesImpl(void* buffer, size_t buffer_size, Listener* listener,
-                          Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously retrieves a long lived download URL with a revokable token.
-  void GetDownloadUrlImpl(SafeFutureHandle<std::string> handle, ReferenceCountedFutureImpl* api);
-
-  // Retrieves metadata associated with an object at this StorageReference.
-  void GetMetadataImpl(SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Updates the metadata associated with this StorageReference.
-  void UpdateMetadataImpl(const Metadata* metadata, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously uploads data to the currently specified StorageReference,
-  // without additional metadata.
+                    Controller* controller_out, SafeFutureHandle<size_t> handle,
+                    ReferenceCountedFutureImpl* api);
+  void GetDownloadUrlImpl(SafeFutureHandle<std::string> handle,
+                          ReferenceCountedFutureImpl* api);
+  void GetMetadataImpl(SafeFutureHandle<Metadata> handle,
+                       ReferenceCountedFutureImpl* api);
+  void UpdateMetadataImpl(const Metadata* metadata,
+                          SafeFutureHandle<Metadata> handle,
+                          ReferenceCountedFutureImpl* api);
+  void PutBytesImpl(const void* buffer, size_t buffer_size, Listener* listener,
+                    Controller* controller_out,
+                    SafeFutureHandle<Metadata> handle,
+                    ReferenceCountedFutureImpl* api);
   void PutBytesImpl(const void* buffer, size_t buffer_size,
-                            Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously uploads data to the currently specified StorageReference,
-  // with additional metadata.
-  void PutBytesImpl(const void* buffer, size_t buffer_size,
-                            const Metadata* metadata, Listener* listener,
-                            Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously uploads data to the currently specified StorageReference,
-  // without additional metadata.
+                    const Metadata* metadata, Listener* listener,
+                    Controller* controller_out,
+                    SafeFutureHandle<Metadata> handle,
+                    ReferenceCountedFutureImpl* api);
   void PutFileImpl(const char* path, Listener* listener,
-                           Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously uploads data to the currently specified StorageReference,
-  // with additional metadata.
+                   Controller* controller_out,
+                   SafeFutureHandle<Metadata> handle,
+                   ReferenceCountedFutureImpl* api);
   void PutFileImpl(const char* path, const Metadata* metadata,
-                           Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
+                   Listener* listener, Controller* controller_out,
+                   SafeFutureHandle<Metadata> handle,
+                   ReferenceCountedFutureImpl* api);
+  void ListImpl(int max_results_per_page, const char* page_token,
+                SafeFutureHandle<StorageListResult> handle,
+                ReferenceCountedFutureImpl* api);
+  void ListAllImpl(SafeFutureHandle<StorageListResult> handle,
+                   ReferenceCountedFutureImpl* api);
 
-  // List items (files) and prefixes (folders) under this StorageReference.
-  void ListImpl(int max_results_per_page,
-                                 const char* page_token, SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api);
-
-  // List all items (files) and prefixes (folders) under this StorageReference.
-  void ListAllImpl(SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api);
-
-  // Pointer to the StorageInternal instance we are a part of.
   StorageInternal* storage_internal() const { return storage_; }
-
-  // Wrap this in a StorageReference.
-  // Exposed for testing.
   StorageReference AsStorageReference() const;
-
-  // Wraps `internal` in a StorageReference, which takes ownership of it
-  // without copying. A null `internal` yields an invalid StorageReference.
   static StorageReference Adopt(
       std::unique_ptr<StorageReferenceInternal> internal);
 
- public:
   struct RequestAttempt {
     FutureBase future;
     std::shared_ptr<std::atomic<int>> http_status;
     bool local_failure = false;
   };
-
-  // Function type that sends a REST request and returns its RequestAttempt
-  // handle and shared HTTP status cell.
   using SendRequestFunct =
       std::function<RequestAttempt(Controller* attempt_controller_out)>;
 
@@ -197,46 +133,35 @@ class StorageReferenceInternal {
       std::shared_ptr<FutureApiOwner> future_api_owner,
       SendRequestFunct send_request_funct,
       SafeFutureHandle<FutureType> final_handle, double max_retry_time_seconds,
-      bool retry_all_errors,
-      std::shared_ptr<ControllerBinding> binding);
+      bool retry_all_errors, std::shared_ptr<ControllerBinding> binding);
 
-  // Returns whether or not an HTTP status indicates a retryable failure.
   static bool IsRetryableFailure(int http_status, bool retry_all_errors);
 
-  // Upload data without metadata.
   void PutBytesInternalImpl(const void* buffer, size_t buffer_size,
-                                    Listener* listener,
-                                    Controller* controller_out,
-                                    SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api, const char* content_type = nullptr);
-  // Upload file without metadata.
+                            Listener* listener, Controller* controller_out,
+                            SafeFutureHandle<Metadata> handle,
+                            ReferenceCountedFutureImpl* api,
+                            const char* content_type = nullptr);
   void PutFileInternalImpl(const char* path, Listener* listener,
-                                   Controller* controller_out,
-                                   SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api, const char* content_type = nullptr);
-
+                           Controller* controller_out,
+                           SafeFutureHandle<Metadata> handle,
+                           ReferenceCountedFutureImpl* api,
+                           const char* content_type = nullptr);
   void RestCall(rest::Request* request, Notifier* request_notifier,
                 BlockingResponse* response, FutureHandle handle,
                 Listener* listener,
                 const std::shared_ptr<ListenerSharedState>& listener_state,
                 Controller* controller_out);
-
   void PrepareRequestBlocking(rest::Request* request, const char* url,
                               const char* method,
                               const char* content_type = nullptr);
-
   void SetupMetadataChain(Future<Metadata> starting_future,
                           const std::shared_ptr<MetadataChainData>& data);
-
   static void ContinueListAll(Future<StorageListResult> page_future,
                               const std::shared_ptr<ListAllChainData>& data);
-
   ReferenceCountedFutureImpl* future() const;
 
-  // Storage references are frequently duplicated.  Please avoid storing any
-  // more state in them than is absolutely necessary, as it will be multiplied
-  // over many allocations/copies.
-
   StorageInternal* storage_ = nullptr;
-  ReferenceCountedFutureImpl future_api_{kStorageReferenceFnCount};
   StoragePath storage_uri_;
   std::shared_ptr<FutureApiOwner> future_api_owner_;
 };

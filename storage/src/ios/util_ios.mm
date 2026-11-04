@@ -1,16 +1,6 @@
 // Copyright 2016 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+
+#include "storage/src/ios/util_ios.h"
 
 #import <Foundation/Foundation.h>
 
@@ -19,11 +9,8 @@
 #import "FirebaseStorage-Swift.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/ios/storage_ios.h"
-#include "storage/src/ios/util_ios.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
 Error NSErrorToErrorCode(NSError* _Nullable error) {
   if (!error) return kErrorNone;
@@ -62,27 +49,16 @@ Error NSErrorToErrorCode(NSError* _Nullable error) {
 }
 
 std::string GetNSErrorMessage(NSError* _Nullable error, Error code) {
-  if (!error) {
-    return GetErrorMessage(code);
-  }
-  // Hold the description in a strong local: -UTF8String returns a pointer into
-  // the string's storage, which is only valid while the NSString is alive, so
-  // the std::string copy must be made before desc_str goes out of scope.
+  if (!error) return GetErrorMessage(code);
   NSString* desc_str = error.localizedDescription;
   const char* desc = desc_str ? desc_str.UTF8String : nullptr;
-  if (desc && desc[0] != '\0') {
-    return std::string(desc);
-  }
-  return GetErrorMessage(code);
+  return (desc && desc[0] != '\0') ? std::string(desc) : GetErrorMessage(code);
 }
 
 std::string GetNSExceptionReason(NSException* _Nullable exception) {
   NSString* reason = exception ? exception.reason : nil;
   const char* reason_cstr = reason ? reason.UTF8String : nullptr;
-  return reason_cstr ? std::string(reason_cstr)
-                     : std::string("Unknown exception");
+  return reason_cstr ? std::string(reason_cstr) : "Unknown exception";
 }
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal

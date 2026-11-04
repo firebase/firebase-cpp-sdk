@@ -1,17 +1,4 @@
 // Copyright 2016 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #ifndef FIREBASE_STORAGE_SRC_ANDROID_STORAGE_REFERENCE_ANDROID_H_
 #define FIREBASE_STORAGE_SRC_ANDROID_STORAGE_REFERENCE_ANDROID_H_
 
@@ -29,9 +16,7 @@
 #include "storage/src/include/firebase/storage/list_result.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-namespace firebase {
-namespace storage {
-namespace internal {
+namespace firebase::storage::internal {
 
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
@@ -47,125 +32,74 @@ enum StorageReferenceFn {
   kStorageReferenceFnCount,
 };
 
-
 struct JniListenerToken;
 
 class StorageReferenceInternal {
  public:
-  ReferenceCountedFutureImpl* future() const;
-  // StorageReferenceInternal will create its own global reference to ref_obj,
-  // so you should delete the object you passed in after creating the
-  // StorageReferenceInternal instance.
   StorageReferenceInternal(StorageInternal* storage, jobject ref_obj);
-
   StorageReferenceInternal(const StorageReferenceInternal& ref);
-
   StorageReferenceInternal& operator=(const StorageReferenceInternal& ref);
-
   StorageReferenceInternal(StorageReferenceInternal&& ref) noexcept;
-
   StorageReferenceInternal& operator=(StorageReferenceInternal&& ref) noexcept;
-
   ~StorageReferenceInternal();
 
-  // Gets the storage to which we refer.
+  ReferenceCountedFutureImpl* future() const {
+    return const_cast<ReferenceCountedFutureImpl*>(&future_api_);
+  }
+
   Storage* storage() const;
-
-  // Gets a reference to a location relative to this one.
   StorageReferenceInternal* Child(const char* path) const;
-
-  // Deletes the object at the current path.
-  void DeleteImpl(SafeFutureHandle<void> handle, ReferenceCountedFutureImpl* api);
-
-  
-  // Return the Google Cloud Storage bucket that holds this object.
   std::string bucket() const;
-
-  // Return the full path of this object.
   std::string full_path() const;
-
-  // Asynchronously downloads the object from this StorageReferenceInternal.
-  void GetFileImpl(const char* path, Listener* listener,
-                         Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api);
-
-  // Returns the result of the most recent call to GetFile();
-  
-  // Asynchronously downloads the object from this StorageReferenceInternal.
-  void GetBytesImpl(void* buffer, size_t buffer_size, Listener* listener,
-                          Controller* controller_out, SafeFutureHandle<size_t> handle, ReferenceCountedFutureImpl* api);
-
-  // Returns the result of the most recent call to GetBytes();
-  
-  // Asynchronously retrieves a long lived download URL with a revokable token.
-  void GetDownloadUrlImpl(SafeFutureHandle<std::string> handle, ReferenceCountedFutureImpl* api);
-
-  
-  // Retrieves metadata associated with an object at this
-  // StorageReferenceInternal.
-  void GetMetadataImpl(SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  
-  // Updates the metadata associated with this StorageReferenceInternal.
-  void UpdateMetadataImpl(const Metadata* metadata, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  
-  // Returns the short name of this object.
   std::string name() const;
-
-  // Returns a new instance of StorageReferenceInternal pointing to the parent
-  // location or null if this instance references the root location.
   StorageReferenceInternal* GetParent() const;
 
-  // Asynchronously uploads data to the currently specified
-  // StorageReferenceInternal, without additional metadata.
+  void DeleteImpl(SafeFutureHandle<void> handle,
+                  ReferenceCountedFutureImpl* api);
+  void GetFileImpl(const char* path, Listener* listener,
+                   Controller* controller_out, SafeFutureHandle<size_t> handle,
+                   ReferenceCountedFutureImpl* api);
+  void GetBytesImpl(void* buffer, size_t buffer_size, Listener* listener,
+                    Controller* controller_out, SafeFutureHandle<size_t> handle,
+                    ReferenceCountedFutureImpl* api);
+  void GetDownloadUrlImpl(SafeFutureHandle<std::string> handle,
+                          ReferenceCountedFutureImpl* api);
+  void GetMetadataImpl(SafeFutureHandle<Metadata> handle,
+                       ReferenceCountedFutureImpl* api);
+  void UpdateMetadataImpl(const Metadata* metadata,
+                          SafeFutureHandle<Metadata> handle,
+                          ReferenceCountedFutureImpl* api);
+  void PutBytesImpl(const void* buffer, size_t buffer_size, Listener* listener,
+                    Controller* controller_out,
+                    SafeFutureHandle<Metadata> handle,
+                    ReferenceCountedFutureImpl* api);
   void PutBytesImpl(const void* buffer, size_t buffer_size,
-                            Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously uploads data to the currently specified
-  // StorageReferenceInternal, with additional metadata.
-  void PutBytesImpl(const void* buffer, size_t buffer_size,
-                            const Metadata* metadata, Listener* listener,
-                            Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Returns the result of the most recent call to PutBytes();
-  
-  // Asynchronously uploads data to the currently specified
-  // StorageReferenceInternal, without additional metadata.
+                    const Metadata* metadata, Listener* listener,
+                    Controller* controller_out,
+                    SafeFutureHandle<Metadata> handle,
+                    ReferenceCountedFutureImpl* api);
   void PutFileImpl(const char* path, Listener* listener,
-                           Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
-
-  // Asynchronously uploads data to the currently specified
-  // StorageReferenceInternal, with additional metadata.
+                   Controller* controller_out,
+                   SafeFutureHandle<Metadata> handle,
+                   ReferenceCountedFutureImpl* api);
   void PutFileImpl(const char* path, const Metadata* metadata,
-                           Listener* listener, Controller* controller_out, SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* api);
+                   Listener* listener, Controller* controller_out,
+                   SafeFutureHandle<Metadata> handle,
+                   ReferenceCountedFutureImpl* api);
+  void ListImpl(int max_results_per_page, const char* page_token,
+                SafeFutureHandle<StorageListResult> handle,
+                ReferenceCountedFutureImpl* api);
+  void ListAllImpl(SafeFutureHandle<StorageListResult> handle,
+                   ReferenceCountedFutureImpl* api);
 
-  // Returns the result of the most recent call to PutFile();
-  
-  // List items (files) and prefixes (folders) under this StorageReference.
-  void ListImpl(int max_results_per_page,
-                                 const char* page_token, SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api);
-
-  // Returns the result of the most recent call to List();
-  
-  // List all items (files) and prefixes (folders) under this StorageReference.
-  void ListAllImpl(SafeFutureHandle<StorageListResult> handle, ReferenceCountedFutureImpl* api);
-
-  // Returns the result of the most recent call to ListAll();
-  
-  // Initialize JNI bindings for this class.
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
-  // Called from the Java CppByteDownloader class, this simply writes some bytes
-  // into a buffer at the specified offset.
   static void CppByteDownloaderWriteBytes(JNIEnv* env, jclass clazz,
                                           jlong buffer_ptr, jlong buffer_size,
                                           jlong buffer_offset,
                                           jbyteArray byte_array,
                                           jlong num_bytes_to_copy);
-
-  // Called from the Java CppByteUploader class, this simply reads some bytes
-  // from a C++ buffer into a Java buffer at the specified offset.
   static jint CppByteUploaderReadBytes(JNIEnv* env, jclass clazz,
                                        jlong cpp_buffer_pointer,
                                        jlong cpp_buffer_size,
@@ -173,34 +107,22 @@ class StorageReferenceInternal {
                                        jint bytes_offset,
                                        jint num_bytes_to_read);
 
-  // StorageInternal instance we are associated with.
   StorageInternal* storage_internal() const { return storage_; }
+  std::shared_ptr<JniListenerToken> AssignListenerToTask(Listener* listener,
+                                                         jobject task);
 
  private:
-
-  template <typename FutureType, typename ActionFn, typename ParseFn, typename CleanupFn>
-  void RunAsyncOp(SafeFutureHandle<FutureType> handle,
-                  ReferenceCountedFutureImpl* api, Controller* controller_out,
-                  ActionFn action, ParseFn parse, CleanupFn cleanup);
-
   static void FutureCallback(JNIEnv* env, jobject result,
                              firebase::util::FutureResult result_code,
                              const char* status_message, void* callback_data);
-
-  // If `listener` is not nullptr, create a Java listener class for it and
-  // assign it to the running task, returning a shared token for the listener.
-  public: std::shared_ptr<JniListenerToken> AssignListenerToTask(Listener* listener,
-                                                         jobject task);
-
-  
+  void BindController(Controller* controller_out, jobject task) const;
+  std::string CallStringGetter(int method_id) const;
 
   StorageInternal* storage_ = nullptr;
   ReferenceCountedFutureImpl future_api_{kStorageReferenceFnCount};
   jobject obj_ = nullptr;
 };
 
-}  // namespace internal
-}  // namespace storage
-}  // namespace firebase
+}  // namespace firebase::storage::internal
 
 #endif  // FIREBASE_STORAGE_SRC_ANDROID_STORAGE_REFERENCE_ANDROID_H_
