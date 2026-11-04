@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/transaction_android.h"
 
@@ -68,7 +54,6 @@ Method<Object> kGet("get",
 
 constexpr char kTransactionFunctionClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/TransactionFunction";
-
 Constructor<Object> kNewTransactionFunction("(JJ)V");
 
 }  // namespace
@@ -76,7 +61,6 @@ Constructor<Object> kNewTransactionFunction("(JJ)V");
 void TransactionInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kTransactionClassName, kSet, kUpdate, kUpdateVarargs,
                    kDelete, kGet);
-
   static const JNINativeMethod kTransactionFunctionNatives[] = {
       {"nativeApply",
        "(JJLcom/google/firebase/firestore/Transaction;)Ljava/lang/Exception;",
@@ -90,35 +74,26 @@ void TransactionInternal::Initialize(jni::Loader& loader) {
 void TransactionInternal::Set(const DocumentReference& document,
                               const MapFieldValue& data,
                               const SetOptions& options) {
-  if (!ValidateReference(document)) {
-    return;
-  }
+  if (!ValidateReference(document)) return;
   Env env = GetEnv();
-  Local<HashMap> java_data = MakeJavaMap(env, data);
-  Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  env.Call(obj_, kSet, document.internal_->ToJava(), java_data, java_options);
+  env.Call(obj_, kSet, document.internal_->ToJava(), MakeJavaMap(env, data),
+           SetOptionsInternal::Create(env, options));
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldValue& data) {
-  if (!ValidateReference(document)) {
-    return;
-  }
+  if (!ValidateReference(document)) return;
   Env env = GetEnv();
-  Local<HashMap> java_data = MakeJavaMap(env, data);
-  env.Call(obj_, kUpdate, document.internal_->ToJava(), java_data);
+  env.Call(obj_, kUpdate, document.internal_->ToJava(), MakeJavaMap(env, data));
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldPathValue& data) {
-  if (!ValidateReference(document)) {
-    return;
-  }
+  if (!ValidateReference(document)) return;
   if (data.empty()) {
     Update(document, MapFieldValue{});
     return;
   }
-
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
   env.Call(obj_, kUpdateVarargs, document.internal_->ToJava(), args.first_field,
@@ -126,9 +101,7 @@ void TransactionInternal::Update(const DocumentReference& document,
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
-  if (!ValidateReference(document)) {
-    return;
-  }
+  if (!ValidateReference(document)) return;
   Env env = GetEnv();
   env.Call(obj_, kDelete, document.internal_->ToJava());
 }
@@ -136,41 +109,19 @@ void TransactionInternal::Delete(const DocumentReference& document) {
 DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
                                           Error* error_code,
                                           std::string* error_message) {
-  if (!ValidateReference(document, error_code, error_message)) {
-    return DocumentSnapshot{};
-  }
-
+  if (!ValidateReference(document, error_code, error_message)) return {};
   Env env = GetEnv();
-
   Local<Object> snapshot = env.Call(obj_, kGet, document.internal_->ToJava());
-  Local<Throwable> exception = env.ClearExceptionOccurred();
-
-  if (exception) {
-    if (error_code != nullptr) {
-      *error_code = ExceptionInternal::GetErrorCode(env, exception);
-    }
-    if (error_message != nullptr) {
-      *error_message = ExceptionInternal::ToString(env, exception);
-    }
-
+  if (Local<Throwable> exception = env.ClearExceptionOccurred()) {
+    if (error_code) *error_code = ExceptionInternal::GetErrorCode(env, exception);
+    if (error_message) *error_message = ExceptionInternal::ToString(env, exception);
     if (!ExceptionInternal::IsFirestoreException(env, exception)) {
-      // Only preserve the exception if it is not `FirebaseFirestoreException`.
-      // For Firestore exceptions, the user decides whether to raise the error
-      // or let the transaction succeed through the error code/message the
-      // `TransactionFunction` returns.
       PreserveException(env, std::move(exception));
     }
-    return DocumentSnapshot{};
-
-  } else {
-    if (error_code != nullptr) {
-      *error_code = Error::kErrorOk;
-    }
-    if (error_message != nullptr) {
-      *error_message = "";
-    }
+    return {};
   }
-
+  if (error_code) *error_code = Error::kErrorOk;
+  if (error_message) *error_message = "";
   return firestore_->NewDocumentSnapshot(env, snapshot);
 }
 
@@ -178,22 +129,16 @@ bool TransactionInternal::ValidateReference(const DocumentReference& document,
                                             Error* error_code,
                                             std::string* error_message) {
   const char* error = nullptr;
-  if (document.internal_ == nullptr) {
+  if (!document.internal_) {
     error = "Invalid document reference provided.";
   } else if (document.internal_->firestore_internal() != firestore_) {
     error =
         "Provided document reference is from a different Cloud Firestore "
         "instance.";
   }
-  if (error == nullptr) {
-    return true;
-  }
-  if (error_code != nullptr) {
-    *error_code = Error::kErrorInvalidArgument;
-  }
-  if (error_message != nullptr) {
-    *error_message = error;
-  }
+  if (!error) return true;
+  if (error_code) *error_code = Error::kErrorInvalidArgument;
+  if (error_message) *error_message = error;
   Env env = GetEnv();
   PreserveException(
       env, ExceptionInternal::Create(env, Error::kErrorInvalidArgument, error));
@@ -206,12 +151,7 @@ bool TransactionInternal::ValidateReference(const DocumentReference& document,
 
 Env TransactionInternal::GetEnv() {
 #if FIRESTORE_HAVE_EXCEPTIONS
-  // If exceptions are enabled, report Java exceptions by translating them to
-  // their C++ equivalents in the usual way. These will throw out to the
-  // user-supplied TransactionFunction and ultimately out to
-  // `TransactionFunctionNativeApply`, below.
   return FirestoreInternal::GetEnv();
-
 #else
   Env env;
   env.SetUnhandledExceptionHandler(ExceptionHandler, this);
@@ -222,18 +162,14 @@ Env TransactionInternal::GetEnv() {
 void TransactionInternal::ExceptionHandler(Env& env,
                                            Local<Throwable>&& exception,
                                            void* context) {
-  auto* transaction = static_cast<TransactionInternal*>(context);
   env.ExceptionClear();
-  transaction->PreserveException(env, std::move(exception));
+  static_cast<TransactionInternal*>(context)->PreserveException(
+      env, std::move(exception));
 }
 
 void TransactionInternal::PreserveException(jni::Env& env,
                                             Local<Throwable>&& exception) {
-  // Only preserve the first real exception.
-  if (!first_exception_ || *first_exception_ || !exception) {
-    return;
-  }
-
+  if (!first_exception_ || *first_exception_ || !exception) return;
   if (ExceptionInternal::IsAnyExceptionThrownByFirestore(env, exception)) {
     exception = ExceptionInternal::Wrap(env, std::move(exception));
   }
@@ -241,8 +177,9 @@ void TransactionInternal::PreserveException(jni::Env& env,
 }
 
 Local<Throwable> TransactionInternal::ClearExceptionOccurred() {
-  if (!first_exception_ || !*first_exception_) return {};
-  return Local<Throwable>(std::move(*first_exception_));
+  return (first_exception_ && *first_exception_)
+             ? Local<Throwable>(std::move(*first_exception_))
+             : Local<Throwable>{};
 }
 
 Local<Object> TransactionInternal::Create(Env& env,
@@ -253,24 +190,17 @@ Local<Object> TransactionInternal::Create(Env& env,
 }
 
 jobject TransactionInternal::TransactionFunctionNativeApply(
-    JNIEnv* raw_env,
-    jclass clazz,
-    jlong firestore_ptr,
-    jlong transaction_function_ptr,
-    jobject java_transaction) {
-  if (firestore_ptr == 0 || transaction_function_ptr == 0 ||
-      java_transaction == nullptr) {
+    JNIEnv* raw_env, jclass, jlong firestore_ptr,
+    jlong transaction_function_ptr, jobject java_transaction) {
+  if (!firestore_ptr || !transaction_function_ptr || !java_transaction) {
     return nullptr;
   }
-
-  FirestoreInternal* firestore =
-      reinterpret_cast<FirestoreInternal*>(firestore_ptr);
-  TransactionFunction* transaction_function =
+  auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
+  auto* transaction_function =
       reinterpret_cast<TransactionFunction*>(transaction_function_ptr);
 
   std::string message;
   Error code = Error::kErrorOk;
-
   Transaction transaction(
       new TransactionInternal(firestore, Object(java_transaction)));
 
@@ -278,7 +208,6 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   try {
 #endif
     code = transaction_function->Apply(transaction, message);
-
 #if FIRESTORE_HAVE_EXCEPTIONS
   } catch (const FirestoreException& e) {
     message = e.what();
@@ -296,24 +225,18 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
     message = "Unknown exception";
     code = Error::kErrorUnknown;
   }
-#endif  // FIRESTORE_HAVE_EXCEPTIONS
+#endif
 
-  // Verify that `internal_` is not null before using it. It could be set to
-  // `nullptr` if the `FirestoreInternal` is destroyed during the invocation of
-  // transaction_function->Apply() (b/171804663).
   if (transaction.internal_) {
-    Local<Throwable> first_exception =
-        transaction.internal_->ClearExceptionOccurred();
-    if (first_exception) {
-      return first_exception.release();
+    if (Local<Throwable> first =
+            transaction.internal_->ClearExceptionOccurred()) {
+      return first.release();
     }
   }
-
   Env env(raw_env);
-  if (code != Error::kErrorOk) {
-    return ExceptionInternal::Create(env, code, message).release();
-  }
-  return nullptr;
+  return code != Error::kErrorOk
+             ? ExceptionInternal::Create(env, code, message).release()
+             : nullptr;
 }
 
 }  // namespace firebase::firestore

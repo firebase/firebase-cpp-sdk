@@ -1,101 +1,57 @@
-/*
- * Copyright 2018 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2018 Google LLC
 #include "firestore/src/include/firebase/firestore/field_path.h"
 
 #include <algorithm>
 #include <ostream>
 #include <utility>
-
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_path_portable.h"
 #else
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/util/hashing.h"
-#endif  // defined(__ANDROID__)
+#endif
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 FieldPath::FieldPath() {}
-
 FieldPath::FieldPath(std::initializer_list<std::string> field_names)
     : internal_(InternalFromSegments(std::vector<std::string>(field_names))) {}
-
 FieldPath::FieldPath(const std::vector<std::string>& field_names)
     : internal_(InternalFromSegments(field_names)) {}
-
 FieldPath::FieldPath(const FieldPath& path)
-    : internal_(path.internal_ ? new FieldPathInternal{*path.internal_}
-                               : nullptr) {}
-
-FieldPath::FieldPath(FieldPath&& path) noexcept : internal_(path.internal_) {
-  path.internal_ = nullptr;
-}
-
+    : internal_(path.internal_ ? new FieldPathInternal{*path.internal_} : nullptr) {}
+FieldPath::FieldPath(FieldPath&& path) noexcept
+    : internal_(std::exchange(path.internal_, nullptr)) {}
 FieldPath::FieldPath(FieldPathInternal* internal) : internal_(internal) {}
-
-FieldPath::~FieldPath() {
-  delete internal_;
-  internal_ = nullptr;
-}
+FieldPath::~FieldPath() { delete std::exchange(internal_, nullptr); }
 
 FieldPath& FieldPath::operator=(const FieldPath& path) {
-  if (this == &path) {
-    return *this;
-  }
-
-  FieldPathInternal* new_internal =
-      path.internal_ ? new FieldPathInternal{*path.internal_} : nullptr;
-  delete internal_;
-  internal_ = new_internal;
+  if (this == &path) return *this;
+  delete std::exchange(internal_, path.internal_ ? new FieldPathInternal{*path.internal_} : nullptr);
   return *this;
 }
 
 FieldPath& FieldPath::operator=(FieldPath&& path) noexcept {
-  if (this == &path) {
-    return *this;
-  }
-
-  delete internal_;
-  internal_ = path.internal_;
-  path.internal_ = nullptr;
+  if (this == &path) return *this;
+  delete std::exchange(internal_, std::exchange(path.internal_, nullptr));
   return *this;
 }
 
-/* static */
 FieldPath FieldPath::DocumentId() {
   return FieldPath{new FieldPathInternal{FieldPathInternal::KeyFieldPath()}};
 }
 
 FieldPath::FieldPathInternal* FieldPath::InternalFromSegments(
     std::vector<std::string> field_names) {
-  return new FieldPathInternal(
-      FieldPathInternal::FromSegments(std::move(field_names)));
+  return new FieldPathInternal(FieldPathInternal::FromSegments(std::move(field_names)));
 }
 
-/* static */
 FieldPath FieldPath::FromDotSeparatedString(const std::string& path) {
-  return FieldPath{
-      new FieldPathInternal{FieldPathInternal::FromDotSeparatedString(path)}};
+  return FieldPath{new FieldPathInternal{FieldPathInternal::FromDotSeparatedString(path)}};
 }
 
 std::string FieldPath::ToString() const {
-  if (!internal_) return "";
-  return internal_->CanonicalString();
+  return internal_ ? internal_->CanonicalString() : "";
 }
 
 std::ostream& operator<<(std::ostream& out, const FieldPath& path) {
@@ -103,36 +59,26 @@ std::ostream& operator<<(std::ostream& out, const FieldPath& path) {
 }
 
 bool operator==(const FieldPath& lhs, const FieldPath& rhs) {
-  if (!lhs.internal_ || !rhs.internal_) {
-    return lhs.internal_ == rhs.internal_;
-  }
-
+  if (!lhs.internal_ || !rhs.internal_) return lhs.internal_ == rhs.internal_;
   return *lhs.internal_ == *rhs.internal_;
 }
 
-bool operator!=(const FieldPath& lhs, const FieldPath& rhs) {
-  return !(lhs == rhs);
-}
+bool operator!=(const FieldPath& lhs, const FieldPath& rhs) { return !(lhs == rhs); }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 namespace std {
-#if defined(__ANDROID__)
 size_t hash<firebase::firestore::FieldPath>::operator()(
     const firebase::firestore::FieldPath& field_path) const {
   if (!field_path.internal_) return 0;
+#if defined(__ANDROID__)
   size_t hash = 1;
   for (const auto& segment : *field_path.internal_) {
     hash = 31 * hash + std::hash<std::string>{}(segment);
   }
   return hash;
-}
 #else
-size_t hash<firebase::firestore::FieldPath>::operator()(
-    const firebase::firestore::FieldPath& field_path) const {
-  if (!field_path.internal_) return 0;
   return firebase::firestore::util::Hash(*field_path.internal_);
+#endif
 }
-#endif  // defined(__ANDROID__)
 }  // namespace std

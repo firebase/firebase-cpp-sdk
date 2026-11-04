@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/jni/env.h"
 
@@ -22,34 +8,135 @@
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "app/src/util_android.h"
 #include "firestore/src/jni/array.h"
+#include "firestore/src/jni/class.h"
+#include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/object.h"
+#include "firestore/src/jni/string.h"
+#include "firestore/src/jni/throwable.h"
 
-// Add constant declarations missing from the NDK's jni.h
 #ifndef JNI_ENOMEM
 #define JNI_ENOMEM -4
 #define JNI_EEXIST -5
 #define JNI_EINVAL -6
 #endif
 
-namespace firebase {
-namespace firestore {
-namespace jni {
+namespace firebase::firestore::jni {
 namespace {
 
-/**
- * Returns the number of currently pending exceptions. This can be more than
- * one if an exception is thrown in a try-catch block in a destructor. Returns
- * zero if exceptions are disabled.
- */
 int CurrentExceptionCount() {
 #if __cpp_exceptions
   return std::uncaught_exceptions();
 #else
   return 0;
-#endif  // __cpp_exceptions
+#endif
 }
 
+Method<bool> kObjectEquals("equals", "(Ljava/lang/Object;)Z");
+Method<String> kObjectToString("toString", "()Ljava/lang/String;");
+jclass g_object_class = nullptr;
+
+Method<String> kClassGetName("getName", "()Ljava/lang/String;");
+Method<bool> kClassIsArray("isArray", "()Z");
+
+Constructor<String> kStringNewFromBytes("([BLjava/lang/String;)V");
+Method<Array<uint8_t>> kStringGetBytes("getBytes", "(Ljava/lang/String;)[B");
+jclass g_string_class = nullptr;
+jstring g_utf8_string = nullptr;
+
 }  // namespace
+
+void Object::Initialize(Loader& loader) {
+  if (jclass clazz = firebase::util::object::GetClass()) {
+    g_object_class = clazz;
+    loader.LoadFromExistingClass("java/lang/Object", clazz, kObjectEquals,
+                                 kObjectToString);
+  } else {
+    g_object_class =
+        loader.LoadClass("java/lang/Object", kObjectEquals, kObjectToString);
+  }
+}
+
+Class Object::GetClass() { return Class(g_object_class); }
+
+std::string Object::ToString(Env& env) const {
+  if (!*this || !env.ok()) return "";
+  Local<String> s = env.Call(*this, kObjectToString);
+  return (env.ok() && s) ? s.ToString(env) : "";
+}
+
+bool Object::Equals(Env& env, const Object& other) const {
+  if (!env.ok()) return false;
+  if (!*this && !other) return true;
+  return (*this && other) ? env.Call(*this, kObjectEquals, other) : false;
+}
+
+bool Object::Equals(Env& env, const Object& lhs, const Object& rhs) {
+  if (!env.ok()) return false;
+  if (lhs.get() == rhs.get()) return true;
+  return (lhs && rhs) ? lhs.Equals(env, rhs) : false;
+}
+
+void Class::Initialize(Loader& loader) {
+  loader.LoadClass("java/lang/Class", kClassGetName, kClassIsArray);
+}
+
+std::string Class::GetName(Env& env) const {
+  if (!*this || !env.ok()) return "";
+  Local<String> name = env.Call(*this, kClassGetName);
+  return (env.ok() && name) ? name.ToString(env) : "";
+}
+
+std::string Class::GetClassName(Env& env, const Object& object) {
+  if (!object || !env.ok()) return "";
+  Local<Class> clazz = env.GetObjectClass(object);
+  return (env.ok() && clazz) ? clazz.GetName(env) : "";
+}
+
+bool Class::IsArray(Env& env) const {
+  return (*this && env.ok()) ? env.Call(*this, kClassIsArray) : false;
+}
+
+void String::Initialize(Env& env, Loader& loader) {
+  if (!loader.ok() || !env.ok() || !env.get()) return;
+  g_string_class = firebase::util::string::GetClass();
+  loader.LoadFromExistingClass("java/lang/String", g_string_class,
+                               kStringNewFromBytes, kStringGetBytes);
+  if (!loader.ok() || !env.ok()) return;
+  Terminate(env);
+  jstring raw_utf8 = env.get()->NewStringUTF("UTF-8");
+  if (!env.ok() || !raw_utf8) return;
+  g_utf8_string = Global<String>(Local<String>(env.get(), raw_utf8)).release();
+}
+
+void String::Terminate(Env& env) {
+  if (g_utf8_string && env.get()) {
+    env.get()->DeleteGlobalRef(g_utf8_string);
+    g_utf8_string = nullptr;
+  }
+}
+
+Class String::GetClass() { return Class(g_string_class); }
+String String::GetUtf8() { return String(g_utf8_string); }
+
+Local<String> String::Create(Env& env, const Array<uint8_t>& bytes,
+                             const String& encoding) {
+  return env.New(kStringNewFromBytes, bytes, encoding);
+}
+
+Local<Array<uint8_t>> String::GetBytes(Env& env,
+                                       const String& encoding) const {
+  return env.Call(*this, kStringGetBytes, encoding);
+}
+
+std::string String::ToString(Env& env) const { return env.ToStringUtf(*this); }
+
+std::string Throwable::GetMessage(Env& env) const {
+  if (!*this || !env.get()) return "";
+  ExceptionClearGuard block(env);
+  return firebase::util::GetMessageFromException(env.get(), object_);
+}
 
 Env::Env() : Env(GetEnv()) {}
 
@@ -57,36 +144,19 @@ Env::Env(JNIEnv* env)
     : env_(env), initial_pending_exceptions_(CurrentExceptionCount()) {}
 
 Env::~Env() noexcept(false) {
-  // Avoid calling ok() if there is no registered exception handler. It is
-  // slightly more efficient in the common case that no exception handler is
-  // specified, and also avoids calling into the JVM in the rare case that the
-  // thread is already detached.
-  if (!exception_handler_ || !env_ || ok()) {
-    return;
-  }
-
-  if (exception_handler_ &&
+  if (exception_handler_ && env_ && !ok() &&
       CurrentExceptionCount() == initial_pending_exceptions_) {
     exception_handler_(*this, ExceptionOccurred(), context_);
   }
-
-  // If no unhandled exception handler is registered, leave the exception
-  // pending in the JNIEnv. This will either propagate out to another Env
-  // instance that does have a handler installed or will propagate out to the
-  // JVM.
 }
 
 Local<Class> Env::FindClass(const char* name) {
-  if (!ok() || !name) return {};
-
-  jclass result = env_->FindClass(name);
-  RecordException();
-  return Local<Class>(env_, result);
+  return (ok() && name) ? Local<Class>(env_, env_->FindClass(name))
+                        : Local<Class>();
 }
 
 void Env::Throw(const Throwable& throwable) {
   if (!ok() || !throwable) return;
-
   jint result = env_->Throw(throwable.get());
   FIREBASE_ASSERT_MESSAGE(
       result == JNI_OK, "Failed to throw an exception %s: %s",
@@ -95,7 +165,6 @@ void Env::Throw(const Throwable& throwable) {
 
 void Env::ThrowNew(const Class& clazz, const char* message) {
   if (!ok() || !clazz) return;
-
   jint result = env_->ThrowNew(clazz.get(), message);
   FIREBASE_ASSERT_MESSAGE(
       result == JNI_OK, "Failed to throw %s with message %s: %s",
@@ -104,14 +173,12 @@ void Env::ThrowNew(const Class& clazz, const char* message) {
 }
 
 Local<Throwable> Env::ExceptionOccurred() {
-  if (!env_) return {};
-  jthrowable exception = env_->ExceptionOccurred();
-  return Local<Throwable>(env_, exception);
+  return env_ ? Local<Throwable>(env_, env_->ExceptionOccurred())
+              : Local<Throwable>();
 }
 
 void Env::ExceptionClear() {
-  if (!env_) return;
-  env_->ExceptionClear();
+  if (env_) env_->ExceptionClear();
 }
 
 Local<Throwable> Env::ClearExceptionOccurred() {
@@ -122,139 +189,86 @@ Local<Throwable> Env::ClearExceptionOccurred() {
 }
 
 Local<Class> Env::GetObjectClass(const Object& object) {
-  if (!ok() || !object) return {};
-
-  jclass result = env_->GetObjectClass(object.get());
-  RecordException();
-  return Local<Class>(env_, result);
+  return (ok() && object) ? Local<Class>(env_, env_->GetObjectClass(object.get()))
+                          : Local<Class>();
 }
 
 bool Env::IsInstanceOf(const Object& object, const Class& clazz) {
-  if (!ok() || !object || !clazz) return false;
-
-  jboolean result = env_->IsInstanceOf(object.get(), clazz.get());
-  RecordException();
-  return result != JNI_FALSE;
+  return (ok() && object && clazz) &&
+         env_->IsInstanceOf(object.get(), clazz.get()) != JNI_FALSE;
 }
 
 bool Env::IsSameObject(const Object& object1, const Object& object2) {
-  if (!ok()) return false;
-
-  jboolean result = env_->IsSameObject(object1.get(), object2.get());
-  RecordException();
-  return result != JNI_FALSE;
+  return ok() && env_->IsSameObject(object1.get(), object2.get()) != JNI_FALSE;
 }
 
-jmethodID Env::GetMethodId(const Class& clazz,
-                           const char* name,
+jmethodID Env::GetMethodId(const Class& clazz, const char* name,
                            const char* sig) {
-  if (!ok() || !clazz || !name || !sig) return nullptr;
-
-  jmethodID result = env_->GetMethodID(clazz.get(), name, sig);
-  RecordException();
-  return result;
+  return (ok() && clazz && name && sig)
+             ? env_->GetMethodID(clazz.get(), name, sig)
+             : nullptr;
 }
 
-jfieldID Env::GetStaticFieldId(const Class& clazz,
-                               const char* name,
+jfieldID Env::GetStaticFieldId(const Class& clazz, const char* name,
                                const char* sig) {
-  if (!ok() || !clazz || !name || !sig) return nullptr;
-
-  jfieldID result = env_->GetStaticFieldID(ToJni(clazz), name, sig);
-  RecordException();
-  return result;
+  return (ok() && clazz && name && sig)
+             ? env_->GetStaticFieldID(ToJni(clazz), name, sig)
+             : nullptr;
 }
 
-jmethodID Env::GetStaticMethodId(const Class& clazz,
-                                 const char* name,
+jmethodID Env::GetStaticMethodId(const Class& clazz, const char* name,
                                  const char* sig) {
-  if (!ok() || !clazz || !name || !sig) return nullptr;
-
-  jmethodID result = env_->GetStaticMethodID(ToJni(clazz), name, sig);
-  RecordException();
-  return result;
+  return (ok() && clazz && name && sig)
+             ? env_->GetStaticMethodID(ToJni(clazz), name, sig)
+             : nullptr;
 }
 
 Local<String> Env::NewStringUtf(const char* bytes) {
-  if (!bytes) return {};
-
-  return NewStringUtf(bytes, std::strlen(bytes));
+  return bytes ? NewStringUtf(bytes, std::strlen(bytes)) : Local<String>();
 }
 
 Local<String> Env::NewStringUtf(const char* bytes, size_t size) {
   if (!ok() || (!bytes && size > 0)) return {};
-
   Local<Array<uint8_t>> java_bytes = NewArray<uint8_t>(size);
   if (!ok() || !java_bytes) return {};
-
   SetArrayRegion(java_bytes, 0, size, reinterpret_cast<const uint8_t*>(bytes));
-  if (!ok()) return {};
-
-  return String::Create(*this, java_bytes, String::GetUtf8());
+  return ok() ? String::Create(*this, java_bytes, String::GetUtf8())
+              : Local<String>();
 }
 
 std::string Env::ToStringUtf(const String& string) {
   if (!ok() || !string) return "";
-
   Local<Array<uint8_t>> bytes = string.GetBytes(*this, String::GetUtf8());
   if (!ok() || !bytes) return "";
-
   size_t len = GetArrayLength(bytes);
   if (!ok() || len == 0) return "";
-
-  // Copy directly into the std::string buffer. This is guaranteed to work as
-  // of C++11.
   std::string result(len, '\0');
-  auto* buffer = reinterpret_cast<uint8_t*>(&result[0]);
-  GetArrayRegion(bytes, 0, len, buffer);
-  if (!ok()) return "";
-
-  return result;
-}
-
-void Env::RecordException() {
-  if (!env_ || ok()) return;
+  GetArrayRegion(bytes, 0, len, reinterpret_cast<uint8_t*>(&result[0]));
+  return ok() ? result : "";
 }
 
 std::string Env::ErrorDescription(const Object& object) {
-  if (!object) {
-    return "(null)";
-  }
-
+  if (!object) return "(null)";
   ExceptionClearGuard block(*this);
   std::string result = object.ToString(*this);
-  if (ok()) {
-    return result;
-  }
-
+  if (ok()) return result;
   Local<Throwable> exception = ClearExceptionOccurred();
   std::string message = exception.GetMessage(*this);
   ExceptionClear();
-  return std::string("(unknown object: failed trying to describe it: ") +
-         message + ")";
+  return "(unknown object: failed trying to describe it: " + message + ")";
 }
 
 const char* Env::ErrorName(jint error) {
   switch (error) {
-    case JNI_OK:
-      return "no error (JNI_OK)";
-    case JNI_ERR:
-      return "general JNI failure (JNI_ERR)";
-    case JNI_EDETACHED:
-      return "thread detached from the VM (JNI_EDETACHED)";
-    case JNI_EVERSION:
-      return "JNI version error (JNI_EVERSION)";
-    case JNI_ENOMEM:
-      return "not enough memory (JNI_ENOMEM)";
-    case JNI_EEXIST:
-      return "VM already created (JNI_EEXIST)";
-    case JNI_EINVAL:
-      return "invalid arguments (JNI_EINVAL)";
-    default:
-      return "unexpected error code";
+    case JNI_OK: return "no error (JNI_OK)";
+    case JNI_ERR: return "general JNI failure (JNI_ERR)";
+    case JNI_EDETACHED: return "thread detached from the VM (JNI_EDETACHED)";
+    case JNI_EVERSION: return "JNI version error (JNI_EVERSION)";
+    case JNI_ENOMEM: return "not enough memory (JNI_ENOMEM)";
+    case JNI_EEXIST: return "VM already created (JNI_EEXIST)";
+    case JNI_EINVAL: return "invalid arguments (JNI_EINVAL)";
+    default: return "unexpected error code";
   }
 }
 
-}  // namespace jni
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore::jni

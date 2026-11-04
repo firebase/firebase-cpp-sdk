@@ -1,18 +1,4 @@
-/*
- * Copyright 2016 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2016 Google LLC
 
 #include "firestore/src/android/firestore_android.h"
 
@@ -83,13 +69,11 @@
 #include "firestore/src/jni/map.h"
 #include "firestore/src/jni/task.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 class LoadBundleProgressCompletion
     : public EventListener<LoadBundleTaskProgress>,
-      public Promise<LoadBundleTaskProgress,
-                     LoadBundleTaskProgressInternal,
+      public Promise<LoadBundleTaskProgress, LoadBundleTaskProgressInternal,
                      FirestoreInternal::AsyncFn>::Completion {
  public:
   LoadBundleProgressCompletion(
@@ -114,23 +98,18 @@ class LoadBundleProgressCompletion
   void Cancel(jni::Env& env) {
     DiscardJavaListener(env);
     std::function<void(const LoadBundleTaskProgress&)> discarded_callback;
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      completed_ = true;
-      discarded_callback = std::move(callback_);
-      callback_ = nullptr;
-    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    completed_ = true;
+    discarded_callback = std::move(callback_);
+    callback_ = nullptr;
   }
 
-  void OnEvent(const LoadBundleTaskProgress& progress,
-               Error,
+  void OnEvent(const LoadBundleTaskProgress& progress, Error,
                const std::string&) override {
     std::function<void(const LoadBundleTaskProgress&)> callback;
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      if (completed_) {
-        return;
-      }
+      if (completed_) return;
       last_docs_ = progress.documents_loaded();
       last_total_docs_ = progress.total_documents();
       last_bytes_ = progress.bytes_loaded();
@@ -140,13 +119,10 @@ class LoadBundleProgressCompletion
       }
       callback = callback_;
     }
-    if (callback) {
-      callback(progress);
-    }
+    if (callback) callback(progress);
   }
 
-  void CompleteWith(Error error_code,
-                    const char*,
+  void CompleteWith(Error error_code, const char*,
                     LoadBundleTaskProgress*) override {
     jni::Env env;
     DiscardJavaListener(env);
@@ -156,9 +132,7 @@ class LoadBundleProgressCompletion
         0, 0, 0, 0, LoadBundleTaskProgress::State::kError);
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      if (completed_) {
-        return;
-      }
+      if (completed_) return;
       completed_ = true;
       if (error_code != Error::kErrorOk && callback_ && !saw_terminal_state_) {
         saw_terminal_state_ = true;
@@ -169,10 +143,7 @@ class LoadBundleProgressCompletion
       }
       callback_ = nullptr;
     }
-
-    if (error_callback) {
-      error_callback(error_progress);
-    }
+    if (error_callback) error_callback(error_progress);
   }
 
  private:
@@ -211,14 +182,13 @@ constexpr char kFirestoreClassName[] =
 
 Method<Object> kCollection(
     "collection",
-    "(Ljava/lang/String;)"
-    "Lcom/google/firebase/firestore/CollectionReference;");
-Method<Object> kDocument("document",
-                         "(Ljava/lang/String;)"
-                         "Lcom/google/firebase/firestore/DocumentReference;");
-Method<Object> kCollectionGroup("collectionGroup",
-                                "(Ljava/lang/String;)"
-                                "Lcom/google/firebase/firestore/Query;");
+    "(Ljava/lang/String;)Lcom/google/firebase/firestore/CollectionReference;");
+Method<Object> kDocument(
+    "document",
+    "(Ljava/lang/String;)Lcom/google/firebase/firestore/DocumentReference;");
+Method<Object> kCollectionGroup(
+    "collectionGroup",
+    "(Ljava/lang/String;)Lcom/google/firebase/firestore/Query;");
 Method<SettingsInternal> kGetSettings(
     "getFirestoreSettings",
     "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
@@ -251,33 +221,17 @@ Method<Object> kAddSnapshotsInSyncListener(
     "addSnapshotsInSyncListener",
     "(Ljava/util/concurrent/Executor;Ljava/lang/Runnable;)"
     "Lcom/google/firebase/firestore/ListenerRegistration;");
-Method<Task> kGetNamedQuery("getNamedQuery",
-                            "(Ljava/lang/String;)"
-                            "Lcom/google/android/gms/tasks/Task;");
+Method<Task> kGetNamedQuery(
+    "getNamedQuery",
+    "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;");
 Method<LoadBundleTaskInternal> kLoadBundle(
-    "loadBundle",
-    "([B)"
-    "Lcom/google/firebase/firestore/LoadBundleTask;");
-
-void InitializeFirestore(Loader& loader) {
-  loader.LoadClass(kFirestoreClassName, kCollection, kDocument,
-                   kCollectionGroup, kGetSettings, kGetInstance,
-                   kSetLoggingEnabled, kSetClientLanguage, kSetSettings, kBatch,
-                   kRunTransaction, kEnableNetwork, kDisableNetwork, kTerminate,
-                   kWaitForPendingWrites, kClearPersistence,
-                   kAddSnapshotsInSyncListener, kGetNamedQuery, kLoadBundle);
-}
+    "loadBundle", "([B)Lcom/google/firebase/firestore/LoadBundleTask;");
 
 constexpr char kUserCallbackExecutorClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/"
     "SilentRejectionSingleThreadExecutor";
 Constructor<Object> kNewUserCallbackExecutor("()V");
 Method<void> kExecutorShutdown("shutdown", "()V");
-
-void InitializeUserCallbackExecutor(Loader& loader) {
-  loader.LoadClass(kUserCallbackExecutorClassName, kNewUserCallbackExecutor,
-                   kExecutorShutdown);
-}
 
 constexpr char kFirestoreTasksClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/FirestoreTasks";
@@ -288,73 +242,41 @@ StaticMethod<Task> kFailTaskWhenResultIsNull(
     "(Lcom/google/android/gms/tasks/Task;Ljava/lang/String;)"
     "Lcom/google/android/gms/tasks/Task;");
 
-void InitializeFirestoreTasks(Loader& loader) {
-  loader.LoadClass(kFirestoreTasksClassName, kAwaitCompletion,
-                   kFailTaskWhenResultIsNull);
-}
-
-/**
- * A map of Java Firestore instance to C++ Firestore instance.
- */
 class JavaFirestoreMap {
  public:
   FirestoreInternal* Get(Env& env, const Object& java_firestore) {
-    if (!java_firestore) {
-      return nullptr;
-    }
+    if (!java_firestore) return nullptr;
     MutexLock lock(mutex_);
     auto& map = GetMapLocked(env);
-    if (!env.ok() || !map) {
-      return nullptr;
-    }
+    if (!env.ok() || !map) return nullptr;
     Local<Long> boxed_ptr = map.Get(env, java_firestore).CastTo<Long>();
-    if (!env.ok() || !boxed_ptr) {
-      return nullptr;
-    }
-    return reinterpret_cast<FirestoreInternal*>(boxed_ptr.LongValue(env));
+    return (env.ok() && boxed_ptr)
+               ? reinterpret_cast<FirestoreInternal*>(boxed_ptr.LongValue(env))
+               : nullptr;
   }
 
-  void Put(Env& env,
-           const Object& java_firestore,
+  void Put(Env& env, const Object& java_firestore,
            FirestoreInternal* internal) {
-    static_assert(sizeof(uintptr_t) <= sizeof(int64_t),
-                  "pointers must fit in Java long");
-    if (!java_firestore) {
-      return;
-    }
+    if (!java_firestore) return;
     MutexLock lock(mutex_);
     auto& map = GetMapLocked(env);
-    if (!env.ok() || !map) {
-      return;
-    }
+    if (!env.ok() || !map) return;
     auto boxed_ptr = Long::Create(env, reinterpret_cast<int64_t>(internal));
-    if (!env.ok() || !boxed_ptr) {
-      return;
-    }
-    map.Put(env, java_firestore, boxed_ptr);
+    if (env.ok() && boxed_ptr) map.Put(env, java_firestore, boxed_ptr);
   }
 
   void Remove(Env& env, const Object& java_firestore) {
-    if (!java_firestore) {
-      return;
-    }
+    if (!java_firestore) return;
     MutexLock lock(mutex_);
     auto& map = GetMapLocked(env);
-    if (!env.ok() || !map) {
-      return;
-    }
-    map.Remove(env, java_firestore);
+    if (env.ok() && map) map.Remove(env, java_firestore);
   }
 
  private:
-  // Ensures that the backing map is initialized.
-  // Prerequisite: `mutex_` must be locked before calling this method.
   HashMap& GetMapLocked(Env& env) {
     if (!firestores_) {
       Local<HashMap> created = HashMap::Create(env);
-      if (env.ok() && created) {
-        firestores_ = created;
-      }
+      if (env.ok() && created) firestores_ = created;
     }
     return firestores_;
   }
@@ -363,22 +285,18 @@ class JavaFirestoreMap {
   Global<HashMap> firestores_;
 };
 
-// init_mutex protects all the globals below.
 Mutex init_mutex;  // NOLINT
 int initialize_count = 0;
 Loader* global_loader = nullptr;
-
 JavaFirestoreMap* java_firestores = nullptr;
 
-// The initial value for setLoggingEnabled.
 enum class InitialLogState {
   kUnset,
   kSetEnabled,
   kSetDisabled,
 } initial_log_state = InitialLogState::kUnset;
 
-Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
-                                                   Object& firestore,
+Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env, Object& firestore,
                                                    const std::string& bundle) {
   Local<Array<uint8_t>> java_bytes = env.NewArray<uint8_t>(bundle.size());
   if (!env.ok() || !java_bytes) {
@@ -388,10 +306,9 @@ Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
     env.SetArrayRegion(java_bytes, 0, bundle.size(),
                        reinterpret_cast<const uint8_t*>(bundle.data()));
   }
-  if (!env.ok() || !java_bytes) {
-    return {};
-  }
-  return env.Call(firestore, kLoadBundle, java_bytes);
+  return (env.ok() && java_bytes)
+             ? env.Call(firestore, kLoadBundle, java_bytes)
+             : Local<LoadBundleTaskInternal>();
 }
 
 }  // namespace
@@ -420,9 +337,7 @@ FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
 
   {
     MutexLock init_lock(init_mutex);
-    if (java_firestores != nullptr) {
-      java_firestores->Put(env, java_firestore, this);
-    }
+    if (java_firestores) java_firestores->Put(env, java_firestore, this);
   }
 
   weak_target_ = std::make_shared<WeakTarget>(this);
@@ -436,12 +351,10 @@ FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
   App::RegisterLibrary("fire-fst", FIREBASE_VERSION_NUMBER_STRING, env.get());
 }
 
-/* static */
 bool FirestoreInternal::Initialize(App* app) {
   MutexLock init_lock(init_mutex);
   if (initialize_count == 0) {
     jni::Initialize(app->java_vm());
-
     FIREBASE_DEV_ASSERT(java_firestores == nullptr);
     java_firestores = new JavaFirestoreMap();
 
@@ -466,9 +379,16 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::Map::Initialize(loader);
     jni::ArenaRef::Initialize(loader);
 
-    InitializeFirestore(loader);
-    InitializeFirestoreTasks(loader);
-    InitializeUserCallbackExecutor(loader);
+    loader.LoadClass(kFirestoreClassName, kCollection, kDocument,
+                     kCollectionGroup, kGetSettings, kGetInstance,
+                     kSetLoggingEnabled, kSetClientLanguage, kSetSettings,
+                     kBatch, kRunTransaction, kEnableNetwork, kDisableNetwork,
+                     kTerminate, kWaitForPendingWrites, kClearPersistence,
+                     kAddSnapshotsInSyncListener, kGetNamedQuery, kLoadBundle);
+    loader.LoadClass(kFirestoreTasksClassName, kAwaitCompletion,
+                     kFailTaskWhenResultIsNull);
+    loader.LoadClass(kUserCallbackExecutorClassName, kNewUserCallbackExecutor,
+                     kExecutorShutdown);
 
     AggregateQueryInternal::Initialize(loader);
     AggregateQuerySnapshotInternal::Initialize(loader);
@@ -516,35 +436,29 @@ bool FirestoreInternal::Initialize(App* app) {
 
     if (initial_log_state != InitialLogState::kUnset) {
       ExceptionClearGuard exception_clear_guard(env);
-      bool enabled = initial_log_state == InitialLogState::kSetEnabled;
-      env.Call(kSetLoggingEnabled, enabled);
+      env.Call(kSetLoggingEnabled,
+               initial_log_state == InitialLogState::kSetEnabled);
     }
   }
   initialize_count++;
   return true;
 }
 
-/* static */
 void FirestoreInternal::ReleaseClassesLocked(Env& env) {
-  // Assumes `init_mutex` is held.
   String::Terminate(env);
-
   delete global_loader;
   global_loader = nullptr;
 }
 
-/* static */
 void FirestoreInternal::Terminate(App* app) {
   FIREBASE_ASSERT(app != nullptr);
   MutexLock init_lock(init_mutex);
   FIREBASE_ASSERT(initialize_count > 0);
-  initialize_count--;
-  if (initialize_count == 0) {
+  if (--initialize_count == 0) {
     Env env(app->GetJNIEnv());
     ExceptionClearGuard exception_clear_guard(env);
     ::firebase::util::CancelCallbacks(env.get(), kApiIdentifier);
     ReleaseClassesLocked(env);
-
     delete java_firestores;
     java_firestores = nullptr;
   }
@@ -559,28 +473,18 @@ void FirestoreInternal::ShutdownUserCallbackExecutor(Env& env) {
 }
 
 FirestoreInternal::~FirestoreInternal() {
-  // If initialization failed, there is nothing to clean up.
-  if (app_ == nullptr) return;
-
+  if (!app_) return;
   ClearListeners();
 
   Env env = GetEnv();
   ExceptionClearGuard exception_clear_guard(env);
-
   {
     MutexLock lock(bundle_listeners_mutex_);
-    for (auto* listener : bundle_listeners_) {
-      listener->Cancel(env);
-    }
+    for (auto* listener : bundle_listeners_) listener->Cancel(env);
   }
 
-  // Call `terminate()` on the Java `FirebaseFirestore` object and wait for it
-  // to complete to guarantee that the next instance of `FirestoreInternal` will
-  // be backed by a new Java `FirebaseFirestore` instance.
   Local<Task> terminate_task = env.Call(obj_, kTerminate);
-  if (env.ok() && terminate_task) {
-    env.Call(kAwaitCompletion, terminate_task);
-  }
+  if (env.ok() && terminate_task) env.Call(kAwaitCompletion, terminate_task);
   env.ExceptionClear();
 
   ShutdownUserCallbackExecutor(env);
@@ -591,13 +495,10 @@ FirestoreInternal::~FirestoreInternal() {
     weak_target_->firestore = nullptr;
   }
 
-  promises_.reset(nullptr);
-
+  promises_.reset();
   {
     MutexLock init_lock(init_mutex);
-    if (java_firestores != nullptr) {
-      java_firestores->Remove(env, obj_);
-    }
+    if (java_firestores) java_firestores->Remove(env, obj_);
   }
   obj_.clear();
 
@@ -608,63 +509,50 @@ FirestoreInternal::~FirestoreInternal() {
 
 CollectionReference FirestoreInternal::Collection(
     const char* collection_path) const {
-  if (collection_path == nullptr || collection_path[0] == '\0') {
-    return {};
-  }
+  if (!collection_path || !collection_path[0]) return {};
   Env env = GetEnv();
-  Local<String> java_path = env.NewStringUtf(collection_path);
-  Local<Object> result = env.Call(obj_, kCollection, java_path);
-  return NewCollectionReference(env, result);
+  return NewCollectionReference(
+      env, env.Call(obj_, kCollection, env.NewStringUtf(collection_path)));
 }
 
 DocumentReference FirestoreInternal::Document(const char* document_path) const {
-  if (document_path == nullptr || document_path[0] == '\0') {
-    return {};
-  }
+  if (!document_path || !document_path[0]) return {};
   Env env = GetEnv();
-  Local<String> java_path = env.NewStringUtf(document_path);
-  Local<Object> result = env.Call(obj_, kDocument, java_path);
-  return NewDocumentReference(env, result);
+  return NewDocumentReference(
+      env, env.Call(obj_, kDocument, env.NewStringUtf(document_path)));
 }
 
 Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
-  if (collection_id == nullptr || collection_id[0] == '\0') {
-    return {};
-  }
+  if (!collection_id || !collection_id[0]) return {};
   Env env = GetEnv();
-  Local<String> java_collection_id = env.NewStringUtf(collection_id);
-  Local<Object> query = env.Call(obj_, kCollectionGroup, java_collection_id);
-  return NewQuery(env, query);
+  return NewQuery(
+      env, env.Call(obj_, kCollectionGroup, env.NewStringUtf(collection_id)));
 }
 
 Settings FirestoreInternal::settings() const {
   Env env = GetEnv();
   Local<SettingsInternal> settings = env.Call(obj_, kGetSettings);
-
-  if (!env.ok() || !settings) return {};
-  return settings.ToPublic(env);
+  return (env.ok() && settings) ? settings.ToPublic(env) : Settings{};
 }
 
 void FirestoreInternal::set_settings(const Settings& settings) {
   Env env = GetEnv();
   auto java_settings = SettingsInternal::Create(env, settings);
-  if (!env.ok() || !java_settings) return;
-  env.Call(obj_, kSetSettings, java_settings);
+  if (env.ok() && java_settings) env.Call(obj_, kSetSettings, java_settings);
 }
 
 WriteBatch FirestoreInternal::batch() const {
   Env env = GetEnv();
   Local<Object> result = env.Call(obj_, kBatch);
-
-  if (!env.ok() || !result) return {};
-  return WriteBatch(new WriteBatchInternal(mutable_this(), result));
+  return (env.ok() && result)
+             ? WriteBatch(new WriteBatchInternal(mutable_this(), result))
+             : WriteBatch{};
 }
 
 Future<void> FirestoreInternal::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update,
     int32_t max_attempts) {
   SIMPLE_HARD_ASSERT(max_attempts > 0);
-
   auto* lambda_update = new LambdaTransactionFunction(std::move(update));
   Env env = GetEnv();
   Local<Object> transaction_function =
@@ -678,59 +566,53 @@ Future<void> FirestoreInternal::RunTransaction(
 
   Local<Task> task =
       env.Call(obj_, kRunTransaction, options, transaction_function);
-
   if (!env.ok() || !task) {
     delete lambda_update;
     return {};
   }
-
   return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task,
                                     lambda_update);
 }
 
 Future<void> FirestoreInternal::DisableNetwork() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kDisableNetwork);
-  return promises_->NewFuture<void>(env, AsyncFn::kDisableNetwork, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kDisableNetwork,
+                                    env.Call(obj_, kDisableNetwork));
 }
 
 Future<void> FirestoreInternal::EnableNetwork() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kEnableNetwork);
-  return promises_->NewFuture<void>(env, AsyncFn::kEnableNetwork, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kEnableNetwork,
+                                    env.Call(obj_, kEnableNetwork));
 }
 
 Future<void> FirestoreInternal::Terminate() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kTerminate);
-  return promises_->NewFuture<void>(env, AsyncFn::kTerminate, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kTerminate,
+                                    env.Call(obj_, kTerminate));
 }
 
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kWaitForPendingWrites);
-  return promises_->NewFuture<void>(env, AsyncFn::kWaitForPendingWrites, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kWaitForPendingWrites,
+                                    env.Call(obj_, kWaitForPendingWrites));
 }
 
 Future<void> FirestoreInternal::ClearPersistence() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kClearPersistence);
-  return promises_->NewFuture<void>(env, AsyncFn::kClearPersistence, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kClearPersistence,
+                                    env.Call(obj_, kClearPersistence));
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     EventListener<void>* listener, bool passing_listener_ownership) {
   Env env = GetEnv();
   Local<Object> java_runnable = EventListenerInternal::Create(env, listener);
-
   Local<Object> java_registration =
       env.Call(obj_, kAddSnapshotsInSyncListener, user_callback_executor(),
                java_runnable);
-
   if (!env.ok() || !java_registration) {
-    if (passing_listener_ownership) {
-      delete listener;
-    }
+    if (passing_listener_ownership) delete listener;
     return {};
   }
   return ListenerRegistration(new ListenerRegistrationInternal(
@@ -740,19 +622,18 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     EventListener<void>* listener) {
-  return AddSnapshotsInSyncListener(listener, /*passing_listener_ownership=*/false);
+  return AddSnapshotsInSyncListener(listener, false);
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     std::unique_ptr<EventListener<void>> listener) {
-  return AddSnapshotsInSyncListener(listener.release(), /*passing_listener_ownership=*/true);
+  return AddSnapshotsInSyncListener(listener.release(), true);
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     std::function<void()> callback) {
-  auto* listener = new LambdaEventListener<void>(std::move(callback));
-  return AddSnapshotsInSyncListener(listener,
-                                    /*passing_listener_ownership=*/true);
+  return AddSnapshotsInSyncListener(
+      new LambdaEventListener<void>(std::move(callback)), true);
 }
 
 void FirestoreInternal::RegisterListenerRegistration(
@@ -766,8 +647,8 @@ void FirestoreInternal::UnregisterListenerRegistration(
   ListenerRegistrationInternal* to_delete = nullptr;
   {
     MutexLock lock(listener_registration_mutex_);
-    auto iter = listener_registrations_.find(registration);
-    if (iter != listener_registrations_.end()) {
+    if (auto iter = listener_registrations_.find(registration);
+        iter != listener_registrations_.end()) {
       to_delete = *iter;
       listener_registrations_.erase(iter);
     }
@@ -781,9 +662,7 @@ void FirestoreInternal::ClearListeners() {
     MutexLock lock(listener_registration_mutex_);
     registrations.swap(listener_registrations_);
   }
-  for (auto* reg : registrations) {
-    delete reg;
-  }
+  for (auto* reg : registrations) delete reg;
 }
 
 void FirestoreInternal::RegisterBundleListener(
@@ -797,8 +676,8 @@ void FirestoreInternal::UnregisterBundleListener(
   LoadBundleProgressCompletion* to_delete = nullptr;
   {
     MutexLock lock(bundle_listeners_mutex_);
-    auto iter = bundle_listeners_.find(listener);
-    if (iter != bundle_listeners_.end()) {
+    if (auto iter = bundle_listeners_.find(listener);
+        iter != bundle_listeners_.end()) {
       to_delete = *iter;
       bundle_listeners_.erase(iter);
     }
@@ -821,9 +700,8 @@ void FirestoreInternal::ClearBundleListeners(Env& env) {
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     const std::string& bundle) {
   Env env = GetEnv();
-  Local<LoadBundleTaskInternal> task = CreateLoadBundleTask(env, obj_, bundle);
-  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle,
-                                                      task);
+  return promises_->NewFuture<LoadBundleTaskProgress>(
+      env, AsyncFn::kLoadBundle, CreateLoadBundleTask(env, obj_, bundle));
 }
 
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
@@ -832,9 +710,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   FIREBASE_ASSERT(progress_callback);
   Env env = GetEnv();
   Local<LoadBundleTaskInternal> task = CreateLoadBundleTask(env, obj_, bundle);
-  if (!env.ok() || !task) {
-    return {};
-  }
+  if (!env.ok() || !task) return {};
 
   auto* completion =
       new LoadBundleProgressCompletion(this, std::move(progress_callback));
@@ -852,15 +728,14 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     return {};
   }
   RegisterBundleListener(completion);
-
   return promises_->NewFuture<LoadBundleTaskProgress>(
       env, AsyncFn::kLoadBundle, task, completion);
 }
 
 Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
   Env env = GetEnv();
-  Local<String> name = env.NewStringUtf(query_name);
-  Local<Task> task = env.Call(obj_, kGetNamedQuery, name);
+  Local<Task> task =
+      env.Call(obj_, kGetNamedQuery, env.NewStringUtf(query_name));
   Local<Task> null_checked_task =
       env.Call(kFailTaskWhenResultIsNull, task,
                env.NewStringUtf("Failed to find named query."));
@@ -909,25 +784,12 @@ QuerySnapshot FirestoreInternal::NewQuerySnapshot(
   return MakePublic<QuerySnapshot>(env, mutable_this(), snapshot);
 }
 
-/* static */
 void Firestore::set_log_level(LogLevel log_level) {
-  // "Verbose" and "debug" map to logging enabled.
-  // "Info", "warning", "error", and "assert" map to logging disabled.
   bool logging_enabled = log_level < LogLevel::kLogLevelInfo;
-
   MutexLock lock(init_mutex);
-
-  // Set the initial_log_state on every invocation, just in case Firestore
-  // is terminated for long enough to unload the Firestore classes within
-  // the JVM.
   initial_log_state = logging_enabled ? InitialLogState::kSetEnabled
                                       : InitialLogState::kSetDisabled;
-
-  if (initialize_count < 1) {
-    // Avoid invoking Java methods before Firestore has been initialized.
-    return;
-  }
-
+  if (initialize_count < 1) return;
   Env env = FirestoreInternal::GetEnv();
   ExceptionClearGuard exception_clear_guard(env);
   env.Call(kSetLoggingEnabled, logging_enabled);
@@ -936,22 +798,17 @@ void Firestore::set_log_level(LogLevel log_level) {
 FirestoreInternal* FirestoreInternal::RecoverFirestore(
     Env& env, const Object& java_firestore) {
   MutexLock lock(init_mutex);
-  if (java_firestores == nullptr || !java_firestore) {
-    return nullptr;
-  }
-  return java_firestores->Get(env, java_firestore);
+  return (java_firestores && java_firestore)
+             ? java_firestores->Get(env, java_firestore)
+             : nullptr;
 }
 
 void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
   MutexLock lock(init_mutex);
-  if (initialize_count < 1) {
-    return;
-  }
+  if (initialize_count < 1) return;
   Env env = FirestoreInternal::GetEnv();
   ExceptionClearGuard exception_clear_guard(env);
-  Local<String> java_language_token = env.NewStringUtf(language_token);
-  env.Call(kSetClientLanguage, java_language_token);
+  env.Call(kSetClientLanguage, env.NewStringUtf(language_token));
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

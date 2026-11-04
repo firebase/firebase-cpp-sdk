@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/collection_reference_android.h"
 
@@ -27,13 +13,10 @@
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
-using jni::HashMap;
-using jni::Local;
 using jni::Method;
 using jni::Object;
 using jni::String;
@@ -41,16 +24,15 @@ using jni::Task;
 
 constexpr char kClass[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/CollectionReference";
-
 Method<String> kGetId("getId", "()Ljava/lang/String;");
 Method<String> kGetPath("getPath", "()Ljava/lang/String;");
 Method<Object> kGetParent(
     "getParent", "()Lcom/google/firebase/firestore/DocumentReference;");
 Method<Object> kDocumentAutoId(
     "document", "()Lcom/google/firebase/firestore/DocumentReference;");
-Method<Object> kDocument("document",
-                         "(Ljava/lang/String;)"
-                         "Lcom/google/firebase/firestore/DocumentReference;");
+Method<Object> kDocument(
+    "document",
+    "(Ljava/lang/String;)Lcom/google/firebase/firestore/DocumentReference;");
 Method<Task> kAdd("add",
                   "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
 
@@ -97,31 +79,26 @@ const std::string& CollectionReferenceInternal::path() const {
 
 DocumentReference CollectionReferenceInternal::Parent() const {
   Env env = GetEnv();
-  Local<Object> parent = env.Call(obj_, kGetParent);
-  return firestore_->NewDocumentReference(env, parent);
+  return firestore_->NewDocumentReference(env, env.Call(obj_, kGetParent));
 }
 
 DocumentReference CollectionReferenceInternal::Document() const {
   Env env = GetEnv();
-  Local<Object> document = env.Call(obj_, kDocumentAutoId);
-  return firestore_->NewDocumentReference(env, document);
+  return firestore_->NewDocumentReference(env, env.Call(obj_, kDocumentAutoId));
 }
 
 DocumentReference CollectionReferenceInternal::Document(
     const std::string& document_path) const {
   Env env = GetEnv();
-  Local<String> java_path = env.NewStringUtf(document_path);
-  Local<Object> document = env.Call(obj_, kDocument, java_path);
-  return firestore_->NewDocumentReference(env, document);
+  return firestore_->NewDocumentReference(
+      env, env.Call(obj_, kDocument, env.NewStringUtf(document_path)));
 }
 
 Future<DocumentReference> CollectionReferenceInternal::Add(
     const MapFieldValue& data) {
   Env env = GetEnv();
-  Local<HashMap> java_data = MakeJavaMap(env, data);
-  Local<Task> task = env.Call(obj_, kAdd, java_data);
-  return promises_.NewFuture<DocumentReference>(env, AsyncFn::kAdd, task);
+  return promises_.NewFuture<DocumentReference>(
+      env, AsyncFn::kAdd, env.Call(obj_, kAdd, MakeJavaMap(env, data)));
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_LOADER_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_LOADER_H_
@@ -20,28 +6,20 @@
 #include <jni.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
-#include <utility>
 #include "app/src/embedded_file.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
 
-// To ensure that Proguard doesn't strip the classes you're using, place this
-// string directly before the JNI class string in your Class global
-// declarations.
 #define PROGUARD_KEEP_CLASS "%PG%"
 
 namespace firebase {
 class App;
 
-namespace firestore {
-namespace jni {
+namespace firestore::jni {
 
-/**
- * Loads cacheable JNI objects including classes, methods, and fields.
- * Automatically unloads any loaded classes when destroyed.
- */
 class Loader {
  public:
   using EmbeddedFile = firebase::internal::EmbeddedFile;
@@ -49,21 +27,10 @@ class Loader {
   explicit Loader(App* app);
   ~Loader();
 
-  // Loader is move-only
   Loader(const Loader&) = delete;
   Loader& operator=(const Loader&) = delete;
 
-  Loader(Loader&& other) noexcept
-      : app_(std::exchange(other.app_, nullptr)),
-        env_(std::exchange(other.env_, nullptr)),
-        last_class_name_(std::move(other.last_class_name_)),
-        last_class_(std::exchange(other.last_class_, nullptr)),
-        ok_(std::exchange(other.ok_, false)),
-        loaded_classes_(std::move(other.loaded_classes_)),
-        embedded_files_(std::move(other.embedded_files_)) {
-    other.loaded_classes_.clear();
-    other.embedded_files_.clear();
-  }
+  Loader(Loader&& other) noexcept { *this = std::move(other); }
 
   Loader& operator=(Loader&& other) noexcept {
     if (this != &other) {
@@ -81,129 +48,58 @@ class Loader {
     return *this;
   }
 
-  /**
-   * Returns true if the loader has succeeded. If not, any errors have already
-   * been logged.
-   */
   bool ok() const { return ok_ && env_ != nullptr && !env_->ExceptionCheck(); }
 
-  /**
-   * Adds metadata about embedded class files in the binary distribution.
-   */
-  void AddEmbeddedFile(const char* name,
-                       const unsigned char* data,
+  void AddEmbeddedFile(const char* name, const unsigned char* data,
                        size_t size);
-  /**
-   * Unpacks any embedded files added above and writes them out to a temporary
-   * location. `Load(Class&)` will search these files for classes (in addition
-   * to the standard classpath).
-   */
   void CacheEmbeddedFiles();
-
-  // TODO(mcg): remove once InitializeEmbeddedClasses instances are gone.
   const std::vector<EmbeddedFile>* embedded_files() const {
     return &embedded_files_;
   }
 
-  /**
-   * Uses the given class reference as the basis for subsequent loads. The
-   * caller still owns the class reference and the Loader will not clean it up.
-   *
-   * @param class_name The class name the reference represents, in the form
-   *     "java/lang/String".
-   * param existing_ref An existing local or global reference to a Java class.
-   */
   void UsingExistingClass(const char* class_name, jclass existing_ref);
 
-  /**
-   * Uses the given class reference for loading the given members. The caller
-   * still owns the class reference and the Loader will not clean it up.
-   *
-   * @param class_name The class name the reference represents, in the form
-   *     "java/lang/String".
-   * param existing_ref An existing local or global reference to a Java class.
-   */
   template <typename... Members>
-  void LoadFromExistingClass(const char* class_name,
-                             jclass existing_ref,
+  void LoadFromExistingClass(const char* class_name, jclass existing_ref,
                              Members&&... members) {
     UsingExistingClass(class_name, existing_ref);
-    LoadAll(std::forward<Members>(members)...);
+    (Load(std::forward<Members>(members)), ...);
   }
 
-  /**
-   * Loads a Java class described by the given class name. The class name as
-   * would be passed to `JNIEnv::FindClass`, e.g. `"java/util/String"`.
-   */
   jclass LoadClass(const char* class_name);
 
-  /**
-   * Loads a Java class and all its members in a single invocation.
-   */
   template <typename... Members>
   jclass LoadClass(const char* name, Members&&... members) {
     jclass result = LoadClass(name);
-    LoadAll(std::forward<Members>(members)...);
+    (Load(std::forward<Members>(members)), ...);
     return result;
   }
 
-  /**
-   * Loads a Java constructor from the last loaded class.
-   */
   void Load(ConstructorBase& method);
-
-  /**
-   * Loads a Java instance method from the last loaded class.
-   */
   void Load(MethodBase& method);
-
-  /**
-   * Loads a Java static field from the last loaded class.
-   */
   void Load(StaticFieldBase& field);
-
-  /**
-   * Loads a Java static method from the last loaded class.
-   */
   void Load(StaticMethodBase& method);
 
-  /**
-   * Loads all the given members by calling the appropriate `Load` overload.
-   */
-  template <typename Member, typename... Members>
-  void LoadAll(Member&& first, Members&&... rest) {
-    Load(std::forward<Member>(first));
-    LoadAll(std::forward<Members>(rest)...);
+  template <typename... Members>
+  void LoadAll(Members&&... members) {
+    (Load(std::forward<Members>(members)), ...);
   }
-  void LoadAll() {}
 
-  /**
-   * Registers the given native methods with the JVM.
-   */
   bool RegisterNatives(const JNINativeMethod methods[], size_t num_methods);
-
   void Unload();
-
   JNIEnv* env() { return env_; }
 
  private:
   App* app_ = nullptr;
   JNIEnv* env_ = nullptr;
-
   std::string last_class_name_;
   jclass last_class_ = nullptr;
-
   bool ok_ = true;
-
-  // A list of classes that were successfully loaded.
   std::vector<jclass> loaded_classes_;
-
-  // A list of embedded files from which to load classes
   std::vector<EmbeddedFile> embedded_files_;
 };
 
-}  // namespace jni
-}  // namespace firestore
+}  // namespace firestore::jni
 }  // namespace firebase
 
 #endif  // FIREBASE_FIRESTORE_SRC_JNI_LOADER_H_

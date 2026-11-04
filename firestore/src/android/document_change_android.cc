@@ -1,20 +1,7 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/document_change_android.h"
+
 #include <cstdint>
 
 #include "firestore/src/android/document_change_type_android.h"
@@ -23,15 +10,13 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
 using jni::Local;
 using jni::Method;
 using jni::Object;
-
 using Type = DocumentChange::Type;
 
 constexpr char kClass[] =
@@ -53,37 +38,29 @@ void DocumentChangeInternal::Initialize(jni::Loader& loader) {
 Type DocumentChangeInternal::type() const {
   Env env = GetEnv();
   Local<DocumentChangeTypeInternal> type = env.Call(obj_, kType);
-  if (!env.ok() || !type) {
-    return Type::kAdded;
-  }
-  return type.GetType(env);
+  return (env.ok() && type) ? type.GetType(env) : Type::kAdded;
 }
 
 DocumentSnapshot DocumentChangeInternal::document() const {
   Env env = GetEnv();
   Local<Object> snapshot = env.Call(obj_, kDocument);
-  if (!env.ok() || !snapshot) {
-    return DocumentSnapshot();
-  }
-  return firestore_->NewDocumentSnapshot(env, snapshot);
+  return (env.ok() && snapshot)
+             ? firestore_->NewDocumentSnapshot(env, snapshot)
+             : DocumentSnapshot();
 }
 
 std::size_t DocumentChangeInternal::old_index() const {
   Env env = GetEnv();
   int32_t index = env.Call(obj_, kOldIndex);
-  if (!env.ok() || index < 0) {
-    return DocumentChange::npos;
-  }
-  return static_cast<std::size_t>(index);
+  return (env.ok() && index >= 0) ? static_cast<std::size_t>(index)
+                                  : DocumentChange::npos;
 }
 
 std::size_t DocumentChangeInternal::new_index() const {
   Env env = GetEnv();
   int32_t index = env.Call(obj_, kNewIndex);
-  if (!env.ok() || index < 0) {
-    return DocumentChange::npos;
-  }
-  return static_cast<std::size_t>(index);
+  return (env.ok() && index >= 0) ? static_cast<std::size_t>(index)
+                                  : DocumentChange::npos;
 }
 
 std::size_t DocumentChangeInternal::Hash() const {
@@ -96,5 +73,4 @@ bool operator==(const DocumentChangeInternal& lhs,
   return jni::EqualityCompareJni(lhs, rhs);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

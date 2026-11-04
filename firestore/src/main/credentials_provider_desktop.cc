@@ -1,24 +1,13 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2021 Google LLC
 #include "firestore/src/main/credentials_provider_desktop.h"
 
+#include <atomic>
+#include <cstdint>
+#include <mutex>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
-
 #include "Firestore/core/src/util/status.h"
 #include "app/src/function_registry.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -27,38 +16,26 @@
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 
-#include <cstdint>
-#include <mutex>
-#include <unordered_set>
-#include <unordered_map>
-#include <atomic>
-
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 std::mutex& ListenerMutex() {
-  static std::mutex* mutex = new std::mutex();
+  static auto* mutex = new std::mutex();
   return *mutex;
 }
 
-std::unordered_map<uintptr_t,
-                   std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>&
+std::unordered_map<uintptr_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>&
 ValidContexts() {
-  static auto* contexts = new std::unordered_map<
-      uintptr_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>();
+  static auto* contexts =
+      new std::unordered_map<uintptr_t, std::weak_ptr<FirebaseCppCredentialsProvider::Contents>>();
   return *contexts;
 }
 
 uintptr_t GetNextListenerId() {
   static std::atomic<uintptr_t> next_id{1};
   uintptr_t id = next_id.fetch_add(1);
-  if (id == 0) {
-    id = next_id.fetch_add(1);
-  }
-  return id;
+  return id == 0 ? next_id.fetch_add(1) : id;
 }
-
 
 using credentials::AuthToken;
 using credentials::CredentialChangeListener;
@@ -68,22 +45,13 @@ using firebase::auth::AuthError;
 using util::Status;
 using util::StatusOr;
 
-/**
- * Takes an integer that represents an `AuthError` enum value, and returns a
- * `firestore::Error` that best describes the given `AuthError`.
- */
 Error FirestoreErrorFromAuthError(int error) {
   switch (error) {
-    case AuthError::kAuthErrorNone:
-      return kErrorNone;
-    case AuthError::kAuthErrorUnimplemented:
-      return kErrorUnimplemented;
-    case AuthError::kAuthErrorFailure:
-      return kErrorInternal;
-    case AuthError::kAuthErrorNetworkRequestFailed:
-      return kErrorUnavailable;
-    case AuthError::kAuthErrorCancelled:
-      return kErrorCancelled;
+    case AuthError::kAuthErrorNone: return kErrorNone;
+    case AuthError::kAuthErrorUnimplemented: return kErrorUnimplemented;
+    case AuthError::kAuthErrorFailure: return kErrorInternal;
+    case AuthError::kAuthErrorNetworkRequestFailed: return kErrorUnavailable;
+    case AuthError::kAuthErrorCancelled: return kErrorCancelled;
     case AuthError::kAuthErrorInvalidCustomToken:
     case AuthError::kAuthErrorInvalidCredential:
     case AuthError::kAuthErrorUserDisabled:
@@ -97,83 +65,43 @@ Error FirestoreErrorFromAuthError(int error) {
   }
 }
 
-/**
- * Returns a Future that, when completed, will contain the token for the
- * current user or an error. An empty token means that the current user is
- * unauthenticated.
- */
 Future<std::string> GetAuthTokenAsync(App& app, bool force_refresh) {
   Future<std::string> result;
-
-  bool success = app.function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetTokenAsync, &app, &force_refresh, &result);
-
-  if (success) {
+  if (app.function_registry()->CallFunction(
+          ::firebase::internal::FnAuthGetTokenAsync, &app, &force_refresh, &result)) {
     return result;
   }
-
-  // If CallFunction does not succeed, it's because either Auth has not
-  // registered implementations for the FunctionId we're using or because there
-  // isn't an Auth instance for this App. In either case this means Auth is
-  // unavailable and we should treat the current user as unauthenticated.
   return SuccessfulFuture<std::string>("");
 }
 
 User GetCurrentUser(App& app) {
   std::string uid;
-  bool success = app.function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetCurrentUserUid, &app, /* args= */ nullptr,
-      &uid);
-
-  // If Auth is unavailable, treat the user as unauthenticated.
-  if (!success) return {};
-
+  if (!app.function_registry()->CallFunction(
+          ::firebase::internal::FnAuthGetCurrentUserUid, &app, nullptr, &uid)) {
+    return {};
+  }
   return User(uid);
 }
 
-StatusOr<AuthToken> ConvertToken(const Future<std::string>& future,
-                                 const User& user) {
+StatusOr<AuthToken> ConvertToken(const Future<std::string>& future, const User& user) {
   if (future.error() != Error::kErrorOk) {
-    // `AuthError` is a different error domain from go/canonical-codes that
-    // `Status` uses. We map `AuthError` values to Firestore `Error` values in
-    // order to be able to perform retries when appropriate.
     const char* msg = future.error_message();
     return Status(FirestoreErrorFromAuthError(future.error()),
                   std::string(msg ? msg : "") + " (AuthError " +
                       std::to_string(future.error()) + ")");
   }
-
   const std::string* token = future.result();
-  if (!token) {
-    return AuthToken::Unauthenticated();
-  }
-  return AuthToken(*token, user);
+  return token ? AuthToken(*token, user) : AuthToken::Unauthenticated();
 }
 
-// Converts the result of the given future into an
-// `firestore::credentials::AuthToken` and invokes the `listener` with the
-// token. If the future is failed, invokes the `listener` with the error. If the
-// current token generation is higher than `expected_generation`, will invoke
-// the `listener` with "aborted" error. `future_token` must be a completed
-// future.
-void OnToken(const Future<std::string>& future_token,
-             App& app,
-             int token_generation,
-             const TokenListener<AuthToken>& listener,
-             int expected_generation) {
-  SIMPLE_HARD_ASSERT(
-      future_token.status() == FutureStatus::kFutureStatusComplete,
-      "Expected to receive a completed future");
-
+void OnToken(const Future<std::string>& future_token, App& app, int token_generation,
+             const TokenListener<AuthToken>& listener, int expected_generation) {
+  SIMPLE_HARD_ASSERT(future_token.status() == FutureStatus::kFutureStatusComplete,
+                     "Expected to receive a completed future");
   if (expected_generation != token_generation) {
-    // Cancel the request since the user may have changed while the request was
-    // outstanding, so the response is likely for a previous user (which user,
-    // we can't be sure).
-    listener(Status(Error::kErrorAborted,
-                    "GetToken() aborted due to token change."));
+    listener(Status(Error::kErrorAborted, "GetToken() aborted due to token change."));
     return;
   }
-
   listener(ConvertToken(future_token, GetCurrentUser(app)));
 }
 
@@ -195,31 +123,22 @@ void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
   if (!listener) {
     {
       std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-      SIMPLE_HARD_ASSERT(contents_->auth_listener,
-                         "Change listener removed without being set!");
+      SIMPLE_HARD_ASSERT(contents_->auth_listener, "Change listener removed without being set!");
       contents_->auth_listener = {};
     }
     RemoveAuthStateListener();
     return;
   }
-
   {
     std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
     SIMPLE_HARD_ASSERT(!contents_->auth_listener, "Set change listener twice!");
     contents_->auth_listener = listener;
     listener(GetCurrentUser(contents_->app));
   }
-
-  // Note: make sure to only register the Auth listener _after_ calling
-  // `Auth::current_user` for the first time. The reason is that upon the first
-  // call only, `Auth::current_user` might block as it would asynchronously
-  // notify Auth listeners; getting the Firestore listener notified while
-  // `Auth::current_user` is pending can lead to a deadlock.
   AddAuthStateListener();
 }
 
-void FirebaseCppCredentialsProvider::GetToken(
-    TokenListener<AuthToken> listener) {
+void FirebaseCppCredentialsProvider::GetToken(TokenListener<AuthToken> listener) {
   std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
   RequestToken(std::move(listener));
 }
@@ -239,15 +158,12 @@ void FirebaseCppCredentialsProvider::AddAuthStateListener() {
     uintptr_t listener_id = GetNextListenerId();
     context = reinterpret_cast<void*>(listener_id);
     auth_listener_context_ = context;
-    {
-      std::lock_guard<std::mutex> listener_lock(ListenerMutex());
-      ValidContexts()[listener_id] = std::weak_ptr<Contents>(contents_);
-    }
+    std::lock_guard<std::mutex> listener_lock(ListenerMutex());
+    ValidContexts()[listener_id] = std::weak_ptr<Contents>(contents_);
   }
-  auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
   app->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthAddAuthStateListener, app, callback,
-      context);
+      ::firebase::internal::FnAuthAddAuthStateListener, app,
+      reinterpret_cast<void*>(OnAuthStateChanged), context);
 }
 
 void FirebaseCppCredentialsProvider::RemoveAuthStateListener() {
@@ -257,18 +173,13 @@ void FirebaseCppCredentialsProvider::RemoveAuthStateListener() {
     std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
     if (!auth_listener_context_) return;
     app = &contents_->app;
-    context = auth_listener_context_;
-    auth_listener_context_ = nullptr;
-    uintptr_t listener_id = reinterpret_cast<uintptr_t>(context);
-    {
-      std::lock_guard<std::mutex> listener_lock(ListenerMutex());
-      ValidContexts().erase(listener_id);
-    }
+    context = std::exchange(auth_listener_context_, nullptr);
+    std::lock_guard<std::mutex> listener_lock(ListenerMutex());
+    ValidContexts().erase(reinterpret_cast<uintptr_t>(context));
   }
-  auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
   app->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthRemoveAuthStateListener, app, callback,
-      context);
+      ::firebase::internal::FnAuthRemoveAuthStateListener, app,
+      reinterpret_cast<void*>(OnAuthStateChanged), context);
 }
 
 void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
@@ -280,7 +191,6 @@ void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
     if (it == ValidContexts().end()) return;
     contents = it->second.lock();
   }
-
   if (!contents) return;
 
   std::lock_guard<std::recursive_mutex> lock(contents->mutex);
@@ -288,62 +198,39 @@ void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
     std::lock_guard<std::mutex> listener_lock(ListenerMutex());
     if (ValidContexts().find(listener_id) == ValidContexts().end()) return;
   }
-
-  // The currently signed-in user may have changed, increase the token
-  // generation to reflect that.
   ++(contents->token_generation);
-
-  CredentialChangeListener<User> listener = contents->auth_listener;
-  if (listener) {
+  if (auto listener = contents->auth_listener) {
     listener(GetCurrentUser(contents->app));
   }
 }
 
-// Private member functions
-
-void FirebaseCppCredentialsProvider::RequestToken(
-    TokenListener<AuthToken> listener) {
+void FirebaseCppCredentialsProvider::RequestToken(TokenListener<AuthToken> listener) {
   std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-
   if (!IsSignedIn()) {
     listener(AuthToken::Unauthenticated());
     return;
   }
-
-  // Take note of the current value of `token_generation` so that this request
-  // can fail if there is a token change while the request is outstanding.
   int expected_generation = contents_->token_generation;
-
-  bool force_refresh = force_refresh_;
-  force_refresh_ = false;
+  bool force_refresh = force_refresh_.exchange(false);
   auto future = GetAuthTokenAsync(contents_->app, force_refresh);
   if (future.status() == FutureStatus::kFutureStatusInvalid) {
     listener(AuthToken::Unauthenticated());
     return;
   }
-
   std::weak_ptr<Contents> weak_contents(contents_);
-
-  // Note: if the future happens to be already completed (either because the
-  // token was readily available, or theoretically because the Auth token
-  // request finished so quickly), this completion will be invoked
-  // synchronously. Because the mutex is recursive, it's okay to lock it again
-  // in that case.
   future.OnCompletion(
       [listener = std::move(listener), expected_generation,
        weak_contents](const Future<std::string>& future_token) mutable {
         auto contents = weak_contents.lock();
         if (!contents) {
           if (listener) {
-            listener(Status(Error::kErrorAborted,
-                            "Credentials provider was destroyed."));
+            listener(Status(Error::kErrorAborted, "Credentials provider was destroyed."));
           }
           return;
         }
-
         std::lock_guard<std::recursive_mutex> lock(contents->mutex);
-        OnToken(future_token, contents->app, contents->token_generation,
-                listener, expected_generation);
+        OnToken(future_token, contents->app, contents->token_generation, listener,
+                expected_generation);
       });
 }
 
@@ -351,5 +238,4 @@ bool FirebaseCppCredentialsProvider::IsSignedIn() const {
   return GetCurrentUser(contents_->app).is_authenticated();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

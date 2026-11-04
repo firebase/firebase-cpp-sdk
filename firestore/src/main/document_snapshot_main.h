@@ -1,26 +1,10 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2021 Google LLC
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_DOCUMENT_SNAPSHOT_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_DOCUMENT_SNAPSHOT_MAIN_H_
 
 #include <memory>
 #include <string>
 #include <vector>
-
 #include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/api/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -34,8 +18,7 @@
 #error "This header should not be used on Android."
 #endif
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 class Firestore;
 class FirestoreInternal;
@@ -53,16 +36,10 @@ class DocumentSnapshotInternal {
   SnapshotMetadata metadata() const;
 
   MapFieldValue GetData(DocumentSnapshot::ServerTimestampBehavior stb) const;
+  FieldValue Get(const FieldPath& field, DocumentSnapshot::ServerTimestampBehavior stb) const;
 
-  FieldValue Get(const FieldPath& field,
-                 DocumentSnapshot::ServerTimestampBehavior stb) const;
-
-  const api::DocumentSnapshot& document_snapshot_core() const {
-    return snapshot_;
-  }
-
+  const api::DocumentSnapshot& document_snapshot_core() const { return snapshot_; }
   DocumentReference reference() const;
-
   std::size_t Hash() const { return snapshot_.Hash(); }
 
   friend bool operator==(const DocumentSnapshotInternal& lhs,
@@ -71,11 +48,7 @@ class DocumentSnapshotInternal {
  private:
   using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
 
-  FieldValue GetValue(const model::FieldPath& path,
-                      ServerTimestampBehavior stb) const;
-
-  // Note: these are member functions only because access to `api::Firestore`
-  // is needed to create a `DocumentReferenceInternal`.
+  FieldValue GetValue(const model::FieldPath& path, ServerTimestampBehavior stb) const;
   FieldValue ConvertAnyValue(const google_firestore_v1_Value& input,
                              ServerTimestampBehavior stb) const;
   FieldValue ConvertObject(const google_firestore_v1_MapValue& object,
@@ -83,9 +56,8 @@ class DocumentSnapshotInternal {
   FieldValue ConvertArray(const google_firestore_v1_ArrayValue& array,
                           ServerTimestampBehavior stb) const;
   FieldValue ConvertReference(const google_firestore_v1_Value& reference) const;
-  FieldValue ConvertServerTimestamp(
-      const google_firestore_v1_Value& server_timestamp,
-      ServerTimestampBehavior stb) const;
+  FieldValue ConvertServerTimestamp(const google_firestore_v1_Value& server_timestamp,
+                                    ServerTimestampBehavior stb) const;
   FieldValue ConvertScalar(const google_firestore_v1_Value& scalar,
                            ServerTimestampBehavior stb) const;
 
@@ -97,7 +69,6 @@ inline bool operator!=(const DocumentSnapshotInternal& lhs,
   return !(lhs == rhs);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_MAIN_DOCUMENT_SNAPSHOT_MAIN_H_

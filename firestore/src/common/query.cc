@@ -1,22 +1,7 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2020 Google LLC
 #include "firestore/src/include/firebase/firestore/query.h"
-#include <cstdint>
 
+#include <cstdint>
 #include <utility>
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
@@ -35,19 +20,16 @@
 #include "firestore/src/android/query_android.h"
 #else
 #include "firestore/src/main/query_main.h"
-#endif  // defined(__ANDROID__)
+#endif
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 using CleanupFnQuery = CleanupFn<Query>;
 
 Query::Query() {}
 
-Query::Query(const Query& query) {
-  if (query.internal_) {
-    internal_ = new QueryInternal(*query.internal_);
-  }
+Query::Query(const Query& query)
+    : internal_(query.internal_ ? new QueryInternal(*query.internal_) : nullptr) {
   CleanupFnQuery::Register(this, internal_);
 }
 
@@ -58,71 +40,39 @@ Query::Query(Query&& query) {
 }
 
 Query::Query(QueryInternal* internal) : internal_(internal) {
-  // NOTE: We don't assert internal != nullptr here since internal can be
-  // nullptr when called by the CollectionReference copy constructor.
   CleanupFnQuery::Register(this, internal_);
 }
 
 Query::~Query() {
   CleanupFnQuery::Unregister(this, internal_);
-  delete internal_;
-  internal_ = nullptr;
+  delete std::exchange(internal_, nullptr);
 }
 
 Query& Query::operator=(const Query& query) {
-  if (this == &query) {
-    return *this;
-  }
-
-  QueryInternal* new_internal = nullptr;
-  if (query.internal_) {
-    new_internal = new QueryInternal(*query.internal_);
-  }
-
+  if (this == &query) return *this;
+  QueryInternal* new_internal = query.internal_ ? new QueryInternal(*query.internal_) : nullptr;
   CleanupFnQuery::Unregister(this, internal_);
-  delete internal_;
-  internal_ = new_internal;
+  delete std::exchange(internal_, new_internal);
   CleanupFnQuery::Register(this, internal_);
   return *this;
 }
 
 Query& Query::operator=(Query&& query) {
-  if (this == &query) {
-    return *this;
-  }
-
+  if (this == &query) return *this;
   CleanupFnQuery::Unregister(&query, query.internal_);
   CleanupFnQuery::Unregister(this, internal_);
-  delete internal_;
-  internal_ = query.internal_;
-  query.internal_ = nullptr;
+  delete std::exchange(internal_, std::exchange(query.internal_, nullptr));
   CleanupFnQuery::Register(this, internal_);
   return *this;
 }
 
-const Firestore* Query::firestore() const {
-  if (!internal_) return {};
-  return internal_->firestore();
-}
-
-Firestore* Query::firestore() {
-  if (!internal_) return {};
-  return internal_->firestore();
-}
-
-AggregateQuery Query::Count() const {
-  if (!internal_) return {};
-  return internal_->Count();
-}
+const Firestore* Query::firestore() const { return internal_ ? internal_->firestore() : nullptr; }
+Firestore* Query::firestore() { return internal_ ? internal_->firestore() : nullptr; }
+AggregateQuery Query::Count() const { return internal_ ? internal_->Count() : AggregateQuery{}; }
 
 Query Query::Where(const Filter& filter) const {
   if (!internal_) return {};
-  if (filter.IsEmpty()) {
-    // Return the existing query if not adding any more filters (e.g. an empty
-    // composite filter).
-    return *this;
-  }
-  return internal_->Where(filter);
+  return filter.IsEmpty() ? *this : internal_->Where(filter);
 }
 
 namespace {
@@ -139,21 +89,6 @@ bool ValidateFieldAndValue(const FieldPath& field, const FieldValue& value) {
   return true;
 }
 
-bool ValidateFieldAndValues(const FieldPath& field,
-                            const std::vector<FieldValue>& values) {
-  if (!field.is_valid()) {
-    SimpleThrowInvalidArgument("Field path cannot be invalid.");
-    return false;
-  }
-  for (const auto& value : values) {
-    if (!value.is_valid()) {
-      SimpleThrowInvalidArgument("Field value cannot be invalid.");
-      return false;
-    }
-  }
-  return true;
-}
-
 bool ValidateValues(const std::vector<FieldValue>& values) {
   for (const auto& value : values) {
     if (!value.is_valid()) {
@@ -164,146 +99,110 @@ bool ValidateValues(const std::vector<FieldValue>& values) {
   return true;
 }
 
+bool ValidateFieldAndValues(const FieldPath& field, const std::vector<FieldValue>& values) {
+  if (!field.is_valid()) {
+    SimpleThrowInvalidArgument("Field path cannot be invalid.");
+    return false;
+  }
+  return ValidateValues(values);
+}
+
 }  // namespace
 
-Query Query::WhereEqualTo(const std::string& field,
-                          const FieldValue& value) const {
-  if (!internal_) return {};
-  return WhereEqualTo(FieldPath::FromDotSeparatedString(field), value);
+Query Query::WhereEqualTo(const std::string& field, const FieldValue& value) const {
+  return internal_ ? WhereEqualTo(FieldPath::FromDotSeparatedString(field), value) : Query{};
+}
+Query Query::WhereEqualTo(const FieldPath& field, const FieldValue& value) const {
+  return internal_ && ValidateFieldAndValue(field, value) ? internal_->WhereEqualTo(field, value)
+                                                          : Query{};
 }
 
-Query Query::WhereEqualTo(const FieldPath& field,
-                          const FieldValue& value) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValue(field, value)) return {};
-  return internal_->WhereEqualTo(field, value);
+Query Query::WhereNotEqualTo(const std::string& field, const FieldValue& value) const {
+  return internal_ ? WhereNotEqualTo(FieldPath::FromDotSeparatedString(field), value) : Query{};
+}
+Query Query::WhereNotEqualTo(const FieldPath& field, const FieldValue& value) const {
+  return internal_ && ValidateFieldAndValue(field, value)
+             ? internal_->WhereNotEqualTo(field, value)
+             : Query{};
 }
 
-Query Query::WhereNotEqualTo(const std::string& field,
-                             const FieldValue& value) const {
-  if (!internal_) return {};
-  return WhereNotEqualTo(FieldPath::FromDotSeparatedString(field), value);
+Query Query::WhereLessThan(const std::string& field, const FieldValue& value) const {
+  return internal_ ? WhereLessThan(FieldPath::FromDotSeparatedString(field), value) : Query{};
+}
+Query Query::WhereLessThan(const FieldPath& field, const FieldValue& value) const {
+  return internal_ && ValidateFieldAndValue(field, value) ? internal_->WhereLessThan(field, value)
+                                                          : Query{};
 }
 
-Query Query::WhereNotEqualTo(const FieldPath& field,
-                             const FieldValue& value) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValue(field, value)) return {};
-  return internal_->WhereNotEqualTo(field, value);
+Query Query::WhereLessThanOrEqualTo(const std::string& field, const FieldValue& value) const {
+  return internal_ ? WhereLessThanOrEqualTo(FieldPath::FromDotSeparatedString(field), value)
+                   : Query{};
+}
+Query Query::WhereLessThanOrEqualTo(const FieldPath& field, const FieldValue& value) const {
+  return internal_ && ValidateFieldAndValue(field, value)
+             ? internal_->WhereLessThanOrEqualTo(field, value)
+             : Query{};
 }
 
-Query Query::WhereLessThan(const std::string& field,
-                           const FieldValue& value) const {
-  if (!internal_) return {};
-  return WhereLessThan(FieldPath::FromDotSeparatedString(field), value);
+Query Query::WhereGreaterThan(const std::string& field, const FieldValue& value) const {
+  return internal_ ? WhereGreaterThan(FieldPath::FromDotSeparatedString(field), value) : Query{};
+}
+Query Query::WhereGreaterThan(const FieldPath& field, const FieldValue& value) const {
+  return internal_ && ValidateFieldAndValue(field, value)
+             ? internal_->WhereGreaterThan(field, value)
+             : Query{};
 }
 
-Query Query::WhereLessThan(const FieldPath& field,
-                           const FieldValue& value) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValue(field, value)) return {};
-  return internal_->WhereLessThan(field, value);
+Query Query::WhereGreaterThanOrEqualTo(const std::string& field, const FieldValue& value) const {
+  return internal_ ? WhereGreaterThanOrEqualTo(FieldPath::FromDotSeparatedString(field), value)
+                   : Query{};
+}
+Query Query::WhereGreaterThanOrEqualTo(const FieldPath& field, const FieldValue& value) const {
+  return internal_ && ValidateFieldAndValue(field, value)
+             ? internal_->WhereGreaterThanOrEqualTo(field, value)
+             : Query{};
 }
 
-Query Query::WhereLessThanOrEqualTo(const std::string& field,
-                                    const FieldValue& value) const {
-  if (!internal_) return {};
-  return WhereLessThanOrEqualTo(FieldPath::FromDotSeparatedString(field),
-                                value);
+Query Query::WhereArrayContains(const std::string& field, const FieldValue& value) const {
+  return internal_ ? WhereArrayContains(FieldPath::FromDotSeparatedString(field), value) : Query{};
+}
+Query Query::WhereArrayContains(const FieldPath& field, const FieldValue& value) const {
+  return internal_ && ValidateFieldAndValue(field, value)
+             ? internal_->WhereArrayContains(field, value)
+             : Query{};
 }
 
-Query Query::WhereLessThanOrEqualTo(const FieldPath& field,
-                                    const FieldValue& value) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValue(field, value)) return {};
-  return internal_->WhereLessThanOrEqualTo(field, value);
+Query Query::WhereArrayContainsAny(const std::string& field,
+                                   const std::vector<FieldValue>& values) const {
+  return internal_ ? WhereArrayContainsAny(FieldPath::FromDotSeparatedString(field), values)
+                   : Query{};
+}
+Query Query::WhereArrayContainsAny(const FieldPath& field,
+                                   const std::vector<FieldValue>& values) const {
+  return internal_ && ValidateFieldAndValues(field, values)
+             ? internal_->WhereArrayContainsAny(field, values)
+             : Query{};
 }
 
-Query Query::WhereGreaterThan(const std::string& field,
-                              const FieldValue& value) const {
-  if (!internal_) return {};
-  return WhereGreaterThan(FieldPath::FromDotSeparatedString(field), value);
+Query Query::WhereIn(const std::string& field, const std::vector<FieldValue>& values) const {
+  return internal_ ? WhereIn(FieldPath::FromDotSeparatedString(field), values) : Query{};
+}
+Query Query::WhereIn(const FieldPath& field, const std::vector<FieldValue>& values) const {
+  return internal_ && ValidateFieldAndValues(field, values) ? internal_->WhereIn(field, values)
+                                                            : Query{};
 }
 
-Query Query::WhereGreaterThan(const FieldPath& field,
-                              const FieldValue& value) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValue(field, value)) return {};
-  return internal_->WhereGreaterThan(field, value);
+Query Query::WhereNotIn(const std::string& field, const std::vector<FieldValue>& values) const {
+  return internal_ ? WhereNotIn(FieldPath::FromDotSeparatedString(field), values) : Query{};
 }
-
-Query Query::WhereGreaterThanOrEqualTo(const std::string& field,
-                                       const FieldValue& value) const {
-  if (!internal_) return {};
-  return WhereGreaterThanOrEqualTo(FieldPath::FromDotSeparatedString(field),
-                                   value);
-}
-
-Query Query::WhereGreaterThanOrEqualTo(const FieldPath& field,
-                                       const FieldValue& value) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValue(field, value)) return {};
-  return internal_->WhereGreaterThanOrEqualTo(field, value);
-}
-
-Query Query::WhereArrayContains(const std::string& field,
-                                const FieldValue& value) const {
-  if (!internal_) return {};
-  return WhereArrayContains(FieldPath::FromDotSeparatedString(field), value);
-}
-
-Query Query::WhereArrayContains(const FieldPath& field,
-                                const FieldValue& value) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValue(field, value)) return {};
-  return internal_->WhereArrayContains(field, value);
-}
-
-Query Query::WhereArrayContainsAny(
-    const std::string& field, const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  return WhereArrayContainsAny(FieldPath::FromDotSeparatedString(field),
-                               values);
-}
-
-Query Query::WhereArrayContainsAny(
-    const FieldPath& field, const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValues(field, values)) return {};
-  return internal_->WhereArrayContainsAny(field, values);
-}
-
-Query Query::WhereIn(const std::string& field,
-                     const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  return WhereIn(FieldPath::FromDotSeparatedString(field), values);
-}
-
-Query Query::WhereIn(const FieldPath& field,
-                     const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValues(field, values)) return {};
-  return internal_->WhereIn(field, values);
-}
-
-Query Query::WhereNotIn(const std::string& field,
-                        const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  return WhereNotIn(FieldPath::FromDotSeparatedString(field), values);
-}
-
-Query Query::WhereNotIn(const FieldPath& field,
-                        const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  if (!ValidateFieldAndValues(field, values)) return {};
-  return internal_->WhereNotIn(field, values);
+Query Query::WhereNotIn(const FieldPath& field, const std::vector<FieldValue>& values) const {
+  return internal_ && ValidateFieldAndValues(field, values) ? internal_->WhereNotIn(field, values)
+                                                            : Query{};
 }
 
 Query Query::OrderBy(const std::string& field, Direction direction) const {
-  if (!internal_) return {};
-  return OrderBy(FieldPath::FromDotSeparatedString(field), direction);
+  return internal_ ? OrderBy(FieldPath::FromDotSeparatedString(field), direction) : Query{};
 }
-
 Query Query::OrderBy(const FieldPath& field, Direction direction) const {
   if (!internal_) return {};
   if (!field.is_valid()) {
@@ -313,14 +212,9 @@ Query Query::OrderBy(const FieldPath& field, Direction direction) const {
   return internal_->OrderBy(field, direction);
 }
 
-Query Query::Limit(int32_t limit) const {
-  if (!internal_) return {};
-  return internal_->Limit(limit);
-}
-
+Query Query::Limit(int32_t limit) const { return internal_ ? internal_->Limit(limit) : Query{}; }
 Query Query::LimitToLast(int32_t limit) const {
-  if (!internal_) return {};
-  return internal_->LimitToLast(limit);
+  return internal_ ? internal_->LimitToLast(limit) : Query{};
 }
 
 Query Query::StartAt(const DocumentSnapshot& snapshot) const {
@@ -333,9 +227,7 @@ Query Query::StartAt(const DocumentSnapshot& snapshot) const {
 }
 
 Query Query::StartAt(const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  if (!ValidateValues(values)) return {};
-  return internal_->StartAt(values);
+  return internal_ && ValidateValues(values) ? internal_->StartAt(values) : Query{};
 }
 
 Query Query::StartAfter(const DocumentSnapshot& snapshot) const {
@@ -348,9 +240,7 @@ Query Query::StartAfter(const DocumentSnapshot& snapshot) const {
 }
 
 Query Query::StartAfter(const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  if (!ValidateValues(values)) return {};
-  return internal_->StartAfter(values);
+  return internal_ && ValidateValues(values) ? internal_->StartAfter(values) : Query{};
 }
 
 Query Query::EndBefore(const DocumentSnapshot& snapshot) const {
@@ -363,9 +253,7 @@ Query Query::EndBefore(const DocumentSnapshot& snapshot) const {
 }
 
 Query Query::EndBefore(const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  if (!ValidateValues(values)) return {};
-  return internal_->EndBefore(values);
+  return internal_ && ValidateValues(values) ? internal_->EndBefore(values) : Query{};
 }
 
 Query Query::EndAt(const DocumentSnapshot& snapshot) const {
@@ -378,44 +266,33 @@ Query Query::EndAt(const DocumentSnapshot& snapshot) const {
 }
 
 Query Query::EndAt(const std::vector<FieldValue>& values) const {
-  if (!internal_) return {};
-  if (!ValidateValues(values)) return {};
-  return internal_->EndAt(values);
+  return internal_ && ValidateValues(values) ? internal_->EndAt(values) : Query{};
 }
 
 Future<QuerySnapshot> Query::Get(Source source) const {
-  if (!internal_) return FailedFuture<QuerySnapshot>();
-  return internal_->Get(source);
+  return internal_ ? internal_->Get(source) : FailedFuture<QuerySnapshot>();
 }
 
 ListenerRegistration Query::AddSnapshotListener(
-    std::function<void(const QuerySnapshot&, Error, const std::string&)>
-        callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)> callback) {
   return AddSnapshotListener(MetadataChanges::kExclude, std::move(callback));
 }
 
 ListenerRegistration Query::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const QuerySnapshot&, Error, const std::string&)>
-        callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)> callback) {
   if (!callback) {
-    SimpleThrowInvalidArgument(
-        "Snapshot listener callback cannot be an empty function.");
+    SimpleThrowInvalidArgument("Snapshot listener callback cannot be an empty function.");
     return {};
   }
-
-  if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes, std::move(callback));
+  return internal_ ? internal_->AddSnapshotListener(metadata_changes, std::move(callback))
+                   : ListenerRegistration{};
 }
 
-size_t Query::Hash() const {
-  if (!internal_) return {};
-  return internal_->Hash();
-}
+size_t Query::Hash() const { return internal_ ? internal_->Hash() : 0; }
 
 bool operator==(const Query& lhs, const Query& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

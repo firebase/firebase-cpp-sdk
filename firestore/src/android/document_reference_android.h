@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
@@ -31,25 +17,17 @@ namespace firebase::firestore {
 
 class Firestore;
 
-// This is the Android implementation of DocumentReference.
 class DocumentReferenceInternal : public Wrapper {
  public:
-  // Each API of DocumentReference that returns a Future needs to define an enum
-  // value here. For example, a Future-returning method Foo() relies on the enum
-  // value kFoo. The enum values are used to identify and manage Future in the
-  // Firestore Future manager.
   enum class AsyncFn {
     kGet = 0,
     kSet,
     kUpdate,
     kUpdateFieldPath,
     kDelete,
-    kCount,  // Must be the last enum value.
+    kCount,
   };
 
-  /**
-   * Creates a C++ `DocumentReference` from a Java `DocumentReference` object.
-   */
   static DocumentReference Create(jni::Env& env, const jni::Object& reference);
 
   DocumentReferenceInternal(FirestoreInternal* firestore,
@@ -59,149 +37,53 @@ class DocumentReferenceInternal : public Wrapper {
   DocumentReferenceInternal(const DocumentReferenceInternal& other);
   DocumentReferenceInternal(DocumentReferenceInternal&& other) noexcept;
   ~DocumentReferenceInternal() override = default;
-  DocumentReferenceInternal& operator=(
-      const DocumentReferenceInternal& other) = delete;
+  DocumentReferenceInternal& operator=(const DocumentReferenceInternal& other) =
+      delete;
   DocumentReferenceInternal& operator=(
       DocumentReferenceInternal&& other) noexcept = delete;
 
-  /** Gets the Firestore instance associated with this document reference. */
   Firestore* firestore() const;
-
-  /**
-   * Gets the document-id of this document.
-   *
-   * @return A reference to the document-id of this document.
-   */
   [[nodiscard]] const std::string& id() const;
-
-  /**
-   * Gets the path of this document (relative to the root of the database) as a
-   * slash-separated string.
-   *
-   * @return A reference to the path of this document.
-   */
   [[nodiscard]] const std::string& path() const;
-
-  /**
-   * Gets a CollectionReference to the collection that contains this document.
-   *
-   * @return The CollectionReference that contains this document.
-   */
   [[nodiscard]] CollectionReference Parent() const;
+  [[nodiscard]] CollectionReference Collection(
+      const std::string& collection_path) const;
 
-  /**
-   * Gets a CollectionReference instance that refers to the subcollection at the
-   * specified path relative to this document.
-   *
-   * @param collection_path A slash-separated relative path to a subcollection.
-   * @return The CollectionReference instance.
-   */
-  [[nodiscard]] CollectionReference Collection(const std::string& collection_path) const;
-
-  /**
-   * Reads this document.
-   *
-   * By default, Get() attempts to provide up-to-date data when possible by
-   * waiting for data from the server, but it may return cached data or fail if
-   * you are offline and the server cannot be reached. This behavior can be
-   * altered via the source parameter.
-   *
-   * @param source A value to configure the get behavior.
-   *
-   * @return A Future that will be resolved with the contents of the document.
-   */
   Future<DocumentSnapshot> Get(Source source);
-
-  /**
-   * Writes to this document.
-   *
-   * If the document does not yet exist, it will be created. If you pass
-   * SetOptions, the provided data can be merged into an existing document.
-   *
-   * @param data A map of the fields and values for the document.
-   * @param options An object to configure the set behavior.
-   *
-   * @return A Future that will be resolved when the write finishes.
-   */
   Future<void> Set(const MapFieldValue& data, const SetOptions& options);
-
-  /**
-   * Updates fields in this document.
-   *
-   * If no document exists yet, the update will fail.
-   *
-   * @param data A map of field / value pairs to update. Fields can contain
-   * dots to reference nested fields within the document.
-   *
-   * @return A Future that will be resolved when the write finishes.
-   */
   Future<void> Update(const MapFieldValue& data);
-
-  /**
-   * Updates fields in this document.
-   *
-   * If no document exists yet, the update will fail.
-   *
-   * @param data A map from FieldPath to FieldValue to update.
-   *
-   * @return A Future that will be resolved when the write finishes.
-   */
   Future<void> Update(const MapFieldPathValue& data);
-
-  /**
-   * Removes this document.
-   *
-   * @return A Future that will be resolved when the delete completes.
-   */
   Future<void> Delete();
 
-  /**
-   * @brief Starts listening to the document referenced by this
-   * DocumentReference.
-   *
-   * @param[in] metadata_changes Indicates whether metadata-only changes (i.e.
-   * only DocumentSnapshot.getMetadata() changed) should trigger snapshot
-   * events.
-   * @param[in] callback function or lambda to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::kErrorOk.
-   *
-   * @return A registration object that can be used to remove the listener.
-   */
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       std::function<void(const DocumentSnapshot&, Error, const std::string&)>
           callback);
-
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener);
-
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       std::unique_ptr<EventListener<DocumentSnapshot>> listener);
 
  private:
+  friend class FirestoreInternal;
+  friend class FieldValueInternal;
+
   ListenerRegistration AddSnapshotListenerInternal(
       MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener,
       bool passing_listener_ownership);
 
-  /** @brief Gets the class object of Java DocumentReference class. */
   static jni::Class GetClass();
-
- private:
-  friend class FirestoreInternal;
-  friend class FieldValueInternal;
-
   static void Initialize(jni::Loader& loader);
 
   PromiseFactory<AsyncFn> promises_;
-
-  // Below are cached call results.
   mutable std::mutex mutex_;
   mutable std::string cached_id_;
   mutable std::string cached_path_;
 };
 
 }  // namespace firebase::firestore
+
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_

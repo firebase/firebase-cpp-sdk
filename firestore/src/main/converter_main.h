@@ -1,25 +1,9 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2021 Google LLC
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_CONVERTER_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_CONVERTER_MAIN_H_
 
 #include <memory>
 #include <utility>
-
 #include "Firestore/core/src/api/aggregate_query.h"
 #include "Firestore/core/src/api/collection_reference.h"
 #include "Firestore/core/src/api/document_change.h"
@@ -30,11 +14,10 @@
 #include "Firestore/core/src/api/query_snapshot.h"
 #include "Firestore/core/src/core/transaction.h"
 #include "Firestore/core/src/model/field_path.h"
-#include "absl/memory/memory.h"
 #include "firebase/firestore/aggregate_query.h"
 #include "firebase/firestore/aggregate_query_snapshot.h"
-#include "firestore/src/common/type_mapping.h"
 #include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/main/aggregate_query_main.h"
 #include "firestore/src/main/aggregate_query_snapshot_main.h"
@@ -57,30 +40,21 @@
 
 namespace firebase::firestore {
 
-// Additional specializations of InternalTypeMap for iOS.
 template <>
 struct InternalTypeMap<FieldPath> {
   using type = model::FieldPath;
 };
 
-// The struct is just to make declaring `MakePublic` a friend easier (and
-// future-proof in case more parameters are added to it).
 struct ConverterImpl {
   template <typename PublicT, typename ArgT>
   static PublicT MakePublicFromInternal(ArgT&& from) {
-    using ConcreteInternalT = typename std::decay<ArgT>::type;
-    auto internal = std::make_unique<ConcreteInternalT>(std::forward<ArgT>(from));
-    return PublicT{internal.release()};
+    return PublicT{new typename std::decay<ArgT>::type(std::forward<ArgT>(from))};
   }
 
-  template <typename PublicT,
-            typename CoreT,
-            typename InternalT = InternalType<PublicT>,
+  template <typename PublicT, typename CoreT, typename InternalT = InternalType<PublicT>,
             typename... Args>
   static PublicT MakePublicFromCore(CoreT&& from, Args&&... args) {
-    auto internal = std::make_unique<InternalT>(
-        std::forward<CoreT>(from), std::forward<Args>(args)...);
-    return PublicT{internal.release()};
+    return PublicT{new InternalT(std::forward<CoreT>(from), std::forward<Args>(args)...)};
   }
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
@@ -94,74 +68,52 @@ struct ConverterImpl {
   }
 };
 
-// MakePublic
-
 inline AggregateQuery MakePublic(api::AggregateQuery&& from) {
   return ConverterImpl::MakePublicFromCore<AggregateQuery>(std::move(from));
 }
-
 inline CollectionReference MakePublic(api::CollectionReference&& from) {
-  return ConverterImpl::MakePublicFromCore<CollectionReference>(
-      std::move(from));
+  return ConverterImpl::MakePublicFromCore<CollectionReference>(std::move(from));
 }
-
 inline DocumentChange MakePublic(api::DocumentChange&& from) {
   return ConverterImpl::MakePublicFromCore<DocumentChange>(std::move(from));
 }
-
 inline DocumentReference MakePublic(api::DocumentReference&& from) {
   return ConverterImpl::MakePublicFromCore<DocumentReference>(std::move(from));
 }
-
 inline DocumentSnapshot MakePublic(api::DocumentSnapshot&& from) {
   return ConverterImpl::MakePublicFromCore<DocumentSnapshot>(std::move(from));
 }
-
 inline Filter MakePublic(UnaryFilterInternal&& from) {
   return ConverterImpl::MakePublicFromInternal<Filter>(std::move(from));
 }
-
 inline Filter MakePublic(CompositeFilterInternal&& from) {
   return ConverterImpl::MakePublicFromInternal<Filter>(std::move(from));
 }
-
 inline FieldValue MakePublic(FieldValueInternal&& from) {
   return ConverterImpl::MakePublicFromInternal<FieldValue>(std::move(from));
 }
-
-inline AggregateQuerySnapshot MakePublic(
-    AggregateQuerySnapshotInternal&& from) {
-  return ConverterImpl::MakePublicFromInternal<AggregateQuerySnapshot>(
-      std::move(from));
+inline AggregateQuerySnapshot MakePublic(AggregateQuerySnapshotInternal&& from) {
+  return ConverterImpl::MakePublicFromInternal<AggregateQuerySnapshot>(std::move(from));
 }
-
-inline ListenerRegistration MakePublic(
-    std::unique_ptr<api::ListenerRegistration> from,
-    FirestoreInternal* firestore) {
-  return ConverterImpl::MakePublicFromCore<ListenerRegistration>(
-      std::move(from), firestore);
+inline ListenerRegistration MakePublic(std::unique_ptr<api::ListenerRegistration> from,
+                                       FirestoreInternal* firestore) {
+  return ConverterImpl::MakePublicFromCore<ListenerRegistration>(std::move(from), firestore);
 }
-
 inline Query MakePublic(api::Query&& from) {
   return ConverterImpl::MakePublicFromCore<Query>(std::move(from));
 }
-
 inline QuerySnapshot MakePublic(api::QuerySnapshot&& from) {
   return ConverterImpl::MakePublicFromCore<QuerySnapshot>(std::move(from));
 }
-
 inline Transaction MakePublic(std::shared_ptr<core::Transaction> transaction,
                               std::shared_ptr<api::Firestore> firestore_core,
                               Firestore* firestore_public) {
   return ConverterImpl::MakePublicFromCore<Transaction>(
       std::move(transaction), std::move(firestore_core), firestore_public);
 }
-
 inline WriteBatch MakePublic(api::WriteBatch&& from) {
   return ConverterImpl::MakePublicFromCore<WriteBatch>(std::move(from));
 }
-
-// GetInternal
 
 template <typename PublicT, typename InternalT = InternalType<PublicT>>
 InternalT* GetInternal(PublicT* from) {
@@ -176,8 +128,6 @@ const InternalT* GetInternal(const PublicT* from) {
 inline const model::FieldPath& GetInternal(const FieldPath& from) {
   return *NOT_NULL(ConverterImpl::GetInternal(&from));
 }
-
-// GetCoreApi
 
 inline const api::DocumentReference& GetCoreApi(const DocumentReference& from) {
   return NOT_NULL(GetInternal(&from))->document_reference_core();

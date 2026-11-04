@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/listener_registration_android.h"
 
@@ -23,8 +9,7 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
@@ -33,7 +18,6 @@ using jni::Object;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/ListenerRegistration";
-
 jni::Method<void> kRemove("remove", "()V");
 
 }  // namespace
@@ -44,68 +28,40 @@ void ListenerRegistrationInternal::Initialize(jni::Loader& loader) {
 
 template <typename T>
 ListenerRegistrationInternal::ListenerRegistrationInternal(
-    FirestoreInternal* firestore,
-    EventListener<T>* event_listener,
-    bool owning_event_listener,
-    const Object& listener_registration,
+    FirestoreInternal* firestore, EventListener<T>* event_listener,
+    bool owning_event_listener, const Object& listener_registration,
     const Object& java_listener)
     : firestore_(firestore),
       listener_registration_(listener_registration),
       java_listener_(java_listener),
       event_listener_(event_listener),
       owning_event_listener_(owning_event_listener) {
-  FIREBASE_ASSERT(firestore != nullptr);
-  FIREBASE_ASSERT(event_listener != nullptr);
-  FIREBASE_ASSERT(listener_registration);
-
+  FIREBASE_ASSERT(firestore && event_listener && listener_registration);
   firestore->RegisterListenerRegistration(this);
 }
 
 template ListenerRegistrationInternal::ListenerRegistrationInternal(
-    FirestoreInternal* firestore,
-    EventListener<DocumentSnapshot>* event_listener,
-    bool owning_event_listener,
-    const Object& listener_registration,
-    const Object& java_listener);
-
+    FirestoreInternal*, EventListener<DocumentSnapshot>*, bool, const Object&,
+    const Object&);
 template ListenerRegistrationInternal::ListenerRegistrationInternal(
-    FirestoreInternal* firestore,
-    EventListener<QuerySnapshot>* event_listener,
-    bool owning_event_listener,
-    const Object& listener_registration,
-    const Object& java_listener);
-
+    FirestoreInternal*, EventListener<QuerySnapshot>*, bool, const Object&,
+    const Object&);
 template ListenerRegistrationInternal::ListenerRegistrationInternal(
-    FirestoreInternal* firestore,
-    EventListener<void>* event_listener,
-    bool owning_event_listener,
-    const Object& listener_registration,
-    const Object& java_listener);
+    FirestoreInternal*, EventListener<void>*, bool, const Object&,
+    const Object&);
 
-// Destruction happens when FirestoreInternal deallocates registrations (via
-// UnregisterListenerRegistration or ClearListeners). FirestoreInternal removes
-// the registration from its set before deleting `this`.
 ListenerRegistrationInternal::~ListenerRegistrationInternal() {
   Env env = GetEnv();
   ExceptionClearGuard exception_clear_guard(env);
-
   if (listener_registration_) {
-    // Remove listener, discard native pointers on the Java listener under its
-    // monitor lock, and release Java global references before deleting the C++
-    // listener object.
     env.Call(listener_registration_, kRemove);
-    if (!env.ok()) {
-      env.ExceptionClear();
-    }
+    if (!env.ok()) env.ExceptionClear();
     listener_registration_.clear();
   }
-
   if (java_listener_) {
     EventListenerInternal::DiscardPointers(env, java_listener_);
     java_listener_.clear();
   }
-
-  // Deallocate owned EventListener object.
   if (owning_event_listener_) {
     std::visit([](auto* listener) { delete listener; }, event_listener_);
   }
@@ -113,5 +69,4 @@ ListenerRegistrationInternal::~ListenerRegistrationInternal() {
 
 jni::Env ListenerRegistrationInternal::GetEnv() { return firestore_->GetEnv(); }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

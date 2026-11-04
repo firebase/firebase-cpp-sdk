@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/document_reference_android.h"
 
@@ -59,11 +45,10 @@ Method<Object> kGetParent(
     "getParent", "()Lcom/google/firebase/firestore/CollectionReference;");
 Method<Object> kCollection(
     "collection",
-    "(Ljava/lang/String;)"
-    "Lcom/google/firebase/firestore/CollectionReference;");
-Method<Task> kGet("get",
-                  "(Lcom/google/firebase/firestore/Source;)"
-                  "Lcom/google/android/gms/tasks/Task;");
+    "(Ljava/lang/String;)Lcom/google/firebase/firestore/CollectionReference;");
+Method<Task> kGet(
+    "get",
+    "(Lcom/google/firebase/firestore/Source;)Lcom/google/android/gms/tasks/Task;");
 Method<Task> kSet(
     "set",
     "(Ljava/lang/Object;Lcom/google/firebase/firestore/SetOptions;)"
@@ -109,19 +94,14 @@ DocumentReferenceInternal::DocumentReferenceInternal(
 DocumentReference DocumentReferenceInternal::Create(Env& env,
                                                     const Object& reference) {
   if (!env.ok() || !reference) return {};
-
-  Local<Object> java_firestore = env.Call(reference, kGetFirestore);
-  auto* firestore = FirestoreInternal::RecoverFirestore(env, java_firestore);
-  if (firestore == nullptr) return {};
-
-  return firestore->NewDocumentReference(env, reference);
+  auto* firestore = FirestoreInternal::RecoverFirestore(
+      env, env.Call(reference, kGetFirestore));
+  return firestore ? firestore->NewDocumentReference(env, reference)
+                   : DocumentReference{};
 }
 
 Firestore* DocumentReferenceInternal::firestore() const {
-  if (firestore_ == nullptr) {
-    return nullptr;
-  }
-  return firestore_->firestore_public();
+  return firestore_ ? firestore_->firestore_public() : nullptr;
 }
 
 const std::string& DocumentReferenceInternal::id() const {
@@ -144,81 +124,75 @@ const std::string& DocumentReferenceInternal::path() const {
 
 CollectionReference DocumentReferenceInternal::Parent() const {
   Env env = GetEnv();
-  Local<Object> parent = env.Call(obj_, kGetParent);
-  return firestore_->NewCollectionReference(env, parent);
+  return firestore_->NewCollectionReference(env, env.Call(obj_, kGetParent));
 }
 
 CollectionReference DocumentReferenceInternal::Collection(
     const std::string& collection_path) const {
   Env env = GetEnv();
-  Local<String> java_path = env.NewStringUtf(collection_path);
-  Local<Object> collection = env.Call(obj_, kCollection, java_path);
-  return firestore_->NewCollectionReference(env, collection);
+  return firestore_->NewCollectionReference(
+      env, env.Call(obj_, kCollection, env.NewStringUtf(collection_path)));
 }
 
 Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
   Env env = GetEnv();
-  Local<Object> java_source = SourceInternal::Create(env, source);
-  Local<Task> task = env.Call(obj_, kGet, java_source);
-  return promises_.NewFuture<DocumentSnapshot>(env, AsyncFn::kGet, task);
+  return promises_.NewFuture<DocumentSnapshot>(
+      env, AsyncFn::kGet,
+      env.Call(obj_, kGet, SourceInternal::Create(env, source)));
 }
 
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
                                             const SetOptions& options) {
   Env env = GetEnv();
-  Local<HashMap> java_data = MakeJavaMap(env, data);
-  Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  Local<Task> task = env.Call(obj_, kSet, java_data, java_options);
-  return promises_.NewFuture<void>(env, AsyncFn::kSet, task);
+  return promises_.NewFuture<void>(
+      env, AsyncFn::kSet,
+      env.Call(obj_, kSet, MakeJavaMap(env, data),
+               SetOptionsInternal::Create(env, options)));
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
   Env env = GetEnv();
-  Local<HashMap> java_data = MakeJavaMap(env, data);
-  Local<Task> task = env.Call(obj_, kUpdate, java_data);
-  return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
+  return promises_.NewFuture<void>(
+      env, AsyncFn::kUpdate, env.Call(obj_, kUpdate, MakeJavaMap(env, data)));
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
-  if (data.empty()) {
-    return Update(MapFieldValue{});
-  }
-
+  if (data.empty()) return Update(MapFieldValue{});
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
-  Local<Task> task = env.Call(obj_, kUpdateVarargs, args.first_field,
-                              args.first_value, args.varargs);
-
-  return promises_.NewFuture<void>(env, AsyncFn::kUpdateFieldPath, task);
+  return promises_.NewFuture<void>(
+      env, AsyncFn::kUpdateFieldPath,
+      env.Call(obj_, kUpdateVarargs, args.first_field, args.first_value,
+               args.varargs));
 }
 
 Future<void> DocumentReferenceInternal::Delete() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kDelete);
-  return promises_.NewFuture<void>(env, AsyncFn::kDelete, task);
+  return promises_.NewFuture<void>(env, AsyncFn::kDelete,
+                                   env.Call(obj_, kDelete));
 }
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
-  auto listener = std::make_unique<LambdaEventListener<DocumentSnapshot>>(
-      std::move(callback));
-  return AddSnapshotListener(metadata_changes, std::move(listener));
+  return AddSnapshotListener(
+      metadata_changes,
+      std::make_unique<LambdaEventListener<DocumentSnapshot>>(
+          std::move(callback)));
 }
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     EventListener<DocumentSnapshot>* listener) {
-  return AddSnapshotListenerInternal(metadata_changes, listener,
-                                     /*passing_listener_ownership=*/false);
+  return AddSnapshotListenerInternal(metadata_changes, listener, false);
 }
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::unique_ptr<EventListener<DocumentSnapshot>> listener) {
   return AddSnapshotListenerInternal(metadata_changes, listener.release(),
-                                     /*passing_listener_ownership=*/true);
+                                     true);
 }
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListenerInternal(
@@ -226,19 +200,13 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListenerInternal(
     EventListener<DocumentSnapshot>* listener,
     bool passing_listener_ownership) {
   Env env = GetEnv();
-  Local<Object> java_metadata =
-      MetadataChangesInternal::Create(env, metadata_changes);
   Local<Object> java_listener =
       EventListenerInternal::Create(env, firestore_, listener);
-
-  Local<Object> java_registration =
-      env.Call(obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
-               java_metadata, java_listener);
-
+  Local<Object> java_registration = env.Call(
+      obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
+      MetadataChangesInternal::Create(env, metadata_changes), java_listener);
   if (!env.ok() || !java_registration) {
-    if (passing_listener_ownership) {
-      delete listener;
-    }
+    if (passing_listener_ownership) delete listener;
     return {};
   }
   return ListenerRegistration(new ListenerRegistrationInternal(

@@ -1,18 +1,4 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 Google LLC
 
 #include "firestore/src/android/jni_runnable_android.h"
 
@@ -46,19 +32,17 @@ Method<Task> kRunOnNewThread("runOnNewThread",
                              "()Lcom/google/android/gms/tasks/Task;");
 Constructor<Object> kConstructor("(J)V");
 
-void NativeRun(JNIEnv* env, jobject java_object, jlong data) {
+void NativeRun(JNIEnv*, jobject, jlong data) {
   FIREBASE_ASSERT_MESSAGE(data != 0, "NativeRun() invoked with data==0");
-  if (data == 0) {
-    return;
-  }
+  if (!data) return;
 #if FIRESTORE_HAVE_EXCEPTIONS
   try {
-#endif  // FIRESTORE_HAVE_EXCEPTIONS
+#endif
     reinterpret_cast<JniRunnableBase*>(data)->Run();
 #if FIRESTORE_HAVE_EXCEPTIONS
   } catch (...) {
   }
-#endif  // FIRESTORE_HAVE_EXCEPTIONS
+#endif
 }
 
 }  // namespace
@@ -66,10 +50,9 @@ void NativeRun(JNIEnv* env, jobject java_object, jlong data) {
 void JniRunnableBase::Initialize(jni::Loader& loader) {
   loader.LoadClass(kJniRunnableClassName, kConstructor, kDetach,
                    kRunOnMainThread, kRunOnNewThread);
-  static const JNINativeMethod kJniRunnableNatives[] = {
+  static const JNINativeMethod kNatives[] = {
       {"nativeRun", "(J)V", reinterpret_cast<void*>(&NativeRun)}};
-  loader.RegisterNatives(kJniRunnableNatives,
-                         FIREBASE_ARRAYSIZE(kJniRunnableNatives));
+  loader.RegisterNatives(kNatives, FIREBASE_ARRAYSIZE(kNatives));
 }
 
 JniRunnableBase::JniRunnableBase(Env& env)
@@ -78,14 +61,12 @@ JniRunnableBase::JniRunnableBase(Env& env)
 JniRunnableBase::~JniRunnableBase() {
   Env env;
   Detach(env);
-  if (!env.ok()) {
-    env.ExceptionClear();
-  }
+  if (!env.ok()) env.ExceptionClear();
 }
 
 void JniRunnableBase::Detach(Env& env) {
   if (java_runnable_) {
-    ExceptionClearGuard exception_clear_guard(env);
+    ExceptionClearGuard guard(env);
     env.Call(java_runnable_, kDetach);
   }
 }
@@ -93,11 +74,9 @@ void JniRunnableBase::Detach(Env& env) {
 Local<Object> JniRunnableBase::GetJavaRunnable() const {
   return java_runnable_;
 }
-
 Local<Task> JniRunnableBase::RunOnMainThread(Env& env) {
   return env.Call(java_runnable_, kRunOnMainThread);
 }
-
 Local<Task> JniRunnableBase::RunOnNewThread(Env& env) {
   return env.Call(java_runnable_, kRunOnNewThread);
 }

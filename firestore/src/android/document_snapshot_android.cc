@@ -1,22 +1,8 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/document_snapshot_android.h"
-#include <cstdint>
 
+#include <cstdint>
 #include <utility>
 
 #include "firestore/src/android/document_reference_android.h"
@@ -29,8 +15,7 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
@@ -38,7 +23,6 @@ using jni::Local;
 using jni::Method;
 using jni::Object;
 using jni::String;
-
 using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
 
 constexpr char kClass[] =
@@ -65,11 +49,7 @@ Method<int32_t> kHashCode("hashCode", "()I");
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     const DocumentSnapshotInternal& other)
-    : Wrapper(other) {
-  // Do not copy other.cached_id_ without synchronization, as that would race
-  // with concurrent calls to other.id(). cached_id_ will be lazily populated
-  // via id_once_flag_ if id() is called on this copy.
-}
+    : Wrapper(other) {}
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     DocumentSnapshotInternal&& other) noexcept
@@ -81,10 +61,7 @@ void DocumentSnapshotInternal::Initialize(jni::Loader& loader) {
 }
 
 Firestore* DocumentSnapshotInternal::firestore() const {
-  if (firestore_ == nullptr) {
-    return nullptr;
-  }
-  return firestore_->firestore_public();
+  return firestore_ ? firestore_->firestore_public() : nullptr;
 }
 
 const std::string& DocumentSnapshotInternal::id() const {
@@ -98,24 +75,18 @@ const std::string& DocumentSnapshotInternal::id() const {
 }
 
 DocumentReference DocumentSnapshotInternal::reference() const {
-  if (firestore_ == nullptr) {
-    return DocumentReference();
-  }
+  if (!firestore_) return {};
   Env env = GetEnv();
-  Local<Object> reference = env.Call(obj_, kGetReference);
-  if (!env.ok() || !reference) {
-    return DocumentReference();
-  }
-  return firestore_->NewDocumentReference(env, reference);
+  Local<Object> ref = env.Call(obj_, kGetReference);
+  return (env.ok() && ref) ? firestore_->NewDocumentReference(env, ref)
+                           : DocumentReference{};
 }
 
 SnapshotMetadata DocumentSnapshotInternal::metadata() const {
   Env env = GetEnv();
   auto java_metadata = env.Call(obj_, kGetMetadata);
-  if (!env.ok() || !java_metadata) {
-    return SnapshotMetadata{false, false};
-  }
-  return java_metadata.ToPublic(env);
+  return (env.ok() && java_metadata) ? java_metadata.ToPublic(env)
+                                     : SnapshotMetadata{false, false};
 }
 
 bool DocumentSnapshotInternal::exists() const {
@@ -126,39 +97,23 @@ bool DocumentSnapshotInternal::exists() const {
 MapFieldValue DocumentSnapshotInternal::GetData(
     ServerTimestampBehavior stb) const {
   Env env = GetEnv();
-  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
-  Local<Object> java_data = env.Call(obj_, kGetData, java_stb);
-
-  if (!env.ok() || !java_data) {
-    // If the document doesn't exist, Android's getData() returns a null Map.
-    // In C++, the map is returned by value, so translate this case to an empty
-    // MapFieldValue.
-    return MapFieldValue();
-  }
-
-  return FieldValueInternal(java_data).map_value();
+  Local<Object> java_data =
+      env.Call(obj_, kGetData, ServerTimestampBehaviorInternal::Create(env, stb));
+  return (env.ok() && java_data) ? FieldValueInternal(java_data).map_value()
+                                 : MapFieldValue();
 }
 
 FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
                                          ServerTimestampBehavior stb) const {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
-  Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
-  if (!env.ok()) {
-    return FieldValue();
-  }
-
+  Local<Object> field_value = env.Call(
+      obj_, kGet, java_field, ServerTimestampBehaviorInternal::Create(env, stb));
+  if (!env.ok()) return {};
   if (!field_value) {
-    // Android returns null for both null fields and nonexistent fields, so use
-    // contains() to check if the field actually exists on the document.
-    bool contains_field = env.Call(obj_, kContains, java_field);
-    if (!env.ok() || !contains_field) {
-      return FieldValue();
-    }
-    return FieldValue::Null();
+    bool contains = env.Call(obj_, kContains, java_field);
+    return (env.ok() && contains) ? FieldValue::Null() : FieldValue();
   }
-
   return FieldValueInternal::Create(env, field_value);
 }
 
@@ -172,5 +127,4 @@ bool operator==(const DocumentSnapshotInternal& lhs,
   return jni::EqualityCompareJni(lhs, rhs);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

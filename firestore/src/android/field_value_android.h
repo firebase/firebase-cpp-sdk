@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_VALUE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_VALUE_ANDROID_H_
@@ -33,8 +19,7 @@
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 class FirestoreInternal;
 
@@ -43,7 +28,6 @@ class FieldValueInternal {
   using Type = FieldValue::Type;
 
   static void Initialize(jni::Loader& loader);
-
   static FieldValue Create(jni::Env& env, const jni::Object& object);
   static FieldValue Create(jni::Env& env, Type type, const jni::Object& object);
 
@@ -56,14 +40,6 @@ class FieldValueInternal {
   explicit FieldValueInternal(const jni::Object& object);
   FieldValueInternal(Type type, const jni::Object& object);
 
-  // Constructs a FieldValueInternal from a value of a specific type. Note that
-  // these constructors must match the equivalents in field_value_main.h.
-  //
-  // Of particular note is that these pass by value even though the Android
-  // implementation does not retain the values. This is done to make the
-  // interface consistent with the iOS version, which does move. Making these
-  // value types instead of const references saves a copy in that
-  // implementation.
   explicit FieldValueInternal(bool value);
   explicit FieldValueInternal(int64_t value);
   explicit FieldValueInternal(double value);
@@ -72,12 +48,6 @@ class FieldValueInternal {
   FieldValueInternal(const uint8_t* value, size_t size);
   explicit FieldValueInternal(DocumentReference value);
   explicit FieldValueInternal(GeoPoint value);
-  // Deviate from the iOS signatures of the following two constructors. The iOS
-  // versions take values into which the caller moves, to elide a copy. In
-  // Android, this actually *costs* an extra copy when calling from
-  // `DocumentReferenceInternal::Set()`, doubling the number of global
-  // references needed. Using const references in Android avoids this extra,
-  // costly copy (https://github.com/firebase/quickstart-unity/issues/1303).
   explicit FieldValueInternal(const std::vector<FieldValue>& value);
   explicit FieldValueInternal(const MapFieldValue& value);
 
@@ -113,29 +83,18 @@ class FieldValueInternal {
   friend bool operator==(const FieldValueInternal& lhs,
                          const FieldValueInternal& rhs);
 
-  // Casts the internal Java Object reference to the given Java proxy type.
-  // This performs a run-time `instanceof` check to verify that the object
-  // has the type `T::GetClass()`.
   template <typename T>
   jni::Local<T> Cast(jni::Env& env, Type type) const;
 
   void EnsureCachedBlob(jni::Env& env) const;
-
   static jni::Env GetEnv();
 
   jni::ArenaRef object_;
-
-  // Below are cached type information. It is costly to get type info from
-  // jobject of Object type. So we cache it if we have already known.
   mutable std::mutex mutex_;
   mutable std::optional<Type> cached_type_;
   mutable std::shared_ptr<std::vector<uint8_t>> cached_blob_;
 };
 
-template <>
-jni::Local<jni::String> FieldValueInternal::Cast<jni::String>(jni::Env& env, Type type) const;
-
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_VALUE_ANDROID_H_

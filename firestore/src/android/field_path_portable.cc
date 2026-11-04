@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/field_path_portable.h"
 
@@ -22,91 +8,53 @@
 
 #include "firestore/src/common/exception_common.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
-/**
- * True if the string could be used as a segment in a field path without
- * escaping. Valid identifies follow the regex [a-zA-Z_][a-zA-Z0-9_]*
- */
 bool IsValidFieldPathSegment(const std::string& segment) {
-  if (segment.empty()) {
-    return false;
-  }
-
-  auto iter = segment.begin();
-  unsigned char first = static_cast<unsigned char>(*iter);
-  if (first != '_' && !std::isalpha(first)) {
-    return false;
-  }
-  ++iter;
-  while (iter != segment.end()) {
-    unsigned char ch = static_cast<unsigned char>(*iter);
-    if (ch != '_' && !std::isalnum(ch)) {
-      return false;
-    }
-    ++iter;
+  if (segment.empty()) return false;
+  unsigned char first = static_cast<unsigned char>(segment[0]);
+  if (first != '_' && !std::isalpha(first)) return false;
+  for (size_t i = 1; i < segment.size(); ++i) {
+    unsigned char ch = static_cast<unsigned char>(segment[i]);
+    if (ch != '_' && !std::isalnum(ch)) return false;
   }
   return true;
 }
 
-/**
- * Escape the segment. The escaping logic comes from Firestore C++ core function
- * JoinEscaped().
- */
 std::string Escape(const std::string& segment) {
-  if (IsValidFieldPathSegment(segment)) {
-    return segment;
-  }
-
+  if (IsValidFieldPathSegment(segment)) return segment;
   std::string result;
   result.reserve(segment.size() * 2 + 2);
   result.push_back('`');
-  for (auto iter = segment.begin(); iter != segment.end(); ++iter) {
-    if (*iter == '\\' || *iter == '`') {
-      result.push_back('\\');
-    }
-    result.push_back(*iter);
+  for (char c : segment) {
+    if (c == '\\' || c == '`') result.push_back('\\');
+    result.push_back(c);
   }
   result.push_back('`');
   return result;
 }
 
-// Returns a vector of strings where each string corresponds to a dot-separated
-// segment of the given `input`. Any empty segment in `input` will fail
-// validation, resulting in an assertion firing. Having no dots in `input` is
-// valid.
 std::vector<std::string> SplitOnDots(const std::string& input) {
-  auto fail_validation = [&input] {
-    std::string message = "Invalid field path (" + input +
-                          "). Paths must not be empty, begin with '.', end "
-                          "with '.', or contain '..'";
-    SimpleThrowInvalidArgument(message);
+  auto fail = [&input] {
+    SimpleThrowInvalidArgument("Invalid field path (" + input +
+                               "). Paths must not be empty, begin with '.', "
+                               "end with '.', or contain '..'");
   };
-
-  // `std::getline()` considers empty input to contain zero segments, and if
-  // input ends with the separator followed by nothing, that is also not
-  // considered a segment. Consequently, these cases are not covered by
-  // validation in the body of the loop below and have to be checked beforehand.
-  if (input.empty() || input[0] == '.' || input[input.size() - 1] == '.') {
-    fail_validation();
+  if (input.empty() || input.front() == '.' || input.back() == '.') {
+    fail();
     return {};
   }
-
   std::vector<std::string> result;
-  std::string current_segment;
+  std::string seg;
   std::istringstream stream(input);
-
-  while (std::getline(stream, current_segment, '.')) {
-    if (current_segment.empty()) {
-      fail_validation();
+  while (std::getline(stream, seg, '.')) {
+    if (seg.empty()) {
+      fail();
       return {};
     }
-
-    result.push_back(std::move(current_segment));
+    result.push_back(std::move(seg));
   }
-
   return result;
 }
 
@@ -116,62 +64,52 @@ bool ValidateSegments(const std::vector<std::string>& segments) {
         "Invalid field path. Provided names must not be empty.");
     return false;
   }
-
   for (size_t i = 0; i < segments.size(); ++i) {
     if (segments[i].empty()) {
-      std::ostringstream message;
-      message << "Invalid field name at index " << i
-              << ". Field names must not be empty.";
-      SimpleThrowInvalidArgument(message.str());
+      SimpleThrowInvalidArgument("Invalid field name at index " +
+                                 std::to_string(i) +
+                                 ". Field names must not be empty.");
       return false;
     }
   }
   return true;
 }
 
-}  // anonymous namespace
+}  // namespace
 
 std::string FieldPathPortable::CanonicalString() const {
   std::string result;
   for (size_t i = 0; i < segments_.size(); ++i) {
-    if (i > 0) {
-      result.push_back('.');
-    }
+    if (i > 0) result.push_back('.');
     result.append(Escape(segments_[i]));
   }
   return result;
 }
 
 bool FieldPathPortable::IsKeyFieldPath() const {
-  return size() == 1 && segments_[0] == FieldPathPortable::kDocumentKeyPath;
+  return size() == 1 && segments_[0] == kDocumentKeyPath;
 }
 
 FieldPathPortable FieldPathPortable::FromSegments(
     std::vector<std::string> segments) {
-  if (!ValidateSegments(segments)) {
-    return FieldPathPortable(std::vector<std::string>{});
-  }
-  return FieldPathPortable(std::move(segments));
+  return FieldPathPortable(ValidateSegments(segments)
+                               ? std::move(segments)
+                               : std::vector<std::string>{});
 }
 
 FieldPathPortable FieldPathPortable::FromDotSeparatedString(
     const std::string& path) {
   if (path.find_first_of("~*/[]") != std::string::npos) {
-    std::string message =
-        "Invalid field path (" + path +
-        "). Paths must not contain '~', '*', '/', '[', or ']'";
-    SimpleThrowInvalidArgument(message);
+    SimpleThrowInvalidArgument("Invalid field path (" + path +
+                               "). Paths must not contain '~', '*', '/', '[', "
+                               "or ']'");
     return FieldPathPortable(std::vector<std::string>{});
   }
-
   return FieldPathPortable(SplitOnDots(path));
 }
 
-/* static */
 FieldPathPortable FieldPathPortable::KeyFieldPath() {
-  return FieldPathPortable{
-      std::vector<std::string>(1, FieldPathPortable::kDocumentKeyPath)};
+  return FieldPathPortable{std::vector<std::string>(1, kDocumentKeyPath)};
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

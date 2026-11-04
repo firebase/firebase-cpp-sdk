@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/query_snapshot_android.h"
 
@@ -28,8 +14,7 @@
 #include "firestore/src/jni/list.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
@@ -59,47 +44,39 @@ void QuerySnapshotInternal::Initialize(jni::Loader& loader) {
 
 Query QuerySnapshotInternal::query() const {
   Env env = GetEnv();
-  Local<Object> query = env.Call(obj_, kGetQuery);
-  return firestore_->NewQuery(env, query);
+  return firestore_->NewQuery(env, env.Call(obj_, kGetQuery));
 }
 
 SnapshotMetadata QuerySnapshotInternal::metadata() const {
   Env env = GetEnv();
   Local<SnapshotMetadataInternal> metadata = env.Call(obj_, kGetMetadata);
-  if (!env.ok() || !metadata) {
-    return SnapshotMetadata(false, false);
-  }
-  return metadata.ToPublic(env);
+  return (env.ok() && metadata) ? metadata.ToPublic(env)
+                                : SnapshotMetadata(false, false);
 }
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
     MetadataChanges metadata_changes) const {
   Env env = GetEnv();
-  auto java_metadata = MetadataChangesInternal::Create(env, metadata_changes);
-
-  Local<List> change_list = env.Call(obj_, kGetDocumentChanges, java_metadata);
-  if (!env.ok() || !change_list) {
-    return {};
-  }
-  return MakePublicVector<DocumentChange>(env, firestore_, change_list);
+  Local<List> changes =
+      env.Call(obj_, kGetDocumentChanges,
+               MetadataChangesInternal::Create(env, metadata_changes));
+  return (env.ok() && changes)
+             ? MakePublicVector<DocumentChange>(env, firestore_, changes)
+             : std::vector<DocumentChange>{};
 }
 
 std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
   Env env = GetEnv();
-  Local<List> document_list = env.Call(obj_, kGetDocuments);
-  if (!env.ok() || !document_list) {
-    return {};
-  }
-  return MakePublicVector<DocumentSnapshot>(env, firestore_, document_list);
+  Local<List> docs = env.Call(obj_, kGetDocuments);
+  return (env.ok() && docs)
+             ? MakePublicVector<DocumentSnapshot>(env, firestore_, docs)
+             : std::vector<DocumentSnapshot>{};
 }
 
 std::size_t QuerySnapshotInternal::size() const {
   Env env = GetEnv();
   int32_t result = env.Call(obj_, kSize);
-  if (!env.ok() || result < 0) {
-    return 0;
-  }
-  return static_cast<std::size_t>(result);
+  return (env.ok() && result >= 0) ? static_cast<std::size_t>(result) : 0;
 }
 
 std::size_t QuerySnapshotInternal::Hash() const {
@@ -112,5 +89,4 @@ bool operator==(const QuerySnapshotInternal& lhs,
   return jni::EqualityCompareJni(lhs, rhs);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

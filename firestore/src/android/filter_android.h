@@ -1,32 +1,17 @@
-/*
- * Copyright 2023 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2023 Google LLC
 
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_FILTER_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_FILTER_ANDROID_H_
 
 #include <vector>
 
-#include "firestore/src/jni/arena_ref.h"
-#include "firestore/src/jni/object.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/filter.h"
+#include "firestore/src/jni/arena_ref.h"
+#include "firestore/src/jni/object.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 class FilterInternal final {
  public:
@@ -60,15 +45,12 @@ class FilterInternal final {
   friend class QueryInternal;
 
   FilterInternal* clone() const { return new FilterInternal(*this); }
-
   bool IsEmpty() const { return is_empty_; }
-
   static jni::Env GetEnv();
 
   jni::ArenaRef obj_;
   const bool is_empty_;
 
-  // A generalized function for all WhereFoo calls.
   static Filter Where(const FieldPath& field,
                       const jni::StaticMethod<jni::Object>& method,
                       const FieldValue& value);
@@ -80,12 +62,10 @@ class FilterInternal final {
 };
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs);
-
 inline bool operator!=(const FilterInternal& lhs, const FilterInternal& rhs) {
   return !(lhs == rhs);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_FILTER_ANDROID_H_

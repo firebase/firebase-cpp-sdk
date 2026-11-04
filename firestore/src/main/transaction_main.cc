@@ -1,19 +1,4 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2021 Google LLC
 #include "firestore/src/main/transaction_main.h"
 
 #include <chrono>
@@ -22,7 +7,6 @@
 #include <mutex>  // NOLINT(build/c++11)
 #include <utility>
 #include <vector>
-
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/document.h"
 #include "Firestore/core/src/model/document_key.h"
@@ -30,7 +14,6 @@
 #include "Firestore/core/src/util/exception.h"
 #include "Firestore/core/src/util/status.h"
 #include "Firestore/core/src/util/statusor.h"
-#include "absl/types/optional.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/main/converter_main.h"
@@ -53,40 +36,20 @@ const model::DocumentKey& GetKey(const DocumentReference& document) {
 }
 
 DocumentSnapshot ConvertToSingleSnapshot(
-    const std::shared_ptr<api::Firestore>& firestore,
-    model::DocumentKey key,
+    const std::shared_ptr<api::Firestore>& firestore, model::DocumentKey key,
     const std::vector<Document>& documents) {
-  SIMPLE_HARD_ASSERT(
-      documents.size() == 1,
-      "Expected core::Transaction::Lookup() to return a single document");
-
+  SIMPLE_HARD_ASSERT(documents.size() == 1,
+                     "Expected core::Transaction::Lookup() to return a single document");
   const Document& doc = documents.front();
-
   if (doc->is_found_document()) {
-    api::DocumentSnapshot snapshot = api::DocumentSnapshot::FromDocument(
-        firestore, Document(doc),
-        api::SnapshotMetadata{/*from_cache=*/false,
-                              /*has_pending_writes=*/false});
-    return MakePublic(std::move(snapshot));
-
+    return MakePublic(api::DocumentSnapshot::FromDocument(
+        firestore, Document(doc), api::SnapshotMetadata{false, false}));
   } else if (doc->is_no_document()) {
-    api::DocumentSnapshot snapshot = api::DocumentSnapshot::FromNoDocument(
-        firestore, key,
-        api::SnapshotMetadata{/*from_cache=*/false,
-                              /*has_pending_writes=*/false});
-    return MakePublic(std::move(snapshot));
-
-  } else {
-    // TODO(b/147444199): use string formatting.
-    // HARD_FAIL(
-    //     "core::Transaction::Lookup() returned unexpected document type:
-    //     '%s'", doc.type());
-    auto message = std::string(
-                       "core::Transaction::Lookup() returned unexpected "
-                       "document type: '") +
-                   doc.ToString() + "'";
-    SIMPLE_HARD_FAIL(message);
+    return MakePublic(api::DocumentSnapshot::FromNoDocument(
+        firestore, key, api::SnapshotMetadata{false, false}));
   }
+  SIMPLE_HARD_FAIL("core::Transaction::Lookup() returned unexpected document type: '" +
+                   doc.ToString() + "'");
 }
 
 }  // namespace
@@ -100,30 +63,26 @@ TransactionInternal::TransactionInternal(
       firestore_public_{firestore_public},
       user_data_converter_{&firestore_core_->database_id()} {}
 
-Firestore* TransactionInternal::firestore() {
-  return firestore_public_;
+Firestore* TransactionInternal::firestore() { return firestore_public_; }
+FirestoreInternal* TransactionInternal::firestore_internal() {
+  return GetInternal(firestore_public_);
 }
 
-void TransactionInternal::Set(const DocumentReference& document,
-                              const MapFieldValue& data,
+void TransactionInternal::Set(const DocumentReference& document, const MapFieldValue& data,
                               const SetOptions& options) {
   ValidateReference(document);
-  ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
-  transaction_->Set(GetKey(document), std::move(parsed));
+  transaction_->Set(GetKey(document), user_data_converter_.ParseSetData(data, options));
 }
 
-void TransactionInternal::Update(const DocumentReference& document,
-                                 const MapFieldValue& data) {
+void TransactionInternal::Update(const DocumentReference& document, const MapFieldValue& data) {
   ValidateReference(document);
-  transaction_->Update(GetKey(document),
-                       user_data_converter_.ParseUpdateData(data));
+  transaction_->Update(GetKey(document), user_data_converter_.ParseUpdateData(data));
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldPathValue& data) {
   ValidateReference(document);
-  transaction_->Update(GetKey(document),
-                       user_data_converter_.ParseUpdateData(data));
+  transaction_->Update(GetKey(document), user_data_converter_.ParseUpdateData(data));
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
@@ -131,8 +90,7 @@ void TransactionInternal::Delete(const DocumentReference& document) {
   transaction_->Delete(GetKey(document));
 }
 
-DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
-                                          Error* error_code,
+DocumentSnapshot TransactionInternal::Get(const DocumentReference& document, Error* error_code,
                                           std::string* error_message) {
   ValidateReference(document);
 
@@ -149,8 +107,6 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
 
   struct CancelGuard {
     std::shared_ptr<LookupState> state;
-    CancelGuard() = default;
-    CancelGuard(CancelGuard&&) = default;
     ~CancelGuard() {
       if (state) {
         std::scoped_lock lock(state->mutex);
@@ -164,16 +120,13 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   auto guard = std::make_shared<CancelGuard>();
   guard->state = state;
 
-  std::vector<model::DocumentKey> keys{key};
   transaction_->Lookup(
-      keys,
-      [state, guard, firestore_core = std::move(firestore_core),
-       key = std::move(key)](
-          const util::StatusOr<std::vector<Document>>& maybe_docs) mutable {
+      {key}, [state, guard, firestore_core = std::move(firestore_core), key = std::move(key)](
+                 const util::StatusOr<std::vector<Document>>& maybe_docs) mutable {
         StatusOr<DocumentSnapshot> outcome =
             maybe_docs.ok()
-                ? StatusOr<DocumentSnapshot>(ConvertToSingleSnapshot(
-                      firestore_core, std::move(key), maybe_docs.ValueOrDie()))
+                ? StatusOr<DocumentSnapshot>(
+                      ConvertToSingleSnapshot(firestore_core, std::move(key), maybe_docs.ValueOrDie()))
                 : StatusOr<DocumentSnapshot>(maybe_docs.status());
         {
           std::scoped_lock lock(state->mutex);
@@ -190,54 +143,33 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   StatusOr<DocumentSnapshot> result;
   {
     std::unique_lock<std::mutex> lock(state->mutex);
-    if (!state->cv.wait_for(lock, std::chrono::seconds(60),
-                            [&state] { return state->done; })) {
+    if (!state->cv.wait_for(lock, std::chrono::seconds(60), [&state] { return state->done; })) {
       state->done = true;
-      result = Status(Error::kErrorDeadlineExceeded,
-                      "Transaction lookup timed out.");
+      result = Status(Error::kErrorDeadlineExceeded, "Transaction lookup timed out.");
     } else {
       result = std::move(state->result);
     }
   }
 
   if (result.ok()) {
-    if (error_code != nullptr) {
-      *error_code = Error::kErrorOk;
-    }
-    if (error_message != nullptr) {
-      *error_message = "";
-    }
+    if (error_code) *error_code = Error::kErrorOk;
+    if (error_message) *error_message = "";
     return std::move(result).ValueOrDie();
-  } else {
-    if (error_code != nullptr) {
-      *error_code = result.status().code();
-    }
-    if (error_message != nullptr) {
-      *error_message = result.status().error_message();
-    }
-    return DocumentSnapshot{};
   }
+  if (error_code) *error_code = result.status().code();
+  if (error_message) *error_message = result.status().error_message();
+  return DocumentSnapshot{};
 }
 
-void TransactionInternal::MarkPermanentlyFailed() {
-  transaction_->MarkPermanentlyFailed();
-}
+void TransactionInternal::MarkPermanentlyFailed() { transaction_->MarkPermanentlyFailed(); }
 
 void TransactionInternal::ValidateReference(const DocumentReference& document) {
   auto* internal_doc = GetInternal(&document);
   SIMPLE_HARD_ASSERT(internal_doc, "Invalid document reference provided.");
-
   if (internal_doc->firestore() != firestore()) {
     SimpleThrowInvalidArgument(
-        "Provided document reference is from a different Cloud Firestore "
-        "instance.");
+        "Provided document reference is from a different Cloud Firestore instance.");
   }
 }
 
-}  // namespace firebase::firestore
-
-namespace firebase::firestore {
-FirestoreInternal* TransactionInternal::firestore_internal() {
-  return GetInternal(firestore_public_);
-}
 }  // namespace firebase::firestore

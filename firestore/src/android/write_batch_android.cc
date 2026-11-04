@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/write_batch_android.h"
 
@@ -24,12 +10,10 @@
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
-using jni::HashMap;
 using jni::Local;
 using jni::Method;
 using jni::Object;
@@ -66,18 +50,14 @@ void WriteBatchInternal::Set(const DocumentReference& document,
                              const MapFieldValue& data,
                              const SetOptions& options) {
   Env env = GetEnv();
-  Local<HashMap> java_data = MakeJavaMap(env, data);
-  Local<Object> java_options = SetOptionsInternal::Create(env, options);
-
-  env.Call(obj_, kSet, ToJava(document), java_data, java_options);
+  env.Call(obj_, kSet, ToJava(document), MakeJavaMap(env, data),
+           SetOptionsInternal::Create(env, options));
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
                                 const MapFieldValue& data) {
   Env env = GetEnv();
-  Local<HashMap> java_data = MakeJavaMap(env, data);
-
-  env.Call(obj_, kUpdate, ToJava(document), java_data);
+  env.Call(obj_, kUpdate, ToJava(document), MakeJavaMap(env, data));
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
@@ -86,10 +66,8 @@ void WriteBatchInternal::Update(const DocumentReference& document,
     Update(document, MapFieldValue{});
     return;
   }
-
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
-
   env.Call(obj_, kUpdateVarargs, ToJava(document), args.first_field,
            args.first_value, args.varargs);
 }
@@ -101,8 +79,8 @@ void WriteBatchInternal::Delete(const DocumentReference& document) {
 
 Future<void> WriteBatchInternal::Commit() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kCommit);
-  return promises_.NewFuture<void>(env, AsyncFn::kCommit, task);
+  return promises_.NewFuture<void>(env, AsyncFn::kCommit,
+                                   env.Call(obj_, kCommit));
 }
 
 Local<jni::Object> WriteBatchInternal::ToJava(
@@ -110,5 +88,4 @@ Local<jni::Object> WriteBatchInternal::ToJava(
   return reference.internal_ ? reference.internal_->ToJava() : Local<Object>();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

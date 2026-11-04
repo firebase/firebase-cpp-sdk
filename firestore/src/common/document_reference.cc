@@ -1,23 +1,7 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2020 Google LLC
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 
 #include <ostream>
-
 #include <utility>
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
@@ -33,19 +17,17 @@
 #include "firestore/src/android/document_reference_android.h"
 #else
 #include "firestore/src/main/document_reference_main.h"
-#endif  // defined(__ANDROID__)
+#endif
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 using CleanupFnDocumentReference = CleanupFn<DocumentReference>;
 
 DocumentReference::DocumentReference() {}
 
-DocumentReference::DocumentReference(const DocumentReference& reference) {
-  if (reference.internal_) {
-    internal_ = new DocumentReferenceInternal(*reference.internal_);
-  }
+DocumentReference::DocumentReference(const DocumentReference& reference)
+    : internal_(reference.internal_ ? new DocumentReferenceInternal(*reference.internal_)
+                                    : nullptr) {
   CleanupFnDocumentReference::Register(this, internal_);
 }
 
@@ -55,113 +37,76 @@ DocumentReference::DocumentReference(DocumentReference&& reference) {
   CleanupFnDocumentReference::Register(this, internal_);
 }
 
-DocumentReference::DocumentReference(DocumentReferenceInternal* internal)
-    : internal_(internal) {
+DocumentReference::DocumentReference(DocumentReferenceInternal* internal) : internal_(internal) {
   SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnDocumentReference::Register(this, internal_);
 }
 
 DocumentReference::~DocumentReference() {
   CleanupFnDocumentReference::Unregister(this, internal_);
-  delete internal_;
-  internal_ = nullptr;
+  delete std::exchange(internal_, nullptr);
 }
 
-DocumentReference& DocumentReference::operator=(
-    const DocumentReference& reference) {
-  if (this == &reference) {
-    return *this;
-  }
-
+DocumentReference& DocumentReference::operator=(const DocumentReference& reference) {
+  if (this == &reference) return *this;
   CleanupFnDocumentReference::Unregister(this, internal_);
-  delete internal_;
-  internal_ = nullptr;
-  if (reference.internal_) {
-    internal_ = new DocumentReferenceInternal(*reference.internal_);
-  }
+  delete std::exchange(internal_, reference.internal_
+                                      ? new DocumentReferenceInternal(*reference.internal_)
+                                      : nullptr);
   CleanupFnDocumentReference::Register(this, internal_);
   return *this;
 }
 
 DocumentReference& DocumentReference::operator=(DocumentReference&& reference) {
-  if (this == &reference) {
-    return *this;
-  }
-
+  if (this == &reference) return *this;
   CleanupFnDocumentReference::Unregister(&reference, reference.internal_);
   CleanupFnDocumentReference::Unregister(this, internal_);
-  delete internal_;
-  internal_ = reference.internal_;
-  reference.internal_ = nullptr;
+  delete std::exchange(internal_, std::exchange(reference.internal_, nullptr));
   CleanupFnDocumentReference::Register(this, internal_);
   return *this;
 }
 
 const Firestore* DocumentReference::firestore() const {
-  if (!internal_) return {};
-  return internal_->firestore();
+  return internal_ ? internal_->firestore() : nullptr;
 }
-
 Firestore* DocumentReference::firestore() {
-  return const_cast<Firestore*>(
-      static_cast<const DocumentReference&>(*this).firestore());
+  return const_cast<Firestore*>(static_cast<const DocumentReference&>(*this).firestore());
 }
 
 const std::string& DocumentReference::id() const {
-  if (!internal_) return EmptyString();
-  return internal_->id();
+  return internal_ ? internal_->id() : EmptyString();
 }
-
-std::string DocumentReference::path() const {
-  if (!internal_) return "";
-  return internal_->path();
-}
-
+std::string DocumentReference::path() const { return internal_ ? internal_->path() : ""; }
 CollectionReference DocumentReference::Parent() const {
-  if (!internal_) return {};
-  return internal_->Parent();
+  return internal_ ? internal_->Parent() : CollectionReference{};
 }
 
-CollectionReference DocumentReference::Collection(
-    const char* collection_path) const {
+CollectionReference DocumentReference::Collection(const char* collection_path) const {
   if (!collection_path) {
     SimpleThrowInvalidArgument("Collection path cannot be null.");
     return {};
   }
-  if (collection_path[0] == '\0') {
-    SimpleThrowInvalidArgument("Collection path cannot be empty.");
-    return {};
-  }
-
-  if (!internal_) return {};
-  return internal_->Collection(collection_path);
+  return Collection(std::string(collection_path));
 }
 
-CollectionReference DocumentReference::Collection(
-    const std::string& collection_path) const {
+CollectionReference DocumentReference::Collection(const std::string& collection_path) const {
   if (collection_path.empty()) {
     SimpleThrowInvalidArgument("Collection path cannot be empty.");
     return {};
   }
-
-  if (!internal_) return {};
-  return internal_->Collection(collection_path);
+  return internal_ ? internal_->Collection(collection_path) : CollectionReference{};
 }
 
 Future<DocumentSnapshot> DocumentReference::Get(Source source) const {
-  if (!internal_) return FailedFuture<DocumentSnapshot>();
-  return internal_->Get(source);
+  return internal_ ? internal_->Get(source) : FailedFuture<DocumentSnapshot>();
 }
 
-Future<void> DocumentReference::Set(const MapFieldValue& data,
-                                    const SetOptions& options) {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->Set(data, options);
+Future<void> DocumentReference::Set(const MapFieldValue& data, const SetOptions& options) {
+  return internal_ ? internal_->Set(data, options) : FailedFuture<void>();
 }
 
 Future<void> DocumentReference::Update(const MapFieldValue& data) {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->Update(data);
+  return internal_ ? internal_->Update(data) : FailedFuture<void>();
 }
 
 Future<void> DocumentReference::Update(const MapFieldPathValue& data) {
@@ -176,48 +121,39 @@ Future<void> DocumentReference::Update(const MapFieldPathValue& data) {
 }
 
 Future<void> DocumentReference::Delete() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->Delete();
+  return internal_ ? internal_->Delete() : FailedFuture<void>();
 }
 
 ListenerRegistration DocumentReference::AddSnapshotListener(
-    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
-        callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)> callback) {
   return AddSnapshotListener(MetadataChanges::kExclude, std::move(callback));
 }
 
 ListenerRegistration DocumentReference::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
-        callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)> callback) {
   if (!callback) {
     SimpleThrowInvalidArgument(
         "Snapshot listener callback parameter cannot be an empty function.");
     return {};
   }
-
-  if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes, std::move(callback));
+  return internal_ ? internal_->AddSnapshotListener(metadata_changes, std::move(callback))
+                   : ListenerRegistration{};
 }
 
 std::string DocumentReference::ToString() const {
-  if (!is_valid()) return "DocumentReference(invalid)";
-
-  return std::string("DocumentReference(") + path() + ')';
+  return is_valid() ? std::string("DocumentReference(") + path() + ')'
+                    : "DocumentReference(invalid)";
 }
 
-std::ostream& operator<<(std::ostream& out,
-                         const DocumentReference& reference) {
+std::ostream& operator<<(std::ostream& out, const DocumentReference& reference) {
   return out << reference.ToString();
 }
 
 bool operator==(const DocumentReference& lhs, const DocumentReference& rhs) {
-  if (!lhs.internal_ || !rhs.internal_) {
-    return lhs.internal_ == rhs.internal_;
-  }
+  if (!lhs.internal_ || !rhs.internal_) return lhs.internal_ == rhs.internal_;
   return lhs.internal_ == rhs.internal_ ||
          (lhs.firestore() == rhs.firestore() && lhs.path() == rhs.path());
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

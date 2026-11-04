@@ -1,32 +1,16 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_OWNERSHIP_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_OWNERSHIP_H_
 
 #include <jni.h>
 
-#include <string>
+#include <utility>
 
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/traits.h"
 
-namespace firebase {
-namespace firestore {
-namespace jni {
+namespace firebase::firestore::jni {
 
 class GlobalRefReaper {
  public:
@@ -35,40 +19,18 @@ class GlobalRefReaper {
   void Reap(JNIEnv* env);
 };
 
-/**
- * An RAII wrapper for a local JNI reference that automatically deletes the JNI
- * local reference when it goes out of scope. Copies and moves are handled by
- * creating additional references as required.
- *
- * @tparam T A JNI reference wrapper, usually a subclass of `Object`.
- */
 template <typename T>
 class Local : public T {
  public:
   using jni_type = JniType<T>;
 
   Local() = default;
-
-  /**
-   * Adopts a local reference that is the result of a JNI invocation.
-   */
   Local(JNIEnv* env, jni_type value) : T(value), env_(env) {}
 
-  /**
-   * An explicit copy constructor, which prevents accidental copies at function
-   * call sites. Copies of a local reference should rarely be needed. For
-   * example, when keeping a reference as a member of a C++ object or lambda,
-   * you're almost exclusively better off promoting the local reference to a
-   * global one to avoid problems that arise from the thread-local restrictions
-   * of a local reference.
-   */
   explicit Local(const Local& other) {  // NOLINT(google-explicit-constructor)
-    if (other.get() != nullptr) {
-      EnsureEnv(other.env());
-      if (env_ != nullptr) {
-        T::object_ = env_->NewLocalRef(other.get());
-      }
-    } else if (other.env() != nullptr) {
+    if (other.get()) {
+      if (EnsureEnv(other.env())) T::object_ = env_->NewLocalRef(other.get());
+    } else if (other.env()) {
       env_ = other.env();
     }
   }
@@ -76,12 +38,9 @@ class Local : public T {
   Local& operator=(const Local& other) {
     if (this != &other) {
       clear();
-      if (other.get() != nullptr) {
-        EnsureEnv(other.env());
-        if (env_ != nullptr) {
-          T::object_ = env_->NewLocalRef(other.get());
-        }
-      } else if (env_ == nullptr && other.env() != nullptr) {
+      if (other.get()) {
+        if (EnsureEnv(other.env())) T::object_ = env_->NewLocalRef(other.get());
+      } else if (!env_ && other.env()) {
         env_ = other.env();
       }
     }
@@ -92,90 +51,49 @@ class Local : public T {
 
   Local& operator=(Local&& other) noexcept {
     if (this != &other) {
-      if (other.env_ != nullptr) {
-        EnsureEnv(other.env_);
-      }
+      if (other.env_) EnsureEnv(other.env_);
       clear();
       T::object_ = other.release();
     }
     return *this;
   }
 
-  Local(const Global<T>& other) {
-    if (other.get() != nullptr) {
-      EnsureEnv();
-      if (env_ != nullptr) {
-        T::object_ = env_->NewLocalRef(other.get());
-      }
-    }
-  }
+  Local(const Global<T>& other) { *this = other; }
 
   Local& operator=(const Global<T>& other) {
     clear();
-    if (other.get() != nullptr) {
-      EnsureEnv();
-      if (env_ != nullptr) {
-        T::object_ = env_->NewLocalRef(other.get());
-      }
-    }
+    if (other.get() && EnsureEnv()) T::object_ = env_->NewLocalRef(other.get());
     return *this;
   }
 
-  Local(Global<T>&& other) noexcept {
-    if (other.get() != nullptr) {
-      EnsureEnv();
-      if (env_ != nullptr) {
-        T::object_ = env_->NewLocalRef(other.get());
-        env_->DeleteGlobalRef(other.release());
-      }
-    }
-  }
+  Local(Global<T>&& other) noexcept { *this = std::move(other); }
 
   Local& operator=(Global<T>&& other) noexcept {
     clear();
-    if (other.get() != nullptr) {
-      EnsureEnv();
-      if (env_ != nullptr) {
-        T::object_ = env_->NewLocalRef(other.get());
-        env_->DeleteGlobalRef(other.release());
-      }
+    if (other.get() && EnsureEnv()) {
+      T::object_ = env_->NewLocalRef(other.get());
+      env_->DeleteGlobalRef(other.release());
     }
     return *this;
   }
 
-  ~Local() {
-    if (env_ && T::object_) {
-      env_->DeleteLocalRef(T::object_);
-    }
-  }
+  ~Local() { clear(); }
 
-  /** Returns a non-owning proxy of type `U` that points to this object. */
   template <typename U>
-  U CastTo() const& {
-    return U(static_cast<JniType<U>>(get()));
-  }
-
-  /**
-   * Converts this instance to a new local proxy of `U` that points to this
-   * object. Equivalent to passing the result of `release()` to a new `Local<U>`
-   * instance.
-   */
+  U CastTo() const& { return U(static_cast<JniType<U>>(get())); }
   template <typename U>
   Local<U> CastTo() && {
     return Local<U>(env_, static_cast<JniType<U>>(release()));
   }
 
   jni_type get() const override { return static_cast<jni_type>(T::object_); }
-
   jni_type release() {
     return static_cast<jni_type>(std::exchange(T::object_, nullptr));
   }
 
   void clear() {
     if (T::object_) {
-      if (env_) {
-        env_->DeleteLocalRef(T::object_);
-      }
+      if (env_) env_->DeleteLocalRef(T::object_);
       T::object_ = nullptr;
     }
   }
@@ -183,118 +101,50 @@ class Local : public T {
   JNIEnv* env() const { return env_; }
 
  private:
-  void EnsureEnv(JNIEnv* other = nullptr) {
-    if (env_ == nullptr) {
-      if (other != nullptr) {
-        env_ = other;
-      } else {
-        env_ = GetEnv();
-      }
-    }
+  JNIEnv* EnsureEnv(JNIEnv* other = nullptr) {
+    if (!env_) env_ = other ? other : GetEnv();
+    return env_;
   }
-
   JNIEnv* env_ = nullptr;
 };
 
-/**
- * Global references are almost always created by promoting local references.
- * Aside from `NewGlobalRef`, there are no JNI APIs that return global
- * references. You can construct a `Global` wrapper with `AdoptExisting::kYes`
- * in the rare case that you're interoperating with other APIs that produce
- * global JNI references.
- */
 enum class AdoptExisting { kYes };
 
-/**
- * An RAII wrapper for a global JNI reference, that automatically deletes the
- * JNI global reference when it goes out of scope. Copies and moves are handled
- * by creating additional references as required.
- *
- * @tparam T A JNI reference wrapper, usually a subclass of `Object`.
- */
 template <typename T>
 class Global : public T {
  public:
   using jni_type = JniType<T>;
 
   Global() = default;
-
   Global(jni_type object, AdoptExisting) : T(object) {}
-
-  Global(const Local<T>& other) {
-    if (other.get() != nullptr) {
-      JNIEnv* env = EnsureEnv(other.env());
-      if (env != nullptr) {
-        T::object_ = env->NewGlobalRef(other.get());
-      }
-    }
-  }
+  Global(const Local<T>& other) { *this = other; }
 
   Global& operator=(const Local<T>& other) {
-    JNIEnv* env = nullptr;
-    if (T::object_ != nullptr || other.get() != nullptr) {
-      env = EnsureEnv(other.env());
-    }
-    if (T::object_ != nullptr) {
-      if (env != nullptr) {
-        env->DeleteGlobalRef(T::object_);
-      } else {
-        GlobalRefReaper::GetInstance().DeferDelete(T::object_);
-      }
-      T::object_ = nullptr;
-    }
-    if (other.get() != nullptr && env != nullptr) {
-      T::object_ = env->NewGlobalRef(other.get());
-    }
+    JNIEnv* env = (T::object_ || other.get()) ? EnsureEnv(other.env()) : nullptr;
+    DeleteRef(env);
+    if (other.get() && env) T::object_ = env->NewGlobalRef(other.get());
     return *this;
   }
 
-  Global(const T& other) {
-    if (other.get() != nullptr) {
-      JNIEnv* env = GetEnv();
-      if (env != nullptr) {
-        T::object_ = env->NewGlobalRef(other.get());
-      }
-    }
-  }
+  Global(const T& other) { *this = other; }
 
   Global& operator=(const T& other) {
     if (this != &other) {
-      JNIEnv* env = nullptr;
-      if (T::object_ != nullptr || other.get() != nullptr) {
-        env = GetEnv();
-      }
-      jobject new_ref = nullptr;
-      if (other.get() != nullptr && env != nullptr) {
-        new_ref = env->NewGlobalRef(other.get());
-      }
-      if (T::object_ != nullptr) {
-        if (env != nullptr) {
-          env->DeleteGlobalRef(T::object_);
-        } else {
-          GlobalRefReaper::GetInstance().DeferDelete(T::object_);
-        }
-      }
-      T::object_ = new_ref;
+      JNIEnv* env = (T::object_ || other.get()) ? GetEnv() : nullptr;
+      jobject ref =
+          (other.get() && env) ? env->NewGlobalRef(other.get()) : nullptr;
+      DeleteRef(env);
+      T::object_ = ref;
     }
     return *this;
   }
 
-  // Explicitly declare a copy constructor and copy assignment operator because
-  // there's an explicitly declared move constructor for this type.
-  //
-  // Without this, the implicitly-defined copy constructor would be deleted, and
-  // during overload resolution the deleted copy constructor would take priority
-  // over the looser match above that takes `const T&`.
   Global(const Global& other) : Global(static_cast<const T&>(other)) {}
-
   Global& operator=(const Global& other) {
-    *this = static_cast<const T&>(other);
-    return *this;
+    return *this = static_cast<const T&>(other);
   }
 
   Global(Global&& other) noexcept : T(other.release()) {}
-
   Global& operator=(Global&& other) noexcept {
     if (this != &other) {
       clear();
@@ -303,30 +153,12 @@ class Global : public T {
     return *this;
   }
 
-  Global(Local<T>&& other) noexcept {
-    if (other.get() != nullptr) {
-      JNIEnv* env = EnsureEnv(other.env());
-      if (env != nullptr) {
-        T::object_ = env->NewGlobalRef(other.get());
-        env->DeleteLocalRef(other.release());
-      }
-    }
-  }
+  Global(Local<T>&& other) noexcept { *this = std::move(other); }
 
   Global& operator=(Local<T>&& other) noexcept {
-    JNIEnv* env = nullptr;
-    if (T::object_ != nullptr || other.get() != nullptr) {
-      env = EnsureEnv(other.env());
-    }
-    if (T::object_ != nullptr) {
-      if (env != nullptr) {
-        env->DeleteGlobalRef(T::object_);
-      } else {
-        GlobalRefReaper::GetInstance().DeferDelete(T::object_);
-      }
-      T::object_ = nullptr;
-    }
-    if (other.get() != nullptr && env != nullptr) {
+    JNIEnv* env = (T::object_ || other.get()) ? EnsureEnv(other.env()) : nullptr;
+    DeleteRef(env);
+    if (other.get() && env) {
       T::object_ = env->NewGlobalRef(other.get());
       env->DeleteLocalRef(other.release());
     }
@@ -336,35 +168,26 @@ class Global : public T {
   ~Global() { clear(); }
 
   jni_type get() const override { return static_cast<jni_type>(T::object_); }
-
   jni_type release() {
     return static_cast<jni_type>(std::exchange(T::object_, nullptr));
   }
-
-  void clear() {
-    if (T::object_) {
-      JNIEnv* env = GetAttachedEnv();
-      if (env) {
-        env->DeleteGlobalRef(T::object_);
-      } else {
-        GlobalRefReaper::GetInstance().DeferDelete(T::object_);
-      }
-      T::object_ = nullptr;
-    }
-  }
+  void clear() { DeleteRef(T::object_ ? GetAttachedEnv() : nullptr); }
 
  private:
-  JNIEnv* EnsureEnv(JNIEnv* other = nullptr) {
-    if (other != nullptr) {
-      return other;
+  void DeleteRef(JNIEnv* env) {
+    if (!T::object_) return;
+    if (env) {
+      env->DeleteGlobalRef(T::object_);
     } else {
-      return GetEnv();
+      GlobalRefReaper::GetInstance().DeferDelete(T::object_);
     }
+    T::object_ = nullptr;
+  }
+  static JNIEnv* EnsureEnv(JNIEnv* other = nullptr) {
+    return other ? other : GetEnv();
   }
 };
 
-}  // namespace jni
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore::jni
 
 #endif  // FIREBASE_FIRESTORE_SRC_JNI_OWNERSHIP_H_

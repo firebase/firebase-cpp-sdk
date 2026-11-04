@@ -1,27 +1,13 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/settings_android.h"
+
 #include <cstdint>
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Constructor;
@@ -31,7 +17,6 @@ using jni::Method;
 using jni::Object;
 using jni::String;
 
-// class FirebaseFirestoreSettings.Builder
 constexpr char kSettingsBuilderClass[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/FirebaseFirestoreSettings$Builder";
 Constructor<Object> kNewBuilder("()V");
@@ -41,20 +26,16 @@ Method<Object> kSetHost(
     "Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
 Method<Object> kSetSslEnabled(
     "setSslEnabled",
-    "(Z)"
-    "Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
+    "(Z)Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
 Method<Object> kSetPersistenceEnabled(
     "setPersistenceEnabled",
-    "(Z)"
-    "Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
+    "(Z)Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
 Method<Object> kSetCacheSizeBytes(
     "setCacheSizeBytes",
-    "(J)"
-    "Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
+    "(J)Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
 Method<SettingsInternal> kBuild(
     "build", "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
 
-// class FirebaseFirestoreSettings
 constexpr char kSettingsClass[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/FirebaseFirestoreSettings";
 Method<String> kGetHost("getHost", "()Ljava/lang/String;");
@@ -67,7 +48,6 @@ Method<int64_t> kGetCacheSizeBytes("getCacheSizeBytes", "()J");
 void SettingsInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kSettingsBuilderClass, kNewBuilder, kSetHost, kSetSslEnabled,
                    kSetPersistenceEnabled, kSetCacheSizeBytes, kBuild);
-
   loader.LoadClass(kSettingsClass, kGetHost, kIsSslEnabled,
                    kIsPersistenceEnabled, kGetCacheSizeBytes);
 }
@@ -75,40 +55,21 @@ void SettingsInternal::Initialize(jni::Loader& loader) {
 Local<SettingsInternal> SettingsInternal::Create(Env& env,
                                                  const Settings& settings) {
   Local<Object> builder = env.New(kNewBuilder);
-
-  Local<String> host = env.NewStringUtf(settings.host());
-  env.Call(builder, kSetHost, host);
+  env.Call(builder, kSetHost, env.NewStringUtf(settings.host()));
   env.Call(builder, kSetSslEnabled, settings.is_ssl_enabled());
   env.Call(builder, kSetPersistenceEnabled, settings.is_persistence_enabled());
   env.Call(builder, kSetCacheSizeBytes, settings.cache_size_bytes());
-
   return env.Call(builder, kBuild);
 }
 
 Settings SettingsInternal::ToPublic(Env& env) const {
   if (!*this) return {};
-
   Settings result;
-
-  // Set host
-  Local<String> host = env.Call(*this, kGetHost);
-  result.set_host(host.ToString(env));
-
-  // Set SSL enabled
-  bool ssl_enabled = env.Call(*this, kIsSslEnabled);
-  result.set_ssl_enabled(ssl_enabled);
-
-  // Set Persistence enabled
-  bool persistence_enabled = env.Call(*this, kIsPersistenceEnabled);
-  result.set_persistence_enabled(persistence_enabled);
-
-  // Set cache size in bytes
-  int64_t cache_size_bytes = env.Call(*this, kGetCacheSizeBytes);
-  result.set_cache_size_bytes(cache_size_bytes);
-
-  if (!env.ok()) return {};
-  return result;
+  result.set_host(env.Call(*this, kGetHost).ToString(env));
+  result.set_ssl_enabled(env.Call(*this, kIsSslEnabled));
+  result.set_persistence_enabled(env.Call(*this, kIsPersistenceEnabled));
+  result.set_cache_size_bytes(env.Call(*this, kGetCacheSizeBytes));
+  return env.ok() ? result : Settings{};
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

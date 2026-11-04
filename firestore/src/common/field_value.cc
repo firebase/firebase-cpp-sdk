@@ -1,26 +1,10 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2020 Google LLC
 #include "firestore/src/include/firebase/firestore/field_value.h"
-#include <cstdint>
 
+#include <cstdint>
 #include <iomanip>
 #include <ostream>
 #include <sstream>
-
 #include <utility>
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
@@ -32,56 +16,41 @@
 #include "firestore/src/android/field_value_android.h"
 #else
 #include "firestore/src/main/field_value_main.h"
-#endif  // defined(__ANDROID__)
+#endif
 
-namespace firebase {
-namespace firestore {
-
+namespace firebase::firestore {
 namespace {
 
 using Type = FieldValue::Type;
 
 template <typename T>
 std::string ValueToString(const T& value) {
-  // TODO(b/192885139): use `std::to_string` once possible.
   std::ostringstream stream;
   stream << value;
   return stream.str();
 }
 
-// TODO(varconst): optional indentation.
 std::string ValueToString(const std::vector<FieldValue>& value) {
   std::string result = "[";
-
   bool is_first = true;
   for (const FieldValue& e : value) {
-    if (!is_first) {
-      result += ", ";
-    }
-    is_first = false;
-
+    if (!std::exchange(is_first, false)) result += ", ";
     result += e.ToString();
   }
-
   result += ']';
   return result;
 }
 
-// The output will look like "00 0a"
 std::string ValueToString(const uint8_t* blob, size_t size) {
   std::ostringstream stream;
   stream << "Blob(";
-
   if (blob != nullptr && size > 0) {
     stream << std::hex << std::setfill('0');
     for (size_t i = 0; i < size; ++i) {
-      if (i > 0) {
-        stream << " ";
-      }
+      if (i > 0) stream << " ";
       stream << std::setw(2) << static_cast<int>(blob[i]);
     }
   }
-
   stream << ")";
   return stream.str();
 }
@@ -89,21 +58,14 @@ std::string ValueToString(const uint8_t* blob, size_t size) {
 }  // namespace
 
 FieldValue::FieldValue() {}
-
 FieldValue::FieldValue(const FieldValue& value)
     : internal_(value.internal_ ? new FieldValueInternal(*value.internal_) : nullptr) {}
-
 FieldValue::FieldValue(FieldValue&& value) noexcept
     : internal_(std::exchange(value.internal_, nullptr)) {}
-
 FieldValue::FieldValue(FieldValueInternal* internal) : internal_(internal) {
   SIMPLE_HARD_ASSERT(internal != nullptr);
 }
-
-FieldValue::~FieldValue() {
-  delete internal_;
-  internal_ = nullptr;
-}
+FieldValue::~FieldValue() { delete std::exchange(internal_, nullptr); }
 
 FieldValue& FieldValue::operator=(const FieldValue& value) {
   FieldValue tmp(value);
@@ -116,208 +78,96 @@ FieldValue& FieldValue::operator=(FieldValue&& value) noexcept {
   return *this;
 }
 
-/* static */
-FieldValue FieldValue::Boolean(bool value) {
-  return FieldValue{new FieldValueInternal(value)};
-}
-
-/* static */
-FieldValue FieldValue::Integer(int64_t value) {
-  return FieldValue{new FieldValueInternal(value)};
-}
-
-/* static */
-FieldValue FieldValue::Double(double value) {
-  return FieldValue{new FieldValueInternal(value)};
-}
-
-/* static */
+FieldValue FieldValue::Boolean(bool value) { return FieldValue{new FieldValueInternal(value)}; }
+FieldValue FieldValue::Integer(int64_t value) { return FieldValue{new FieldValueInternal(value)}; }
+FieldValue FieldValue::Double(double value) { return FieldValue{new FieldValueInternal(value)}; }
 FieldValue FieldValue::Timestamp(firebase::Timestamp value) {
   return FieldValue{new FieldValueInternal(value)};
 }
-
-/* static */
 FieldValue FieldValue::String(std::string value) {
   return FieldValue{new FieldValueInternal(std::move(value))};
 }
-
-/* static */
 FieldValue FieldValue::Blob(const uint8_t* value, size_t size) {
   return FieldValue{new FieldValueInternal(value, size)};
 }
-
-/* static */
 FieldValue FieldValue::Reference(firebase::firestore::DocumentReference value) {
   return FieldValue{new FieldValueInternal(std::move(value))};
 }
-
-/* static */
 FieldValue FieldValue::GeoPoint(firebase::firestore::GeoPoint value) {
   return FieldValue{new FieldValueInternal(value)};
 }
-
-/* static */
 FieldValue FieldValue::Array(std::vector<FieldValue> value) {
   return FieldValue{new FieldValueInternal(std::move(value))};
 }
-
-/* static */
 FieldValue FieldValue::Map(MapFieldValue value) {
   return FieldValue{new FieldValueInternal(std::move(value))};
 }
 
-Type FieldValue::type() const {
-  if (!internal_) return Type::kNull;
-  return internal_->type();
-}
-
-bool FieldValue::boolean_value() const {
-  if (!internal_) return {};
-  return internal_->boolean_value();
-}
-
-int64_t FieldValue::integer_value() const {
-  if (!internal_) return {};
-  return internal_->integer_value();
-}
-
-double FieldValue::double_value() const {
-  if (!internal_) return {};
-  return internal_->double_value();
-}
-
+Type FieldValue::type() const { return internal_ ? internal_->type() : Type::kNull; }
+bool FieldValue::boolean_value() const { return internal_ ? internal_->boolean_value() : false; }
+int64_t FieldValue::integer_value() const { return internal_ ? internal_->integer_value() : 0; }
+double FieldValue::double_value() const { return internal_ ? internal_->double_value() : 0.0; }
 Timestamp FieldValue::timestamp_value() const {
-  if (!internal_) return {};
-  return internal_->timestamp_value();
+  return internal_ ? internal_->timestamp_value() : firebase::Timestamp{};
 }
-
 std::string FieldValue::string_value() const {
-  if (!internal_) return "";
-  return internal_->string_value();
+  return internal_ ? internal_->string_value() : "";
 }
-
 const uint8_t* FieldValue::blob_value() const {
-  if (!internal_) return {};
-  return internal_->blob_value();
+  return internal_ ? internal_->blob_value() : nullptr;
 }
-
-size_t FieldValue::blob_size() const {
-  if (!internal_) return {};
-  return internal_->blob_size();
-}
-
+size_t FieldValue::blob_size() const { return internal_ ? internal_->blob_size() : 0; }
 DocumentReference FieldValue::reference_value() const {
-  if (!internal_) return {};
-  return internal_->reference_value();
+  return internal_ ? internal_->reference_value() : DocumentReference{};
 }
-
 GeoPoint FieldValue::geo_point_value() const {
-  if (!internal_) return {};
-  return internal_->geo_point_value();
+  return internal_ ? internal_->geo_point_value() : firebase::firestore::GeoPoint{};
 }
-
 std::vector<FieldValue> FieldValue::array_value() const {
-  if (!internal_) return std::vector<FieldValue>{};
-  return internal_->array_value();
+  return internal_ ? internal_->array_value() : std::vector<FieldValue>{};
 }
-
 MapFieldValue FieldValue::map_value() const {
-  if (!internal_) return MapFieldValue{};
-  return internal_->map_value();
+  return internal_ ? internal_->map_value() : MapFieldValue{};
 }
 
-/* static */
-FieldValue FieldValue::Null() {
-  return FieldValue{new FieldValueInternal()};
-}
-
-/* static */
+FieldValue FieldValue::Null() { return FieldValue{new FieldValueInternal()}; }
 FieldValue FieldValue::Delete() { return FieldValueInternal::Delete(); }
-
-/* static */
-FieldValue FieldValue::ServerTimestamp() {
-  return FieldValueInternal::ServerTimestamp();
-}
-
-/* static */
+FieldValue FieldValue::ServerTimestamp() { return FieldValueInternal::ServerTimestamp(); }
 FieldValue FieldValue::ArrayUnion(std::vector<FieldValue> elements) {
   return FieldValueInternal::ArrayUnion(std::move(elements));
 }
-
-/* static */
 FieldValue FieldValue::ArrayRemove(std::vector<FieldValue> elements) {
   return FieldValueInternal::ArrayRemove(std::move(elements));
 }
-
-/* static */
 FieldValue FieldValue::IntegerIncrement(int64_t by_value) {
   return FieldValueInternal::IntegerIncrement(by_value);
 }
-
-/* static */
 FieldValue FieldValue::DoubleIncrement(double by_value) {
   return FieldValueInternal::DoubleIncrement(by_value);
 }
 
-// TODO(varconst): consider reversing the role of the two output functions, so
-// that `ToString` delegates to `operator<<`, not the other way round.
 std::string FieldValue::ToString() const {
   if (!is_valid()) return "<invalid>";
-
   switch (type()) {
-    case Type::kNull:
-      return "null";
-
-    case Type::kBoolean:
-      return boolean_value() ? "true" : "false";
-
-    case Type::kInteger:
-      return ValueToString(integer_value());
-
-    case Type::kDouble:
-      return ValueToString(double_value());
-
-    case Type::kTimestamp:
-      return timestamp_value().ToString();
-
-    case Type::kString:
-      return std::string("'") + string_value() + "'";
-
-    case Type::kBlob:
-      return ValueToString(blob_value(), blob_size());
-
-    case Type::kReference:
-      return reference_value().ToString();
-
-    case Type::kGeoPoint:
-      return geo_point_value().ToString();
-
-    case Type::kArray:
-      return ValueToString(array_value());
-
-    case Type::kMap:
-      return ::firebase::firestore::ToString(map_value());
-
-    case Type::kDelete:
-      return "FieldValue::Delete()";
-
-    case Type::kServerTimestamp:
-      return "FieldValue::ServerTimestamp()";
-
-    case Type::kArrayUnion:
-      return "FieldValue::ArrayUnion()";
-
-    case Type::kArrayRemove:
-      return "FieldValue::ArrayRemove()";
-
+    case Type::kNull: return "null";
+    case Type::kBoolean: return boolean_value() ? "true" : "false";
+    case Type::kInteger: return ValueToString(integer_value());
+    case Type::kDouble: return ValueToString(double_value());
+    case Type::kTimestamp: return timestamp_value().ToString();
+    case Type::kString: return std::string("'") + string_value() + "'";
+    case Type::kBlob: return ValueToString(blob_value(), blob_size());
+    case Type::kReference: return reference_value().ToString();
+    case Type::kGeoPoint: return geo_point_value().ToString();
+    case Type::kArray: return ValueToString(array_value());
+    case Type::kMap: return ::firebase::firestore::ToString(map_value());
+    case Type::kDelete: return "FieldValue::Delete()";
+    case Type::kServerTimestamp: return "FieldValue::ServerTimestamp()";
+    case Type::kArrayUnion: return "FieldValue::ArrayUnion()";
+    case Type::kArrayRemove: return "FieldValue::ArrayRemove()";
     case Type::kIncrementInteger:
     case Type::kIncrementDouble:
       return "FieldValue::Increment()";
   }
-
-
-  // TODO(b/147444199): use string formatting.
-  // HARD_FAIL("Unexpected FieldValue type: %s", static_cast<int>(type()));
   SIMPLE_HARD_FAIL("Unexpected FieldValue type");
 }
 
@@ -329,5 +179,4 @@ std::ostream& operator<<(std::ostream& out, const FieldValue& value) {
   return out << value.ToString();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

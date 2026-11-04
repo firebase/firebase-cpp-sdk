@@ -1,18 +1,4 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 Google LLC
 
 #include "firestore/src/android/load_bundle_task_progress_android.h"
 
@@ -21,8 +7,7 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::Env;
@@ -50,20 +35,16 @@ StaticField<Object> kTaskStateRunning(
     "RUNNING",
     "Lcom/google/firebase/firestore/LoadBundleTaskProgress$TaskState;");
 
-LoadBundleTaskProgress::State ToPublicState(Env& env,
-                                            const Object& progress) {
+LoadBundleTaskProgress::State ToPublicState(Env& env, const Object& progress) {
   Local<Object> state = env.Call(progress, kGetTaskState);
   if (!env.ok()) return LoadBundleTaskProgress::State::kError;
-  Local<Object> running_state = env.Get(kTaskStateRunning);
-  Local<Object> success_state = env.Get(kTaskStateSuccess);
-
-  if (Object::Equals(env, state, success_state)) {
+  if (Object::Equals(env, state, env.Get(kTaskStateSuccess))) {
     return LoadBundleTaskProgress::State::kSuccess;
-  } else if (Object::Equals(env, state, running_state)) {
-    return LoadBundleTaskProgress::State::kInProgress;
-  } else {  // "ERROR"
-    return LoadBundleTaskProgress::State::kError;
   }
+  if (Object::Equals(env, state, env.Get(kTaskStateRunning))) {
+    return LoadBundleTaskProgress::State::kInProgress;
+  }
+  return LoadBundleTaskProgress::State::kError;
 }
 
 }  // namespace
@@ -74,45 +55,35 @@ void LoadBundleTaskProgressInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kStateEnumName, kTaskStateSuccess, kTaskStateRunning);
 }
 
-/* static */
 LoadBundleTaskProgress LoadBundleTaskProgressInternal::ToPublic(
     Env& env, const Object& progress) {
-  if (!progress) {
-    return {};
-  }
-  int32_t documents_loaded = env.Call(progress, kGetDocumentsLoaded);
-  int32_t total_documents = env.Call(progress, kGetTotalDocuments);
-  int64_t bytes_loaded = env.Call(progress, kGetBytesLoaded);
-  int64_t total_bytes = env.Call(progress, kGetTotalBytes);
-  LoadBundleTaskProgress::State state = ToPublicState(env, progress);
-  return LoadBundleTaskProgress(documents_loaded, total_documents, bytes_loaded,
-                                total_bytes, state);
+  if (!progress) return {};
+  return LoadBundleTaskProgress(env.Call(progress, kGetDocumentsLoaded),
+                                env.Call(progress, kGetTotalDocuments),
+                                env.Call(progress, kGetBytesLoaded),
+                                env.Call(progress, kGetTotalBytes),
+                                ToPublicState(env, progress));
 }
 
 int32_t LoadBundleTaskProgressInternal::documents_loaded() const {
   Env env = GetEnv();
   return env.Call(obj_, kGetDocumentsLoaded);
 }
-
 int32_t LoadBundleTaskProgressInternal::total_documents() const {
   Env env = GetEnv();
   return env.Call(obj_, kGetTotalDocuments);
 }
-
 int64_t LoadBundleTaskProgressInternal::bytes_loaded() const {
   Env env = GetEnv();
   return env.Call(obj_, kGetBytesLoaded);
 }
-
 int64_t LoadBundleTaskProgressInternal::total_bytes() const {
   Env env = GetEnv();
   return env.Call(obj_, kGetTotalBytes);
 }
-
 LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const {
   Env env = GetEnv();
   return ToPublicState(env, obj_.get(env));
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

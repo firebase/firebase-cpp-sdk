@@ -1,25 +1,9 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2021 Google LLC
 #include "firestore/src/main/query_main.h"
+
 #include <cassert>
 #include <cstdint>
-
 #include <utility>
-
 #include "Firestore/core/src/api/aggregate_query.h"
 #include "Firestore/core/src/api/listener_registration.h"
 #include "Firestore/core/src/core/filter.h"
@@ -46,8 +30,7 @@
 #include "firestore/src/main/source_main.h"
 #include "firestore/src/main/util_main.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 using model::DeepClone;
 using model::DocumentKey;
@@ -68,253 +51,165 @@ QueryInternal::QueryInternal(api::Query&& query)
       user_data_converter_{&query_.firestore()->database_id()} {}
 
 Firestore* QueryInternal::firestore() { return GetFirestore(&query_); }
-
-FirestoreInternal* QueryInternal::firestore_internal() {
-  return GetFirestoreInternal(&query_);
-}
-
+FirestoreInternal* QueryInternal::firestore_internal() { return GetFirestoreInternal(&query_); }
 const FirestoreInternal* QueryInternal::firestore_internal() const {
   return GetFirestoreInternal(&query_);
 }
 
-Query QueryInternal::OrderBy(const FieldPath& field_path,
-                             Query::Direction direction) const {
-  api::Query decorated = query_.OrderBy(
-      GetInternal(field_path), direction == Query::Direction::kDescending);
-  return MakePublic(std::move(decorated));
+Query QueryInternal::OrderBy(const FieldPath& field_path, Query::Direction direction) const {
+  return MakePublic(
+      query_.OrderBy(GetInternal(field_path), direction == Query::Direction::kDescending));
 }
 
-Query QueryInternal::Limit(int32_t limit) const {
-  return MakePublic(query_.LimitToFirst(limit));
-}
-
+Query QueryInternal::Limit(int32_t limit) const { return MakePublic(query_.LimitToFirst(limit)); }
 Query QueryInternal::LimitToLast(int32_t limit) const {
   return MakePublic(query_.LimitToLast(limit));
 }
 
 Future<QuerySnapshot> QueryInternal::Get(Source source) {
   auto promise = promise_factory_.CreatePromise<QuerySnapshot>(AsyncApis::kGet);
-  auto listener = ListenerWithPromise<api::QuerySnapshot>(promise);
-  query_.GetDocuments(ToCoreApi(source), std::move(listener));
+  query_.GetDocuments(ToCoreApi(source), ListenerWithPromise<api::QuerySnapshot>(promise));
   return promise.future();
 }
 
-AggregateQuery QueryInternal::Count() const {
-  return MakePublic(query_.Count());
-}
+AggregateQuery QueryInternal::Count() const { return MakePublic(query_.Count()); }
 
 Query QueryInternal::Where(const Filter& filter) const {
-  if (filter.IsEmpty()) {
-    return MakePublic(api::Query{query_});
-  }
-  core::Filter core_filter =
-      GetInternal(&filter)->ToCoreFilter(query_, user_data_converter_);
-  api::Query decorated = query_.AddNewFilter(std::move(core_filter));
-  return MakePublic(std::move(decorated));
+  if (filter.IsEmpty()) return MakePublic(api::Query{query_});
+  return MakePublic(
+      query_.AddNewFilter(GetInternal(&filter)->ToCoreFilter(query_, user_data_converter_)));
 }
 
-Query QueryInternal::Where(const FieldPath& field_path,
-                           Operator op,
+Query QueryInternal::Where(const FieldPath& field_path, Operator op,
                            const FieldValue& value) const {
   return Where(UnaryFilterInternal::UnaryFilter(field_path, op, value));
 }
 
-Query QueryInternal::Where(const FieldPath& field_path,
-                           Operator op,
+Query QueryInternal::Where(const FieldPath& field_path, Operator op,
                            const std::vector<FieldValue>& values) const {
   return Where(UnaryFilterInternal::UnaryFilter(field_path, op, values));
 }
 
-Query QueryInternal::WithBound(BoundPosition bound_pos,
-                               const DocumentSnapshot& snapshot) const {
-  core::Bound bound = ToBound(bound_pos, snapshot);
-  return MakePublic(CreateQueryWithBound(bound_pos, std::move(bound)));
+Query QueryInternal::WithBound(BoundPosition bound_pos, const DocumentSnapshot& snapshot) const {
+  return MakePublic(CreateQueryWithBound(bound_pos, ToBound(bound_pos, snapshot)));
 }
 
 Query QueryInternal::WithBound(BoundPosition bound_pos,
                                const std::vector<FieldValue>& values) const {
-  core::Bound bound = ToBound(bound_pos, values);
-  return MakePublic(CreateQueryWithBound(bound_pos, std::move(bound)));
+  return MakePublic(CreateQueryWithBound(bound_pos, ToBound(bound_pos, values)));
 }
 
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener) {
   auto options = core::ListenOptions::FromIncludeMetadataChanges(
       metadata_changes == MetadataChanges::kInclude);
-  auto result = query_.AddSnapshotListener(
-      options, ListenerWithEventListener<api::QuerySnapshot>(listener));
-  return MakePublic(std::move(result), firestore_internal());
+  return MakePublic(
+      query_.AddSnapshotListener(options, ListenerWithEventListener<api::QuerySnapshot>(listener)),
+      firestore_internal());
 }
 
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const QuerySnapshot&, Error, const std::string&)>
-        callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)> callback) {
   auto options = core::ListenOptions::FromIncludeMetadataChanges(
       metadata_changes == MetadataChanges::kInclude);
-  auto result = query_.AddSnapshotListener(
-      options, ListenerWithCallback<api::QuerySnapshot>(std::move(callback)));
-  return MakePublic(std::move(result), firestore_internal());
+  return MakePublic(query_.AddSnapshotListener(
+                        options, ListenerWithCallback<api::QuerySnapshot>(std::move(callback))),
+                    firestore_internal());
 }
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {
   return lhs.query_ == rhs.query_;
 }
 
-core::Bound QueryInternal::ToBound(
-    BoundPosition bound_pos, const DocumentSnapshot& public_snapshot) const {
+core::Bound QueryInternal::ToBound(BoundPosition bound_pos,
+                                   const DocumentSnapshot& public_snapshot) const {
   if (!public_snapshot.exists()) {
     SimpleThrowInvalidArgument(
-        "Invalid query. You are trying to start or end a query using a "
-        "document that doesn't exist.");
+        "Invalid query. You are trying to start or end a query using a document that doesn't exist.");
   }
-
   const api::DocumentSnapshot& api_snapshot = GetCoreApi(public_snapshot);
   const model::DatabaseId& database_id = query_.firestore()->database_id();
   if (api_snapshot.firestore()->database_id() != database_id) {
     SimpleThrowInvalidArgument(
-        "Invalid query. You are trying to start or end a query using a "
-        "document from a different database.");
+        "Invalid query. You are trying to start or end a query using a document from a different database.");
   }
-  const model::DocumentKey& key =
-      api_snapshot.internal_document().value()->key();
+  const model::DocumentKey& key = api_snapshot.internal_document().value()->key();
   const core::Query& internal_query = query_.query();
 
   SharedMessage<google_firestore_v1_ArrayValue> components{{}};
-  components->values_count =
-      CheckedSize(internal_query.normalized_order_bys().size());
-  components->values =
-      MakeArray<google_firestore_v1_Value>(components->values_count);
-
-  // Because people expect to continue/end a query at the exact document
-  // provided, we need to use the implicit sort order rather than the explicit
-  // sort order, because it's guaranteed to contain the document key. That way
-  // the position becomes unambiguous and the query continues/ends exactly at
-  // the provided document. Without the key (by using the explicit sort orders),
-  // multiple documents could match the position, yielding duplicate results.
+  components->values_count = CheckedSize(internal_query.normalized_order_bys().size());
+  components->values = MakeArray<google_firestore_v1_Value>(components->values_count);
 
   for (size_t i = 0; i < internal_query.normalized_order_bys().size(); ++i) {
-    const core::OrderBy& order_by = internal_query.normalized_order_bys()[i];
-    const model::FieldPath& field_path = order_by.field();
-
+    const model::FieldPath& field_path = internal_query.normalized_order_bys()[i].field();
     if (field_path.IsKeyFieldPath()) {
       components->values[i] = *RefValue(database_id, key).release();
       continue;
     }
-
-    absl::optional<google_firestore_v1_Value> value =
-        api_snapshot.GetValue(field_path);
+    absl::optional<google_firestore_v1_Value> value = api_snapshot.GetValue(field_path);
     if (!value) {
-      // TODO(b/147444199): use string formatting.
-      // ThrowInvalidArgument(
-      //     "Invalid query. You are trying to start or end a query using a "
-      //     "document for which the field '%s' (used as the order by) does not
-      //     " "exist.", field_path.CanonicalString());
-      auto message = std::string(
-                         "Invalid query. You are trying to start or end a "
-                         "query using a document for which the field '") +
-                     field_path.CanonicalString() +
-                     "' (used as the order by) does not exist.";
-      SimpleThrowInvalidArgument(message);
+      SimpleThrowInvalidArgument(
+          "Invalid query. You are trying to start or end a query using a document for which the field '" +
+          field_path.CanonicalString() + "' (used as the order by) does not exist.");
     }
-
     if (IsServerTimestamp(*value)) {
-      // TODO(b/147444199): use string formatting.
-      // ThrowInvalidArgument(
-      //     "Invalid query. You are trying to start or end a query using a "
-      //     "document for which the field '%s' is an uncommitted server "
-      //     "timestamp. (Since the value of this field is unknown, you cannot "
-      //     "start/end a query with it.)",
-      //     field_path.CanonicalString());
-      auto message =
-          std::string(
-              "Invalid query. You are trying to start or end a query using a "
-              "document for which the field '") +
+      SimpleThrowInvalidArgument(
+          "Invalid query. You are trying to start or end a query using a document for which the field '" +
           field_path.CanonicalString() +
-          "' is an uncommitted server timestamp. (Since the value of this "
-          "field is unknown, you cannot start/end a query with it.)";
-      SimpleThrowInvalidArgument(message);
+          "' is an uncommitted server timestamp. (Since the value of this field is unknown, you cannot start/end a query with it.)");
     }
-
     components->values[i] = *DeepClone(*value).release();
   }
-
   return core::Bound::FromValue(std::move(components), IsInclusive(bound_pos));
 }
 
-core::Bound QueryInternal::ToBound(
-    BoundPosition bound_pos,
-    const std::vector<FieldValue>& field_values) const {
+core::Bound QueryInternal::ToBound(BoundPosition bound_pos,
+                                   const std::vector<FieldValue>& field_values) const {
   const core::Query& internal_query = query_.query();
-  // Use explicit order bys  because it has to match the query the user made.
-  const std::vector<core::OrderBy>& explicit_order_bys =
-      internal_query.explicit_order_bys();
-
+  const std::vector<core::OrderBy>& explicit_order_bys = internal_query.explicit_order_bys();
   if (field_values.size() > explicit_order_bys.size()) {
     SimpleThrowInvalidArgument(
-        "Invalid query. You are trying to start or end a query using more "
-        "values than were specified in the order by.");
+        "Invalid query. You are trying to start or end a query using more values than were specified in the order by.");
   }
 
   SharedMessage<google_firestore_v1_ArrayValue> components{{}};
   components->values_count = CheckedSize(field_values.size());
-  components->values =
-      MakeArray<google_firestore_v1_Value>(components->values_count);
+  components->values = MakeArray<google_firestore_v1_Value>(components->values_count);
 
   for (size_t i = 0; i != field_values.size(); ++i) {
     Message<google_firestore_v1_Value> field_value =
         user_data_converter_.ParseQueryValue(field_values[i]);
-    const core::OrderBy& order_by = explicit_order_bys[i];
-    if (order_by.field().IsKeyFieldPath()) {
-      components->values[i] =
-          *ConvertDocumentId(field_value, internal_query).release();
+    if (explicit_order_bys[i].field().IsKeyFieldPath()) {
+      components->values[i] = *ConvertDocumentId(field_value, internal_query).release();
     } else {
       components->values[i] = *field_value.release();
     }
   }
-
   return core::Bound::FromValue(std::move(components), IsInclusive(bound_pos));
 }
 
 Message<google_firestore_v1_Value> QueryInternal::ConvertDocumentId(
-    const Message<google_firestore_v1_Value>& from,
-    const core::Query& internal_query) const {
+    const Message<google_firestore_v1_Value>& from, const core::Query& internal_query) const {
   if (GetTypeOrder(*from) != TypeOrder::kString) {
-    SimpleThrowInvalidArgument(
-        "Invalid query. Expected a string for the document ID.");
+    SimpleThrowInvalidArgument("Invalid query. Expected a string for the document ID.");
   }
-
   std::string document_id = MakeString(from->string_value);
   if (document_id.empty()) {
+    SimpleThrowInvalidArgument("Invalid query. Document ID must not be an empty string.");
+  }
+  if (!internal_query.IsCollectionGroupQuery() && document_id.find('/') != std::string::npos) {
     SimpleThrowInvalidArgument(
-        "Invalid query. Document ID must not be an empty string.");
+        "Invalid query. When querying a collection and ordering by document ID, you must pass a plain document ID, but '" +
+        document_id + "' contains a slash.");
   }
-
-  if (!internal_query.IsCollectionGroupQuery() &&
-      document_id.find('/') != std::string::npos) {
-    auto message =
-        std::string(
-            "Invalid query. When querying a collection and ordering "
-            "by document ID, you must pass a plain document ID, but '") +
-        document_id + "' contains a slash.";
-    SimpleThrowInvalidArgument(message);
-  }
-
-  ResourcePath path =
-      internal_query.path().Append(ResourcePath::FromString(document_id));
+  ResourcePath path = internal_query.path().Append(ResourcePath::FromString(document_id));
   if (!DocumentKey::IsDocumentKey(path)) {
-    auto message =
-        std::string(
-            "Invalid query. When querying a collection group and ordering by "
-            "document ID, you must pass a value that results in a valid "
-            "document path, but '") +
-        path.CanonicalString() +
-        "' is not because it contains an odd number of segments.";
-    SimpleThrowInvalidArgument(message);
+    SimpleThrowInvalidArgument(
+        "Invalid query. When querying a collection group and ordering by document ID, you must pass a value that results in a valid document path, but '" +
+        path.CanonicalString() + "' is not because it contains an odd number of segments.");
   }
-
-  const model::DatabaseId& database_id = query_.firestore()->database_id();
-  return RefValue(database_id, DocumentKey{std::move(path)});
+  return RefValue(query_.firestore()->database_id(), DocumentKey{std::move(path)});
 }
 
 api::Query QueryInternal::CreateQueryWithBound(BoundPosition bound_pos,
@@ -323,12 +218,10 @@ api::Query QueryInternal::CreateQueryWithBound(BoundPosition bound_pos,
     case BoundPosition::kStartAt:
     case BoundPosition::kStartAfter:
       return query_.StartAt(std::move(bound));
-
     case BoundPosition::kEndBefore:
     case BoundPosition::kEndAt:
       return query_.EndAt(std::move(bound));
   }
-
   FIRESTORE_UNREACHABLE();
 }
 
@@ -337,14 +230,11 @@ bool QueryInternal::IsInclusive(BoundPosition bound_pos) {
     case BoundPosition::kStartAt:
     case BoundPosition::kEndAt:
       return true;
-
     case BoundPosition::kStartAfter:
     case BoundPosition::kEndBefore:
       return false;
   }
-
   FIRESTORE_UNREACHABLE();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

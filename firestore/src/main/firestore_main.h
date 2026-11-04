@@ -1,19 +1,4 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2021 Google LLC
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
 
@@ -24,7 +9,6 @@
 #include <mutex>  // NOLINT(build/c++11)
 #include <string>
 #include <unordered_set>
-
 #include "Firestore/core/src/api/firestore.h"
 #include "Firestore/core/src/credentials/credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
@@ -42,21 +26,18 @@
 #error "This header should not be used on Android."
 #endif
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 class Firestore;
 class ListenerRegistrationInternal;
 class Transaction;
 class WriteBatch;
-
 namespace util {
 class Executor;
 }
 
 class FirestoreInternal {
  public:
-  // Note: call `set_firestore_public` immediately after construction.
   FirestoreInternal(App* app, const std::string& database_id);
   ~FirestoreInternal();
 
@@ -64,76 +45,46 @@ class FirestoreInternal {
   FirestoreInternal& operator=(const FirestoreInternal&) = delete;
 
   App* app() const { return app_; }
-
-  // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return app_ != nullptr; }
-
-  // Manages all Future objects returned from Firestore API.
   FutureManager& future_manager() { return future_manager_; }
-
-  // When this is deleted, it will clean up all DocumentReferences,
-  // DocumentSnapshots, and other such objects.
   CleanupNotifier& cleanup() { return cleanup_; }
 
   CollectionReference Collection(const char* collection_path) const;
-
   DocumentReference Document(const char* document_path) const;
-
   Query CollectionGroup(const char* collection_id) const;
 
   Settings settings() const;
   void set_settings(Settings settings);
-
   WriteBatch batch() const;
 
-  Future<void> RunTransaction(
-      std::function<Error(Transaction&, std::string&)> update,
-      int32_t max_attempts);
-
+  Future<void> RunTransaction(std::function<Error(Transaction&, std::string&)> update,
+                              int32_t max_attempts);
   Future<void> DisableNetwork();
-
   Future<void> EnableNetwork();
-
   Future<void> Terminate();
-
   Future<void> WaitForPendingWrites();
-
   Future<void> ClearPersistence();
 
-  ListenerRegistration AddSnapshotsInSyncListener(
-      EventListener<void>* listener);
-  ListenerRegistration AddSnapshotsInSyncListener(
-      std::function<void()> callback);
+  ListenerRegistration AddSnapshotsInSyncListener(EventListener<void>* listener);
+  ListenerRegistration AddSnapshotsInSyncListener(std::function<void()> callback);
 
-  const model::DatabaseId& database_id() const {
-    return firestore_core_->database_id();
-  }
-
+  const model::DatabaseId& database_id() const { return firestore_core_->database_id(); }
   const std::string& database_name() const { return database_name_; }
 
-  // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
   Future<LoadBundleTaskProgress> LoadBundle(
       const std::string& bundle,
       std::function<void(const LoadBundleTaskProgress&)> progress_callback);
   Future<Query> NamedQuery(const std::string& query_name);
 
-  // Manages the ListenerRegistrationInternal objects.
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
-  void UnregisterListenerRegistration(
-      ListenerRegistrationInternal* registration);
+  void UnregisterListenerRegistration(ListenerRegistrationInternal* registration);
   void ClearListeners();
 
-  void set_firestore_public(Firestore* firestore_public) {
-    firestore_public_ = firestore_public;
-  }
-
+  void set_firestore_public(Firestore* firestore_public) { firestore_public_ = firestore_public; }
   Firestore* firestore_public() { return firestore_public_; }
   const Firestore* firestore_public() const { return firestore_public_; }
-
-  const std::shared_ptr<api::Firestore>& firestore_core() const {
-    return firestore_core_;
-  }
+  const std::shared_ptr<api::Firestore>& firestore_core() const { return firestore_core_; }
 
   static void SetClientLanguage(const std::string& language_token);
 
@@ -153,18 +104,14 @@ class FirestoreInternal {
   };
 
   FirestoreInternal(
-      App* app,
-      const std::string& database_id,
+      App* app, const std::string& database_id,
       std::shared_ptr<credentials::AuthCredentialsProvider> auth_credentials,
-      std::shared_ptr<credentials::AppCheckCredentialsProvider>
-          app_check_credentials);
+      std::shared_ptr<credentials::AppCheckCredentialsProvider> app_check_credentials);
 
   std::shared_ptr<api::Firestore> CreateFirestore(
-      App* app,
-      const std::string& database_id,
+      App* app, const std::string& database_id,
       std::shared_ptr<credentials::AuthCredentialsProvider> auth_credentials,
-      std::shared_ptr<credentials::AppCheckCredentialsProvider>
-          app_check_credentials);
+      std::shared_ptr<credentials::AppCheckCredentialsProvider> app_check_credentials);
 
   void ApplyDefaultSettings();
 
@@ -172,7 +119,6 @@ class FirestoreInternal {
   Firestore* firestore_public_ = nullptr;
   std::shared_ptr<api::Firestore> firestore_core_;
 
-  // TODO(b/136119216): revamp this mechanism on both iOS and Android.
   std::mutex listeners_mutex_;
   std::unordered_set<ListenerRegistrationInternal*> listeners_;
 
@@ -186,7 +132,6 @@ class FirestoreInternal {
   std::shared_ptr<std::atomic<bool>> is_alive_ = std::make_shared<std::atomic<bool>>(true);
 };
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_

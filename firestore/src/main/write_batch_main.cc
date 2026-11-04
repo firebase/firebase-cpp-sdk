@@ -1,23 +1,7 @@
-/*
- * Copyright 2021 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2021 Google LLC
 #include "firestore/src/main/write_batch_main.h"
 
 #include <utility>
-
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/field_path.h"
 #include "firestore/src/common/exception_common.h"
@@ -28,11 +12,7 @@
 #include "firestore/src/main/set_options_main.h"
 #include "firestore/src/main/util_main.h"
 
-namespace firebase {
-namespace firestore {
-
-using core::ParsedSetData;
-using core::ParsedUpdateData;
+namespace firebase::firestore {
 
 WriteBatchInternal::WriteBatchInternal(api::WriteBatch&& batch)
     : batch_{std::move(batch)},
@@ -40,52 +20,36 @@ WriteBatchInternal::WriteBatchInternal(api::WriteBatch&& batch)
       user_data_converter_{&batch_.firestore()->database_id()} {}
 
 Firestore* WriteBatchInternal::firestore() { return GetFirestore(&batch_); }
-
 FirestoreInternal* WriteBatchInternal::firestore_internal() {
   return GetFirestoreInternal(&batch_);
 }
 
-void WriteBatchInternal::Set(const DocumentReference& document,
-                             const MapFieldValue& data,
+void WriteBatchInternal::Set(const DocumentReference& document, const MapFieldValue& data,
                              const SetOptions& options) {
-  if (!document.is_valid()) {
-    SimpleThrowInvalidArgument("Invalid document reference provided.");
-  }
-  ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
-  batch_.SetData(GetCoreApi(document), std::move(parsed));
+  if (!document.is_valid()) SimpleThrowInvalidArgument("Invalid document reference provided.");
+  batch_.SetData(GetCoreApi(document), user_data_converter_.ParseSetData(data, options));
 }
 
-void WriteBatchInternal::Update(const DocumentReference& document,
-                                const MapFieldValue& data) {
-  if (!document.is_valid()) {
-    SimpleThrowInvalidArgument("Invalid document reference provided.");
-  }
-  batch_.UpdateData(GetCoreApi(document),
-                    user_data_converter_.ParseUpdateData(data));
+void WriteBatchInternal::Update(const DocumentReference& document, const MapFieldValue& data) {
+  if (!document.is_valid()) SimpleThrowInvalidArgument("Invalid document reference provided.");
+  batch_.UpdateData(GetCoreApi(document), user_data_converter_.ParseUpdateData(data));
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
                                 const MapFieldPathValue& data) {
-  if (!document.is_valid()) {
-    SimpleThrowInvalidArgument("Invalid document reference provided.");
-  }
-  batch_.UpdateData(GetCoreApi(document),
-                    user_data_converter_.ParseUpdateData(data));
+  if (!document.is_valid()) SimpleThrowInvalidArgument("Invalid document reference provided.");
+  batch_.UpdateData(GetCoreApi(document), user_data_converter_.ParseUpdateData(data));
 }
 
 void WriteBatchInternal::Delete(const DocumentReference& document) {
-  if (!document.is_valid()) {
-    SimpleThrowInvalidArgument("Invalid document reference provided.");
-  }
+  if (!document.is_valid()) SimpleThrowInvalidArgument("Invalid document reference provided.");
   batch_.DeleteData(GetCoreApi(document));
 }
 
 Future<void> WriteBatchInternal::Commit() {
   auto promise = promise_factory_.CreatePromise<void>(AsyncApis::kCommit);
-  auto callback = StatusCallbackWithPromise(promise);
-  batch_.Commit(std::move(callback));
+  batch_.Commit(StatusCallbackWithPromise(promise));
   return promise.future();
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

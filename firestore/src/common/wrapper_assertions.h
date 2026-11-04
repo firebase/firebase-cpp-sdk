@@ -1,42 +1,23 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+// Copyright 2020 Google LLC
 #ifndef FIREBASE_FIRESTORE_SRC_COMMON_WRAPPER_ASSERTIONS_H_
 #define FIREBASE_FIRESTORE_SRC_COMMON_WRAPPER_ASSERTIONS_H_
 
+#include <utility>
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "gtest/gtest.h"
 
 #if defined(__ANDROID__)
 #include <jni.h>
-
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/firestore_android.h"
-#endif  // defined(__ANDROID__)
+#endif
 
-#include <utility>
-
-#include "gtest/gtest.h"
-
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 
 #if defined(__ANDROID__)
 App* GetApp();
-#endif  // defined(__ANDROID__)
+#endif
 
 class ListenerRegistrationInternal;
 
@@ -50,53 +31,16 @@ FirestoreTypeInternal* NewInternal() {
   Firestore* firestore = Firestore::GetInstance(GetApp(), &init_result);
   EXPECT_EQ(kInitResultSuccess, init_result);
   jni::Env env;
-
-  FirestoreInternal* internal = GetInternal(firestore);
-
-  // We use a Java String object as a dummy to create the internal type. There
-  // is no generic way to create an actual Java object of internal type. But
-  // since we do not actually make any JNI calls to the Java object, any Java
-  // object is just as good. We cannot pass in nullptr since most of the wrapper
-  // does not allow to wrap nullptr object.
   auto dummy = env.NewStringUtf("dummy");
-  return new FirestoreTypeInternal(internal, dummy);
+  return new FirestoreTypeInternal(GetInternal(firestore), dummy);
 }
 
 template <>
 FieldValueInternal* NewInternal<FieldValueInternal>();
-
-// It is technically complicated to create a true ListenerRegistrationInternal.
-// All ListenerRegistrationInternal are owned by FirestoreInternal and require
-// registering with the native SDK (i.e. using dummy Java object is infeasible).
-// So we just return a nullptr for test.
 template <>
 ListenerRegistrationInternal* NewInternal<ListenerRegistrationInternal>();
 
-#else  // defined(__ANDROID__)
-
-template <typename FirestoreTypeInternal>
-FirestoreTypeInternal* NewInternal() {
-  return new FirestoreTypeInternal();
-}
-
-#endif  // defined(__ANDROID__)
-
-#if defined(__ANDROID__)
-// A helper that tests the common contract of the construction logic of
-// Firestore wrapper class:
-//   * The default constructed FirestoreType has the internal_ set to nullptr;
-//   * FirestoreType constructed from FirestoreTypeInternal has the internal_
-//     set to the passed in FirestoreTypeInternal instance;
-//   * FirestoreType copy-constructed from another FirestoreType has internal_
-//     set to a non-nullptr instance of FirestoreTypeInternal, which should be
-//     equal to the internal_ of the other FirestoreType instance but we cannot
-//     verify this yet.
-//   * FirestoreType move-constructed from another FirestoreType has internal_
-//     set to the internal_ of the other FirestoreType, which now has nullptr
-//     as its internal_.
-// Here we assume FirestoreTypeInternal is default constructible.
-template <typename FirestoreType,
-          typename FirestoreTypeInternal = InternalType<FirestoreType>>
+template <typename FirestoreType, typename FirestoreTypeInternal = InternalType<FirestoreType>>
 void AssertWrapperConstructionContract() {
   FirestoreType default_instance;
   EXPECT_EQ(nullptr, GetInternal(default_instance));
@@ -114,18 +58,7 @@ void AssertWrapperConstructionContract() {
   EXPECT_EQ(nullptr, GetInternal(instance));
 }
 
-// A helper that tests the common contract of the assignment logic of Firestore
-// wrapper class.
-//   * FirestoreType copy-assigned from another FirestoreType has internal_
-//     set to a non-nullptr instance of FirestoreTypeInternal, which should be
-//     equal to the internal_ of the other FirestoreType instance but we cannot
-//     verify this yet.
-//   * FirestoreType move-assigned from another FirestoreType has internal_
-//     set to the internal_ of the other FirestoreType, which now has nullptr
-//     as its internal_.
-// Here we assume FirestoreTypeInternal is default constructible.
-template <typename FirestoreType,
-          typename FirestoreTypeInternal = InternalType<FirestoreType>>
+template <typename FirestoreType, typename FirestoreTypeInternal = InternalType<FirestoreType>>
 void AssertWrapperAssignmentContract() {
   auto* internal = NewInternal<FirestoreTypeInternal>();
   auto instance = MakePublic<FirestoreType>(internal);
@@ -140,10 +73,16 @@ void AssertWrapperAssignmentContract() {
   EXPECT_EQ(nullptr, GetInternal(instance));
 }
 
-#endif  // defined(__ANDROID__)
+#else
+
+template <typename FirestoreTypeInternal>
+FirestoreTypeInternal* NewInternal() {
+  return new FirestoreTypeInternal();
+}
+
+#endif
 
 }  // namespace testutil
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore
 
 #endif  // FIREBASE_FIRESTORE_SRC_COMMON_WRAPPER_ASSERTIONS_H_

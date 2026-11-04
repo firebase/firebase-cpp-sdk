@@ -1,18 +1,4 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #include "firestore/src/android/field_value_android.h"
 
@@ -38,8 +24,7 @@
 #include "firestore/src/jni/long.h"
 #include "firestore/src/jni/set.h"
 
-namespace firebase {
-namespace firestore {
+namespace firebase::firestore {
 namespace {
 
 using jni::ArenaRef;
@@ -58,11 +43,8 @@ using jni::Map;
 using jni::Object;
 using jni::StaticMethod;
 using jni::String;
-
 using Type = FieldValue::Type;
 
-// com.google.firebase.firestore.FieldValue is the public type which contains
-// static methods to build sentinel values.
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/FieldValue";
 StaticMethod<Object> kArrayRemove(
@@ -88,19 +70,15 @@ void FieldValueInternal::Initialize(jni::Loader& loader) {
 }
 
 FieldValue FieldValueInternal::Create(Env& env, const Object& object) {
-  // Treat a null object as a null FieldValue.
   if (!env.ok()) return {};
-  if (!object) {
-    return FieldValue(new FieldValueInternal());
-  }
-  return FieldValue(new FieldValueInternal(object));
+  return FieldValue(object ? new FieldValueInternal(object)
+                           : new FieldValueInternal());
 }
 
-FieldValue FieldValueInternal::Create(Env& env,
-                                      Type type,
+FieldValue FieldValueInternal::Create(Env& env, Type type,
                                       const Object& object) {
-  if (!env.ok() || !object) return {};
-  return FieldValue(new FieldValueInternal(type, object));
+  return (env.ok() && object) ? FieldValue(new FieldValueInternal(type, object))
+                              : FieldValue{};
 }
 
 FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {}
@@ -121,25 +99,23 @@ FieldValueInternal::FieldValueInternal(FieldValueInternal&& other) noexcept {
 
 FieldValueInternal& FieldValueInternal::operator=(
     const FieldValueInternal& other) {
-  if (this == &other) {
-    return *this;
+  if (this != &other) {
+    std::scoped_lock lock(mutex_, other.mutex_);
+    object_ = other.object_;
+    cached_type_ = other.cached_type_;
+    cached_blob_ = other.cached_blob_;
   }
-  std::scoped_lock lock(mutex_, other.mutex_);
-  object_ = other.object_;
-  cached_type_ = other.cached_type_;
-  cached_blob_ = other.cached_blob_;
   return *this;
 }
 
 FieldValueInternal& FieldValueInternal::operator=(
     FieldValueInternal&& other) noexcept {
-  if (this == &other) {
-    return *this;
+  if (this != &other) {
+    std::scoped_lock lock(mutex_, other.mutex_);
+    object_ = std::move(other.object_);
+    cached_type_ = other.cached_type_;
+    cached_blob_ = std::move(other.cached_blob_);
   }
-  std::scoped_lock lock(mutex_, other.mutex_);
-  object_ = std::move(other.object_);
-  cached_type_ = other.cached_type_;
-  cached_blob_ = std::move(other.cached_blob_);
   return *this;
 }
 
@@ -185,10 +161,6 @@ FieldValueInternal::FieldValueInternal(std::string value)
   object_.reset(env, env.NewStringUtf(value));
 }
 
-// We do not initialize cached_blob_ with value here as the instance constructed
-// with const uint8_t* is generally used for updating Firestore while
-// cached_blob_ is only needed when reading from Firestore and calling with
-// blob_value().
 FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
     : cached_type_(Type::kBlob) {
   Env env = GetEnv();
@@ -197,7 +169,7 @@ FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
     : cached_type_{Type::kReference} {
-  if (value.is_valid() && value.internal_ != nullptr) {
+  if (value.is_valid() && value.internal_) {
     Env env = GetEnv();
     object_.reset(env, value.internal_->ToJava());
   }
@@ -213,10 +185,7 @@ FieldValueInternal::FieldValueInternal(const std::vector<FieldValue>& value)
     : cached_type_(Type::kArray) {
   Env env = GetEnv();
   Local<ArrayList> list = ArrayList::Create(env, value.size());
-  for (const FieldValue& element : value) {
-    // TODO(b/150016438): don't conflate invalid `FieldValue`s and null.
-    list.Add(env, ToJava(element));
-  }
+  for (const FieldValue& element : value) list.Add(env, ToJava(element));
   object_.reset(env, list);
 }
 
@@ -224,10 +193,8 @@ FieldValueInternal::FieldValueInternal(const MapFieldValue& value)
     : cached_type_(Type::kMap) {
   Env env = GetEnv();
   Local<HashMap> map = HashMap::Create(env);
-  for (const auto& kv : value) {
-    // TODO(b/150016438): don't conflate invalid `FieldValue`s and null.
-    Local<String> key = env.NewStringUtf(kv.first);
-    map.Put(env, key, ToJava(kv.second));
+  for (const auto& [k, v] : value) {
+    map.Put(env, env.NewStringUtf(k), ToJava(v));
   }
   object_.reset(env, map);
 }
@@ -235,13 +202,8 @@ FieldValueInternal::FieldValueInternal(const MapFieldValue& value)
 Type FieldValueInternal::type() const {
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (cached_type_.has_value()) {
-      return cached_type_.value();
-    }
+    if (cached_type_.has_value()) return *cached_type_;
   }
-
-  // We do not have any knowledge on the type yet. Check the runtime type with
-  // each known type.
   Env env = GetEnv();
   Local<Object> object;
   {
@@ -308,64 +270,40 @@ std::string FieldValueInternal::string_value() const {
 }
 
 const uint8_t* FieldValueInternal::blob_value() const {
-  static_assert(sizeof(uint8_t) == sizeof(jbyte),
-                "uint8_t and jbyte must be of same size");
-
   Env env = GetEnv();
   EnsureCachedBlob(env);
   std::lock_guard<std::mutex> lock(mutex_);
-  if (!env.ok() || cached_blob_ == nullptr) {
-    return nullptr;
-  }
-
-  return cached_blob_->data();
+  return (env.ok() && cached_blob_) ? cached_blob_->data() : nullptr;
 }
 
 size_t FieldValueInternal::blob_size() const {
   Env env = GetEnv();
   EnsureCachedBlob(env);
   std::lock_guard<std::mutex> lock(mutex_);
-  if (!env.ok() || cached_blob_ == nullptr) {
-    return 0;
-  }
-
-  return cached_blob_->size();
+  return (env.ok() && cached_blob_) ? cached_blob_->size() : 0;
 }
 
 void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   auto blob = Cast<BlobInternal>(env, Type::kBlob);
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (cached_blob_ != nullptr) {
-      return;
-    }
+    if (cached_blob_) return;
   }
-
   Local<Array<uint8_t>> bytes = blob.ToBytes(env);
   size_t size = bytes.Size(env);
-
   auto result = std::make_shared<std::vector<uint8_t>>(size);
-  if (size > 0) {
-    env.GetArrayRegion(bytes, 0, size, result->data());
-  }
+  if (size > 0) env.GetArrayRegion(bytes, 0, size, result->data());
 
   std::lock_guard<std::mutex> lock(mutex_);
-  if (cached_blob_ != nullptr) {
-    return;
-  }
-
-  if (env.ok()) {
-    cached_blob_ = std::move(result);
-  }
+  if (!cached_blob_ && env.ok()) cached_blob_ = std::move(result);
 }
 
 DocumentReference FieldValueInternal::reference_value() const {
   Env env = GetEnv();
   auto reference = Cast<Object>(env, Type::kReference);
-  if (!env.ok() || !reference) {
-    return DocumentReference{};
-  }
-  return DocumentReferenceInternal::Create(env, reference);
+  return (env.ok() && reference)
+             ? DocumentReferenceInternal::Create(env, reference)
+             : DocumentReference{};
 }
 
 GeoPoint FieldValueInternal::geo_point_value() const {
@@ -377,40 +315,25 @@ std::vector<FieldValue> FieldValueInternal::array_value() const {
   Env env = GetEnv();
   auto list = Cast<List>(env, Type::kArray);
   size_t size = list.Size(env);
-
   std::vector<FieldValue> result;
   result.reserve(size);
-
-  for (size_t i = 0; i < size; ++i) {
-    if (!env.ok()) break;
-    Local<Object> element = list.Get(env, i);
-    result.push_back(FieldValueInternal::Create(env, element));
+  for (size_t i = 0; i < size && env.ok(); ++i) {
+    result.push_back(FieldValueInternal::Create(env, list.Get(env, i)));
   }
-
-  if (!env.ok()) return std::vector<FieldValue>();
-  return result;
+  return env.ok() ? result : std::vector<FieldValue>();
 }
 
 MapFieldValue FieldValueInternal::map_value() const {
   Env env = GetEnv();
   auto map = Cast<Map>(env, Type::kMap);
-
   MapFieldValue result;
   Local<Iterator> iter = map.KeySet(env).Iterator(env);
-
-  while (iter.HasNext(env)) {
-    if (!env.ok()) break;
+  while (iter.HasNext(env) && env.ok()) {
     Local<Object> java_key = iter.Next(env);
-    std::string key = java_key.ToString(env);
-
-    Local<Object> java_value = map.Get(env, java_key);
-    FieldValue value = FieldValueInternal::Create(env, java_value);
-
-    result.insert(std::make_pair(std::move(key), std::move(value)));
+    result.emplace(java_key.ToString(env),
+                   FieldValueInternal::Create(env, map.Get(env, java_key)));
   }
-
-  if (!env.ok()) return MapFieldValue();
-  return result;
+  return env.ok() ? result : MapFieldValue();
 }
 
 FieldValue FieldValueInternal::Delete() {
@@ -423,44 +346,38 @@ FieldValue FieldValueInternal::ServerTimestamp() {
   return Create(env, Type::kServerTimestamp, env.Call(kServerTimestamp));
 }
 
-FieldValue FieldValueInternal::ArrayUnion(
-    std::vector<FieldValue> elements) {
+FieldValue FieldValueInternal::ArrayUnion(std::vector<FieldValue> elements) {
   Env env = GetEnv();
-  auto array = MakeArray(env, elements);
-  return Create(env, Type::kArrayUnion, env.Call(kArrayUnion, array));
+  return Create(env, Type::kArrayUnion,
+                env.Call(kArrayUnion, MakeArray(env, elements)));
 }
 
-FieldValue FieldValueInternal::ArrayRemove(
-    std::vector<FieldValue> elements) {
+FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
   Env env = GetEnv();
-  auto array = MakeArray(env, elements);
-  return Create(env, Type::kArrayRemove, env.Call(kArrayRemove, array));
+  return Create(env, Type::kArrayRemove,
+                env.Call(kArrayRemove, MakeArray(env, elements)));
 }
 
 FieldValue FieldValueInternal::IntegerIncrement(int64_t by_value) {
   Env env = GetEnv();
-  Local<Object> increment = env.Call(kIncrementInteger, by_value);
-  return Create(env, Type::kIncrementInteger, increment);
+  return Create(env, Type::kIncrementInteger,
+                env.Call(kIncrementInteger, by_value));
 }
 
 FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
   Env env = GetEnv();
-  Local<Object> increment = env.Call(kIncrementDouble, by_value);
-  return Create(env, Type::kIncrementDouble, increment);
+  return Create(env, Type::kIncrementDouble,
+                env.Call(kIncrementDouble, by_value));
 }
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
-  if (lhs.type() != rhs.type()) {
-    return false;
-  }
-  return jni::EqualityCompareJni(lhs, rhs);
+  return lhs.type() == rhs.type() && jni::EqualityCompareJni(lhs, rhs);
 }
 
 template <typename T>
 Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
-  Local<Object> obj;
   std::lock_guard<std::mutex> lock(mutex_);
-  obj = object_.get(env);
+  Local<Object> obj = object_.get(env);
   if (!cached_type_.has_value()) {
     FIREBASE_ASSERT(env.IsInstanceOf(obj, T::GetClass()));
     cached_type_ = type;
@@ -468,20 +385,6 @@ Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
     FIREBASE_ASSERT(*cached_type_ == type);
   }
   return std::move(obj).CastTo<T>();
-}
-
-template <>
-Local<String> FieldValueInternal::Cast<String>(jni::Env& env, Type type) const {
-  Local<Object> obj;
-  std::lock_guard<std::mutex> lock(mutex_);
-  obj = object_.get(env);
-  if (!cached_type_.has_value()) {
-    FIREBASE_ASSERT(env.IsInstanceOf(obj, String::GetClass()));
-    cached_type_ = type;
-  } else {
-    FIREBASE_ASSERT(*cached_type_ == type);
-  }
-  return std::move(obj).CastTo<String>();
 }
 
 Local<Array<Object>> FieldValueInternal::MakeArray(
@@ -502,13 +405,12 @@ Local<Object> FieldValueInternal::ToJava() const {
 }
 
 Local<Object> FieldValueInternal::ToJava(const FieldValue& value) {
-  if (!value.is_valid() || value.internal_ == nullptr) {
+  if (!value.is_valid() || !value.internal_) {
     SimpleThrowInvalidArgument("Invalid FieldValue provided.");
-    return Local<Object>();
+    return {};
   }
   Env env = GetEnv();
   return value.internal_->object_.get(env);
 }
 
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore

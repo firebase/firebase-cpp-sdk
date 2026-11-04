@@ -1,47 +1,40 @@
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 Google LLC
 
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
 
 #include <cstdint>
 
+#include "app/src/util_android.h"
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/object.h"
 
-namespace firebase {
-namespace firestore {
-namespace jni {
+namespace firebase::firestore::jni {
 
-/** A C++ proxy for a Java `Long`. */
 class Long : public Object {
  public:
   using Object::Object;
 
-  static void Initialize(Loader& loader);
+  static void Initialize(Loader& loader) {
+    g_clazz_ = firebase::util::long_class::GetClass();
+    loader.LoadFromExistingClass("java/lang/Long", g_clazz_, kValueOf_,
+                                 kLongValue_);
+  }
 
-  static Class GetClass();
+  static Class GetClass() { return Class(g_clazz_); }
+  static Local<Long> Create(Env& env, int64_t value) {
+    return env.Call(kValueOf_, value);
+  }
+  int64_t LongValue(Env& env) const { return env.Call(*this, kLongValue_); }
 
-  static Local<Long> Create(Env& env, int64_t value);
-
-  int64_t LongValue(Env& env) const;
+ private:
+  static inline StaticMethod<Long> kValueOf_{"valueOf", "(J)Ljava/lang/Long;"};
+  static inline Method<int64_t> kLongValue_{"longValue", "()J"};
+  static inline jclass g_clazz_ = nullptr;
 };
 
-}  // namespace jni
-}  // namespace firestore
-}  // namespace firebase
+}  // namespace firebase::firestore::jni
 
 #endif  // FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
