@@ -104,6 +104,7 @@ void CleanupCredentialFutureImpl();
   void ReauthenticateAndRetrieveData(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential);
   Future<AuthResult> ReauthenticateWithProvider(AuthData* auth_data, FederatedAuthProvider* provider);
   void UpdatePhoneNumberCredential(AuthData* auth_data, Promise<User> promise, const PhoneAuthCredential& credential);
+  void SignOut(AuthData* auth_data);
 
 }  // namespace auth
 }  // namespace firebase

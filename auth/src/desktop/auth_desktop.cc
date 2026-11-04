@@ -633,6 +633,10 @@ void LoadFinishTriggerListeners(AuthData* auth_data) {
   NotifyIdTokenListeners(auth_data);
 }
 
+void SignOut(AuthData* auth_data) {
+  AuthenticationResult::SignOut(auth_data);
+}
+
 void IdTokenRefreshThread::WakeThread() { wakeup_sem_.Post(); }
 
 IdTokenRefreshThread::IdTokenRefreshThread()

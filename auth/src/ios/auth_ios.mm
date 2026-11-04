@@ -604,5 +604,16 @@ NSError *_Nullable RemapBadProviderIDErrors(NSError *_Nullable error) {
 void EnableTokenAutoRefresh(AuthData *auth_data) { (void)auth_data; }
 void DisableTokenAutoRefresh(AuthData *auth_data) { (void)auth_data; }
 
+void SignOut(AuthData *auth_data) {
+  if (!auth_data) return;
+  NSError *_Nullable error = nil;
+  if ([AuthImpl(auth_data) signOut:&error]) {
+    MutexLock lock(auth_data->future_impl.mutex());
+    SetUserImpl(auth_data, nullptr);
+  } else if (error != nil) {
+    LogError("Failed to sign out: %s", ErrorMessageFromNSError(error).c_str());
+  }
+}
+
 }  // namespace auth
 }  // namespace firebase

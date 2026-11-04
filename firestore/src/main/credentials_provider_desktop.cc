@@ -22,7 +22,7 @@
 #include "Firestore/core/src/util/status.h"
 #include "app/src/function_registry.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "firebase/auth/types.h"
+#include "auth/src/include/firebase/auth/types.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"

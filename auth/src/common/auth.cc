@@ -496,7 +496,7 @@ User Auth::current_user() {
 }
 
 void Auth::SignOut() {
-  AuthenticationResult::SignOut(auth_data_);
+  ::firebase::auth::SignOut(auth_data_);
 }
 
 }  // namespace auth
