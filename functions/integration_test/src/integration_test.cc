@@ -325,7 +325,7 @@ TEST_F(FirebaseFunctionsTest, TestFunction) {
   auto future = TestFunction("addNumbers", &data, firebase::Variant::Null());
   ASSERT_NE(future.result(), nullptr);
   firebase::Variant result = future.result()->data();
-  EXPECT_TRUE(result.is_map());
+  ASSERT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 12);
 }
 
@@ -435,7 +435,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURL) {
       TestFunctionFromURL(url.c_str(), &data, firebase::Variant::Null());
   ASSERT_NE(future.result(), nullptr);
   firebase::Variant result = future.result()->data();
-  EXPECT_TRUE(result.is_map());
+  ASSERT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 6);
 }
 
@@ -458,7 +458,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionWithLimitedUseAppCheckToken) {
       TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null());
   ASSERT_NE(future.result(), nullptr);
   firebase::Variant result = future.result()->data();
-  EXPECT_TRUE(result.is_map());
+  ASSERT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 12);
 }
 
@@ -487,7 +487,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
       TestFunctionHelper(url.c_str(), ref, &data, firebase::Variant::Null());
   ASSERT_NE(future.result(), nullptr);
   firebase::Variant result = future.result()->data();
-  EXPECT_TRUE(result.is_map());
+  ASSERT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 6);
 }
 
@@ -510,7 +510,7 @@ TEST_F(FirebaseFunctionsTest, TestV1FunctionWithLimitedUseAppCheckToken) {
       TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null());
   ASSERT_NE(future.result(), nullptr);
   firebase::Variant result = future.result()->data();
-  EXPECT_TRUE(result.is_map());
+  ASSERT_TRUE(result.is_map());
   EXPECT_EQ(result.map()["operationResult"], 12);
 }
 

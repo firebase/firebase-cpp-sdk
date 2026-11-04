@@ -174,10 +174,11 @@ AppCheck::~AppCheck() { DeleteInternal(); }
 
 void AppCheck::DeleteInternal() {
   std::shared_ptr<internal::AppCheckInternal> internal_to_destroy;
+  ::firebase::App* current_app = nullptr;
   {
     MutexLock lock(GetAppCheckLock());
     if (!internal_) return;
-    ::firebase::App* current_app = internal_->app();
+    current_app = internal_->app();
     internal_ = nullptr;
 
     if (g_internal_map) {
@@ -192,6 +193,11 @@ void AppCheck::DeleteInternal() {
       if (g_app_check_map->empty()) {
         delete std::exchange(g_app_check_map, nullptr);
       }
+    }
+  }
+  if (current_app) {
+    if (auto* notifier = CleanupNotifier::FindByOwner(current_app)) {
+      notifier->UnregisterObject(this);
     }
   }
   internal_to_destroy.reset();
