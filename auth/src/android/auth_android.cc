@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-#include "app/src/jni/exception.h"
 #include <jni.h>
-#include "app/src/jni/declaration.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -26,6 +24,8 @@
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/jni/declaration.h"
+#include "app/src/jni/exception.h"
 #include "app/src/log.h"
 #include "app/src/util_android.h"
 #include "auth/auth_resources.h"
@@ -36,77 +36,61 @@ namespace auth {
 
 using ::firebase::jni::JStringToString;
 
-// Used to setup the cache of Auth class method IDs to reduce time spent
-// looking up methods by string.
-// clang-format off
-#define AUTH_METHODS(X)                                                        \
-  X(GetInstance, "getInstance",                                                \
-    "(Lcom/google/firebase/FirebaseApp;)"                                      \
-    "Lcom/google/firebase/auth/FirebaseAuth;", firebase::jni::kMethodTypeStatic) \
-  X(GetCurrentUser, "getCurrentUser",                                          \
-    "()Lcom/google/firebase/auth/FirebaseUser;") \
-  X(GetLanguageCode, "getLanguageCode",                                        \
-    "()Ljava/lang/String;") \
-  X(SetLanguageCode, "setLanguageCode",                                        \
-    "(Ljava/lang/String;)V") \
-  X(UseAppLanguage, "useAppLanguage", "()V") \
-  X(AddAuthStateListener, "addAuthStateListener",                              \
-    "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V") \
-  X(RemoveAuthStateListener, "removeAuthStateListener",                        \
-    "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V") \
-  X(AddIdTokenListener, "addIdTokenListener",                                  \
-    "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V") \
-  X(RemoveIdTokenListener, "removeIdTokenListener",                            \
-    "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V") \
-  X(SignOut, "signOut", "()V") \
-  X(UseEmulator, "useEmulator", "(Ljava/lang/String;I)V") \
-  X(FetchSignInMethodsForEmail, "fetchSignInMethodsForEmail",                  \
-    "(Ljava/lang/String;)"                                                     \
-    "Lcom/google/android/gms/tasks/Task;") \
-  X(SignInWithCustomToken, "signInWithCustomToken",                            \
-    "(Ljava/lang/String;)"                                                     \
-    "Lcom/google/android/gms/tasks/Task;") \
-  X(SignInWithCredential, "signInWithCredential",                              \
-    "(Lcom/google/firebase/auth/AuthCredential;)"                              \
-    "Lcom/google/android/gms/tasks/Task;") \
-  X(SignInAnonymously, "signInAnonymously",                                    \
-    "()Lcom/google/android/gms/tasks/Task;") \
-  X(SignInWithEmailAndPassword, "signInWithEmailAndPassword",                  \
-    "(Ljava/lang/String;Ljava/lang/String;)"                                   \
-    "Lcom/google/android/gms/tasks/Task;") \
-  X(CreateUserWithEmailAndPassword, "createUserWithEmailAndPassword",          \
-    "(Ljava/lang/String;Ljava/lang/String;)"                                   \
-    "Lcom/google/android/gms/tasks/Task;") \
-  X(SendPasswordResetEmail, "sendPasswordResetEmail",                          \
-    "(Ljava/lang/String;)"                                                     \
-    "Lcom/google/android/gms/tasks/Task;")
-// clang-format on
+#define AUTH_METHODS(X)                                                      \
+  X(GetInstance, "getInstance",                                              \
+    "(Lcom/google/firebase/FirebaseApp;)"                                    \
+    "Lcom/google/firebase/auth/FirebaseAuth;",                               \
+    firebase::jni::kMethodTypeStatic)                                        \
+  X(GetCurrentUser, "getCurrentUser",                                        \
+    "()Lcom/google/firebase/auth/FirebaseUser;")                             \
+  X(GetLanguageCode, "getLanguageCode", "()Ljava/lang/String;")              \
+  X(SetLanguageCode, "setLanguageCode", "(Ljava/lang/String;)V")             \
+  X(UseAppLanguage, "useAppLanguage", "()V")                                 \
+  X(AddAuthStateListener, "addAuthStateListener",                            \
+    "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V")          \
+  X(RemoveAuthStateListener, "removeAuthStateListener",                      \
+    "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V")          \
+  X(AddIdTokenListener, "addIdTokenListener",                                \
+    "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V")            \
+  X(RemoveIdTokenListener, "removeIdTokenListener",                          \
+    "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V")            \
+  X(SignOut, "signOut", "()V")                                               \
+  X(UseEmulator, "useEmulator", "(Ljava/lang/String;I)V")                    \
+  X(FetchSignInMethodsForEmail, "fetchSignInMethodsForEmail",                \
+    "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;")               \
+  X(SignInWithCustomToken, "signInWithCustomToken",                          \
+    "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;")               \
+  X(SignInWithCredential, "signInWithCredential",                            \
+    "(Lcom/google/firebase/auth/AuthCredential;)"                            \
+    "Lcom/google/android/gms/tasks/Task;")                                   \
+  X(SignInAnonymously, "signInAnonymously",                                  \
+    "()Lcom/google/android/gms/tasks/Task;")                                 \
+  X(SignInWithEmailAndPassword, "signInWithEmailAndPassword",                \
+    "(Ljava/lang/String;Ljava/lang/String;)"                                 \
+    "Lcom/google/android/gms/tasks/Task;")                                   \
+  X(CreateUserWithEmailAndPassword, "createUserWithEmailAndPassword",        \
+    "(Ljava/lang/String;Ljava/lang/String;)"                                 \
+    "Lcom/google/android/gms/tasks/Task;")                                   \
+  X(SendPasswordResetEmail, "sendPasswordResetEmail",                        \
+    "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;")
+JNI_METHOD_LOOKUP_DECLARATION(auth, AUTH_METHODS, FIELD_LOOKUP_NONE,
+                              "com/google/firebase/auth/FirebaseAuth")
 
-JNI_METHOD_LOOKUP_DECLARATION(auth, AUTH_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/FirebaseAuth")
-
-
-// clang-format off
-#define SIGNIN_METHOD_QUERY_RESULT_METHODS(X)                                  \
+#define SIGNIN_METHOD_QUERY_RESULT_METHODS(X) \
   X(GetSignInMethods, "getSignInMethods", "()Ljava/util/List;")
-// clang-format on
-JNI_METHOD_LOOKUP_DECLARATION(signinmethodquery, SIGNIN_METHOD_QUERY_RESULT_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/SignInMethodQueryResult")
+JNI_METHOD_LOOKUP_DECLARATION(
+    signinmethodquery, SIGNIN_METHOD_QUERY_RESULT_METHODS, FIELD_LOOKUP_NONE,
+    "com/google/firebase/auth/SignInMethodQueryResult")
 
-
-// clang-format off
-#define JNI_LISTENER_CALLBACK_METHODS(X)                                       \
-  X(Constructor, "<init>", "(J)V") \
+#define JNI_LISTENER_CALLBACK_METHODS(X) \
+  X(Constructor, "<init>", "(J)V")       \
   X(Disconnect, "disconnect", "()V")
-// clang-format on
-JNI_METHOD_LOOKUP_DECLARATION(jnilistener, JNI_LISTENER_CALLBACK_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/internal/cpp/JniAuthStateListener")
-
-
-// clang-format off
-#define JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS(X)                              \
-  X(Constructor, "<init>", "(J)V") \
-  X(Disconnect, "disconnect", "()V")
-// clang-format on
-JNI_METHOD_LOOKUP_DECLARATION(jni_id_token_listener, JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS, FIELD_LOOKUP_NONE, "com/google/firebase/auth/internal/cpp/JniIdTokenListener")
-
+JNI_METHOD_LOOKUP_DECLARATION(
+    jnilistener, JNI_LISTENER_CALLBACK_METHODS, FIELD_LOOKUP_NONE,
+    "com/google/firebase/auth/internal/cpp/JniAuthStateListener")
+JNI_METHOD_LOOKUP_DECLARATION(
+    jni_id_token_listener, JNI_LISTENER_CALLBACK_METHODS, FIELD_LOOKUP_NONE,
+    "com/google/firebase/auth/internal/cpp/JniIdTokenListener")
 
 static Mutex g_init_mutex;
 static int g_initialized_count = 0;
@@ -115,14 +99,12 @@ static const char* kErrorEmptyEmailPassword =
 
 JNIEXPORT void JNICALL JniAuthStateListener_nativeOnAuthStateChanged(
     JNIEnv* env, jobject clazz, jlong callback_data);
+JNIEXPORT void JNICALL JniIdTokenListener_nativeOnIdTokenChanged(
+    JNIEnv* env, jobject clazz, jlong callback_data);
 
 static const JNINativeMethod kNativeOnAuthStateChangedMethod = {
     "nativeOnAuthStateChanged", "(J)V",
     reinterpret_cast<void*>(JniAuthStateListener_nativeOnAuthStateChanged)};
-
-JNIEXPORT void JNICALL JniIdTokenListener_nativeOnIdTokenChanged(
-    JNIEnv* env, jobject clazz, jlong callback_data);
-
 static const JNINativeMethod kNativeOnIdTokenChangedMethod = {
     "nativeOnIdTokenChanged", "(J)V",
     reinterpret_cast<void*>(JniIdTokenListener_nativeOnIdTokenChanged)};
@@ -130,25 +112,17 @@ static const JNINativeMethod kNativeOnIdTokenChangedMethod = {
 bool CacheAuthMethodIds(
     JNIEnv* env, jobject activity,
     const std::vector<::firebase::internal::EmbeddedFile>& embedded_files) {
-  if (!(auth::CacheMethodIds(env, activity) &&
-        signinmethodquery::CacheMethodIds(env, activity))) {
-    return false;
-  }
-
-  // Cache the JniAuthStateListener and JniIdTokenListener classes.
-  if (!(jnilistener::CacheClassFromFiles(env, activity, &embedded_files) &&
-        jnilistener::CacheMethodIds(env, activity) &&
-        jnilistener::RegisterNatives(env, &kNativeOnAuthStateChangedMethod,
-                                     1) &&
-        jni_id_token_listener::CacheClassFromFiles(env, activity,
-                                                   &embedded_files) &&
-        jni_id_token_listener::CacheMethodIds(env, activity) &&
-        jni_id_token_listener::RegisterNatives(
-            env, &kNativeOnIdTokenChangedMethod, 1))) {
-    return false;
-  }
-
-  return true;
+  return auth::CacheMethodIds(env, activity) &&
+         signinmethodquery::CacheMethodIds(env, activity) &&
+         jnilistener::CacheClassFromFiles(env, activity, &embedded_files) &&
+         jnilistener::CacheMethodIds(env, activity) &&
+         jnilistener::RegisterNatives(env, &kNativeOnAuthStateChangedMethod,
+                                      1) &&
+         jni_id_token_listener::CacheClassFromFiles(env, activity,
+                                                    &embedded_files) &&
+         jni_id_token_listener::CacheMethodIds(env, activity) &&
+         jni_id_token_listener::RegisterNatives(
+             env, &kNativeOnIdTokenChangedMethod, 1);
 }
 
 void ReleaseAuthClasses(JNIEnv* env) {
@@ -156,44 +130,31 @@ void ReleaseAuthClasses(JNIEnv* env) {
   signinmethodquery::ReleaseClass(env);
   if (jnilistener::GetClass() != nullptr) {
     env->UnregisterNatives(jnilistener::GetClass());
-    jni::CheckAndClearException(env);
+    (void)jni::CheckAndClearException(env);
   }
   jnilistener::ReleaseClass(env);
   if (jni_id_token_listener::GetClass() != nullptr) {
     env->UnregisterNatives(jni_id_token_listener::GetClass());
-    jni::CheckAndClearException(env);
+    (void)jni::CheckAndClearException(env);
   }
   jni_id_token_listener::ReleaseClass(env);
 }
 
 void UpdateCurrentUser(AuthData* auth_data) {
-  // Hold future_impl.mutex() across both the FirebaseAuth.getCurrentUser() read
-  // and the auth_data->user_impl update so concurrent UpdateCurrentUser calls
-  // are serialized and a slower thread cannot overwrite auth_data->user_impl
-  // with a stale FirebaseUser reading. FirebaseAuth.getCurrentUser() is a
-  // non-blocking field getter that neither acquires Java listener locks nor
-  // invokes callbacks.
   MutexLock lock(auth_data->future_impl.mutex());
   JNIEnv* env = Env(auth_data);
-
   jobject j_user = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kGetCurrentUser));
   if (::firebase::jni::CheckAndClearException(env)) {
-    if (j_user != nullptr) {
-      env->DeleteLocalRef(j_user);
-    }
+    if (j_user) env->DeleteLocalRef(j_user);
     j_user = nullptr;
   }
-
   jobject original_user_impl = static_cast<jobject>(auth_data->user_impl);
-  const bool user_changed = !env->IsSameObject(original_user_impl, j_user);
-
-  if (user_changed) {
-    // Update our pointer to the Android FirebaseUser that we're wrapping.
+  if (!env->IsSameObject(original_user_impl, j_user)) {
     SetImplFromLocalRef(env, j_user, &auth_data->user_impl);
     LogDebug("CurrentUser changed from %p to %p", original_user_impl,
              auth_data->user_impl);
-  } else if (j_user != nullptr) {
+  } else if (j_user) {
     env->DeleteLocalRef(j_user);
   }
 }
@@ -203,36 +164,29 @@ void SetEmulatorJni(AuthData* auth_data, const char* host, uint32_t port) {
     return;
   }
   JNIEnv* env = Env(auth_data);
-
   jstring j_host = env->NewStringUTF(host);
   if (!::firebase::jni::CheckAndClearException(env) && j_host != nullptr) {
     env->CallVoidMethod(AuthImpl(auth_data),
                         auth::GetMethodId(auth::kUseEmulator), j_host,
                         static_cast<jint>(port));
-    ::firebase::jni::CheckAndClearException(env);
+    (void)::firebase::jni::CheckAndClearException(env);
   }
-  if (j_host != nullptr) {
-    env->DeleteLocalRef(j_host);
-  }
+  if (j_host) env->DeleteLocalRef(j_host);
 }
 
 const char* const kEmulatorLocalHost = "10.0.2.2";
 const uint32_t kDefaultEmulatorPort = 9099;
 void CheckEmulator(AuthData* auth_data) {
   const char* use_emulator = std::getenv("USE_AUTH_EMULATOR");
-  if (use_emulator == nullptr || use_emulator[0] == '\0' ||
+  if (!use_emulator || use_emulator[0] == '\0' ||
       std::strcmp(use_emulator, "0") == 0 ||
       std::strcmp(use_emulator, "false") == 0) {
     return;
   }
-
   LogInfo("Using Auth Emulator for testing.");
-
-  // Use AUTH_EMULATOR_PORT if it is set to a valid port, otherwise use the
-  // default port.
   uint32_t port = kDefaultEmulatorPort;
   const char* env_port = std::getenv("AUTH_EMULATOR_PORT");
-  if (env_port != nullptr && env_port[0] != '\0') {
+  if (env_port && env_port[0] != '\0') {
     char* end = nullptr;
     const long parsed_port = std::strtol(env_port, &end, 10);
     if (end != env_port && *end == '\0' && parsed_port > 0 &&
@@ -243,7 +197,6 @@ void CheckEmulator(AuthData* auth_data) {
   SetEmulatorJni(auth_data, kEmulatorLocalHost, port);
 }
 
-// Release cached Java classes.
 static void ReleaseClasses(JNIEnv* env) {
   ReleaseAuthClasses(env);
   ReleaseUserClasses(env);
@@ -253,25 +206,18 @@ static void ReleaseClasses(JNIEnv* env) {
 
 void* CreatePlatformAuth(App* app) {
   if (app == nullptr) return nullptr;
-
   MutexLock init_lock(g_init_mutex);
-
-  // Grab various java objects from the app.
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();
 
-  // Cache the JNI method ids so we only have to look them up by name once.
   if (!g_initialized_count) {
     if (!util::Initialize(env, activity)) return nullptr;
-
-    // Cache embedded files and load embedded classes.
     const std::vector<::firebase::internal::EmbeddedFile> embedded_files =
         util::CacheEmbeddedFiles(env, activity,
                                  ::firebase::internal::EmbeddedFile::ToVector(
                                      firebase_auth::auth_resources_filename,
                                      firebase_auth::auth_resources_data,
                                      firebase_auth::auth_resources_size));
-
     if (!(CacheAuthMethodIds(env, activity, embedded_files) &&
           CacheUserMethodIds(env, activity) &&
           CacheCredentialMethodIds(env, activity, embedded_files) &&
@@ -282,16 +228,13 @@ void* CreatePlatformAuth(App* app) {
     }
   }
 
-  // Create the FirebaseAuth class in Java.
   jobject platform_app = app->GetPlatformApp();
   jobject j_auth_impl = env->CallStaticObjectMethod(
       auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
   const bool exception_thrown = jni::CheckAndClearException(env);
   env->DeleteLocalRef(platform_app);
   if (exception_thrown || j_auth_impl == nullptr) {
-    if (j_auth_impl != nullptr) {
-      env->DeleteLocalRef(j_auth_impl);
-    }
+    if (j_auth_impl) env->DeleteLocalRef(j_auth_impl);
     if (!g_initialized_count) {
       ReleaseClasses(env);
       util::Terminate(env);
@@ -299,7 +242,6 @@ void* CreatePlatformAuth(App* app) {
     return nullptr;
   }
 
-  // Ensure the reference hangs around.
   void* auth_impl = nullptr;
   SetImplFromLocalRef(env, j_auth_impl, &auth_impl);
   if (auth_impl == nullptr) {
@@ -315,93 +257,57 @@ void* CreatePlatformAuth(App* app) {
 }
 
 void Auth::InitPlatformAuth(AuthData* auth_data) {
-  if (auth_data == nullptr || AuthImpl(auth_data) == nullptr) {
-    return;
-  }
+  if (auth_data == nullptr || AuthImpl(auth_data) == nullptr) return;
   JNIEnv* env = Env(auth_data);
-
-  // Ensure our User is in-line with underlying API's user before registering
-  // listeners. It's possible for a user to already be logged-in on start-up.
   UpdateCurrentUser(auth_data);
-
   CheckEmulator(auth_data);
 
-  // Create the JniAuthStateListener class to redirect the state-change
-  // from Java to C++.
-  jobject j_listener =
-      env->NewObject(jnilistener::GetClass(),
-                     jnilistener::GetMethodId(jnilistener::kConstructor),
-                     reinterpret_cast<jlong>(auth_data));
-  if (!jni::CheckAndClearException(env) && j_listener != nullptr) {
-    // Register the listener with the Java FirebaseAuth class.
-    env->CallVoidMethod(AuthImpl(auth_data),
-                        auth::GetMethodId(auth::kAddAuthStateListener),
-                        j_listener);
-    jni::CheckAndClearException(env);
-    // Convert listener from local to global ref, so it stays around.
-    SetImplFromLocalRef(env, j_listener, &auth_data->listener_impl);
-  } else if (j_listener != nullptr) {
-    env->DeleteLocalRef(j_listener);
-  }
-
-  // Create the JniIdTokenListener class to redirect the token changes
-  // from Java to C++.
-  jobject j_id_token_listener = env->NewObject(
+  auto register_listener = [&](jclass cls, jmethodID ctor,
+                               auth::Method add_method, void** impl_out) {
+    jobject j_listener =
+        env->NewObject(cls, ctor, reinterpret_cast<jlong>(auth_data));
+    if (!jni::CheckAndClearException(env) && j_listener != nullptr) {
+      env->CallVoidMethod(AuthImpl(auth_data), auth::GetMethodId(add_method),
+                          j_listener);
+      (void)jni::CheckAndClearException(env);
+      SetImplFromLocalRef(env, j_listener, impl_out);
+    } else if (j_listener != nullptr) {
+      env->DeleteLocalRef(j_listener);
+    }
+  };
+  register_listener(jnilistener::GetClass(),
+                    jnilistener::GetMethodId(jnilistener::kConstructor),
+                    auth::kAddAuthStateListener, &auth_data->listener_impl);
+  register_listener(
       jni_id_token_listener::GetClass(),
       jni_id_token_listener::GetMethodId(jni_id_token_listener::kConstructor),
-      reinterpret_cast<jlong>(auth_data));
-  if (!jni::CheckAndClearException(env) &&
-      j_id_token_listener != nullptr) {
-    // Register the listener with the Java FirebaseAuth class.
-    env->CallVoidMethod(AuthImpl(auth_data),
-                        auth::GetMethodId(auth::kAddIdTokenListener),
-                        j_id_token_listener);
-    jni::CheckAndClearException(env);
-    // Convert listener from local to global ref, so it stays around.
-    SetImplFromLocalRef(env, j_id_token_listener,
-                        &auth_data->id_token_listener_impl);
-  } else if (j_id_token_listener != nullptr) {
-    env->DeleteLocalRef(j_id_token_listener);
-  }
+      auth::kAddIdTokenListener, &auth_data->id_token_listener_impl);
 }
 
 void Auth::DestroyPlatformAuth(AuthData* auth_data) {
-  if (auth_data == nullptr) {
-    return;
-  }
+  if (auth_data == nullptr) return;
   JNIEnv* env = Env(auth_data);
-
   firebase::util::CancelCallbacks(env, auth_data->future_api_id.c_str());
   ClearPretriggeredIdTokenCallbacks(auth_data);
+  if (AuthImpl(auth_data) == nullptr) return;
 
-  if (AuthImpl(auth_data) == nullptr) {
-    return;
-  }
+  auto unregister_listener = [&](void* impl, jmethodID disconnect_method,
+                                 auth::Method remove_method) {
+    if (!impl) return;
+    env->CallVoidMethod(static_cast<jobject>(impl), disconnect_method);
+    (void)jni::CheckAndClearException(env);
+    env->CallVoidMethod(AuthImpl(auth_data), auth::GetMethodId(remove_method),
+                        static_cast<jobject>(impl));
+    (void)jni::CheckAndClearException(env);
+  };
+  unregister_listener(auth_data->listener_impl,
+                      jnilistener::GetMethodId(jnilistener::kDisconnect),
+                      auth::kRemoveAuthStateListener);
+  unregister_listener(
+      auth_data->id_token_listener_impl,
+      jni_id_token_listener::GetMethodId(jni_id_token_listener::kDisconnect),
+      auth::kRemoveIdTokenListener);
 
-  // Unregister the JniAuthStateListener and IdTokenListener from the
-  // FirebaseAuth class.
-  if (auth_data->listener_impl != nullptr) {
-    env->CallVoidMethod(static_cast<jobject>(auth_data->listener_impl),
-                        jnilistener::GetMethodId(jnilistener::kDisconnect));
-    jni::CheckAndClearException(env);
-    env->CallVoidMethod(AuthImpl(auth_data),
-                        auth::GetMethodId(auth::kRemoveAuthStateListener),
-                        static_cast<jobject>(auth_data->listener_impl));
-    jni::CheckAndClearException(env);
-  }
-  if (auth_data->id_token_listener_impl != nullptr) {
-    env->CallVoidMethod(
-        static_cast<jobject>(auth_data->id_token_listener_impl),
-        jni_id_token_listener::GetMethodId(jni_id_token_listener::kDisconnect));
-    jni::CheckAndClearException(env);
-    env->CallVoidMethod(
-        AuthImpl(auth_data), auth::GetMethodId(auth::kRemoveIdTokenListener),
-        static_cast<jobject>(auth_data->id_token_listener_impl));
-    jni::CheckAndClearException(env);
-  }
-
-  // Deleting our global references should trigger the FirebaseAuth class and
-  // FirebaseUser Java objects to be deleted.
   SetImplFromLocalRef(env, nullptr, &auth_data->listener_impl);
   SetImplFromLocalRef(env, nullptr, &auth_data->id_token_listener_impl);
   SetImplFromLocalRef(env, nullptr, &auth_data->user_impl);
@@ -409,8 +315,7 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
 
   MutexLock init_lock(g_init_mutex);
   FIREBASE_ASSERT(g_initialized_count);
-  g_initialized_count--;
-  if (g_initialized_count == 0) {
+  if (--g_initialized_count == 0) {
     ReleaseClasses(env);
     util::Terminate(env);
   }
@@ -419,19 +324,17 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
 void LogHeartbeat(Auth* auth) { (void)auth; }
 
 JNIEXPORT void JNICALL JniAuthStateListener_nativeOnAuthStateChanged(
-    JNIEnv* env, jobject clazz, jlong callback_data) {
+    JNIEnv* /*env*/, jobject /*clazz*/, jlong callback_data) {
   AuthData* auth_data = reinterpret_cast<AuthData*>(callback_data);
   if (!auth_data) return;
-  // Update our pointer to the Android FirebaseUser that we're wrapping.
   UpdateCurrentUser(auth_data);
   NotifyAuthStateListeners(auth_data);
 }
 
 JNIEXPORT void JNICALL JniIdTokenListener_nativeOnIdTokenChanged(
-    JNIEnv* env, jobject clazz, jlong callback_data) {
+    JNIEnv* /*env*/, jobject /*clazz*/, jlong callback_data) {
   AuthData* auth_data = reinterpret_cast<AuthData*>(callback_data);
   if (!auth_data) return;
-  // Update our pointer to the Android FirebaseUser that we're wrapping.
   UpdateCurrentUser(auth_data);
   if (!auth_data->ShouldTriggerIdTokenListenerCallback() &&
       ConsumePretriggeredIdTokenCallback(auth_data)) {
@@ -440,203 +343,223 @@ JNIEXPORT void JNICALL JniIdTokenListener_nativeOnIdTokenChanged(
   NotifyIdTokenListeners(auth_data);
 }
 
-// Record the provider data returned from Java.
 static void ReadProviderResult(
     jobject result, FutureCallbackData<Auth::FetchProvidersResult>* d,
     bool success, void* void_data) {
   auto data = static_cast<Auth::FetchProvidersResult*>(void_data);
   JNIEnv* env = Env(d->auth_data);
-
-  // `result` comes from the successfully completed Task in Java. If the Task
-  // completed successfully, `result` should be valid.
   FIREBASE_ASSERT(!success || result != nullptr);
-  // `result` is of type SignInMethodQueryResult when `success` is true.
-  jobject list = success
-                     ? env->CallObjectMethod(
-                           result, signinmethodquery::GetMethodId(
-                                       signinmethodquery::kGetSignInMethods))
-                     : nullptr;
-  if (::firebase::jni::CheckAndClearException(env)) {
-    if (list != nullptr) {
-      env->DeleteLocalRef(list);
-      list = nullptr;
-    }
+  jobject list = success ? env->CallObjectMethod(
+                               result, signinmethodquery::GetMethodId(
+                                           signinmethodquery::kGetSignInMethods))
+                         : nullptr;
+  if (::firebase::jni::CheckAndClearException(env) && list != nullptr) {
+    env->DeleteLocalRef(list);
+    list = nullptr;
   }
-
-  // `list` is of type List<String>. Loop through it.
   if (list != nullptr) {
-    jclass list_class = env->GetObjectClass(list);
-    if (::firebase::jni::CheckAndClearException(env) || list_class == nullptr) {
-      if (list_class != nullptr) {
-        env->DeleteLocalRef(list_class);
-      }
-      env->DeleteLocalRef(list);
-      return;
-    }
-    jmethodID size_method = env->GetMethodID(list_class, "size", "()I");
-    if (::firebase::jni::CheckAndClearException(env) ||
-        size_method == nullptr) {
-      env->DeleteLocalRef(list_class);
-      env->DeleteLocalRef(list);
-      return;
-    }
-    jmethodID get_method =
-        env->GetMethodID(list_class, "get", "(I)Ljava/lang/Object;");
-    env->DeleteLocalRef(list_class);
-    if (::firebase::jni::CheckAndClearException(env) || get_method == nullptr) {
-      env->DeleteLocalRef(list);
-      return;
-    }
-    const int num_providers = env->CallIntMethod(list, size_method);
-    if (::firebase::jni::CheckAndClearException(env) || num_providers <= 0) {
-      env->DeleteLocalRef(list);
-      return;
-    }
-    data->providers.resize(num_providers);
-
-    for (int i = 0; i < num_providers; ++i) {
-      jstring provider =
-          static_cast<jstring>(env->CallObjectMethod(list, get_method, i));
-      if (::firebase::jni::CheckAndClearException(env)) {
-        if (provider != nullptr) {
-          env->DeleteLocalRef(provider);
-          provider = nullptr;
-        }
-      }
-      if (provider != nullptr) {
-        data->providers[i] = JStringToString(env, provider);
-        env->DeleteLocalRef(provider);
-      }
-    }
+    util::JavaListToStdStringVector(env, &data->providers, list);
     env->DeleteLocalRef(list);
   }
 }
 
+void FetchProvidersForEmail(AuthData* auth_data,
+                            Promise<Auth::FetchProvidersResult> promise,
+                            const char* email) {
+  if (!email || email[0] == '\0') {
+    promise.Fail(kAuthErrorMissingEmail, "Empty email address.");
+    return;
+  }
+  RunAndroidTaskWithPromise(
+      auth_data, promise, ReadProviderResult, [=](JNIEnv* env) {
+        jstring j_email = env->NewStringUTF(email);
+        if (env->ExceptionCheck() || !j_email) {
+          if (j_email) env->DeleteLocalRef(j_email);
+          return static_cast<jobject>(nullptr);
+        }
+        jobject task = env->CallObjectMethod(
+            AuthImpl(auth_data),
+            auth::GetMethodId(auth::kFetchSignInMethodsForEmail), j_email);
+        env->DeleteLocalRef(j_email);
+        return task;
+      });
+}
+
+void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise,
+                           const char* token) {
+  if (!token || token[0] == '\0') {
+    promise.Fail(kAuthErrorInvalidCustomToken, "Empty custom token.");
+    return;
+  }
+  RunAndroidTaskWithPromise(
+      auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+        jstring j_token = env->NewStringUTF(token);
+        if (env->ExceptionCheck() || !j_token) {
+          if (j_token) env->DeleteLocalRef(j_token);
+          return static_cast<jobject>(nullptr);
+        }
+        jobject task = env->CallObjectMethod(
+            AuthImpl(auth_data),
+            auth::GetMethodId(auth::kSignInWithCustomToken), j_token);
+        env->DeleteLocalRef(j_token);
+        return task;
+      });
+}
+
+void SignInWithCredential(AuthData* auth_data, Promise<User> promise,
+                          const Credential& credential) {
+  if (!ValidateCredentialForPromise(promise, credential)) return;
+  RunAndroidTaskWithPromise(
+      auth_data, promise, ReadUserFromAuthResult, [=](JNIEnv* env) {
+        return env->CallObjectMethod(
+            AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential),
+            CredentialFromImpl(internal::CredentialAccess::GetImpl(credential)));
+      });
+}
+
+void SignInAndRetrieveDataWithCredential(AuthData* auth_data,
+                                         Promise<AuthResult> promise,
+                                         const Credential& credential) {
+  if (!ValidateCredentialForPromise(promise, credential)) return;
+  RunAndroidTaskWithPromise(
+      auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+        return env->CallObjectMethod(
+            AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential),
+            CredentialFromImpl(internal::CredentialAccess::GetImpl(credential)));
+      });
+}
+
+Future<AuthResult> SignInWithProvider(AuthData* auth_data,
+                                      FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->SignIn(auth_data);
+}
+
 void SignInAnonymously(AuthData* auth_data, Promise<AuthResult> promise) {
-  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
-    return env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInAnonymously));
-  });
+  RunAndroidTaskWithPromise(
+      auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+        return env->CallObjectMethod(
+            AuthImpl(auth_data), auth::GetMethodId(auth::kSignInAnonymously));
+      });
 }
 
-void SignInWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password) {
-  if (!email || email[0] == '\0') { promise.Fail(kAuthErrorMissingEmail, "Email must be provided."); return; }
-  if (!password || password[0] == '\0') { promise.Fail(kAuthErrorMissingPassword, "Password must be provided."); return; }
-  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
-    jstring je = env->NewStringUTF(email);
-    jstring jp = env->NewStringUTF(password);
-    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithEmailAndPassword), je, jp);
-    env->DeleteLocalRef(je); env->DeleteLocalRef(jp);
-    return task;
-  });
-}
-
-void CreateUserWithEmailAndPassword(AuthData* auth_data, Promise<AuthResult> promise, const char* email, const char* password) {
-  if (!email || email[0] == '\0') { promise.Fail(kAuthErrorMissingEmail, "Email must be provided."); return; }
-  if (!password || password[0] == '\0') { promise.Fail(kAuthErrorMissingPassword, "Password must be provided."); return; }
-  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
-    jstring je = env->NewStringUTF(email);
-    jstring jp = env->NewStringUTF(password);
-    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), je, jp);
-    env->DeleteLocalRef(je); env->DeleteLocalRef(jp);
-    return task;
-  });
-}
-
-void SignInWithCustomToken(AuthData* auth_data, Promise<AuthResult> promise, const char* token) {
-  if (!token || token[0] == '\0') { promise.Fail(kAuthErrorInvalidCustomToken, "Token must be provided."); return; }
-  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
-    jstring jt = env->NewStringUTF(token);
-    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCustomToken), jt);
-    env->DeleteLocalRef(jt);
-    return task;
-  });
-}
-
-void SignInWithCredential(AuthData* auth_data, Promise<User> promise, const Credential& credential) {
-  if (!credential.is_valid()) { promise.Fail(kAuthErrorInvalidCredential, "Invalid credential"); return; }
-  // We need to return a User, but JNI signInWithCredential returns an AuthResult.
-  // The original implementation returned User by extracting it. We need ReadUser instead of ReadAuthResult.
-  // Wait, does Android API return AuthResult for signInWithCredential?
-  // Yes, Task<AuthResult>!
-  RunAndroidTaskWithPromise(auth_data, promise, [](jobject result, FutureCallbackData<User>* d, bool success, void* void_data) {
-      if (success && result) {
-          JNIEnv* env = d->env;
-          jobject user_obj = env->CallObjectMethod(result, authresult::GetMethodId(authresult::kGetUser));
-          User* user = static_cast<User*>(void_data);
-          *user = User(d->auth_data, user_obj);
-          env->DeleteLocalRef(user_obj);
-          UpdateCurrentUser(d->auth_data);
-      }
-  }, [=](JNIEnv* env) {
-    jobject jcred = CredentialToJni(env, credential);
-    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential), jcred);
-    env->DeleteLocalRef(jcred);
-    return task;
-  });
-}
-
-void SignInAndRetrieveDataWithCredential(AuthData* auth_data, Promise<AuthResult> promise, const Credential& credential) {
-  if (!credential.is_valid()) { promise.Fail(kAuthErrorInvalidCredential, "Invalid credential"); return; }
-  RunAndroidTaskWithPromise(auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
-    jobject jcred = CredentialToJni(env, credential);
-    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignInWithCredential), jcred);
-    env->DeleteLocalRef(jcred);
-    return task;
-  });
-}
-
-
-void FetchProvidersForEmail(AuthData* auth_data, Promise<Auth::FetchProvidersResult> promise, const char* email) {
-  if (!email) { promise.Fail(kAuthErrorInvalidEmail, "Email must be provided."); return; }
-  RunAndroidTaskWithPromise(auth_data, promise, ReadFetchProvidersForEmailResult, [=](JNIEnv* env) {
-    jstring je = env->NewStringUTF(email);
-    jobject task = env->CallObjectMethod(AuthImpl(auth_data), auth_idp::GetMethodId(auth_idp::kFetchSignInMethodsForEmail), je);
-    env->DeleteLocalRef(je);
-    return task;
-  });
-}
-
-void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise, const char* email) {
-
-  if (!email || strlen(email) == 0) {
-    auth_data->future_impl.Complete(promise.handle(), kAuthErrorMissingEmail, "Empty email address.");
+static void EmailPasswordAuthTask(AuthData* auth_data,
+                                  Promise<AuthResult> promise,
+                                  const char* email, const char* password,
+                                  auth::Method method) {
+  if (!email || email[0] == '\0' || !password || password[0] == '\0') {
+    promise.Fail((!email || email[0] == '\0') ? kAuthErrorMissingEmail
+                                              : kAuthErrorMissingPassword,
+                 kErrorEmptyEmailPassword);
     return;
   }
-  JNIEnv* env = Env(auth_data);
-  jstring j_email = env->NewStringUTF(email);
-  if (CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    if (j_email != nullptr) env->DeleteLocalRef(j_email);
+  RunAndroidTaskWithPromise(
+      auth_data, promise, ReadAuthResult, [=](JNIEnv* env) {
+        jstring j_email = env->NewStringUTF(email);
+        if (env->ExceptionCheck() || !j_email) {
+          if (j_email) env->DeleteLocalRef(j_email);
+          return static_cast<jobject>(nullptr);
+        }
+        jstring j_password = env->NewStringUTF(password);
+        if (env->ExceptionCheck() || !j_password) {
+          env->DeleteLocalRef(j_email);
+          if (j_password) env->DeleteLocalRef(j_password);
+          return static_cast<jobject>(nullptr);
+        }
+        jobject task = env->CallObjectMethod(
+            AuthImpl(auth_data), auth::GetMethodId(method), j_email,
+            j_password);
+        env->DeleteLocalRef(j_email);
+        env->DeleteLocalRef(j_password);
+        return task;
+      });
+}
+
+void SignInWithEmailAndPassword(AuthData* auth_data,
+                                Promise<AuthResult> promise, const char* email,
+                                const char* password) {
+  EmailPasswordAuthTask(auth_data, promise, email, password,
+                        auth::kSignInWithEmailAndPassword);
+}
+
+void CreateUserWithEmailAndPassword(AuthData* auth_data,
+                                    Promise<AuthResult> promise,
+                                    const char* email, const char* password) {
+  EmailPasswordAuthTask(auth_data, promise, email, password,
+                        auth::kCreateUserWithEmailAndPassword);
+}
+
+std::string Auth::language_code() const {
+  JNIEnv* env = Env(auth_data_);
+  jstring j_language_code = static_cast<jstring>(env->CallObjectMethod(
+      AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode)));
+  if (::firebase::jni::CheckAndClearException(env) || !j_language_code) {
+    if (j_language_code) env->DeleteLocalRef(j_language_code);
+    return std::string();
+  }
+  std::string result = ::firebase::jni::JStringToString(env, j_language_code);
+  env->DeleteLocalRef(j_language_code);
+  return result;
+}
+
+void Auth::set_language_code(const char* language_code) {
+  if (language_code == nullptr || language_code[0] == '\0') {
+    UseAppLanguage();
     return;
   }
-  jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data), auth::GetMethodId(auth::kSendPasswordResetEmail),
-      j_email);
-  env->DeleteLocalRef(j_email);
-
-  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl, promise.handle())) {
-    RegisterCallback(pending_result, promise.handle(), auth_data, nullptr);
-    env->DeleteLocalRef(pending_result);
+  JNIEnv* env = Env(auth_data_);
+  jstring j_language_code = env->NewStringUTF(language_code);
+  if (!::firebase::jni::CheckAndClearException(env) && j_language_code) {
+    env->CallVoidMethod(AuthImpl(auth_data_),
+                        auth::GetMethodId(auth::kSetLanguageCode),
+                        j_language_code);
+    (void)::firebase::jni::CheckAndClearException(env);
   }
+  if (j_language_code) env->DeleteLocalRef(j_language_code);
+}
+
+void Auth::UseAppLanguage() {
+  JNIEnv* env = Env(auth_data_);
+  env->CallVoidMethod(AuthImpl(auth_data_),
+                      auth::GetMethodId(auth::kUseAppLanguage));
+  (void)::firebase::jni::CheckAndClearException(env);
+}
+
+void SendPasswordResetEmail(AuthData* auth_data, Promise<void> promise,
+                            const char* email) {
+  if (!email || email[0] == '\0') {
+    promise.Fail(kAuthErrorMissingEmail, "Empty email address.");
+    return;
+  }
+  RunAndroidTaskWithPromise(auth_data, promise, nullptr, [=](JNIEnv* env) {
+    jstring j_email = env->NewStringUTF(email);
+    if (env->ExceptionCheck() || !j_email) {
+      if (j_email) env->DeleteLocalRef(j_email);
+      return static_cast<jobject>(nullptr);
+    }
+    jobject task = env->CallObjectMethod(
+        AuthImpl(auth_data), auth::GetMethodId(auth::kSendPasswordResetEmail),
+        j_email);
+    env->DeleteLocalRef(j_email);
+    return task;
+  });
 }
 
 void Auth::UseEmulator(std::string host, uint32_t port) {
   SetEmulatorJni(auth_data_, host.c_str(), port);
 }
 
-// Not implemented for Android.
-void EnableTokenAutoRefresh(AuthData* auth_data) {}
-void DisableTokenAutoRefresh(AuthData* auth_data) {}
-
+void EnableTokenAutoRefresh(AuthData* /*auth_data*/) {}
+void DisableTokenAutoRefresh(AuthData* /*auth_data*/) {}
 
 void SignOut(AuthData* auth_data) {
-  if (auth_data == nullptr || AuthImpl(auth_data) == nullptr) {
-    return;
-  }
+  if (auth_data == nullptr || AuthImpl(auth_data) == nullptr) return;
   JNIEnv* env = Env(auth_data);
   env->CallVoidMethod(AuthImpl(auth_data), auth::GetMethodId(auth::kSignOut));
   if (!::firebase::jni::CheckAndClearException(env)) {
     UpdateCurrentUser(auth_data);
   }
 }
+
 }  // namespace auth
 }  // namespace firebase

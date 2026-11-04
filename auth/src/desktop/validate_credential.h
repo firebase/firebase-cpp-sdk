@@ -18,47 +18,18 @@
 #include <cstring>
 #include <string>
 
+#include "auth/src/common/promise.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/auth_providers/email_auth_credential.h"
 #include "auth/src/desktop/credential_impl.h"
 #include "auth/src/desktop/credential_util.h"
-#include "auth/src/common/promise.h"
 
 namespace firebase {
 namespace auth {
 
-// Checks that the given credential is valid to be passed to the backend.
-// Void pointer is assumed to refer to a valid CredentialImpl, which will be
-// downcasted based on the provider string.
-// If the credential is found to be invalid, the function will fail the given
-// promise and return false. Otherwise, it won't touch the promise, and will
-// return true.
-template <typename FutureResultT>
-bool ValidateCredential(Promise<FutureResultT>* promise,
-                        const std::string& provider,
-                        const void* raw_credential);
-
-// Performs sanity checks for the given email.
-// If the email is found to be invalid, the function will fail the given
-// promise and return false. Otherwise, it won't touch the promise, and will
-// return true.
-template <typename FutureResultT>
-bool ValidateEmail(Promise<FutureResultT>* promise, const char* email);
-
-// Performs sanity checks for the given email and password.
-// If the credentials are found to be invalid, the function will fail the given
-// promise and return false. Otherwise, it won't touch the promise, and will
-// return true.
-template <typename FutureResultT>
-bool ValidateEmailAndPassword(Promise<FutureResultT>* promise,
-                              const char* email, const char* password);
-
-// Impl
-
 template <typename FutureResultT>
 inline bool ValidateEmail(Promise<FutureResultT>* promise, const char* email) {
   FIREBASE_ASSERT_RETURN(false, promise);
-
   if (!email || strlen(email) == 0) {
     FailPromise(promise, kAuthErrorMissingEmail);
     return false;
@@ -70,7 +41,6 @@ template <typename FutureResultT>
 inline bool ValidatePassword(Promise<FutureResultT>* const promise,
                              const char* const password) {
   FIREBASE_ASSERT_RETURN(false, promise);
-
   if (!password || strlen(password) == 0) {
     FailPromise(promise, kAuthErrorMissingPassword);
     return false;
@@ -90,20 +60,14 @@ inline bool ValidateCredential(Promise<FutureResultT>* const promise,
                                const std::string& provider,
                                const void* const raw_credential) {
   FIREBASE_ASSERT_RETURN(false, promise);
-
   if (provider == kPhoneAuthProviderId) {
-    // TODO(varconst): for now phone auth is not supported on desktop.
     promise->Fail(kAuthErrorApiNotAvailable,
                   "Phone Auth is not supported on desktop");
     return false;
   }
-  if (raw_credential == nullptr) {
-    FailPromise(promise, kAuthErrorInvalidCredential);
-    return false;
-  }
   const auto* credential_impl =
       static_cast<const CredentialImpl*>(raw_credential);
-  if (credential_impl->auth_credential == nullptr) {
+  if (!credential_impl || !credential_impl->auth_credential) {
     FailPromise(promise, kAuthErrorInvalidCredential);
     return false;
   }

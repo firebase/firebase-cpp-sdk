@@ -41,9 +41,7 @@ const char* const YahooAuthProvider::kProviderId = "yahoo.com";
 ReferenceCountedFutureImpl* GetCredentialFutureImpl() {
   StaticFutureData* future_data = StaticFutureData::GetFutureDataForModule(
       &kCredentialFutureIdentifier, kNumCredentialFunctions);
-  if (future_data == nullptr) return nullptr;
-
-  return future_data->api();
+  return future_data ? future_data->api() : nullptr;
 }
 
 void CleanupCredentialFutureImpl() {
@@ -51,51 +49,30 @@ void CleanupCredentialFutureImpl() {
 }
 
 void ClearUserInfos(AuthData* auth_data) {
-  if (auth_data == nullptr) return;
-  for (size_t i = 0; i < auth_data->user_infos.size(); ++i) {
-    delete auth_data->user_infos[i];
-    auth_data->user_infos[i] = nullptr;
-  }
+  if (!auth_data) return;
+  for (auto* info : auth_data->user_infos) delete info;
   auth_data->user_infos.clear();
 }
 
-//
-// PhoneAuthOptions
-//
 PhoneAuthOptions::PhoneAuthOptions()
     : force_resending_token(nullptr),
       timeout_milliseconds(0),
       ui_parent(nullptr) {}
 
-//
-// PhoneAuthProvider
-//
 void PhoneAuthProvider::Listener::OnCodeSent(
-    const std::string& verification_id,
-    const ForceResendingToken& force_resending_token) {
-  (void)verification_id;
-  (void)force_resending_token;
-}
+    const std::string& /*verification_id*/,
+    const ForceResendingToken& /*force_resending_token*/) {}
 
 void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
-    const std::string& verification_id) {
-  (void)verification_id;
-}
+    const std::string& /*verification_id*/) {}
 
-///
-/// User
-///
 User::User() : auth_data_(nullptr) {}
 
 bool User::operator==(const User& user) const {
   const bool lhs_valid = is_valid();
   const bool rhs_valid = user.is_valid();
-  if (lhs_valid != rhs_valid) {
-    return false;
-  }
-  if (!lhs_valid) {
-    return true;
-  }
+  if (lhs_valid != rhs_valid) return false;
+  if (!lhs_valid) return true;
   return auth_data_ == user.auth_data_ && uid() == user.uid();
 }
 

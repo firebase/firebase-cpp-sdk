@@ -49,6 +49,15 @@ PhoneAuthCredential::PhoneAuthCredential(void* impl) : Credential(impl) {}
 PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs)
     : Credential(rhs), sms_code_(rhs.sms_code_) {}
 
+PhoneAuthCredential& PhoneAuthCredential::operator=(
+    const PhoneAuthCredential& rhs) {
+  if (this != &rhs) {
+    Credential::operator=(rhs);
+    sms_code_ = rhs.sms_code_;
+  }
+  return *this;
+}
+
 #if !defined(SWIG)
 PhoneAuthCredential::PhoneAuthCredential(PhoneAuthCredential&& rhs) noexcept
     : Credential(std::move(rhs)), sms_code_(std::move(rhs.sms_code_)) {}
@@ -60,6 +69,12 @@ PhoneAuthCredential& PhoneAuthCredential::operator=(
     sms_code_ = std::move(rhs.sms_code_);
   }
   return *this;
+}
+
+bool PhoneAuthCredential::operator==(
+    const PhoneAuthCredential& credential) const {
+  return Credential::operator==(credential) &&
+         sms_code() == credential.sms_code();
 }
 #endif  // !defined(SWIG)
 

@@ -1,18 +1,16 @@
-/*
- * Copyright 2026 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include "auth/src/id_token_util.h"
 
@@ -51,45 +49,28 @@ uint64_t ExtractTimestamp(const std::map<Variant, Variant>& claims,
 }  // namespace
 
 bool ParseIdToken(const std::string& token, IdTokenResult* out_result) {
-  if (out_result == nullptr) {
-    return false;
-  }
-
+  if (!out_result) return false;
   *out_result = IdTokenResult();
+  if (token.empty()) return false;
 
-  if (token.empty()) {
-    return false;
-  }
-
-  // A JWT is composed of three dot-separated Base64URL parts:
-  // header.payload.signature
   const size_t first_dot = token.find('.');
-  if (first_dot == std::string::npos) {
-    return false;
-  }
+  if (first_dot == std::string::npos) return false;
   const size_t second_dot = token.find('.', first_dot + 1);
-  if (second_dot == std::string::npos) {
-    return false;
-  }
-  if (token.find('.', second_dot + 1) != std::string::npos) {
+  if (second_dot == std::string::npos ||
+      token.find('.', second_dot + 1) != std::string::npos) {
     return false;
   }
 
   const std::string payload_b64 =
       token.substr(first_dot + 1, second_dot - (first_dot + 1));
-  if (payload_b64.empty()) {
-    return false;
-  }
-
   std::string payload_json;
-  if (!::firebase::internal::Base64Decode(payload_b64, &payload_json)) {
+  if (payload_b64.empty() ||
+      !::firebase::internal::Base64Decode(payload_b64, &payload_json)) {
     return false;
   }
 
   const Variant payload_variant = util::JsonToVariant(payload_json.c_str());
-  if (!payload_variant.is_map()) {
-    return false;
-  }
+  if (!payload_variant.is_map()) return false;
 
   IdTokenResult parsed;
   parsed.token = token;
@@ -100,17 +81,15 @@ bool ParseIdToken(const std::string& token, IdTokenResult* out_result) {
 
   const auto firebase_it = parsed.claims.find(Variant("firebase"));
   if (firebase_it != parsed.claims.end() && firebase_it->second.is_map()) {
-    const auto& firebase_map = firebase_it->second.map();
-    const auto provider_it = firebase_map.find(Variant("sign_in_provider"));
-    if (provider_it != firebase_map.end() && provider_it->second.is_string()) {
-      parsed.sign_in_provider = provider_it->second.string_value();
-    }
-    const auto second_factor_it =
-        firebase_map.find(Variant("sign_in_second_factor"));
-    if (second_factor_it != firebase_map.end() &&
-        second_factor_it->second.is_string()) {
-      parsed.sign_in_second_factor = second_factor_it->second.string_value();
-    }
+    const auto& fb_map = firebase_it->second.map();
+    auto get_str = [&](const char* k, std::string* dst) {
+      auto it = fb_map.find(Variant(k));
+      if (it != fb_map.end() && it->second.is_string()) {
+        *dst = it->second.string_value();
+      }
+    };
+    get_str("sign_in_provider", &parsed.sign_in_provider);
+    get_str("sign_in_second_factor", &parsed.sign_in_second_factor);
   }
 
   *out_result = std::move(parsed);

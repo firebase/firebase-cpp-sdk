@@ -31,47 +31,18 @@
 namespace firebase {
 namespace auth {
 
-// Makes a network call to getAccountInfo RPC, creating a request with the given
-// access token.
-//
-// Note: this is a blocking call! It's the caller's responsibility to make sure
-// it's invoked on the appropriate thread.
 GetAccountInfoResult GetAccountInfo(const AuthData& auth_data,
                                     const std::string& access_token);
 GetAccountInfoResult GetAccountInfo(GetAccountInfoRequest& request);
 
-// Makes a network call to one of the sign-in endpoints (e.g., verifyPassword or
-// verifyAssertion), and completes the promise contained within the given
-// handle, either successfully or with an error.
-//
-// Note: this is a blocking call! It's the caller's responsibility to make sure
-// it's invoked on the appropriate thread.
-template <typename ResponseT, typename FutureResultT, typename RequestT>
-void PerformSignInFlow(AuthDataHandle<FutureResultT, RequestT>* handle);
-
-// Parses the given response and calls getAccountInfo endpoint for the user
-// contained within the given response to retrieve additional user info.
-//
-// Note: this is a blocking call! It's the caller's responsibility to make sure
-// it's invoked on the appropriate thread.
-template <typename ResponseT>
-AuthenticationResult CompleteSignInFlow(AuthData* auth_data,
-                                        const ResponseT& response);
-
-// Implementation
-
 inline AuthenticationResult CompleteSignInFlowWithAuthResult(
     AuthData* const auth_data, AuthenticationResult auth_result) {
-  if (!auth_result.IsValid()) {
-    return auth_result;
-  }
-
+  if (!auth_result.IsValid()) return auth_result;
   const GetAccountInfoResult user_account_info =
       GetAccountInfo(*auth_data, auth_result.id_token());
   if (!user_account_info.IsValid()) {
     return AuthenticationResult(user_account_info.error());
   }
-
   auth_result.SetAccountInfo(user_account_info);
   return auth_result;
 }
@@ -102,15 +73,12 @@ template <typename ResponseT, typename FutureResultT, typename RequestT>
 inline void PerformSignInFlow(
     AuthDataHandle<FutureResultT, RequestT>* const handle) {
   FIREBASE_ASSERT_RETURN_VOID(handle && handle->request);
-
   const auto response = GetResponse<ResponseT>(*handle->request);
   const AuthenticationResult auth_response =
       CompleteSignInFlow(handle->auth_data, response);
-
   if (auth_response.IsValid()) {
-    const AuthResult auth_result =
-        auth_response.SetAsCurrentUser(handle->auth_data);
-    CompletePromise(&handle->promise, auth_result);
+    CompletePromise(&handle->promise,
+                    auth_response.SetAsCurrentUser(handle->auth_data));
   } else {
     FailPromise(&handle->promise, auth_response.error());
   }

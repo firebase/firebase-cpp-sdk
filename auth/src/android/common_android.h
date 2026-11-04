@@ -17,9 +17,12 @@
 #ifndef FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
 #define FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
 
+#include <cstring>
+
 #include "app/src/app_android.h"
-#include "app/src/jni/exception.h"
 #include "app/src/embedded_file.h"
+#include "app/src/jni/declaration.h"
+#include "app/src/jni/exception.h"
 #include "auth/src/common.h"
 #include "auth/src/include/firebase/auth/credential.h"
 #include "auth/src/include/firebase/auth/user.h"
@@ -27,106 +30,45 @@
 namespace firebase {
 namespace auth {
 
-// clang-format off
-#define AUTH_RESULT_METHODS(X)                                                 \
-  X(GetUser, "getUser", "()Lcom/google/firebase/auth/FirebaseUser;",           \
-    jni::kMethodTypeInstance),                                                \
-  X(GetAdditionalUserInfo, "getAdditionalUserInfo",                            \
-    "()Lcom/google/firebase/auth/AdditionalUserInfo;",                         \
-    jni::kMethodTypeInstance),                                                \
-  X(GetCredential, "getCredential",                                            \
-    "()Lcom/google/firebase/auth/AuthCredential;",                             \
-    jni::kMethodTypeInstance)
-// clang-format on
-namespace authresult {
-  enum Method {
-    kGetUser,
-    kGetAdditionalUserInfo,
-    kGetCredential,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
+#define AUTH_RESULT_METHODS(X)                                       \
+  X(GetUser, "getUser", "()Lcom/google/firebase/auth/FirebaseUser;") \
+  X(GetAdditionalUserInfo, "getAdditionalUserInfo",                  \
+    "()Lcom/google/firebase/auth/AdditionalUserInfo;")               \
+  X(GetCredential, "getCredential",                                  \
+    "()Lcom/google/firebase/auth/AuthCredential;")
+JNI_METHOD_LOOKUP_DECLARATION(authresult, AUTH_RESULT_METHODS,
+                              FIELD_LOOKUP_NONE,
+                              "com/google/firebase/auth/AuthResult")
 
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-
-// clang-format off
-#define ADDITIONAL_USER_INFO_METHODS(X)                                        \
-  X(GetProviderId, "getProviderId", "()Ljava/lang/String;"),                   \
-  X(GetProfile, "getProfile", "()Ljava/util/Map;"),                            \
-  X(GetUsername, "getUsername", "()Ljava/lang/String;"),                       \
+#define ADDITIONAL_USER_INFO_METHODS(X)                     \
+  X(GetProviderId, "getProviderId", "()Ljava/lang/String;") \
+  X(GetProfile, "getProfile", "()Ljava/util/Map;")          \
+  X(GetUsername, "getUsername", "()Ljava/lang/String;")     \
   X(IsNewUser, "isNewUser", "()Z")
-// clang-format on
-namespace additional_user_info {
-  enum Method {
-    kGetProviderId,
-    kGetProfile,
-    kGetUsername,
-    kIsNewUser,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
+JNI_METHOD_LOOKUP_DECLARATION(additional_user_info,
+                              ADDITIONAL_USER_INFO_METHODS, FIELD_LOOKUP_NONE,
+                              "com/google/firebase/auth/AdditionalUserInfo")
 
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
+#define PHONE_CREDENTIAL_METHODS(X) \
+  X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
+JNI_METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS,
+                              FIELD_LOOKUP_NONE,
+                              "com/google/firebase/auth/PhoneAuthCredential")
 
-
-// clang-format off
-#define PHONE_CREDENTIAL_METHODS(X)                                            \
-    X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
-// clang-format on
-namespace phonecredential {
-  enum Method {
-    kGetSmsCode,
-    kMethodCount
-  };
-  enum Field {
-    kFieldCount
-  };
-
-  jclass GetClass();
-  bool CacheMethodIds(JNIEnv* env, jobject activity);
-  bool CacheFieldIds(JNIEnv* env, jobject activity);
-  void ReleaseClass(JNIEnv* env);
-  jmethodID GetMethodId(Method method);
-  jfieldID GetFieldId(Field field);
-}
-
-
-// Invokes a private Credential constructor only accessible by friends of the
-// Credential class.
-//
-// This is used to marshall and return Credential objects from the Android SDK
-// AuthResult objects. That is, credentials that aren't created by our
-// users' applications, but those created to represent Credentials created
-// internally by the Anrdoid SDK.
 class InternalAuthResultProvider {
  public:
   static Credential GetCredential(jobject credential);
+  static Credential GetCredential(void* impl, AuthError error_code,
+                                  const std::string& error_message) {
+    Credential c(impl);
+    c.error_code_ = error_code;
+    c.error_message_ = error_message;
+    return c;
+  }
 };
 
-// For each asynchronous call, a pointer to one of these structs is passed
-// into Java. When the call completes, Java returns the pointer via a callback
-// function. In this way, we match the context of the callback with the call.
 template <typename T>
 struct FutureCallbackData {
-  // During the callback, read `result` data from Java into the returned
-  // C++ data in `d->future_data->Data()`.
   typedef void ReadFutureResultFn(jobject result, FutureCallbackData* d,
                                   bool success, void* void_data);
 
@@ -141,13 +83,9 @@ struct FutureCallbackData {
   ReadFutureResultFn* future_data_read_fn;
 };
 
-// The `ReadFutureResultFn` for `AuthResult` APIs.
-// Reads the `AuthResult` in `result` and returns the C++ counterpart.
 void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
                     bool success, void* void_data);
 
-// The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initializes the `User` in `void_data`.
 void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
                             bool success, void* void_data);
 
@@ -157,160 +95,95 @@ inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
     *info = AdditionalUserInfo();
     return;
   }
-
-  // Get references to Java data members of AdditionalUserInfo object.
   const jobject j_provider_id = env->CallObjectMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kGetProviderId));
-  jni::CheckAndClearException(env);
+  (void)jni::CheckAndClearException(env);
   const jobject j_profile = env->CallObjectMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kGetProfile));
-  jni::CheckAndClearException(env);
+  (void)jni::CheckAndClearException(env);
   const jobject j_user_name = env->CallObjectMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kGetUsername));
-  jni::CheckAndClearException(env);
+  (void)jni::CheckAndClearException(env);
   const jboolean j_is_new_user = env->CallBooleanMethod(
       j_additional_user_info,
       additional_user_info::GetMethodId(additional_user_info::kIsNewUser));
-  jni::CheckAndClearException(env);
+  (void)jni::CheckAndClearException(env);
 
-  // Convert Java references to C++ types.
   info->provider_id = ::firebase::jni::JStringToString(env, j_provider_id);
   info->user_name = ::firebase::jni::JStringToString(env, j_user_name);
   info->is_new_user = (j_is_new_user != JNI_FALSE);
   if (j_profile) {
     firebase::Variant v = firebase::util::JavaObjectToVariant(env, j_profile);
     if (v.is_map()) info->profile = v.map();
+    env->DeleteLocalRef(j_profile);
   }
-
-  // Release local references. Note that jni::JniStringToStringAndReleaseLocalRef releases for us.
-  env->DeleteLocalRef(j_profile);
 }
 
-// Tracks when ReadTokenResult/ReadIdTokenResult already notified
-// IdTokenListeners for a forced refresh before the Java JniIdTokenListener
-// callback arrived.
 void RecordPretriggeredIdTokenCallback(AuthData* auth_data);
 bool ConsumePretriggeredIdTokenCallback(AuthData* auth_data);
 void ClearPretriggeredIdTokenCallbacks(AuthData* auth_data);
 
-// Return the JNI environment.
 inline JNIEnv* Env(AuthData* auth_data) { return auth_data->app->GetJNIEnv(); }
-
-// Convert j_local (a local reference) into a global reference, delete the local
-// reference, and set the impl pointer to the new global reference.
-// Delete the existing impl pointer global reference, if it already exists.
 void SetImplFromLocalRef(JNIEnv* env, jobject j_local, void** impl);
 
-// Return the Java FirebaseAuth class from our platform-independent
-// representation.
 inline jobject AuthImpl(AuthData* auth_data) {
   return static_cast<jobject>(auth_data->auth_impl);
 }
-
-// Return the Java FirebaseUser class from our platform-independent
-// representation.
 inline jobject UserImpl(AuthData* auth_data) {
   return static_cast<jobject>(auth_data->user_impl);
 }
-
-// Return a platform-independent representation of Java's FirebaseUser class.
 inline void* ImplFromUser(jobject user) { return static_cast<void*>(user); }
-
-// Return the Java FirebaseUser class from our platform-independent
-// representation.
 inline jobject UserFromImpl(void* impl) { return static_cast<jobject>(impl); }
-
-// Return the Java Credential class from our platform-independent
-// representation.
 inline jobject CredentialFromImpl(void* impl) {
   return static_cast<jobject>(impl);
 }
 
-// Cache the method ids so we don't have to look up JNI functions by name.
-bool CacheUserMethodIds(JNIEnv* env, jobject activity);
-// Release user classes cached by CacheUserMethodIds().
-void ReleaseUserClasses(JNIEnv* env);
+inline jobject AcquireUserLocalRef(JNIEnv* env, AuthData* auth_data) {
+  if (!env || !auth_data) return nullptr;
+  MutexLock lock(auth_data->future_impl.mutex());
+  jobject user_impl = UserImpl(auth_data);
+  return user_impl != nullptr ? env->NewLocalRef(user_impl) : nullptr;
+}
 
-// Cache the method ids so we don't have to look up JNI functions by name.
+inline void UpdateUserOnSuccess(jobject /*result*/, FutureCallbackData<void>* d,
+                                bool success, void* /*void_data*/) {
+  if (success) UpdateCurrentUser(d->auth_data);
+}
+
+bool CacheUserMethodIds(JNIEnv* env, jobject activity);
+void ReleaseUserClasses(JNIEnv* env);
 bool CacheCredentialMethodIds(
     JNIEnv* env, jobject activity,
     const std::vector<::firebase::internal::EmbeddedFile>& embedded_files);
-// Release credential classes cached by CacheCredentialMethodIds().
 void ReleaseCredentialClasses(JNIEnv* env);
-
-// Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheCommonMethodIds(JNIEnv* env, jobject activity);
-// Release common classes cached by CacheCommonMethodIds().
 void ReleaseCommonClasses(JNIEnv* env);
 
-// Examines an exception object to determine the error code.
 AuthError ErrorCodeFromException(JNIEnv* env, jobject exception);
-
-// Checks for pending jni exceptions, captures the error and message
-// if there is one, and clears the exception state.
-// Returns kAuthErrorNone if there was no exception.
-// Returns kAuthErrorUnimplemented if the exception did not match a known auth
-// Exception.
-// Otherwise, the error code is returned and error_message out is written with
-// the exception message.
 AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
                                          std::string* error_message);
+AuthError MapFutureCallbackResultToAuthError(
+    JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
+    bool* success);
 
-// Checks for Future success / failure or Android based exceptions, and maps
-// them to corresponding AuthError codes.
-AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
-                                             firebase::util::FutureResult result_code,
-                                             bool* success);
-
-// The function called by the Java thread when a result completes.
 template <typename T>
-void FutureCallback(JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
-                    const char* status_message, void* callback_data) {
-  FutureCallbackData<T>* data =
-      static_cast<FutureCallbackData<T>*>(callback_data);
-  bool success = false;
-  const AuthError error =
-      MapFutureCallbackResultToAuthError(env, result, result_code, &success);
-  // Finish off the asynchronous call so that the caller can read it.
-  data->auth_data->future_impl.Complete(
-      data->handle, error, status_message,
-      [result, success, data](void* user_data) {
-        if (data->future_data_read_fn != nullptr) {
-          data->future_data_read_fn(result, data, success, user_data);
-        }
-      });
-
-  // Remove the callback structure that was allocated when the callback was
-  // created in SetupFuture().
-  delete data;
-  data = nullptr;
-}
-
-// The function called by the Java thread when a result completes.
-template <typename T>
-void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
-                                         firebase::util::FutureResult result_code,
-                                         const char* status_message,
-                                         void* callback_data) {
-  FutureCallbackData<T>* data =
-      static_cast<FutureCallbackData<T>*>(callback_data);
+void CompleteAndroidFutureCallback(JNIEnv* env, jobject result,
+                                   firebase::util::FutureResult result_code,
+                                   const char* status_message,
+                                   void* callback_data, bool remap_provider) {
+  auto* data = static_cast<FutureCallbackData<T>*>(callback_data);
   bool success = false;
   AuthError error =
       MapFutureCallbackResultToAuthError(env, result, result_code, &success);
-  // The Android SDK Web Activity returns Operation Not Allowed when the
-  // provider id is invalid (e.g. "The identity provider configuration is not
-  // found"). Only remap when the message does not indicate a known provider
-  // that was disabled in the Firebase console.
-  if (error == kAuthErrorOperationNotAllowed &&
+  if (remap_provider && error == kAuthErrorOperationNotAllowed &&
       (status_message == nullptr ||
        strstr(status_message, "is disabled for this Firebase project") ==
            nullptr)) {
     error = kAuthErrorInvalidProviderId;
   }
-  // Finish off the asynchronous call so that the caller can read it.
   data->auth_data->future_impl.Complete(
       data->handle, error, status_message,
       [result, success, data](void* user_data) {
@@ -318,47 +191,45 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
           data->future_data_read_fn(result, data, success, user_data);
         }
       });
-
-  // Remove the callback structure that was allocated when the callback was
-  // created in SetupFuture().
   delete data;
-  data = nullptr;
 }
 
-// Ensure `FutureCallback` gets called when `pending_result` completes.
-// Inside `FutureCallback`, we call `read_result_fn` to grab the Future result
-// data from Java, and then complete the Future for `handle`.
+template <typename T>
+void FutureCallback(JNIEnv* env, jobject result,
+                    firebase::util::FutureResult result_code,
+                    const char* status_message, void* callback_data) {
+  CompleteAndroidFutureCallback<T>(env, result, result_code, status_message,
+                                   callback_data, false);
+}
+
+template <typename T>
+void FederatedAuthProviderFutureCallback(
+    JNIEnv* env, jobject result, firebase::util::FutureResult result_code,
+    const char* status_message, void* callback_data) {
+  CompleteAndroidFutureCallback<T>(env, result, result_code, status_message,
+                                   callback_data, true);
+}
+
 template <typename T>
 void RegisterCallback(
     jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
-  // The FutureCallbackData structure is deleted in FutureCallback().
   firebase::util::RegisterCallbackOnTask(
       Env(auth_data), pending_result, FutureCallback<T>,
       new FutureCallbackData<T>(handle, auth_data, read_result_fn),
       auth_data->future_api_id.c_str());
 }
 
-// Akin to RegisterCallback above, but has a special callback handler
-// to detect specific error codes associated with the phone's
-// Web Activity implementation. This lets us map SDK-specific error idioms
-// to consistent error codes for both iOS and Android without interfering
-// with the existing API behavior for other sign in events.
 template <typename T>
 void RegisterFederatedAuthProviderCallback(
     jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
-  // The FutureCallbackData structure is deleted in
-  // FederatedAuthProviderFutureCallback().
   firebase::util::RegisterCallbackOnTask(
       Env(auth_data), pending_result, FederatedAuthProviderFutureCallback<T>,
       new FutureCallbackData<T>(handle, auth_data, read_result_fn),
       auth_data->future_api_id.c_str());
 }
 
-// Checks if there was an error, and if so, completes the given future with the
-// proper error message. Returns true if there was an error and the future was
-// completed.
 template <typename T>
 bool CheckAndCompleteFutureOnError(JNIEnv* env,
                                    ReferenceCountedFutureImpl* futures,
@@ -370,6 +241,62 @@ bool CheckAndCompleteFutureOnError(JNIEnv* env,
     return true;
   }
   return false;
+}
+
+template <typename T, typename Func>
+void RunAndroidTaskWithPromise(
+    AuthData* auth_data, Promise<T> promise,
+    typename FutureCallbackData<T>::ReadFutureResultFn* read_fn,
+    Func&& make_task) {
+  JNIEnv* env = Env(auth_data);
+  jobject pending_result = make_task(env);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data->future_impl,
+                                     promise.handle())) {
+    if (pending_result) {
+      RegisterCallback(pending_result, promise.handle(), auth_data, read_fn);
+      env->DeleteLocalRef(pending_result);
+    } else {
+      promise.Fail(kAuthErrorFailure, "User is no longer valid.");
+    }
+  } else if (pending_result) {
+    env->DeleteLocalRef(pending_result);
+  }
+}
+
+template <typename T, typename Func>
+void RunAndroidUserTaskWithPromise(
+    AuthData* auth_data, Promise<T> promise,
+    typename FutureCallbackData<T>::ReadFutureResultFn* read_fn,
+    Func&& make_task) {
+  if (!ValidUser(auth_data)) {
+    promise.Fail(kAuthErrorFailure, "Invalid user");
+    return;
+  }
+  RunAndroidTaskWithPromise(auth_data, promise, read_fn,
+                            [&](JNIEnv* env) -> jobject {
+                              jobject user_local =
+                                  AcquireUserLocalRef(env, auth_data);
+                              if (!user_local) return nullptr;
+                              jobject task = make_task(env, user_local);
+                              env->DeleteLocalRef(user_local);
+                              return task;
+                            });
+}
+
+template <typename T>
+inline bool ValidateCredentialForPromise(Promise<T>& promise,
+                                         const Credential& credential) {
+  AuthError err = internal::CredentialAccess::GetErrorCode(credential);
+  if (err != kAuthErrorNone) {
+    promise.Fail(err,
+                 internal::CredentialAccess::GetErrorMessage(credential).c_str());
+    return false;
+  }
+  if (!credential.is_valid()) {
+    promise.Fail(kAuthErrorInvalidCredential, "Invalid credential.");
+    return false;
+  }
+  return true;
 }
 
 }  // namespace auth

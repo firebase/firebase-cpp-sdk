@@ -14,10 +14,21 @@
  * limitations under the License.
  */
 
+#include <utility>
+
 #include "auth/src/common.h"
 
 namespace firebase {
 namespace auth {
+
+User::User(const User& user) { auth_data_ = user.auth_data_; }
+
+User& User::operator=(const User& user) {
+  auth_data_ = user.auth_data_;
+  return *this;
+}
+
+User::~User() { auth_data_ = nullptr; }
 
 #if !defined(SWIG)
 User::User(User&& rhs) noexcept : auth_data_(rhs.auth_data_) {
@@ -49,13 +60,22 @@ AUTH_RESULT_FN(User, Reload, void)
 AUTH_RESULT_FN(User, Delete, void)
 AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
+namespace {
+template <typename R, typename Fn, typename... Args>
+Future<R> RunUserPromiseFn(AuthData* auth_data, int fn_id, Fn fn,
+                           Args&&... args) {
+  if (!auth_data) return Future<R>();
+  Promise<R> promise(&auth_data->future_impl, fn_id);
+  fn(auth_data, promise, std::forward<Args>(args)...);
+  return promise.future();
+}
+}  // namespace
+
 Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
   if (!auth_data_) return Future<std::string>();
   MutexLock lock(auth_data_->future_impl.mutex());
   Future<std::string> future = GetToken(force_refresh);
-  if (future.status() != kFutureStatusPending) {
-    return future;
-  }
+  if (future.status() != kFutureStatusPending) return future;
   FutureBase base = auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
   const FutureBase& r_future = base;
   return static_cast<const Future<std::string>&>(r_future);
@@ -65,17 +85,13 @@ Future<IdTokenResult> User::GetIdTokenResultThreadSafe(bool force_refresh) {
   if (!auth_data_) return Future<IdTokenResult>();
   MutexLock lock(auth_data_->future_impl.mutex());
   Future<IdTokenResult> future = GetIdTokenResult(force_refresh);
-  if (future.status() != kFutureStatusPending) {
-    return future;
-  }
+  if (future.status() != kFutureStatusPending) return future;
   FutureBase base =
       auth_data_->future_impl.LastResultProxy(kUserFn_GetIdTokenResult);
   const FutureBase& r_future = base;
   return static_cast<const Future<IdTokenResult>&>(r_future);
 }
 
-// Non-inline implementation of UserInfoInterface's virtual destructor
-// to prevent its vtable being emitted in each translation unit.
 UserInfoInterface::~UserInfoInterface() = default;
 
 std::string UserInfoInterface::uid() const { return uid_; }
@@ -86,113 +102,97 @@ std::string UserInfoInterface::provider_id() const { return provider_id_; }
 std::string UserInfoInterface::phone_number() const { return phone_number_; }
 
 Future<std::string> User::GetToken(const bool force_refresh) {
-  if (!auth_data_) return Future<std::string>();
-  Promise<std::string> promise(&auth_data_->future_impl, kUserFn_GetToken);
-  ::firebase::auth::GetToken(auth_data_, promise, force_refresh);
-  return promise.future();
+  return RunUserPromiseFn<std::string>(auth_data_, kUserFn_GetToken,
+                                       ::firebase::auth::GetToken,
+                                       force_refresh);
 }
 
 Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
-  if (!auth_data_) return Future<IdTokenResult>();
-  Promise<IdTokenResult> promise(&auth_data_->future_impl, kUserFn_GetIdTokenResult);
-  ::firebase::auth::GetIdTokenResult(auth_data_, promise, force_refresh);
-  return promise.future();
+  return RunUserPromiseFn<IdTokenResult>(auth_data_, kUserFn_GetIdTokenResult,
+                                         ::firebase::auth::GetIdTokenResult,
+                                         force_refresh);
 }
 
 Future<void> User::Delete() {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_Delete);
-  ::firebase::auth::Delete(auth_data_, promise);
-  return promise.future();
+  return RunUserPromiseFn<void>(auth_data_, kUserFn_Delete,
+                                ::firebase::auth::Delete);
 }
 
 Future<void> User::SendEmailVerification() {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_SendEmailVerification);
-  ::firebase::auth::SendEmailVerification(auth_data_, promise);
-  return promise.future();
+  return RunUserPromiseFn<void>(auth_data_, kUserFn_SendEmailVerification,
+                                ::firebase::auth::SendEmailVerification);
 }
 
 Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_SendEmailVerificationBeforeUpdatingEmail);
-  ::firebase::auth::SendEmailVerificationBeforeUpdatingEmail(auth_data_, promise, email);
-  return promise.future();
+  return RunUserPromiseFn<void>(
+      auth_data_, kUserFn_SendEmailVerificationBeforeUpdatingEmail,
+      ::firebase::auth::SendEmailVerificationBeforeUpdatingEmail, email);
 }
 
 Future<void> User::Reload() {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_Reload);
-  ::firebase::auth::Reload(auth_data_, promise);
-  return promise.future();
+  return RunUserPromiseFn<void>(auth_data_, kUserFn_Reload,
+                                ::firebase::auth::Reload);
 }
 
 Future<void> User::UpdatePassword(const char* const password) {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdatePassword);
-  ::firebase::auth::UpdatePassword(auth_data_, promise, password);
-  return promise.future();
+  return RunUserPromiseFn<void>(auth_data_, kUserFn_UpdatePassword,
+                                ::firebase::auth::UpdatePassword, password);
 }
 
 Future<void> User::UpdateUserProfile(const User::UserProfile& profile) {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateUserProfile);
-  ::firebase::auth::UpdateUserProfile(auth_data_, promise, profile);
-  return promise.future();
+  return RunUserPromiseFn<void>(auth_data_, kUserFn_UpdateUserProfile,
+                                ::firebase::auth::UpdateUserProfile, profile);
 }
 
 Future<AuthResult> User::Unlink(const char* const provider) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_Unlink);
-  ::firebase::auth::Unlink(auth_data_, promise, provider);
-  return promise.future();
+  return RunUserPromiseFn<AuthResult>(auth_data_, kUserFn_Unlink,
+                                      ::firebase::auth::Unlink, provider);
 }
 
 Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_LinkWithCredential);
-  ::firebase::auth::LinkWithCredential(auth_data_, promise, credential);
-  return promise.future();
+  return RunUserPromiseFn<AuthResult>(auth_data_, kUserFn_LinkWithCredential,
+                                      ::firebase::auth::LinkWithCredential,
+                                      credential);
 }
 
-Future<AuthResult> User::LinkWithProvider(FederatedAuthProvider* provider) const {
-  if (!auth_data_) return Future<AuthResult>();
-  return ::firebase::auth::LinkWithProvider(auth_data_, provider);
+Future<AuthResult> User::LinkWithProvider(
+    FederatedAuthProvider* provider) const {
+  return auth_data_ ? ::firebase::auth::LinkWithProvider(auth_data_, provider)
+                    : Future<AuthResult>();
 }
 
 Future<void> User::Reauthenticate(const Credential& credential) {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
-  ::firebase::auth::Reauthenticate(auth_data_, promise, credential);
-  return promise.future();
+  return RunUserPromiseFn<void>(auth_data_, kUserFn_Reauthenticate,
+                                ::firebase::auth::Reauthenticate, credential);
 }
 
-Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential& credential) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_ReauthenticateAndRetrieveData);
-  ::firebase::auth::ReauthenticateAndRetrieveData(auth_data_, promise, credential);
-  return promise.future();
+Future<AuthResult> User::ReauthenticateAndRetrieveData(
+    const Credential& credential) {
+  return RunUserPromiseFn<AuthResult>(
+      auth_data_, kUserFn_ReauthenticateAndRetrieveData,
+      ::firebase::auth::ReauthenticateAndRetrieveData, credential);
 }
 
-Future<AuthResult> User::ReauthenticateWithProvider(FederatedAuthProvider* provider) const {
-  if (!auth_data_) return Future<AuthResult>();
-  return ::firebase::auth::ReauthenticateWithProvider(auth_data_, provider);
+Future<AuthResult> User::ReauthenticateWithProvider(
+    FederatedAuthProvider* provider) const {
+  return auth_data_
+             ? ::firebase::auth::ReauthenticateWithProvider(auth_data_,
+                                                            provider)
+             : Future<AuthResult>();
 }
 
-Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential& credential) {
-  if (!auth_data_) return Future<User>();
-  Promise<User> promise(&auth_data_->future_impl, kUserFn_UpdatePhoneNumberCredential);
-  ::firebase::auth::UpdatePhoneNumberCredential(auth_data_, promise, credential);
-  return promise.future();
+Future<User> User::UpdatePhoneNumberCredential(
+    const PhoneAuthCredential& credential) {
+  return RunUserPromiseFn<User>(
+      auth_data_, kUserFn_UpdatePhoneNumberCredential,
+      ::firebase::auth::UpdatePhoneNumberCredential, credential);
 }
 
-
-
-Future<std::string> User::GetTokenInternal(const bool force_refresh, const int future_identifier) {
-  if (!auth_data_) return Future<std::string>();
-  Promise<std::string> promise(&auth_data_->future_impl, future_identifier);
-  ::firebase::auth::GetTokenInternal(auth_data_, promise, force_refresh, future_identifier);
-  return promise.future();
+Future<std::string> User::GetTokenInternal(const bool force_refresh,
+                                           const int future_identifier) {
+  return RunUserPromiseFn<std::string>(auth_data_, future_identifier,
+                                       ::firebase::auth::GetTokenInternal,
+                                       force_refresh, future_identifier);
 }
 
 }  // namespace auth

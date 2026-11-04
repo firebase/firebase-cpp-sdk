@@ -28,11 +28,8 @@
 namespace firebase {
 namespace auth {
 
-// Represents results of a getAccountInfo operation, which can then be merged
-// into the currently signed-in user.
 class GetAccountInfoResult {
  public:
-  // Creates an immutable invalid GetAccountInfoResult.
   explicit GetAccountInfoResult(AuthError const error) : error_(error) {
     if (error_ == kAuthErrorNone) {
       LogDebug(
@@ -41,25 +38,13 @@ class GetAccountInfoResult {
     }
   }
 
-  // Creates result corresponding to the given response; will be invalid
-  // (!IsValid()) if the response contains an error.
   static GetAccountInfoResult FromResponse(
       const GetAccountInfoResponse& response);
 
-  // Whether the operation was successful.
   bool IsValid() const { return error_ == kAuthErrorNone; }
-  // Error code associated with this operation.
   AuthError error() const { return error_; }
-
-  // Updates the properties of the currently signed-in user to those returned by
-  // the operation this result represents.
-  //
-  // Updates to AuthData are done in a thread-safe manner.
   void MergeToCurrentUser(AuthData* auth_data) const;
   void MergeToUser(UserView::Writer& writer) const;
-
-  // Only contains fields that are returned by getAccountInfo API. Blank if
-  // operation failed.
   const UserData& user() const { return user_impl_; }
 
  private:
@@ -68,7 +53,6 @@ class GetAccountInfoResult {
   GetAccountInfoResult() : error_(kAuthErrorNone) {}
 
   AuthError error_;
-
   UserData user_impl_;
   std::vector<UserInfoImpl> provider_data_;
 };

@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_PROMISE_H_
 
 #include <memory>
+#include <string>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -24,16 +25,6 @@
 
 namespace firebase {
 namespace auth {
-
-// Simplifies working with a Firebase future.
-//
-// Promise preallocates a result in the constructor and keeps track of the
-// handle. Promise doesn't own any memory and can be freely copied. The given
-// ReferenceCountedFutureImpl is presumed to stay valid for the whole lifetime
-// of this Promise.
-//
-// Promise guarantees that it refers to a valid future backed by last_results
-// array.
 namespace detail {
 
 template <typename ResultT>
@@ -46,21 +37,17 @@ class PromiseBase {
       future_manager_.Complete(handle_, error);
     }
   }
-
   void Fail(AuthError error, const std::string& message) {
     Fail(error, message.c_str());
   }
-
   Future<ResultT> InvalidateLastResult() {
     future_manager_.InvalidateLastResult(identifier_);
     return LastResult();
   }
-
   Future<ResultT> LastResult() {
     return static_cast<const firebase::Future<ResultT>&>(
         future_manager_.LastResult(identifier_));
   }
-
   Future<ResultT> future() { return future_; }
   SafeFutureHandle<ResultT> handle() const { return handle_; }
 
@@ -83,7 +70,6 @@ class PromiseBase {
 template <typename ResultT>
 class Promise : public detail::PromiseBase<ResultT> {
  public:
-  // Creates a future backed by LastResults cache.
   Promise(ReferenceCountedFutureImpl* const future_manager,
           const int identifier)
       : detail::PromiseBase<ResultT>(

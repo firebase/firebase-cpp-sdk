@@ -28,12 +28,12 @@
 #include "app/src/scheduler.h"
 #include "app/src/semaphore.h"
 #include "auth/src/common.h"
+#include "auth/src/common/promise.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/auth_data_handle.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/desktop/authentication_result.h"
-#include "auth/src/common/promise.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
 #include "auth/src/desktop/rpcs/error_codes.h"
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
@@ -47,67 +47,35 @@ using firebase::callback::NewCallback;
 
 const char* GetApiKey(const AuthData& auth_data);
 
-// Completes the given Promise<AuthResult> with the provided AuthResult.
 void CompletePromise(Promise<AuthResult>* promise,
                      const AuthResult& auth_result);
-
 void CompletePromise(Promise<User>* promise, const AuthResult& auth_result);
-
 void CompletePromise(Promise<void>* promise, const AuthResult& auth_result);
 
-// Fails the given promise with the given error_code and also provides
-// a human-readable description corresponding to the error code.
 template <typename T>
-void FailPromise(Promise<T>* promise, AuthError error_code);
-
-// Invokes the given callback on another thread and passes the rest of the
-// arguments to the invocation.
-template <typename ResultT, typename RequestT>
-void CallAsync(
-    AuthData* auth_data, Promise<ResultT> promise,
-    std::unique_ptr<RequestT> request,
-    const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback);
-
-// Prepares the request's heartbeat/AppCheck headers, sends it on the network
-// and returns the response. The response is cast to the specified T without
-// any checks, so it's the caller's responsibility to ensure the correct type is
-// given. Only AuthRequests are accepted, so no request can be sent without
-// PrepareRequestHeaders().
-//
-// Note: this is a blocking call! Use in the callback given to CallAsync, or
-// otherwise on a separate thread.
-template <typename T>
-T GetResponse(AuthRequest& request);
-
-// Implementation
+inline void FailPromise(Promise<T>* const promise, const AuthError error_code) {
+  FIREBASE_ASSERT_RETURN_VOID(promise);
+  promise->Fail(error_code, GetAuthErrorMessage(error_code));
+}
 
 template <typename ResultT, typename RequestT>
 inline void CallAsync(
     AuthData* const auth_data, Promise<ResultT> promise,
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback) {
-  // Note: it's okay for the caller to pass a null request - they may want to
-  // create the request inside the callback invocation, and this function
-  // doesn't need to access the request anyway.
   FIREBASE_ASSERT_RETURN_VOID(auth_data && callback);
-
   typedef AuthDataHandle<ResultT, RequestT> HandleT;
-
   auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
         std::unique_ptr<HandleT> handle(raw_auth_data_handle);
         if constexpr (std::is_base_of_v<AuthRequest, RequestT>) {
-          if (handle->request) {
-            handle->request->PrepareRequestHeaders();
-          }
+          if (handle->request) handle->request->PrepareRequestHeaders();
         }
         handle->callback(handle.get());
       },
       new HandleT(auth_data, promise, std::move(request), callback));
-  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->scheduler_.Schedule(scheduler_callback);
-
-  return;
+  static_cast<AuthImpl*>(auth_data->auth_impl)
+      ->scheduler_.Schedule(scheduler_callback);
 }
 
 template <typename T>
@@ -116,12 +84,6 @@ inline T GetResponse(AuthRequest& request) {
   T response;
   firebase::rest::CreateTransport()->Perform(request, &response);
   return response;
-}
-
-template <typename T>
-inline void FailPromise(Promise<T>* const promise, const AuthError error_code) {
-  FIREBASE_ASSERT_RETURN_VOID(promise);
-  promise->Fail(error_code, GetAuthErrorMessage(error_code));
 }
 
 }  // namespace auth

@@ -82,7 +82,6 @@ SetAccountInfoRequest::CreateUpdateProfileRequest(
     ::firebase::App& app, const char* const api_key,
     const char* const set_display_name, const char* const set_photo_url) {
   auto request = CreateRequest(app, api_key);
-
   // It's fine for either set_display_name or set_photo_url to be null.
   if (set_display_name) {
     if (*set_display_name != '\0') {
@@ -91,7 +90,6 @@ SetAccountInfoRequest::CreateUpdateProfileRequest(
       request->application_data_->deleteAttribute.push_back("DISPLAY_NAME");
     }
   }
-
   if (set_photo_url) {
     if (*set_photo_url != '\0') {
       request->application_data_->photoUrl = set_photo_url;
@@ -99,7 +97,6 @@ SetAccountInfoRequest::CreateUpdateProfileRequest(
       request->application_data_->deleteAttribute.push_back("PHOTO_URL");
     }
   }
-
   request->UpdatePostFields();
   return request;
 }
@@ -112,7 +109,6 @@ SetAccountInfoRequest::CreateUnlinkProviderRequest(::firebase::App& app,
   if (provider && *provider != '\0') {
     request->application_data_->deleteProvider.push_back(provider);
   }
-
   request->UpdatePostFields();
   return request;
 }

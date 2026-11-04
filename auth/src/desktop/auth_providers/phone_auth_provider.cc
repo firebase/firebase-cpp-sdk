@@ -26,31 +26,22 @@
 namespace firebase {
 namespace auth {
 
-// Right now we use the stub implementation. Need to replace this with logic
-// that works for desktop.
-
 static const char* kMockVerificationId = "mock verification id";
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
     : data_(nullptr) {}
-
 PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {}
-
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
-    const ForceResendingToken& rhs)
+    const ForceResendingToken&)
     : data_(nullptr) {}
-
 PhoneAuthProvider::ForceResendingToken&
-PhoneAuthProvider::ForceResendingToken::operator=(
-    const ForceResendingToken& rhs) {
+PhoneAuthProvider::ForceResendingToken::operator=(const ForceResendingToken&) {
   return *this;
 }
-
 bool PhoneAuthProvider::ForceResendingToken::operator==(
     const ForceResendingToken& rhs) const {
   return data_ == rhs.data_;
 }
-
 bool PhoneAuthProvider::ForceResendingToken::operator!=(
     const ForceResendingToken& rhs) const {
   return !(*this == rhs);
@@ -65,13 +56,10 @@ PhoneAuthProvider::~PhoneAuthProvider() {}
 void PhoneAuthProvider::VerifyPhoneNumber(
     const PhoneAuthOptions& options, PhoneAuthProvider::Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-
-  // Mock the tokens by sending a new one whenever it's unspecified.
   ForceResendingToken token;
   if (options.force_resending_token != nullptr) {
     token = *options.force_resending_token;
   }
-
   listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
   listener->OnCodeSent(kMockVerificationId, token);
 }
@@ -84,7 +72,6 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
   return PhoneAuthCredential(nullptr);
 }
 
-// static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   static PhoneAuthProvider kInvalidPhoneAuthProvider;
   FIREBASE_ASSERT_RETURN(kInvalidPhoneAuthProvider,
@@ -92,28 +79,6 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   return auth->auth_data_->phone_auth_provider;
 }
 
-//
-// PhoneAuthCredential platform-specific methods
-//
-// Note: PhoneAuth isn't supported on desktop systems, so these methods are
-// essentially no-ops.
-//
-PhoneAuthCredential& PhoneAuthCredential::operator=(
-    const PhoneAuthCredential& rhs) {
-  if (this != &rhs) {
-    Credential::operator=(rhs);
-    sms_code_ = rhs.sms_code_;
-  }
-  return *this;
-}
-
-bool PhoneAuthCredential::operator==(
-    const PhoneAuthCredential& credential) const {
-  return Credential::operator==(credential) &&
-         sms_code_ == credential.sms_code_;
-}
-
-// Gets the automatically retrieved SMS verification code if applicable.
 std::string PhoneAuthCredential::sms_code() const { return sms_code_; }
 
 }  // namespace auth

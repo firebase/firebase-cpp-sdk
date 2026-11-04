@@ -28,10 +28,6 @@ void AuthenticationResult::SetAccountInfo(const GetAccountInfoResult& info) {
 }
 
 std::string AuthenticationResult::uid() const {
-  // Use value from GetAccountInfoResponse, because VerifyCustomTokenResponse
-  // doesn't contain local_id field (from which uid is taken), and in other
-  // cases it doesn't matter from which response uid is taken (they're supposed
-  // to be identical).
   return user_account_info_.IsValid() ? user_account_info_.user_impl_.uid
                                       : user_impl_.uid;
 }
@@ -39,12 +35,8 @@ std::string AuthenticationResult::uid() const {
 AuthResult AuthenticationResult::SetAsCurrentUser(
     AuthData* const auth_data) const {
   FIREBASE_ASSERT_RETURN(AuthResult(), auth_data);
-  if (!IsValid()) {
-    return AuthResult();
-  }
+  if (!IsValid()) return AuthResult();
 
-  // Save the previous user state to be able to check whether listeners should
-  // be notified later on.
   UserData previous_user;
   User* api_user_to_return = nullptr;
   {
@@ -52,21 +44,16 @@ AuthResult AuthenticationResult::SetAsCurrentUser(
         UserView::ResetUser(auth_data, user_impl_, &previous_user);
     if (user_account_info_.IsValid()) {
       user_account_info_.MergeToUser(writer);
-      if (writer->email.empty() && !user_impl_.email.empty()) {
+      if (writer->email.empty() && !user_impl_.email.empty())
         writer->email = user_impl_.email;
-      }
-      if (writer->display_name.empty() && !user_impl_.display_name.empty()) {
+      if (writer->display_name.empty() && !user_impl_.display_name.empty())
         writer->display_name = user_impl_.display_name;
-      }
-      if (writer->photo_url.empty() && !user_impl_.photo_url.empty()) {
+      if (writer->photo_url.empty() && !user_impl_.photo_url.empty())
         writer->photo_url = user_impl_.photo_url;
-      }
-      if (writer->phone_number.empty() && !user_impl_.phone_number.empty()) {
+      if (writer->phone_number.empty() && !user_impl_.phone_number.empty())
         writer->phone_number = user_impl_.phone_number;
-      }
-      if (!writer->is_email_verified && user_impl_.is_email_verified) {
+      if (!writer->is_email_verified && user_impl_.is_email_verified)
         writer->is_email_verified = true;
-      }
     }
     api_user_to_return = &auth_data->current_user;
   }
@@ -81,27 +68,17 @@ AuthResult AuthenticationResult::SetAsCurrentUser(
   }
 
   AuthResult result;
-  if (api_user_to_return != nullptr) {
-    result.user = *api_user_to_return;
-  }
+  if (api_user_to_return) result.user = *api_user_to_return;
   result.additional_user_info = info_;
   return result;
 }
 
 void AuthenticationResult::SignOut(AuthData* const auth_data) {
   FIREBASE_ASSERT_RETURN_VOID(auth_data);
-
-  // Save the previous user state to be able to check whether listeners should
-  // be notified later on.
   UserData previous_user;
   UserView::ClearUser(auth_data, &previous_user);
-
-  if (!previous_user.uid.empty()) {
-    NotifyAuthStateListeners(auth_data);
-  }
-  if (!previous_user.id_token.empty()) {
-    NotifyIdTokenListeners(auth_data);
-  }
+  if (!previous_user.uid.empty()) NotifyAuthStateListeners(auth_data);
+  if (!previous_user.id_token.empty()) NotifyIdTokenListeners(auth_data);
 }
 
 }  // namespace auth

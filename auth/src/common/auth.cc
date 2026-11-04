@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -41,13 +42,8 @@
 #include "auth/src/data.h"
 #include "auth/src/include/firebase/auth/credential.h"
 
-// Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
-    auth, { return ::firebase::kInitResultSuccess; },
-    {
-        // Nothing to tear down.
-    },
-    false);
+    auth, { return ::firebase::kInitResultSuccess; }, {}, false);
 
 namespace firebase {
 namespace auth {
@@ -55,85 +51,69 @@ namespace auth {
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAuth);
 
 namespace {
-// The global map of Apps to Auths. Each App can have at most one Auth,
-// and an Auth requires an App. So, the user acquires the Auth via an App
-// reference.
 std::map<App*, Auth*>* g_auths = nullptr;
 Mutex* g_auths_mutex = new Mutex();
-// Serializes DeleteInternal() across CleanupNotifier and ~Auth() so ~Auth()
-// cannot return early and free the Auth instance while another thread is still
-// executing DeleteInternal().
 Mutex* g_auth_delete_mutex = new Mutex();
 
-// Assumes *g_auths_mutex is held by caller.
 Auth* FindAuthLocked(App* app) {
-  if (g_auths == nullptr || app == nullptr) {
-    return nullptr;
-  }
+  if (!g_auths || !app) return nullptr;
   auto it = g_auths->find(app);
   return it != g_auths->end() ? it->second : nullptr;
 }
 
-// Assumes *g_auths_mutex is held by caller.
 App* FindAppForAuthLocked(Auth* auth) {
-  if (g_auths == nullptr || auth == nullptr) {
-    return nullptr;
-  }
-  for (auto it = g_auths->begin(); it != g_auths->end(); ++it) {
-    if (it->second == auth) {
-      return it->first;
-    }
+  if (!g_auths || !auth) return nullptr;
+  for (const auto& kv : *g_auths) {
+    if (kv.second == auth) return kv.first;
   }
   return nullptr;
 }
+
+template <typename R, typename Fn, typename... Args>
+Future<R> RunAuthPromiseFn(AuthData* auth_data, int fn_id, Fn fn,
+                           Args&&... args) {
+  if (!auth_data) return Future<R>();
+  Promise<R> promise(&auth_data->future_impl, fn_id);
+  fn(auth_data, promise, std::forward<Args>(args)...);
+  return promise.future();
+}
 }  // namespace
 
-// static
 Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
-  if (app == nullptr) {
+  if (!app) {
     LogError("Auth::GetAuth() called with null firebase::App.");
-    if (init_result_out != nullptr) {
-      *init_result_out = kInitResultFailedMissingDependency;
-    }
+    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
     return nullptr;
   }
 
   Auth* auth = nullptr;
   {
     MutexLock lock(*g_auths_mutex);
-    if (g_auths == nullptr) {
-      g_auths = new std::map<App*, Auth*>();
-    }
+    if (!g_auths) g_auths = new std::map<App*, Auth*>();
 
-    // Return the Auth if it already exists.
     Auth* existing_auth = FindAuthLocked(app);
-    if (existing_auth != nullptr) {
-      if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
+    if (existing_auth) {
+      if (init_result_out) *init_result_out = kInitResultSuccess;
       auth = existing_auth;
     } else {
-      // Create the platform dependent version of Auth.
       void* auth_impl = CreatePlatformAuth(app);
       if (!auth_impl) {
         if (g_auths->empty()) {
           delete g_auths;
           g_auths = nullptr;
         }
-        if (init_result_out != nullptr) {
+        if (init_result_out) {
           *init_result_out = kInitResultFailedMissingDependency;
         }
         return nullptr;
       }
 
-      // Create a new Auth and initialize.
-      // Note: Auth constructor registers into (*g_auths)[app] before calling
-      // InitPlatformAuth so re-entrant FindAuth(app) calls during
-      // initialization succeed.
       auth = new Auth(app, auth_impl);
       LogDebug("Creating Auth %p for App %p", auth, app);
 
       CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
       assert(notifier);
-      if (notifier != nullptr) {
+      if (notifier) {
         notifier->RegisterObject(auth, [](void* object) {
           Auth* auth_to_clean = reinterpret_cast<Auth*>(object);
           MutexLock delete_lock(*g_auth_delete_mutex);
@@ -141,9 +121,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
           {
             MutexLock lock(*g_auths_mutex);
             app_to_log = FindAppForAuthLocked(auth_to_clean);
-            if (app_to_log == nullptr) {
-              return;
-            }
+            if (!app_to_log) return;
           }
           LogWarning(
               "Auth object %p should be deleted before the App %p it depends "
@@ -152,54 +130,38 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
           auth_to_clean->DeleteInternal();
         });
       }
-
-      if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
+      if (init_result_out) *init_result_out = kInitResultSuccess;
     }
-
-    // Log heartbeat data when instance getters are called.
-    // See go/firebase-platform-logging-design for more information.
     LogHeartbeat(auth);
   }
   return auth;
 }
 
 #if !defined(SWIG)
-// static
 Auth* Auth::GetAuth(InitResult* init_result_out) {
   App* default_app = App::GetInstance();
-  if (default_app == nullptr) {
+  if (!default_app) {
     LogError("Auth::GetAuth() called before default App was created.");
-    if (init_result_out != nullptr) {
-      *init_result_out = kInitResultFailedMissingDependency;
-    }
+    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
     return nullptr;
   }
   return GetAuth(default_app, init_result_out);
 }
 #endif  // !defined(SWIG)
 
-// static
 Auth* Auth::FindAuth(App* app) {
   MutexLock lock(*g_auths_mutex);
   return FindAuthLocked(app);
 }
 
-// Auth uses the pimpl mechanism to hide internal data types from the interface.
 Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
   FIREBASE_ASSERT(app != nullptr && auth_impl != nullptr);
   auth_data_->app = app;
   auth_data_->auth = this;
   auth_data_->auth_impl = auth_impl;
   auth_data_->user_impl = nullptr;
-
-  static const char* kApiIdentifier = "Auth";
-  auth_data_->future_api_id = CreateApiIdentifier(kApiIdentifier, this);
-
-  // Register in g_auths before InitPlatformAuth so any synchronous listener or
-  // function-registry callback triggered during InitPlatformAuth can resolve
-  // FindAuth(app).
+  auth_data_->future_api_id = CreateApiIdentifier("Auth", this);
   (*g_auths)[app] = this;
-
   InitPlatformAuth(auth_data_);
 }
 
@@ -209,16 +171,13 @@ void Auth::DeleteInternal() {
   {
     MutexLock lock(*g_auths_mutex);
     if (!auth_data_) return;
-
     {
       MutexLock destructing_lock(auth_data_->destructing_mutex);
       if (auth_data_->destructing) return;
       auth_data_->destructing = true;
     }
-
     app = auth_data_->app;
-
-    if (g_auths != nullptr) {
+    if (g_auths) {
       for (auto it = g_auths->begin(); it != g_auths->end(); ++it) {
         if (it->second == this) {
           LogDebug("Deleting Auth %p for App %p", this, it->first);
@@ -229,23 +188,17 @@ void Auth::DeleteInternal() {
     }
   }
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-  if (notifier != nullptr) {
+  if (CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app)) {
     notifier->UnregisterObject(this);
   }
 
-  // Wait for any in-flight futures without holding g_auths_mutex so callbacks
-  // calling FindAuth() cannot deadlock.
   while (!auth_data_->future_impl.IsSafeToDelete()) {
     ::firebase::internal::Sleep(100);
   }
 
   auth_data_->ClearListeners();
-
-  // Destroy the platform-specific object before deleting auth_data_.
   DestroyPlatformAuth(auth_data_);
 
-  // Delete the pimpl data (which also destroys phone_auth_provider).
   AuthData* data_to_delete = nullptr;
   {
     MutexLock lock(*g_auths_mutex);
@@ -254,11 +207,9 @@ void Auth::DeleteInternal() {
   }
   delete data_to_delete;
 
-  // If this is the last Auth instance to be cleaned up, also clean up data for
-  // Credentials.
   {
     MutexLock lock(*g_auths_mutex);
-    if (g_auths != nullptr && g_auths->empty()) {
+    if (g_auths && g_auths->empty()) {
       delete g_auths;
       g_auths = nullptr;
       CleanupCredentialFutureImpl();
@@ -268,7 +219,6 @@ void Auth::DeleteInternal() {
 
 Auth::~Auth() { DeleteInternal(); }
 
-// Always non-nullptr since set in constructor.
 App& Auth::app() {
   FIREBASE_ASSERT(auth_data_ != nullptr);
   return *auth_data_->app;
@@ -276,63 +226,35 @@ App& Auth::app() {
 
 template <typename T>
 static bool PushBackIfMissing(const T& entry, std::vector<T>* v) {
-  auto it = std::find(v->begin(), v->end(), entry);
-  if (it != v->end()) return false;
-
+  if (std::find(v->begin(), v->end(), entry) != v->end()) return false;
   v->push_back(entry);
   return true;
 }
 
-// Store a unique listener of type T in a listener_vector and unique auth
-// object in auth_vector.  Both vectors must be in sync, i.e addition must
-// either succeed or fail otherwise this method asserts.
-// Return whether the listener is added.
 template <typename T>
 static bool AddListener(T listener, std::vector<T>* listener_vector, Auth* auth,
                         std::vector<Auth*>* auth_vector) {
-  // Add to array of listeners if not already there.
   const bool listener_added = PushBackIfMissing(listener, listener_vector);
-  // Add auth to array of Auths if not already there.
   const bool auth_added = PushBackIfMissing(auth, auth_vector);
-
-  // The listener and Auth should either point at each other or not point
-  // at each other.
   FIREBASE_ASSERT_RETURN(false, listener_added == auth_added);
   (void)auth_added;
-
   return listener_added;
 }
 
 void Auth::AddAuthStateListener(AuthStateListener* listener) {
   if (!auth_data_ || !listener) return;
-  // Hold listeners_mutex until the method ends to protect against race
-  // conditions.
   MutexLock lock(auth_data_->listeners_mutex);
-  bool added =
-      AddListener(listener, &auth_data_->listeners, this, &listener->auths_);
-
-  // If the listener is registered successfully and persistent cache has been
-  // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
-  // the cache is loaded, through AuthStateListener event.
-  if (added && !auth_data_->persistent_cache_load_pending) {
+  if (AddListener(listener, &auth_data_->listeners, this, &listener->auths_) &&
+      !auth_data_->persistent_cache_load_pending) {
     listener->OnAuthStateChanged(this);
   }
 }
 
 void Auth::AddIdTokenListener(IdTokenListener* listener) {
   if (!auth_data_ || !listener) return;
-  // Hold listeners_mutex until the method ends to protect against race
-  // conditions.
   MutexLock lock(auth_data_->listeners_mutex);
-  bool added = AddListener(listener, &auth_data_->id_token_listeners, this,
-                           &listener->auths_);
-  // AddListener is valid even if the listener is already registered.
-  // This makes sure that we only increase the reference count if a listener
-  // was actually added.
-  if (added) {
-    // If the listener is registered successfully and persistent cache has been
-    // loaded, trigger OnIdTokenChanged() immediately.  Otherwise, wait until
-    // the cache is loaded, through IdTokenListener event.
+  if (AddListener(listener, &auth_data_->id_token_listeners, this,
+                  &listener->auths_)) {
     if (!auth_data_->persistent_cache_load_pending) {
       listener->OnIdTokenChanged(this);
     }
@@ -348,22 +270,14 @@ static bool EraseEntryPreservingOrder(const T& entry, std::vector<T>* v) {
   return true;
 }
 
-// Remove a listener of type T from listener_vector and unique auth object in
-// auth_vector.  Both vectors must be in sync.
-// Returns true if the listener was present and removed.
 template <typename T>
 static bool RemoveListener(T listener, std::vector<T>* listener_vector,
                            Auth* auth, std::vector<Auth*>* auth_vector,
                            Mutex* mutex) {
   MutexLock lock(*mutex);
-  // Remove `listener` from our vector of listeners while preserving FIFO order.
-  const bool removed_listener =
-      EraseEntryPreservingOrder(listener, listener_vector);
-  // Remove this Auth from the listener's vector of Auths.
-  // This ensures the listener doesn't try to unregister itself again when it is
-  // destroyed.
+  const bool removed = EraseEntryPreservingOrder(listener, listener_vector);
   EraseEntryPreservingOrder(auth, auth_vector);
-  return removed_listener;
+  return removed;
 }
 
 void Auth::RemoveAuthStateListener(AuthStateListener* listener) {
@@ -374,27 +288,18 @@ void Auth::RemoveAuthStateListener(AuthStateListener* listener) {
 
 void Auth::RemoveIdTokenListener(IdTokenListener* listener) {
   if (!auth_data_ || !listener) return;
-  const bool removed =
-      RemoveListener(listener, &auth_data_->id_token_listeners, this,
-                     &listener->auths_, &auth_data_->listeners_mutex);
-  // Only decrease the reference count if a listener was actually removed.
-  if (removed) {
+  if (RemoveListener(listener, &auth_data_->id_token_listeners, this,
+                     &listener->auths_, &auth_data_->listeners_mutex)) {
     DisableTokenAutoRefresh(auth_data_);
   }
 }
 
 AuthStateListener::~AuthStateListener() {
-  // Removing the listener edits the auths list, hence the while loop.
-  while (!auths_.empty()) {
-    (*auths_.begin())->RemoveAuthStateListener(this);
-  }
+  while (!auths_.empty()) (*auths_.begin())->RemoveAuthStateListener(this);
 }
 
 IdTokenListener::~IdTokenListener() {
-  // Removing the listener edits the auths list, hence the while loop.
-  while (!auths_.empty()) {
-    (*auths_.begin())->RemoveIdTokenListener(this);
-  }
+  while (!auths_.empty()) (*auths_.begin())->RemoveIdTokenListener(this);
 }
 
 #ifndef SWIG
@@ -408,131 +313,99 @@ static inline bool VectorContains(const T& entry, const std::vector<T>& v) {
   return std::find(v.begin(), v.end(), entry) != v.end();
 }
 
-// Generate a method that notifies a vector of listeners using listeners_method.
-#define AUTH_NOTIFY_LISTENERS(notify_method_name, notification_name,           \
-                              listeners_vector, notification_method)           \
-  void notify_method_name(AuthData* auth_data) {                               \
-    if (auth_data == nullptr) return;                                          \
-    MutexLock lock(auth_data->listeners_mutex);                                \
-                                                                               \
-    /* Auth should have loaded persistent cache if exists when the listener */ \
-    /* event is triggered for the first time. */                               \
-    auth_data->persistent_cache_load_pending = false;                          \
-                                                                               \
-    /* Make a copy of the listener list in case it gets modified during */     \
-    /* notification_method(). Note that modification is possible because */    \
-    /* the same thread is allowed to reacquire `listeners_mutex` */            \
-    /* multiple times. */                                                      \
-    auto listeners = auth_data->listeners_vector;                              \
-    LogDebug(notification_name " changed. Notifying %zu listeners.",           \
-             listeners.size());                                                \
-                                                                               \
-    for (auto it = listeners.begin(); it != listeners.end(); ++it) {           \
-      /* Skip any listeners that have been removed in notification_method() */ \
-      /* on earlier iterations of this loop. */                                \
-      auto* listener = *it;                                                    \
-      if (!VectorContains(listener, auth_data->listeners_vector)) {            \
-        continue;                                                              \
-      }                                                                        \
-                                                                               \
-      /* Notify the listener. */                                               \
-      listener->notification_method(auth_data->auth);                          \
-    }                                                                          \
+#define AUTH_NOTIFY_LISTENERS(notify_method_name, notification_name,       \
+                              listeners_vector, notification_method)       \
+  void notify_method_name(AuthData* auth_data) {                           \
+    if (!auth_data) return;                                                \
+    MutexLock lock(auth_data->listeners_mutex);                            \
+    auth_data->persistent_cache_load_pending = false;                      \
+    auto listeners = auth_data->listeners_vector;                          \
+    LogDebug(notification_name " changed. Notifying %zu listeners.",       \
+             listeners.size());                                            \
+    for (auto* listener : listeners) {                                     \
+      if (VectorContains(listener, auth_data->listeners_vector)) {         \
+        listener->notification_method(auth_data->auth);                    \
+      }                                                                    \
+    }                                                                      \
   }
 
 AUTH_NOTIFY_LISTENERS(NotifyAuthStateListeners, "Auth state", listeners,
                       OnAuthStateChanged)
-
 AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners, "ID token", id_token_listeners,
                       OnIdTokenChanged)
 
 AUTH_RESULT_FN(Auth, FetchProvidersForEmail, Auth::FetchProvidersResult)
 AUTH_RESULT_FN(Auth, SendPasswordResetEmail, void)
-
 AUTH_RESULT_FN(Auth, SignInWithCustomToken, AuthResult)
-
 AUTH_RESULT_FN(Auth, SignInWithCredential, User)
-
 AUTH_RESULT_FN(Auth, SignInWithProvider, AuthResult)
-
 AUTH_RESULT_FN(Auth, SignInAndRetrieveDataWithCredential, AuthResult)
-
 AUTH_RESULT_FN(Auth, SignInAnonymously, AuthResult)
-
 AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, AuthResult)
-
 AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, AuthResult)
 
 Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithCustomToken);
-  ::firebase::auth::SignInWithCustomToken(auth_data_, promise, custom_token);
-  return promise.future();
+  return RunAuthPromiseFn<AuthResult>(auth_data_, kAuthFn_SignInWithCustomToken,
+                                      ::firebase::auth::SignInWithCustomToken,
+                                      custom_token);
 }
 
 Future<User> Auth::SignInWithCredential(const Credential& credential) {
-  if (!auth_data_) return Future<User>();
-  Promise<User> promise(&auth_data_->future_impl, kAuthFn_SignInWithCredential);
-  ::firebase::auth::SignInWithCredential(auth_data_, promise, credential);
-  return promise.future();
+  return RunAuthPromiseFn<User>(auth_data_, kAuthFn_SignInWithCredential,
+                                ::firebase::auth::SignInWithCredential,
+                                credential);
 }
 
 Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
-  if (!auth_data_) return Future<AuthResult>();
-  return ::firebase::auth::SignInWithProvider(auth_data_, provider);
+  return auth_data_ ? ::firebase::auth::SignInWithProvider(auth_data_, provider)
+                    : Future<AuthResult>();
 }
 
 Future<AuthResult> Auth::SignInAnonymously() {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously);
-  ::firebase::auth::SignInAnonymously(auth_data_, promise);
-  return promise.future();
+  return RunAuthPromiseFn<AuthResult>(auth_data_, kAuthFn_SignInAnonymously,
+                                      ::firebase::auth::SignInAnonymously);
 }
 
-Future<AuthResult> Auth::SignInWithEmailAndPassword(const char* const email, const char* const password) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInWithEmailAndPassword);
-  ::firebase::auth::SignInWithEmailAndPassword(auth_data_, promise, email, password);
-  return promise.future();
+Future<AuthResult> Auth::SignInWithEmailAndPassword(const char* const email,
+                                                    const char* const password) {
+  return RunAuthPromiseFn<AuthResult>(
+      auth_data_, kAuthFn_SignInWithEmailAndPassword,
+      ::firebase::auth::SignInWithEmailAndPassword, email, password);
 }
 
-Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char* const email, const char* const password) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_CreateUserWithEmailAndPassword);
-  ::firebase::auth::CreateUserWithEmailAndPassword(auth_data_, promise, email, password);
-  return promise.future();
+Future<AuthResult> Auth::CreateUserWithEmailAndPassword(
+    const char* const email, const char* const password) {
+  return RunAuthPromiseFn<AuthResult>(
+      auth_data_, kAuthFn_CreateUserWithEmailAndPassword,
+      ::firebase::auth::CreateUserWithEmailAndPassword, email, password);
 }
 
-Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(const Credential& credential) {
-  if (!auth_data_) return Future<AuthResult>();
-  Promise<AuthResult> promise(&auth_data_->future_impl, kAuthFn_SignInAndRetrieveDataWithCredential);
-  ::firebase::auth::SignInAndRetrieveDataWithCredential(auth_data_, promise, credential);
-  return promise.future();
+Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(
+    const Credential& credential) {
+  return RunAuthPromiseFn<AuthResult>(
+      auth_data_, kAuthFn_SignInAndRetrieveDataWithCredential,
+      ::firebase::auth::SignInAndRetrieveDataWithCredential, credential);
 }
 
-Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char* email) {
-  if (!auth_data_) return Future<Auth::FetchProvidersResult>();
-  Promise<Auth::FetchProvidersResult> promise(&auth_data_->future_impl, kAuthFn_FetchProvidersForEmail);
-  ::firebase::auth::FetchProvidersForEmail(auth_data_, promise, email);
-  return promise.future();
+Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
+    const char* email) {
+  return RunAuthPromiseFn<Auth::FetchProvidersResult>(
+      auth_data_, kAuthFn_FetchProvidersForEmail,
+      ::firebase::auth::FetchProvidersForEmail, email);
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
-  if (!auth_data_) return Future<void>();
-  Promise<void> promise(&auth_data_->future_impl, kAuthFn_SendPasswordResetEmail);
-  ::firebase::auth::SendPasswordResetEmail(auth_data_, promise, email);
-  return promise.future();
+  return RunAuthPromiseFn<void>(auth_data_, kAuthFn_SendPasswordResetEmail,
+                                ::firebase::auth::SendPasswordResetEmail,
+                                email);
 }
 
-
 User Auth::current_user() {
-  if (!auth_data_) return User();
-  return auth_data_->current_user;
+  return auth_data_ ? auth_data_->current_user : User();
 }
 
 void Auth::SignOut() {
-  if (!auth_data_) return;
-  ::firebase::auth::SignOut(auth_data_);
+  if (auth_data_) ::firebase::auth::SignOut(auth_data_);
 }
 
 }  // namespace auth

@@ -30,21 +30,8 @@
 namespace firebase {
 namespace auth {
 
-// Intended to make accessing and modifying the currently signed-in user
-// thread-safe. All operations are protected by AuthData::future_impl.mutex().
 class UserView {
  public:
-  // Thread-safe read-only view of the currently signed-in user.
-  //
-  // If there exists a currently signed-in user, IsValid() will return true, and
-  // user's data can be accessed using pointer-like semantics. User is protected
-  // by a mutex lock; Reader uses RAII to hold the lock as long as this Reader
-  // exists, so be careful *not* to try to acquire lock on auth_data's
-  // future_impl mutex while holding a reference to Reader!
-  //
-  // If there is no currently signed-in user, IsValid() will return false. In
-  // this case, don't try to access the underlying data, which will be null. No
-  // mutex lock is associated with an invalid Reader.
   class Reader {
    public:
     Reader(const Reader&) = delete;
@@ -59,9 +46,7 @@ class UserView {
 
     Reader& operator=(Reader&& rhs) noexcept {
       if (this != &rhs) {
-        if (mutex_) {
-          mutex_->Release();
-        }
+        if (mutex_) mutex_->Release();
         user_data_ = rhs.user_data_;
         auth_data_ = rhs.auth_data_;
         mutex_ = rhs.mutex_;
@@ -72,12 +57,11 @@ class UserView {
 
     bool IsValid() const { return user_data_ != nullptr; }
     const UserData* operator->() const { return user_data_; }
+    const UserData& operator*() const { return *user_data_; }
     const std::vector<UserInfoInterface*>& GetUserInfos() const;
 
     ~Reader() {
-      if (mutex_) {
-        mutex_->Release();
-      }
+      if (mutex_) mutex_->Release();
     }
 
    private:
@@ -95,11 +79,6 @@ class UserView {
     Mutex* mutex_;
   };
 
-  // Thread-safe read-write view of the currently signed-in user.
-  //
-  // Similar to UserView::Reader, but also allows modifying the signed-in user's
-  // attributes using pointer-like access. Additionally, provides operations to
-  // reset or clear UserInfos associated with the current user.
   class Writer {
    public:
     Writer(const Writer&) = delete;
@@ -114,9 +93,7 @@ class UserView {
 
     Writer& operator=(Writer&& rhs) noexcept {
       if (this != &rhs) {
-        if (mutex_) {
-          mutex_->Release();
-        }
+        if (mutex_) mutex_->Release();
         user_data_ = rhs.user_data_;
         auth_data_ = rhs.auth_data_;
         mutex_ = rhs.mutex_;
@@ -127,13 +104,12 @@ class UserView {
 
     bool IsValid() const { return user_data_ != nullptr; }
     UserData* operator->() { return user_data_; }
+    UserData& operator*() { return *user_data_; }
 
     void ResetUserInfos(const std::vector<UserInfoImpl>& provider_data);
 
     ~Writer() {
-      if (mutex_) {
-        mutex_->Release();
-      }
+      if (mutex_) mutex_->Release();
     }
 
    private:
@@ -150,83 +126,30 @@ class UserView {
     Mutex* mutex_;
   };
 
-  // Construct a user view from an existing set of user data.
   explicit UserView(const UserData& user_data) : user_data_(user_data) {}
 
-  // Exposed for testing.
   const UserData& user_data() const { return user_data_; }
 
-  // Resets the currently signed-in user with the given user_data and returns
-  // a writeable view of the user for additional reads or modifications (e.g.,
-  // to update UserInfos). Optionally, provide out_previous_user to save the
-  // previous user's state before it's overwritten.
-  // Thread-safe.
   static Writer ResetUser(AuthData* auth_data, const UserData& user_data,
                           UserData* const out_previous_user = nullptr);
-
-  // Deletes the currently signed-in user and clears UserInfos. Optionally,
-  // provide out_previous_user to save the previous user's state before it's
-  // overwritten.
-  //
-  // If there is no currently signed-in user, this is a no-op.
-  //
-  // Thread-safe.
   static void ClearUser(AuthData* auth_data,
                         UserData* out_previous_user = nullptr);
-
-  // Returns a read-only view of the currently signed-in user, if any. Be
-  // careful to check Reader.IsValid() before accessing!
-  // Thread-safe.
   static Reader GetReader(AuthData* auth_data);
 
-  // If there is a currently signed-in user, invokes the given callback and
-  // returns true. Otherwise, doesn't invoke the callback and returns false.
-  // This is intended to minimize the chances of forgetting to check for
-  // IsValid.
-  //
-  // Callback can be a stateful lambda that will read the attributes you're
-  // interested in, for example:
-  //
-  // @code{.cpp}
-  // std::string uid, token;
-  // const bool is_user_signed_in = UserView::TryRead(
-  //     auth_data, [&](const UserView::Reader& user) {
-  //       uid = user->uid;
-  //       token = user->id_token;
-  //     });
-  // if (!is_user_signed_in) {
-  //   // Handle failure; uid and token haven't been touched
-  // } else {
-  //   // Handle success; uid and token have been read.
-  // }
-  // @endcode
-  //
-  // Thread-safe.
   template <typename CallbackT>
-  static bool TryRead(AuthData* auth_data, CallbackT callback);
+  static bool TryRead(AuthData* const auth_data, CallbackT callback) {
+    const Reader reader = GetReader(auth_data);
+    if (!reader.IsValid()) return false;
+    callback(reader);
+    return true;
+  }
 
-  // Returns a read-write view of the currently signed-in user, if any. Be
-  // careful to check Writer.IsValid() before accessing!
-  // Thread-safe.
   static Writer GetWriter(AuthData* auth_data);
 
  private:
   static UserView* CastToUser(AuthData* auth_data);
-
   UserData user_data_;
 };
-
-// Implementation
-
-template <typename CallbackT>
-inline bool UserView::TryRead(AuthData* const auth_data, CallbackT callback) {
-  const Reader reader = GetReader(auth_data);
-  if (!reader.IsValid()) {
-    return false;
-  }
-  callback(reader);
-  return true;
-}
 
 }  // namespace auth
 }  // namespace firebase
