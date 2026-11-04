@@ -22,6 +22,8 @@
 #include <map>
 
 #include "app/rest/controller_curl.h"
+#include "app/rest/curl/curl_handles.h"
+#include "app/rest/curl/tls_policy.h"
 #include "app/rest/util.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -329,10 +331,7 @@ void InitTransportCurl() {
   MutexLock lock(*g_initialize_mutex);
   if (g_initialize_count == 0) {
     // Initialize curl.
-    CURLcode global_init_code = curl_global_init(CURL_GLOBAL_ALL);
-    FIREBASE_ASSERT_MESSAGE(global_init_code == CURLE_OK,
-                            "curl global init failed with code %d",
-                            global_init_code);
+    curl::AcquireCurlGlobal();
 
     // Kick off background thread.
     assert(!g_curl_thread);
@@ -351,7 +350,7 @@ void CleanupTransportCurl() {
     g_curl_thread = nullptr;
 
     // Clean up curl.
-    curl_global_cleanup();
+    curl::ReleaseCurlGlobal();
   }
 }
 
@@ -457,14 +456,9 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
   CheckOk(curl_easy_setopt(curl_, CURLOPT_PROTOCOLS_STR, "http,https"),
           "set valid protocols");
 
-  // Verify SSL.
-  CheckOk(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYPEER, 1L), "verify peer");
-  CheckOk(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYHOST, 2L), "verify host");
-
-#ifdef FIREBASE_SSL_CAPATH
-  CheckOk(curl_easy_setopt(curl_, CURLOPT_CAPATH, FIREBASE_SSL_CAPATH),
-          "CA Path");
-#endif
+  // Peer/hostname verification, TLS 1.2 minimum, and OS trust store selection
+  // are centralized in app/rest/curl/tls_policy.h.
+  CheckOk(curl::ApplyTlsPolicy(curl_), "apply TLS policy");
 
   // Set callback functions.
   CheckOk(curl_easy_setopt(curl_, CURLOPT_HEADERFUNCTION, CurlHeaderCallback),

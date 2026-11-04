@@ -461,7 +461,7 @@ Authentication       | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 App Check            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 Firestore            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, shell32, dbghelp`
 Functions            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32`
-Realtime Database    | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, psapi, userenv, shell32`
+Realtime Database    | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, shell32`
 Remote Config        | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, icu`
 Storage              | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 
@@ -618,7 +618,18 @@ code.
     - General (Desktop): Updated the bundled libcurl from 7.73.0 to 8.23.0.
       Windows apps linking the desktop libraries must now also link the
       `bcrypt`, `iphlpapi`, and `secur32` Windows SDK libraries, and macOS apps
-      must now also link the `SystemConfiguration` framework.
+      must now also link the `SystemConfiguration` framework. Builds that
+      supply their own libcurl via `CURL_SOURCE_DIR` require libcurl 8.14.0 or
+      newer built with WebSocket support.
+    - Database (Desktop): Replaced the uWebSockets/libuv WebSocket transport
+      with libcurl's WebSocket implementation, driven by one lightweight
+      event-driven thread per connection. Windows apps no longer need to link
+      `psapi` or `userenv` for the Realtime Database.
+    - General (Desktop): REST and WebSocket connections now share one TLS
+      policy: peer and hostname verification are always on, TLS 1.2 is the
+      minimum version, and certificates are validated against the OS trust
+      store (Schannel on Windows, the keychain on macOS) or the distribution's
+      CA bundle on Linux.
     - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
       descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`

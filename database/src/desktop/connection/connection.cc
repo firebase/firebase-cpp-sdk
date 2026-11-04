@@ -229,20 +229,14 @@ void Connection::OnError(const WebSocketClientErrorData& error_data) {
   logger_->LogDebug("%s websocket error occurred.  Uri: %s", log_id_.c_str(),
                     error_data.GetUri().c_str());
 
-  scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
-      safe_this_, [](ConnectionRef conn_ref) {
-        ConnectionRefLock lock(&conn_ref);
-        auto connection = lock.GetReference();
-        if (connection != nullptr) {
-          // If error occurs before the connection is opened, it is due to
-          // connection failed (ex. incorrect url).  Otherwise, it can be
-          // any lower-level error during connection.
-          DisconnectReason reason = connection->ws_connected_
-                                        ? kDisconnectReasonWebsocketError
-                                        : kDisconnectReasonConnectionFailed;
-          connection->Close(reason);
-        }
-      }));
+  if (state_ != kStateDisconnected) {
+    // If error occurs before the connection is opened, it is due to
+    // connection failed (ex. incorrect url).  Otherwise, it can be
+    // any lower-level error during connection.
+    DisconnectReason reason = ws_connected_ ? kDisconnectReasonWebsocketError
+                                            : kDisconnectReasonConnectionFailed;
+    Close(reason);
+  }
 }
 
 void Connection::HandleIncomingFrame(const char* msg) {

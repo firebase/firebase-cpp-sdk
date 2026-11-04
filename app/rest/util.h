@@ -64,10 +64,13 @@ void Initialize();
 // exiting.  Reference counted for convenience.
 void Terminate();
 
-// Returns a new CURL pointer.   Mutex-locked, for thread safety.
+// Returns a new CURL* easy handle as an opaque void* (so headers like util.h
+// and transport_curl.h do not need to include <curl/curl.h>). Mutex-locked and
+// paired with AcquireCurlGlobal() for thread safety.
 void* CreateCurlPtr();
 
-// Disposes of a CURL pointer.   Mutex-locked, for thread safety.
+// Disposes of a CURL* easy handle created by CreateCurlPtr() and releases its
+// global libcurl reference. Mutex-locked, for thread safety.
 void DestroyCurlPtr(void* curl_ptr);
 
 // Trim the string's leading and trailing white space.

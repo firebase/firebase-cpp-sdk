@@ -26,6 +26,8 @@ enable_language(CXX)
 set(rest_SRCS
     controller_curl.cc
     controller_interface.cc
+    curl/curl_handles.cc
+    curl/tls_policy.cc
     gzipheader.cc
     request.cc
     request_binary_gzip.cc
@@ -75,8 +77,8 @@ if (MSVC)
   # libcurl on Windows (Schannel/SSPI) depends on these Windows SDK libraries:
   # crypt32 (certificate store), bcrypt (BCryptGenRandom), iphlpapi
   # (if_nametoindex) and secur32 (InitSecurityInterface). These are also
-  # pulled in via #pragma comment(lib) in transport_curl.cc for consumers of
-  # the merged firebase_app.lib.
+  # pulled in via #pragma comment(lib) in curl_handles.cc and transport_curl.cc
+  # for consumers of the merged firebase_app.lib.
   set(FIREBASE_CURL_DEPENDENCY ${FIREBASE_CURL_DEPENDENCY} crypt32 bcrypt iphlpapi secur32)
 endif()
 
