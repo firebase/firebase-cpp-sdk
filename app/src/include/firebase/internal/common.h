@@ -21,6 +21,8 @@
 
 #include <utility>
 
+// TODO(b/582384770): Remove these always-defined macros and unwrap their
+// remaining #if/#ifdef guards across the codebase in a follow-up cleanup.
 #define FIREBASE_USE_MOVE_OPERATORS
 #define FIREBASE_USE_STD_FUNCTION
 
