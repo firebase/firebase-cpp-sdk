@@ -187,9 +187,9 @@ firebase_cpp_cc_test(firebase_app_heartbeat_storage_desktop_test
     flatbuffers
 )
 
-firebase_cpp_cc_test(firebase_app_pthread_thread_test
+firebase_cpp_cc_test(firebase_app_type_traits_test
   SOURCES
-    thread_test.cc
+    type_traits_test.cc
   DEPENDS
     firebase_app
 )

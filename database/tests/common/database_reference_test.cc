@@ -14,6 +14,7 @@
 
 #include "database/src/include/firebase/database/database_reference.h"
 
+#include <utility>
 #include <vector>
 
 #include "app/src/include/firebase/app.h"
