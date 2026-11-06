@@ -624,12 +624,20 @@ code.
     - Database (Desktop): Replaced the uWebSockets/libuv WebSocket transport
       with libcurl's WebSocket implementation, driven by one lightweight
       event-driven thread per connection. Windows apps no longer need to link
-      `psapi` or `userenv` for the Realtime Database.
+      `psapi` or `userenv` for the Realtime Database. Realtime Database
+      connections now honor the same proxy environment variables
+      (`https_proxy`, `all_proxy`, `no_proxy`, ...) as the REST transport.
     - General (Desktop): REST and WebSocket connections now share one TLS
       policy: peer and hostname verification are always on, TLS 1.2 is the
       minimum version, and certificates are validated against the OS trust
       store (Schannel on Windows, the keychain on macOS) or the distribution's
       CA bundle on Linux.
+    - General (Linux Desktop): Fixed TLS connections failing with
+      `CURLE_SSL_CACERT_BADFILE` on distributions whose CA bundle lives at a
+      different path than on the machine the SDK was built on (for example
+      RHEL, Fedora, or openSUSE). The CA bundle and directory are now located
+      at runtime; the `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, and `SSL_CERT_DIR`
+      environment variables are honored if set before the first request.
     - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
       descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
