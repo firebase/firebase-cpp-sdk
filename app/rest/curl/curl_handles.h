@@ -60,6 +60,15 @@ using UniqueEasy = std::unique_ptr<CURL, EasyDeleter>;
 using UniqueMulti = std::unique_ptr<CURLM, MultiDeleter>;
 using UniqueSList = std::unique_ptr<curl_slist, SListDeleter>;
 
+// Applies a single option and folds the result into *first_error, keeping only
+// the first failure so a batch of setopt calls can be checked once and the
+// caller sees the root cause.
+template <typename T>
+void ApplyOpt(CURL* easy, CURLoption option, T value, CURLcode* first_error) {
+  CURLcode code = curl_easy_setopt(easy, option, value);
+  if (code != CURLE_OK && *first_error == CURLE_OK) *first_error = code;
+}
+
 // Reference-counted curl_global_init() / curl_global_cleanup(). Thread-safe.
 // Every libcurl user in the SDK holds a reference while it owns any CURL
 // handle, so libcurl's process-wide state is initialized exactly once and torn

@@ -18,6 +18,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -588,7 +589,10 @@ TEST(WebSocketClientImpl, TestEdgeCase1) {
 }
 
 // Test if it is safe to connect to a server and destroy the client while the
-// handshake is in flight.
+// handshake is in flight. Each iteration spawns and joins an I/O thread, so the
+// loop is bounded by both an iteration count and wall-clock time to keep the
+// test fast on slow CI machines while still exercising the race thousands of
+// times on fast ones.
 TEST(WebSocketClientImpl, TestEdgeCase2) {
   TestWebSocketEchoServer server(0);
   server.Start();
@@ -597,14 +601,65 @@ TEST(WebSocketClientImpl, TestEdgeCase2) {
 
   auto uri = GetLocalHostUri(server.GetPort(true));
 
-  for (int count = 0; count < 50; ++count) {
+  constexpr int kMinIterations = 500;
+  constexpr int kMaxIterations = 10000;
+  constexpr int64_t kTimeBudgetMs = 10 * 1000;
+  auto start = std::chrono::steady_clock::now();
+  int count = 0;
+  for (; count < kMaxIterations; ++count) {
+    if (count >= kMinIterations && ElapsedMs(start) >= kTimeBudgetMs) break;
     WebSocketClientImpl* ws_client =
         new WebSocketClientImpl(uri.c_str(), "", &logger, &scheduler, "");
     ws_client->Connect(5000);
     delete ws_client;
   }
+  EXPECT_GE(count, kMinIterations);
 
   server.Stop();
+}
+
+// Destroying the client from inside one of its own scheduled handler callbacks
+// is how the Realtime Database tears a connection down (Connection::OnError ->
+// Close -> PersistentConnection resets the Connection, which owns the client).
+// The callback lambda must keep the client's SafeReference alive and Join()
+// must not deadlock while the scheduler thread is the one destroying it.
+TEST(WebSocketClientImpl, DestroyClientFromOwnErrorCallback) {
+  int closed_port = 0;
+  {
+    TestWebSocketEchoServer server(0);
+    server.Start();
+    closed_port = server.GetPort(true);
+    server.Stop();
+  }
+  auto uri = GetLocalHostUri(closed_port);
+  Logger logger(nullptr);
+  scheduler::Scheduler scheduler;
+
+  class DestroyingHandler : public WebSocketClientEventHandler {
+   public:
+    explicit DestroyingHandler(Semaphore* s) : semaphore_(s) {}
+    void OnOpen() override {}
+    void OnMessage(const char*) override {}
+    void OnClose() override {}
+    void OnError(const WebSocketClientErrorData&) override {
+      client_.reset();
+      semaphore_->Post();
+    }
+    std::unique_ptr<WebSocketClientImpl> client_;
+
+   private:
+    Semaphore* semaphore_;
+  };
+
+  for (int i = 0; i < 20; ++i) {
+    Semaphore semaphore(0);
+    DestroyingHandler handler(&semaphore);
+    handler.client_ = std::make_unique<WebSocketClientImpl>(
+        uri.c_str(), "", &logger, &scheduler, "", &handler);
+    handler.client_->Connect(2000);
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    EXPECT_EQ(handler.client_, nullptr);
+  }
 }
 
 // Test large messages (>16KB kRecvBufferSize, requiring multiple curl_ws_recv

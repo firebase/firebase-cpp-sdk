@@ -213,8 +213,8 @@ class WebSocketClientImpl : public WebSocketClientInterface {
       ClientRefLock;
   ClientRef safe_this_;
 
-  // Declared last so it is the first member destroyed; it is joined in the
-  // destructor body before that anyway.
+  // Started last in the constructor and joined in the destructor body, so
+  // every member it uses outlives it.
   Thread thread_;
 
   friend class PersistentConnectionTest;

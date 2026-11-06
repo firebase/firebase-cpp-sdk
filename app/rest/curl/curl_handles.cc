@@ -36,13 +36,15 @@ namespace curl {
 
 namespace {
 
-std::mutex g_curl_global_mutex;
+// Heap-allocated and never freed so ReleaseCurlGlobal() stays safe during
+// static destruction (e.g. an App held in a global), matching util.cc.
+std::mutex* const g_curl_global_mutex = new std::mutex();
 int64_t g_curl_global_refcount = 0;
 
 }  // namespace
 
 void AcquireCurlGlobal() {
-  std::lock_guard<std::mutex> lock(g_curl_global_mutex);
+  std::lock_guard<std::mutex> lock(*g_curl_global_mutex);
   if (g_curl_global_refcount++ == 0) {
     CURLcode code = curl_global_init(CURL_GLOBAL_ALL);
     FIREBASE_ASSERT_MESSAGE(code == CURLE_OK,
@@ -52,7 +54,7 @@ void AcquireCurlGlobal() {
 }
 
 void ReleaseCurlGlobal() {
-  std::lock_guard<std::mutex> lock(g_curl_global_mutex);
+  std::lock_guard<std::mutex> lock(*g_curl_global_mutex);
   FIREBASE_ASSERT_MESSAGE(
       g_curl_global_refcount > 0,
       "ReleaseCurlGlobal called more times than AcquireCurlGlobal");

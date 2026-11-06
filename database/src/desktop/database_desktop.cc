@@ -74,7 +74,6 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
       cleanup_(),
       database_url_(url),
       constructor_url_(url),
-      persistence_enabled_(false),
       logger_(app_common::FindAppLoggerByName(app->name())),
       repo_(nullptr) {
   assert(app);

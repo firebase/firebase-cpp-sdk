@@ -36,6 +36,7 @@ namespace internal {
 namespace connection {
 
 using ::firebase::rest::curl::AcquireCurlGlobal;
+using ::firebase::rest::curl::ApplyOpt;
 using ::firebase::rest::curl::ReleaseCurlGlobal;
 using ::firebase::rest::curl::UniqueEasy;
 
@@ -59,8 +60,10 @@ const unsigned char kCloseNormalPayload[2] = {
     static_cast<unsigned char>(kCloseStatusNormal & 0xFF),
 };
 // Upper bound on how long the I/O thread sleeps in curl_multi_poll() when
-// nothing happens. Post() wakes it immediately via curl_multi_wakeup().
-constexpr int kPollTimeoutMs = 1000;
+// nothing happens. Post() wakes it immediately via curl_multi_wakeup() and
+// curl_multi_poll() already honors libcurl's own timers, so this is only a
+// fallback for a failed wakeup; keep it long to avoid idle wakeups.
+constexpr int kPollTimeoutMs = 60 * 1000;
 }  // namespace
 
 WebSocketClientImpl::WebSocketClientImpl(
@@ -125,8 +128,13 @@ WebSocketClientImpl::~WebSocketClientImpl() {
 void WebSocketClientImpl::Post(std::function<void()> fn) {
   MutexLock lock(post_mutex_);
   posted_.push_back(std::move(fn));
-  // curl_multi_wakeup() is thread-safe; multi_ outlives the I/O thread.
-  curl_multi_wakeup(multi_.get());
+  // curl_multi_wakeup() is thread-safe; multi_ outlives the I/O thread. If it
+  // fails the callback still runs, but only after kPollTimeoutMs elapses.
+  CURLMcode mc = curl_multi_wakeup(multi_.get());
+  if (mc != CURLM_OK) {
+    logger_->LogWarning("curl_multi_wakeup failed for %s: %s", uri_.c_str(),
+                        curl_multi_strerror(mc));
+  }
 }
 
 void WebSocketClientImpl::Connect(int timeout_ms) {
@@ -239,28 +247,38 @@ void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
     return;
   }
 
-  curl_easy_setopt(easy.get(), CURLOPT_URL, uri_.c_str());
+  // Every option below is folded into setopt_error and checked once; a failure
+  // in any of them means the handle is not configured as the SDK requires.
+  CURLcode setopt_error = CURLE_OK;
+  ApplyOpt(easy.get(), CURLOPT_URL, uri_.c_str(), &setopt_error);
   // Restrict schemes to ws/wss so system-libcurl builds that compile in extra
   // protocols (file://, http://, ftp://, ...) cannot open non-WebSocket URIs.
-  CURLcode proto_result =
-      curl_easy_setopt(easy.get(), CURLOPT_PROTOCOLS_STR, "ws,wss");
-  if (proto_result != CURLE_OK) {
-    logger_->LogError("Failed to restrict WebSocket protocols for %s: (%d) %s",
-                      uri_.c_str(), static_cast<int>(proto_result),
-                      curl_easy_strerror(proto_result));
-    OnError();
-    return;
-  }
+  ApplyOpt(easy.get(), CURLOPT_PROTOCOLS_STR, "ws,wss", &setopt_error);
   // CURLOPT_CONNECT_ONLY = 2L instructs libcurl to perform the HTTP/1.1
   // WebSocket Upgrade handshake and stop after receiving 101 Switching
   // Protocols so framing can be driven via curl_ws_recv() and curl_ws_send().
-  curl_easy_setopt(easy.get(), CURLOPT_CONNECT_ONLY, 2L);
+  ApplyOpt(easy.get(), CURLOPT_CONNECT_ONLY, 2L, &setopt_error);
   // Never let libcurl touch process-wide signal handlers from the I/O thread.
-  curl_easy_setopt(easy.get(), CURLOPT_NOSIGNAL, 1L);
+  ApplyOpt(easy.get(), CURLOPT_NOSIGNAL, 1L, &setopt_error);
   // Handle PING frames explicitly in ReceiveFrames() so standalone PINGs flush
   // their PONG response immediately without waiting for another frame.
-  curl_easy_setopt(easy.get(), CURLOPT_WS_OPTIONS,
-                   static_cast<long>(CURLWS_NOAUTOPONG));  // NOLINT
+  ApplyOpt(easy.get(), CURLOPT_WS_OPTIONS,
+           static_cast<long>(CURLWS_NOAUTOPONG),  // NOLINT
+           &setopt_error);
+  if (timeout_ms > 0) {
+    // Bounds DNS + TCP + TLS; the HTTP Upgrade exchange is bounded by
+    // handshake_deadline_ in RunEventLoop().
+    ApplyOpt(easy.get(), CURLOPT_CONNECTTIMEOUT_MS,
+             static_cast<long>(timeout_ms),  // NOLINT
+             &setopt_error);
+  }
+  if (setopt_error != CURLE_OK) {
+    logger_->LogError("Failed to configure WebSocket handle for %s: (%d) %s",
+                      uri_.c_str(), static_cast<int>(setopt_error),
+                      curl_easy_strerror(setopt_error));
+    OnError();
+    return;
+  }
   // Peer/hostname verification, TLS 1.2 minimum, and OS trust store selection
   // are centralized in app/rest/curl/tls_policy.h so REST and WebSocket
   // connections can never drift apart.
@@ -271,12 +289,6 @@ void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
                       curl_easy_strerror(tls_result));
     OnError();
     return;
-  }
-  if (timeout_ms > 0) {
-    // Bounds DNS + TCP + TLS; the HTTP Upgrade exchange is bounded by
-    // handshake_deadline_ in RunEventLoop().
-    curl_easy_setopt(easy.get(), CURLOPT_CONNECTTIMEOUT_MS,
-                     static_cast<long>(timeout_ms));  // NOLINT
   }
 
   std::string app_check_token;
@@ -316,7 +328,17 @@ void WebSocketClientImpl::ConnectOnLoop(int timeout_ms) {
     }
   }
 
-  curl_easy_setopt(easy.get(), CURLOPT_HTTPHEADER, request_headers_.get());
+  CURLcode header_result = CURLE_OK;
+  ApplyOpt(easy.get(), CURLOPT_HTTPHEADER, request_headers_.get(),
+           &header_result);
+  if (header_result != CURLE_OK) {
+    logger_->LogError("Failed to set WebSocket request headers for %s: (%d) %s",
+                      uri_.c_str(), static_cast<int>(header_result),
+                      curl_easy_strerror(header_result));
+    request_headers_.reset();
+    OnError();
+    return;
+  }
 
   easy_ = std::move(easy);
   incoming_message_buffer_.clear();
@@ -453,7 +475,9 @@ void WebSocketClientImpl::FlushSendQueue() {
         break;
       }
     } else {
-      logger_->LogError("curl_ws_send failed for %s: (%d) %s", uri_.c_str(),
+      // Ordinary network drops end up here; the handler decides whether to
+      // reconnect, so log at the same level as the curl_ws_recv() failure path.
+      logger_->LogDebug("curl_ws_send failed for %s: (%d) %s", uri_.c_str(),
                         static_cast<int>(res), curl_easy_strerror(res));
       CleanupEasyHandle();
       state_ = kStateClosed;
@@ -515,6 +539,9 @@ void WebSocketClientImpl::ReceiveFrames() {
         meta->bytesleft > 0 ? static_cast<uint64_t>(meta->bytesleft) : 0;
 
     if (meta->flags & CURLWS_PING) {
+      // libcurl already rejects fragmented and >125-byte control frames
+      // (ws.c); these checks are kept as a backstop for other libcurl builds
+      // and so incoming_ping_buffer_ has an explicit bound.
       if ((meta->flags & CURLWS_CONT) != 0 ||
           rlen > kMaxPingPayloadBytes - incoming_ping_buffer_.size() ||
           frame_remaining >
