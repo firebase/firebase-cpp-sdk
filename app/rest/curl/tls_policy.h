@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_REST_CURL_TLS_POLICY_H_
 #define FIREBASE_APP_REST_CURL_TLS_POLICY_H_
 
+#include <string>
+
 #include "curl/curl.h"
 
 namespace firebase {
@@ -33,29 +35,46 @@ namespace curl {
 //    (CURLOPT_SSL_VERIFYHOST=2).
 //  * Require TLS 1.2 or newer (CURLOPT_SSLVERSION=TLSv1_2). TLS 1.3 is still
 //    negotiated when available; TLS 1.0/1.1 downgrades are refused.
-//  * Trust the operating system's certificate store so that root and
-//    intermediate CAs revoked or distrusted by the OS vendor are rejected:
-//      - Windows (CURL_USE_SCHANNEL): Windows Certificate Store via Crypt32,
-//        with native OCSP/CRL and Microsoft CTL revocation checks.
-//      - macOS (USE_APPLE_SECTRUST): System Keychain via Security.framework
-//        (SecTrustEvaluateWithError), with Apple OCSP/CRL and Valid/trustd
-//        revocation checks.
-//      - Linux (OpenSSL/BoringSSL): the distribution's ca-certificates trust
-//        store, resolved at *runtime* by LinuxCaBundlePath() and
-//        LinuxCaDirectoryPath() rather than relying on the path libcurl
-//        detected on the build machine.
+//  * Take trusted CAs from the operating system:
+//      - Windows (CURL_USE_SCHANNEL): the Windows certificate store.
+//      - macOS (USE_APPLE_SECTRUST): the system keychain via
+//      Security.framework.
+//      - Linux (OpenSSL/BoringSSL): the distribution's ca-certificates store,
+//        resolved at *runtime* by LinuxCaBundlePath() and
+//        LinuxCaDirectoryPath() rather than the path libcurl detected on the
+//        build machine.
+//    Revocation checking is whatever the TLS backend does by default; the SDK
+//    does not configure it.
 //
 // Returns the first non-CURLE_OK result from curl_easy_setopt(), or CURLE_OK.
 CURLcode ApplyTlsPolicy(CURL* easy);
 
-// Returns the first readable system CA bundle file on the current Linux host
-// (probing standard Debian/Ubuntu, RHEL/Fedora, openSUSE, and Alpine paths),
-// or nullptr if no bundle file is found or on non-Linux platforms.
+// Returns the CA bundle file to use on the current Linux host, or nullptr if
+// none is found or on non-Linux platforms. In order of precedence: the
+// CURL_CA_BUNDLE and SSL_CERT_FILE environment variables (the same variables
+// the curl command-line tool honors; libcurl itself does not read them), then
+// the standard Debian/Ubuntu, RHEL/Fedora, openSUSE and Alpine bundle paths.
+// Only readable regular files are accepted.
+//
+// The result is computed once per process on first use and cached, so the
+// environment variables must be set before the first Firebase network request.
 const char* LinuxCaBundlePath();
 
-// Returns FIREBASE_SSL_CAPATH ("/etc/ssl/certs") if it exists as a readable
-// directory on the current Linux host, or nullptr otherwise.
+// Returns the CA directory to use on the current Linux host, or nullptr if none
+// is found or on non-Linux platforms: the SSL_CERT_DIR environment variable if
+// it names a readable directory, otherwise FIREBASE_SSL_CAPATH
+// ("/etc/ssl/certs") if that exists. Cached like LinuxCaBundlePath().
 const char* LinuxCaDirectoryPath();
+
+namespace internal {
+
+// Uncached probes behind LinuxCaBundlePath() / LinuxCaDirectoryPath(), exposed
+// so tests can exercise the environment-variable precedence. Return an empty
+// string when nothing suitable is found or on non-Linux platforms.
+std::string ResolveLinuxCaBundlePath();
+std::string ResolveLinuxCaDirectoryPath();
+
+}  // namespace internal
 
 }  // namespace curl
 }  // namespace rest

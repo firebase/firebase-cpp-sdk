@@ -448,17 +448,13 @@ if(DESKTOP)
 
   if(WIN32)
     # Use Windows native Schannel/SSPI (Crypt32) for TLS instead of
-    # OpenSSL/BoringSSL. Schannel verifies server certificates against the
-    # Windows Certificate Store and enforces native OCSP/CRL revocation
-    # checking (SCH_CRED_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) as well as
-    # Microsoft Certificate Trust List (CTL) / disallowed-CA updates.
+    # OpenSSL/BoringSSL, so server certificates are verified against the
+    # Windows certificate store.
     set(CURL_USE_SCHANNEL ON)
   elseif(APPLE)
-    # Enable Apple Security.framework (SecTrust) native OS certificate
-    # verification alongside OpenSSL/BoringSSL, so macOS builds verify peers
-    # against the macOS System Keychain (SecTrustEvaluateWithError) and enforce
-    # Apple's native OCSP/CRL policies and Valid/trustd revocation updates
-    # rather than relying on a static CA bundle file path.
+    # Keep OpenSSL/BoringSSL for the TLS protocol but verify server
+    # certificates through Apple's Security.framework (SecTrust), so macOS
+    # builds trust the system keychain rather than a static CA bundle path.
     set(USE_APPLE_SECTRUST ON)
     # When curl detects static BoringSSL with a Clang toolchain, it appends
     # ${_curl_stdlib_cxx} to its link interface. Override curl's default of
@@ -466,12 +462,10 @@ if(DESKTOP)
     set(_curl_stdlib_cxx "c++")
   else()
     # On Linux, libcurl uses OpenSSL/BoringSSL and verifies server certificates
-    # against the OS trust store managed by the distribution's ca-certificates
-    # package (which removes or distrusts compromised root and intermediate CAs).
-    # Note: TransportCurl and WebSocketClientImpl resolve CURLOPT_CAINFO and
-    # CURLOPT_CAPATH at runtime across standard Linux distribution paths so
-    # prebuilt binaries do not depend solely on the build machine's detected
-    # CURL_CA_BUNDLE path.
+    # against the distribution's ca-certificates store. app/rest/curl/tls_policy
+    # resolves CURLOPT_CAINFO/CURLOPT_CAPATH at runtime across the standard
+    # distribution paths so prebuilt binaries do not depend on the CA bundle
+    # path curl detected on the build machine.
   endif()
 
   # Disable optional external libraries that curl 8.23.0 enables by default:

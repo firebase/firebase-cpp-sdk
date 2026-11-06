@@ -23,19 +23,15 @@
 #include <cstdlib>
 #endif  // FIREBASE_SSL_CAPATH
 
+#include <string>
+
+#include "app/rest/curl/curl_handles.h"
+
 namespace firebase {
 namespace rest {
 namespace curl {
 
 namespace {
-
-// Applies a single option and folds the result into *first_error, keeping only
-// the first failure so the caller sees the root cause.
-template <typename T>
-void ApplyOpt(CURL* easy, CURLoption option, T value, CURLcode* first_error) {
-  CURLcode code = curl_easy_setopt(easy, option, value);
-  if (code != CURLE_OK && *first_error == CURLE_OK) *first_error = code;
-}
 
 #ifdef FIREBASE_SSL_CAPATH
 bool IsReadableRegularFile(const char* path) {
@@ -120,6 +116,35 @@ CURLcode ApplyTlsPolicy(CURL* easy) {
 // distribution's CA bundle and hashed CA directory when available.
 const char* LinuxCaBundlePath() {
 #ifdef FIREBASE_SSL_CAPATH
+  // Probed once per process: the answer is a property of the host, this runs
+  // on every REST request and WebSocket connect, and copying the getenv()
+  // result avoids handing libcurl a pointer into the environment block.
+  static const std::string* const kBundlePath = []() -> const std::string* {
+    std::string path = internal::ResolveLinuxCaBundlePath();
+    return path.empty() ? nullptr : new std::string(path);
+  }();
+  return kBundlePath != nullptr ? kBundlePath->c_str() : nullptr;
+#else
+  return nullptr;
+#endif  // FIREBASE_SSL_CAPATH
+}
+
+const char* LinuxCaDirectoryPath() {
+#ifdef FIREBASE_SSL_CAPATH
+  static const std::string* const kDirectoryPath = []() -> const std::string* {
+    std::string path = internal::ResolveLinuxCaDirectoryPath();
+    return path.empty() ? nullptr : new std::string(path);
+  }();
+  return kDirectoryPath != nullptr ? kDirectoryPath->c_str() : nullptr;
+#else
+  return nullptr;
+#endif  // FIREBASE_SSL_CAPATH
+}
+
+namespace internal {
+
+std::string ResolveLinuxCaBundlePath() {
+#ifdef FIREBASE_SSL_CAPATH
   static const char* const kCaBundleEnvVars[] = {
       "CURL_CA_BUNDLE",
       "SSL_CERT_FILE",
@@ -144,10 +169,10 @@ const char* LinuxCaBundlePath() {
     }
   }
 #endif  // FIREBASE_SSL_CAPATH
-  return nullptr;
+  return std::string();
 }
 
-const char* LinuxCaDirectoryPath() {
+std::string ResolveLinuxCaDirectoryPath() {
 #ifdef FIREBASE_SSL_CAPATH
   const char* env_dir = std::getenv("SSL_CERT_DIR");
   if (IsReadableDirectory(env_dir)) {
@@ -157,8 +182,10 @@ const char* LinuxCaDirectoryPath() {
     return FIREBASE_SSL_CAPATH;
   }
 #endif  // FIREBASE_SSL_CAPATH
-  return nullptr;
+  return std::string();
 }
+
+}  // namespace internal
 
 }  // namespace curl
 }  // namespace rest
