@@ -14,9 +14,12 @@
 
 #include "database/src/desktop/connection/connection.h"
 
+#include <cstring>
+#include <memory>
 #include <sstream>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/scheduler.h"
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
@@ -24,6 +27,15 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 static const char kDatabaseHostname[] = "cpp-database-test-app.firebaseio.com";
 static const char kDatabaseNamespace[] = "cpp-database-test-app";
@@ -70,6 +82,12 @@ class ConnectionTest : public ::testing::Test, public ConnectionEventHandler {
 
   void OnDisconnect(Connection::DisconnectReason reason) override {
     LogDebug("OnDisconnect: %d", static_cast<int>(reason));
+    last_disconnect_reason_ = reason;
+    if (reset_on_disconnect_) {
+      // Mirror PersistentConnection::OnDisconnect(), which destroys the
+      // Connection from inside this callback (realtime_.reset(nullptr)).
+      owned_connection_.reset();
+    }
     sem_on_disconnect_.Post();
   }
 
@@ -113,9 +131,48 @@ class ConnectionTest : public ::testing::Test, public ConnectionEventHandler {
   Semaphore sem_on_ready_;
   Semaphore sem_on_data_message_;
   Semaphore sem_on_disconnect_;
+
+  // Used by the Destroy* tests below to own the Connection the same way
+  // PersistentConnection owns realtime_, and to destroy it from OnDisconnect().
+  // Declared after scheduler_ so it is destroyed first if a test fails early.
+  std::unique_ptr<Connection> owned_connection_;
+  bool reset_on_disconnect_ = false;
+  Connection::DisconnectReason last_disconnect_reason_ =
+      Connection::kDisconnectReasonManual;
 };
 
 static const int kTimeoutMs = 5000;
+
+// Returns a loopback TCP port with no listener, so connecting to it is refused
+// immediately (no DNS, no network). Binding port 0 picks a free ephemeral port;
+// closing the socket releases it without anything listening.
+static int GetClosedLoopbackPort() {
+#if FIREBASE_PLATFORM_WINDOWS
+  WSADATA wsa_data;
+  WSAStartup(MAKEWORD(2, 2), &wsa_data);
+  SOCKET fd = socket(AF_INET, SOCK_STREAM, 0);
+  EXPECT_NE(fd, INVALID_SOCKET);
+#else
+  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  EXPECT_GE(fd, 0);
+#endif  // FIREBASE_PLATFORM_WINDOWS
+  sockaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  addr.sin_port = 0;
+  EXPECT_EQ(bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)), 0);
+  socklen_t len = sizeof(addr);
+  EXPECT_EQ(getsockname(fd, reinterpret_cast<sockaddr*>(&addr), &len), 0);
+  int port = ntohs(addr.sin_port);
+#if FIREBASE_PLATFORM_WINDOWS
+  closesocket(fd);
+  WSACleanup();
+#else
+  close(fd);
+#endif  // FIREBASE_PLATFORM_WINDOWS
+  return port;
+}
 
 TEST_F(ConnectionTest, DeleteConnectionImmediately) {
   Logger logger(nullptr);
@@ -252,6 +309,51 @@ TEST_F(ConnectionTest, TestBadHost) {
   Connection connection(&scheduler_, bad_host, nullptr, this, &logger);
   connection.Open();
   EXPECT_TRUE(sem_on_disconnect_.TimedWait(kTimeoutMs));
+}
+
+// Regression tests: PersistentConnection::OnDisconnect() destroys the
+// Connection synchronously from inside ConnectionEventHandler::OnDisconnect().
+// When the connection attempt fails, Connection::OnError() reaches that
+// callback through Close() while still holding its own SafeReference lock, so
+// the Connection must keep the reference data alive for the duration of the
+// callback or ~Mutex() runs on a locked mutex (abort on Linux/macOS, UAF on
+// Windows). Before OnOpen() no keep-alive callback exists to hold a second
+// reference, so a failed connect is the minimal trigger.
+
+TEST_F(ConnectionTest, DestroyFromOnDisconnectAfterConnectRefused) {
+  std::stringstream host;
+  host << "127.0.0.1:" << GetClosedLoopbackPort();
+  HostInfo refused_host(host.str().c_str(), "bad-namespace", /*secure=*/false);
+  Logger logger(nullptr);
+
+  reset_on_disconnect_ = true;
+  owned_connection_ = std::make_unique<Connection>(&scheduler_, refused_host,
+                                                   nullptr, this, &logger);
+  ScheduledOpen(owned_connection_.get());
+
+  EXPECT_TRUE(sem_on_disconnect_.TimedWait(kTimeoutMs));
+  EXPECT_EQ(last_disconnect_reason_,
+            Connection::kDisconnectReasonConnectionFailed);
+  EXPECT_EQ(owned_connection_, nullptr);
+  // Never let a Connection outlive `logger` if the wait above timed out.
+  owned_connection_.reset();
+}
+
+TEST_F(ConnectionTest, DestroyFromOnDisconnectAfterDnsFailure) {
+  // ".invalid" is reserved by RFC 2606 and never resolves.
+  HostInfo bad_host("bad-host-name.invalid", "bad-namespace", /*secure=*/true);
+  Logger logger(nullptr);
+
+  reset_on_disconnect_ = true;
+  owned_connection_ = std::make_unique<Connection>(&scheduler_, bad_host,
+                                                   nullptr, this, &logger);
+  ScheduledOpen(owned_connection_.get());
+
+  EXPECT_TRUE(sem_on_disconnect_.TimedWait(kTimeoutMs));
+  EXPECT_EQ(last_disconnect_reason_,
+            Connection::kDisconnectReasonConnectionFailed);
+  EXPECT_EQ(owned_connection_, nullptr);
+  owned_connection_.reset();
 }
 
 TEST_F(ConnectionTest, TestCreateDestroyRace) {

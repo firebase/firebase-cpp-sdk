@@ -174,8 +174,17 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
   }
 }
 
+// Each WebSocketClientEventHandler callback below locks a *local copy* of
+// safe_this_ rather than the member. Close() calls
+// ConnectionEventHandler::OnDisconnect() synchronously, and
+// PersistentConnection destroys this Connection from inside that callback
+// (realtime_.reset()). If the lock were taken through the member, ~Connection()
+// would free the SafeReference's mutex while the lock still held it, and
+// ~Mutex() would run pthread_mutex_destroy() on a locked mutex. The local copy
+// keeps the shared reference data alive until the lock is released.
 void Connection::OnOpen() {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket opened", log_id_.c_str());
 
@@ -200,7 +209,8 @@ void Connection::OnOpen() {
 }
 
 void Connection::OnMessage(const char* msg) {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;  // See OnOpen().
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket message received", log_id_.c_str());
 
@@ -208,7 +218,8 @@ void Connection::OnMessage(const char* msg) {
 }
 
 void Connection::OnClose() {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;  // See OnOpen().
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket closed", log_id_.c_str());
 
@@ -224,7 +235,8 @@ void Connection::OnClose() {
 }
 
 void Connection::OnError(const WebSocketClientErrorData& error_data) {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;  // See OnOpen().
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket error occurred.  Uri: %s", log_id_.c_str(),
                     error_data.GetUri().c_str());
