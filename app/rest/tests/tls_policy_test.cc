@@ -167,15 +167,26 @@ TEST_F(LinuxCaResolverTest, SslCertDirMustBeADirectory) {
                                          ::testing::Eq("/etc/ssl/certs")));
 }
 
-TEST_F(LinuxCaResolverTest, ApplyTlsPolicyAcceptsNullBundleWhenNothingFound) {
-  // Even if no bundle is found, CURLOPT_CAINFO must still be applied (with a
-  // null value) so libcurl does not fall back to the build host's compiled-in
-  // CURL_CA_BUNDLE path; that must not be reported as an error.
+TEST_F(LinuxCaResolverTest, NullCaInfoAndCaPathAreAcceptedByLibcurl) {
+  // When no bundle/directory is found, ApplyTlsPolicy() still sets
+  // CURLOPT_CAINFO / CURLOPT_CAPATH with a null value so libcurl does not fall
+  // back to the build host's compiled-in CURL_CA_BUNDLE. This pins the libcurl
+  // contract that a null value is accepted rather than reported as an error
+  // (the cached LinuxCaBundlePath() cannot be forced to null on a host that
+  // has a system bundle, so test the setopt calls directly).
   AcquireCurlGlobal();
-  UniqueEasy easy(curl_easy_init());
-  ASSERT_NE(easy, nullptr);
-  EXPECT_EQ(ApplyTlsPolicy(easy.get()), CURLE_OK);
-  easy.reset();
+  {
+    UniqueEasy easy(curl_easy_init());
+    ASSERT_NE(easy, nullptr);
+    CURLcode first_error = CURLE_OK;
+    ApplyOpt(easy.get(), CURLOPT_CAINFO, static_cast<const char*>(nullptr),
+             &first_error);
+    EXPECT_EQ(first_error, CURLE_OK);
+    CURLcode capath_code = curl_easy_setopt(easy.get(), CURLOPT_CAPATH,
+                                            static_cast<const char*>(nullptr));
+    EXPECT_TRUE(capath_code == CURLE_OK || capath_code == CURLE_NOT_BUILT_IN)
+        << capath_code;
+  }
   ReleaseCurlGlobal();
 }
 

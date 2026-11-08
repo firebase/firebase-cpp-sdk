@@ -382,3 +382,17 @@ firebase_cpp_cc_test(
     firebase_testing
 )
 
+if(MSVC)
+  # connection_test.cc includes <winsock2.h> (GetClosedLoopbackPort) after
+  # SDK headers that include <windows.h>; WIN32_LEAN_AND_MEAN keeps
+  # <windows.h> from pulling in the conflicting legacy <winsock.h>.
+  target_compile_definitions(firebase_rtdb_desktop_connection_connection_test
+    PRIVATE
+      -DWIN32_LEAN_AND_MEAN
+  )
+  target_link_libraries(firebase_rtdb_desktop_connection_connection_test
+    PRIVATE
+      ws2_32
+  )
+endif()
+

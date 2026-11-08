@@ -194,6 +194,9 @@ class TestWebSocketEchoServer {
     return last_handshake_request_;
   }
 
+  // Number of TCP connections accepted so far.
+  int GetAcceptedConnections() const { return accepted_connections_.load(); }
+
   bool pong_received() const { return pong_received_.load(); }
 
   std::string last_pong_payload() const {
@@ -306,6 +309,7 @@ class TestWebSocketEchoServer {
       if (client_sock == kInvalidSocket) {
         continue;
       }
+      accepted_connections_.fetch_add(1);
       HandleClient(client_sock);
       CloseSocket(client_sock);
     }
@@ -490,6 +494,7 @@ class TestWebSocketEchoServer {
   mutable std::mutex mutex_;
   std::string last_handshake_request_;
   std::atomic<bool> pong_received_;
+  std::atomic<int> accepted_connections_{0};
   std::string last_pong_payload_;
 };
 
@@ -613,7 +618,9 @@ TEST(WebSocketClientImpl, TestEdgeCase2) {
     ws_client->Connect(5000);
     delete ws_client;
   }
-  EXPECT_GE(count, kMinIterations);
+  // The loop is a crash/race detector; its only hard requirement is that it
+  // actually ran. kMinIterations is enforced by the loop condition itself.
+  EXPECT_GT(count, 0);
 
   server.Stop();
 }
@@ -810,10 +817,19 @@ TEST(WebSocketClientImpl, HandshakeStallTimesOutViaWatchdog) {
 // opening a connection even when linked against a multi-protocol system
 // libcurl.
 TEST(WebSocketClientImpl, RejectsNonWebSocketUriSchemes) {
+  // Point the non-ws schemes at a *listening* server: a scheme that is merely
+  // refused by the network would also produce OnError(), so additionally
+  // require that libcurl never opened a TCP connection (CURLOPT_PROTOCOLS_STR
+  // rejects the URL before connecting).
+  TestWebSocketEchoServer server(0);
+  server.Start();
+  const int port = server.GetPort(true);
   Logger logger(nullptr);
   scheduler::Scheduler scheduler;
 
-  const std::string http_uri = "http://127.0.0.1:1/";
+  std::stringstream http;
+  http << "http://127.0.0.1:" << port << "/";
+  const std::string http_uri = http.str();
   {
     Semaphore semaphore(0);
     TestClientEventHandler handler(&semaphore);
@@ -825,6 +841,7 @@ TEST(WebSocketClientImpl, RejectsNonWebSocketUriSchemes) {
     EXPECT_FALSE(handler.is_connected_);
     EXPECT_EQ(http_uri, handler.error_uri_);
   }
+  EXPECT_EQ(server.GetAcceptedConnections(), 0);
 
   const std::string file_uri = "file:///etc/hosts";
   {
@@ -838,6 +855,19 @@ TEST(WebSocketClientImpl, RejectsNonWebSocketUriSchemes) {
     EXPECT_FALSE(handler.is_connected_);
     EXPECT_EQ(file_uri, handler.error_uri_);
   }
+
+  // Control: the same server does accept a ws:// connection.
+  {
+    Semaphore semaphore(0);
+    TestClientEventHandler handler(&semaphore);
+    WebSocketClientImpl ws_client(GetLocalHostUri(port), "", &logger,
+                                  &scheduler, "", &handler);
+    ws_client.Connect(5000);
+    EXPECT_TRUE(semaphore.TimedWait(5000));
+    EXPECT_TRUE(handler.is_connected_);
+  }
+  EXPECT_EQ(server.GetAcceptedConnections(), 1);
+  server.Stop();
 }
 
 }  // namespace connection

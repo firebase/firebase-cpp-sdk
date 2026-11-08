@@ -135,6 +135,9 @@ class ConnectionTest : public ::testing::Test, public ConnectionEventHandler {
   // Used by the Destroy* tests below to own the Connection the same way
   // PersistentConnection owns realtime_, and to destroy it from OnDisconnect().
   // Declared after scheduler_ so it is destroyed first if a test fails early.
+  // Outlives owned_connection_ (declared before it) so the Connection can log
+  // during teardown on whichever thread destroys it.
+  Logger owned_logger_{nullptr};
   std::unique_ptr<Connection> owned_connection_;
   bool reset_on_disconnect_ = false;
   Connection::DisconnectReason last_disconnect_reason_ =
@@ -303,6 +306,58 @@ TEST_F(ConnectionTest, LargeMessage) {
   EXPECT_TRUE(sem_on_data_message_.TimedWait(kTimeoutMs));
 }
 
+// Regression test: Connection::Send announced `len / kMaxFrameSize + 1` frames
+// but only sent ceil(len / kMaxFrameSize); for a wire message of exactly
+// N * kMaxFrameSize bytes the server waited forever for the missing frame and
+// never answered, so the second OnDataMessage below never arrived.
+TEST_F(ConnectionTest, MessageOfExactlyMaxFrameSizeMultiple) {
+  Logger logger(nullptr);
+  Connection connection(&scheduler_, GetHostInfo(), nullptr, this, &logger);
+
+  ScheduledOpen(&connection);
+  EXPECT_TRUE(sem_on_cache_host_.TimedWait(kTimeoutMs));
+  EXPECT_TRUE(sem_on_ready_.TimedWait(kTimeoutMs));
+
+  ScheduledSend(&connection, util::JsonToVariant(kWireProtocolClearRoot));
+  EXPECT_TRUE(sem_on_data_message_.TimedWait(kTimeoutMs));
+  ScheduledSend(&connection, util::JsonToVariant(kWireProtocolListenRoot));
+  EXPECT_TRUE(sem_on_data_message_.TimedWait(kTimeoutMs));
+
+  // Build a put whose *wire* envelope {"t":"d","d":<message>} is exactly
+  // 2 * kMaxFrameSize bytes, by measuring the envelope the same way
+  // Connection::Send does and padding the string value to fit.
+  auto build = [](size_t padding) {
+    std::stringstream ss;
+    ss << "{\"r\":4,\"a\":\"p\",\"b\":{\"p\":\"/connection/ConnectionTest/"
+          "exact\","
+          "\"d\":\"";
+    for (size_t i = 0; i < padding; ++i) ss << "!";
+    ss << "\"}}";
+    return util::JsonToVariant(ss.str().c_str());
+  };
+  // Mirrors the private envelope/frame constants in Connection::Send.
+  auto wire_length = [](const Variant& message) {
+    Variant request = Variant::EmptyMap();
+    request.map()["t"] = "d";
+    request.map()["d"] = message;
+    return util::VariantToJson(request).length();
+  };
+  const size_t kMaxFrameSize = 16384;
+  const size_t target = 2 * kMaxFrameSize;
+  size_t padding = target;
+  Variant message = build(padding);
+  size_t length = wire_length(message);
+  ASSERT_GT(length, target);
+  padding -= (length - target);
+  message = build(padding);
+  ASSERT_EQ(wire_length(message), target);
+
+  ScheduledSend(&connection, message);
+  // Server acknowledgement of the put, then the listen update for it.
+  EXPECT_TRUE(sem_on_data_message_.TimedWait(kTimeoutMs));
+  EXPECT_TRUE(sem_on_data_message_.TimedWait(kTimeoutMs));
+}
+
 TEST_F(ConnectionTest, TestBadHost) {
   HostInfo bad_host("bad-host-name.bad", "bad-namespace", true);
   Logger logger(nullptr);
@@ -324,36 +379,33 @@ TEST_F(ConnectionTest, DestroyFromOnDisconnectAfterConnectRefused) {
   std::stringstream host;
   host << "127.0.0.1:" << GetClosedLoopbackPort();
   HostInfo refused_host(host.str().c_str(), "bad-namespace", /*secure=*/false);
-  Logger logger(nullptr);
 
   reset_on_disconnect_ = true;
-  owned_connection_ = std::make_unique<Connection>(&scheduler_, refused_host,
-                                                   nullptr, this, &logger);
+  owned_connection_ = std::make_unique<Connection>(
+      &scheduler_, refused_host, nullptr, this, &owned_logger_);
   ScheduledOpen(owned_connection_.get());
 
+  // On timeout the fixture destructor (after the scheduler has drained) owns
+  // the cleanup; never touch owned_connection_ from this thread.
   EXPECT_TRUE(sem_on_disconnect_.TimedWait(kTimeoutMs));
   EXPECT_EQ(last_disconnect_reason_,
             Connection::kDisconnectReasonConnectionFailed);
   EXPECT_EQ(owned_connection_, nullptr);
-  // Never let a Connection outlive `logger` if the wait above timed out.
-  owned_connection_.reset();
 }
 
 TEST_F(ConnectionTest, DestroyFromOnDisconnectAfterDnsFailure) {
   // ".invalid" is reserved by RFC 2606 and never resolves.
   HostInfo bad_host("bad-host-name.invalid", "bad-namespace", /*secure=*/true);
-  Logger logger(nullptr);
 
   reset_on_disconnect_ = true;
-  owned_connection_ = std::make_unique<Connection>(&scheduler_, bad_host,
-                                                   nullptr, this, &logger);
+  owned_connection_ = std::make_unique<Connection>(
+      &scheduler_, bad_host, nullptr, this, &owned_logger_);
   ScheduledOpen(owned_connection_.get());
 
   EXPECT_TRUE(sem_on_disconnect_.TimedWait(kTimeoutMs));
   EXPECT_EQ(last_disconnect_reason_,
             Connection::kDisconnectReasonConnectionFailed);
   EXPECT_EQ(owned_connection_, nullptr);
-  owned_connection_.reset();
 }
 
 TEST_F(ConnectionTest, TestCreateDestroyRace) {
