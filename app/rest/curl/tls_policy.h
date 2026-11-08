@@ -45,6 +45,9 @@ namespace curl {
 //        build machine.
 //    Revocation checking is whatever the TLS backend does by default; the SDK
 //    does not configure it.
+//  * The same verification, version floor and CA location are applied to the
+//    TLS leg to an HTTPS proxy (CURLOPT_PROXY_*), if one is configured through
+//    libcurl's proxy environment variables.
 //
 // Returns the first non-CURLE_OK result from curl_easy_setopt(), or CURLE_OK.
 CURLcode ApplyTlsPolicy(CURL* easy);
@@ -54,7 +57,8 @@ CURLcode ApplyTlsPolicy(CURL* easy);
 // CURL_CA_BUNDLE and SSL_CERT_FILE environment variables (the same variables
 // the curl command-line tool honors; libcurl itself does not read them), then
 // the standard Debian/Ubuntu, RHEL/Fedora, openSUSE and Alpine bundle paths.
-// Only readable regular files are accepted.
+// Only readable regular files are accepted. The environment variables are
+// ignored in AT_SECURE (setuid/setgid) processes.
 //
 // The result is computed once per process on first use and cached, so the
 // environment variables must be set before the first Firebase network request.

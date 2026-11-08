@@ -15,6 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -149,6 +150,15 @@ class WebSocketClientImpl : public WebSocketClientInterface {
 
   // Set by the destructor's posted teardown to exit RunEventLoop().
   bool quit_;
+
+  // Set by ReceiveFrames() when it stopped after kMaxFramesPerReceivePass with
+  // frames possibly still buffered in libcurl; RunEventLoop() then polls
+  // without blocking. I/O thread only.
+  bool receive_backlog_;
+
+  // Set by Post() (any thread) once curl_multi_wakeup() has failed; the loop
+  // then uses a short poll timeout so posted work still runs promptly.
+  std::atomic<bool> wakeup_failed_;
 
   // The active libcurl easy handle for the WebSocket connection. Attached to
   // multi_ from ConnectOnLoop() until CleanupEasyHandle(): libcurl closes a

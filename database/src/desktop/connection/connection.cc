@@ -154,8 +154,12 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
   logger_->LogDebug("%s Sending data: %s", log_id_.c_str(),
                     is_sensitive ? "(contents hidden)" : to_send.c_str());
 
-  // Split info frames if the length is larger than kMaxFrameSize
-  int num_of_frame = to_send.length() / kMaxFrameSize + 1;
+  // Split into frames if the length is larger than kMaxFrameSize. The count
+  // must equal the number of frames the loop below sends (ceiling division):
+  // for a payload of exactly N * kMaxFrameSize bytes the old `len / size + 1`
+  // announced one frame too many and the server waited for it forever.
+  int num_of_frame =
+      static_cast<int>((to_send.length() + kMaxFrameSize - 1) / kMaxFrameSize);
   if (num_of_frame > 1) {
     logger_->LogDebug("%s Split data into %d frames (size: %d)",
                       log_id_.c_str(), num_of_frame, to_send.length());

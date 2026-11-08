@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "app/rest/curl/curl_handles.h"
@@ -64,6 +65,16 @@ const unsigned char kCloseNormalPayload[2] = {
 // curl_multi_poll() already honors libcurl's own timers, so this is only a
 // fallback for a failed wakeup; keep it long to avoid idle wakeups.
 constexpr int kPollTimeoutMs = 60 * 1000;
+// Poll timeout used once curl_multi_wakeup() has been seen to fail, so Post()
+// latency (Close, Send, destructor) stays bounded without a working wakeup.
+constexpr int kPollTimeoutNoWakeupMs = 50;
+// Sleep after a curl_multi_poll() failure so a persistent error cannot turn
+// the I/O thread into a busy loop.
+constexpr int kPollFailureBackoffMs = 100;
+// Maximum number of frames ReceiveFrames() consumes before returning to the
+// loop so Post()ed work (Close, Send, destructor teardown) is not starved by
+// a peer that streams frames continuously.
+constexpr int kMaxFramesPerReceivePass = 256;
 }  // namespace
 
 WebSocketClientImpl::WebSocketClientImpl(
@@ -76,6 +87,8 @@ WebSocketClientImpl::WebSocketClientImpl(
       post_mutex_(Mutex::kModeNonRecursive),
       posted_(),
       quit_(false),
+      receive_backlog_(false),
+      wakeup_failed_(false),
       easy_(nullptr),
       request_headers_(nullptr),
       socket_(CURL_SOCKET_BAD),
@@ -95,7 +108,17 @@ WebSocketClientImpl::WebSocketClientImpl(
       thread_() {
   AcquireCurlGlobal();
   multi_.reset(curl_multi_init());
-  FIREBASE_ASSERT_MESSAGE(multi_ != nullptr, "curl_multi_init() failed");
+  if (multi_ == nullptr) {
+    // Typically fd/memory exhaustion. Leave the client inert: Connect() then
+    // reports OnError() instead of the process aborting, and the destructor
+    // has no thread to join.
+    logger_->LogError("curl_multi_init() failed for %s", uri_.c_str());
+    return;
+  }
+  // curl_multi_cleanup() would otherwise join libcurl's resolver thread pool,
+  // which can block the destroying thread (the Database scheduler) for a full
+  // DNS timeout if a resolve is in flight when the connection is torn down.
+  curl_multi_setopt(multi_.get(), CURLMOPT_QUICK_EXIT, 1L);
   // Started last: everything RunEventLoop() touches is initialized above.
   thread_ = Thread(EventLoopRoutine, this);
 }
@@ -105,13 +128,15 @@ WebSocketClientImpl::~WebSocketClientImpl() {
   // executing code which requires a reference to this.
   safe_this_.ClearReference();
 
-  // Release the socket and the easy handle on the I/O thread, then stop it.
-  // Nothing touches this object from the I/O thread once Join() returns.
-  Post([this]() {
-    TeardownOnLoop();
-    quit_ = true;
-  });
-  thread_.Join();
+  if (multi_ != nullptr) {
+    // Release the socket and the easy handle on the I/O thread, then stop it.
+    // Nothing touches this object from the I/O thread once Join() returns.
+    Post([this]() {
+      TeardownOnLoop();
+      quit_ = true;
+    });
+    thread_.Join();
+  }
 
   handler_ = nullptr;
   assert(easy_ == nullptr);
@@ -129,24 +154,36 @@ void WebSocketClientImpl::Post(std::function<void()> fn) {
   MutexLock lock(post_mutex_);
   posted_.push_back(std::move(fn));
   // curl_multi_wakeup() is thread-safe; multi_ outlives the I/O thread. If it
-  // fails the callback still runs, but only after kPollTimeoutMs elapses.
+  // fails the callback still runs, but only after the loop's poll timeout, so
+  // RunEventLoop() switches to a short timeout once a failure has been seen.
   CURLMcode mc = curl_multi_wakeup(multi_.get());
   if (mc != CURLM_OK) {
+    wakeup_failed_ = true;
     logger_->LogWarning("curl_multi_wakeup failed for %s: %s", uri_.c_str(),
                         curl_multi_strerror(mc));
   }
 }
 
 void WebSocketClientImpl::Connect(int timeout_ms) {
+  if (multi_ == nullptr) {
+    // Constructor could not create the multi handle; there is no I/O thread.
+    OnError();
+    return;
+  }
   Post([this, timeout_ms]() { ConnectOnLoop(timeout_ms); });
 }
 
 void WebSocketClientImpl::Close() {
+  if (multi_ == nullptr) return;
   Post([this]() { CloseOnLoop(); });
 }
 
 void WebSocketClientImpl::Send(const char* msg) {
   assert(msg != nullptr);
+  if (multi_ == nullptr) {
+    logger_->LogWarning("Cannot send message.  websocket is not available");
+    return;
+  }
   std::string message(msg);
   Post([this, message = std::move(message)]() { SendOnLoop(message); });
 }
@@ -180,7 +217,7 @@ void WebSocketClientImpl::RunEventLoop() {
 
     // Drive the handshake (a no-op once the connect-only handle is done).
     int running_handles = 0;
-    curl_multi_perform(multi_.get(), &running_handles);
+    CURLMcode perform_code = curl_multi_perform(multi_.get(), &running_handles);
     int messages_left = 0;
     CURLMsg* message = nullptr;
     while ((message = curl_multi_info_read(multi_.get(), &messages_left)) !=
@@ -189,10 +226,20 @@ void WebSocketClientImpl::RunEventLoop() {
         OnHandshakeDone(message->data.result);
       }
     }
+    if (perform_code != CURLM_OK && state_ == kStateConnecting) {
+      // The multi handle itself is broken (not a transfer failure, which is
+      // reported through curl_multi_info_read); give up on the handshake.
+      logger_->LogDebug("curl_multi_perform failed for %s: %s", uri_.c_str(),
+                        curl_multi_strerror(perform_code));
+      CleanupEasyHandle();
+      state_ = kStateClosed;
+      OnError();
+      continue;
+    }
 
     // libcurl bounds only DNS/TCP/TLS for a connect-only handle, not the HTTP
     // Upgrade exchange, so enforce Connect()'s timeout here.
-    int timeout_ms = kPollTimeoutMs;
+    int timeout_ms = wakeup_failed_ ? kPollTimeoutNoWakeupMs : kPollTimeoutMs;
     if (state_ == kStateConnecting &&
         handshake_deadline_ != std::chrono::steady_clock::time_point::max()) {
       const auto remaining_ms =
@@ -219,10 +266,28 @@ void WebSocketClientImpl::RunEventLoop() {
     wait_fd.revents = 0;
     const bool watch_socket =
         state_ == kStateOpen && socket_ != CURL_SOCKET_BAD;
+    // Frames may still be buffered inside libcurl/TLS after a capped receive
+    // pass, and the socket will not report them as readable; poll without
+    // blocking so they are drained right after posted work has had its turn.
+    if (watch_socket && receive_backlog_) timeout_ms = 0;
     int num_fds = 0;
-    curl_multi_poll(multi_.get(), watch_socket ? &wait_fd : nullptr,
-                    watch_socket ? 1 : 0, timeout_ms, &num_fds);
-    if (watch_socket && wait_fd.revents != 0) Pump(wait_fd.revents);
+    CURLMcode poll_code =
+        curl_multi_poll(multi_.get(), watch_socket ? &wait_fd : nullptr,
+                        watch_socket ? 1 : 0, timeout_ms, &num_fds);
+    if (poll_code != CURLM_OK) {
+      // Never spin at 100% CPU on a persistently failing poll; this is rare
+      // (e.g. fd exhaustion) and the sleep keeps Post() latency bounded.
+      logger_->LogDebug("curl_multi_poll failed for %s: %s", uri_.c_str(),
+                        curl_multi_strerror(poll_code));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(kPollFailureBackoffMs));
+      continue;
+    }
+    if (watch_socket && (wait_fd.revents != 0 || receive_backlog_)) {
+      const bool backlog = receive_backlog_;
+      receive_backlog_ = false;
+      Pump(wait_fd.revents | (backlog ? CURL_WAIT_POLLIN : 0));
+    }
   }
 }
 
@@ -496,7 +561,14 @@ void WebSocketClientImpl::ReceiveFrames() {
   CURL* easy = easy_.get();
   char buffer[kRecvBufferSize];
 
+  int frames_this_pass = 0;
   while (state_ == kStateOpen) {
+    if (frames_this_pass++ >= kMaxFramesPerReceivePass) {
+      // Yield to RunEventLoop() so posted work runs; it polls again without
+      // blocking because receive_backlog_ is set.
+      receive_backlog_ = true;
+      break;
+    }
     size_t rlen = 0;
     const struct curl_ws_frame* meta = nullptr;
     CURLcode res = curl_ws_recv(easy, buffer, sizeof(buffer), &rlen, &meta);
@@ -621,6 +693,7 @@ void WebSocketClientImpl::CleanupEasyHandle() {
   send_queue_.clear();
   frame_in_progress_ = false;
   current_send_offset_ = 0;
+  receive_backlog_ = false;
 }
 
 bool WebSocketClientImpl::IsWebSocketAvailable() const {

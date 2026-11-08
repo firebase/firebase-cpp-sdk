@@ -34,6 +34,18 @@ namespace curl {
 namespace {
 
 #ifdef FIREBASE_SSL_CAPATH
+// Reads an environment variable that influences which CAs are trusted. In
+// AT_SECURE processes (setuid/setgid/file capabilities) the environment is
+// attacker-controlled, so glibc's secure_getenv() returns nullptr there and the
+// distribution defaults are used instead.
+const char* TrustedGetEnv(const char* name) {
+#if defined(__GLIBC__)
+  return secure_getenv(name);
+#else
+  return std::getenv(name);
+#endif  // defined(__GLIBC__)
+}
+
 bool IsReadableRegularFile(const char* path) {
   if (path == nullptr || path[0] == '\0') return false;
   struct stat st;
@@ -65,17 +77,28 @@ CURLcode ApplyTlsPolicy(CURL* easy) {
   ApplyOpt(easy, CURLOPT_SSLVERSION,
            static_cast<long>(CURL_SSLVERSION_TLSv1_2),  // NOLINT
            &first_error);
+  // The same policy applies to the TLS leg to an HTTPS proxy (https_proxy=
+  // https://...). libcurl verifies that leg by default, but its CA location
+  // and minimum version are configured separately.
+  ApplyOpt(easy, CURLOPT_PROXY_SSL_VERIFYPEER, 1L, &first_error);
+  ApplyOpt(easy, CURLOPT_PROXY_SSL_VERIFYHOST, 2L, &first_error);
+  ApplyOpt(easy, CURLOPT_PROXY_SSLVERSION,
+           static_cast<long>(CURL_SSLVERSION_TLSv1_2),  // NOLINT
+           &first_error);
 #ifdef FIREBASE_SSL_CAPATH
   // Explicitly setting CURLOPT_CAINFO (even to nullptr) marks
   // ssl.custom_cafile = TRUE inside libcurl, which stops it from substituting
   // the build machine's compile-time CURL_CA_BUNDLE path. See the comment on
   // LinuxCaBundlePath() for why that matters.
   ApplyOpt(easy, CURLOPT_CAINFO, LinuxCaBundlePath(), &first_error);
-  CURLcode capath_code =
-      curl_easy_setopt(easy, CURLOPT_CAPATH, LinuxCaDirectoryPath());
-  if (capath_code != CURLE_OK && capath_code != CURLE_NOT_BUILT_IN &&
-      first_error == CURLE_OK) {
-    first_error = capath_code;
+  ApplyOpt(easy, CURLOPT_PROXY_CAINFO, LinuxCaBundlePath(), &first_error);
+  for (CURLoption option : {CURLOPT_CAPATH, CURLOPT_PROXY_CAPATH}) {
+    CURLcode capath_code =
+        curl_easy_setopt(easy, option, LinuxCaDirectoryPath());
+    if (capath_code != CURLE_OK && capath_code != CURLE_NOT_BUILT_IN &&
+        first_error == CURLE_OK) {
+      first_error = capath_code;
+    }
   }
 #endif  // FIREBASE_SSL_CAPATH
   return first_error;
@@ -150,7 +173,7 @@ std::string ResolveLinuxCaBundlePath() {
       "SSL_CERT_FILE",
   };
   for (const char* env_var : kCaBundleEnvVars) {
-    const char* env_path = std::getenv(env_var);
+    const char* env_path = TrustedGetEnv(env_var);
     if (IsReadableRegularFile(env_path)) {
       return env_path;
     }
@@ -174,7 +197,7 @@ std::string ResolveLinuxCaBundlePath() {
 
 std::string ResolveLinuxCaDirectoryPath() {
 #ifdef FIREBASE_SSL_CAPATH
-  const char* env_dir = std::getenv("SSL_CERT_DIR");
+  const char* env_dir = TrustedGetEnv("SSL_CERT_DIR");
   if (IsReadableDirectory(env_dir)) {
     return env_dir;
   }
