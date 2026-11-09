@@ -14,8 +14,6 @@
 
 #include "app_check/src/ios/debug_provider_ios.h"
 
-#include <cstdlib>
-
 #include "firebase/app_check/debug_provider.h"
 
 #import "FIRAppCheckDebugProvider.h"
@@ -117,16 +115,7 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
-  // Export the token as the environment variables the iOS SDK reads, and also
-  // write it to NSUserDefaults for older iOS SDK versions. An empty token
-  // clears both.
-  if (!token.empty()) {
-    setenv("FIREBASE_APPCHECK_DEBUG_TOKEN", token.c_str(), 1);
-    setenv("AppCheckDebugToken", token.c_str(), 1);
-  } else {
-    unsetenv("FIREBASE_APPCHECK_DEBUG_TOKEN");
-    unsetenv("AppCheckDebugToken");
-  }
+  // Write to the same location that the iOS SDK will read from.
   NSString* token_string = (!token.empty()) ? util::StringToNSString(token) : nullptr;
   [[NSUserDefaults standardUserDefaults] setObject:token_string forKey:kDebugTokenUserDefaultsKey];
   [[NSUserDefaults standardUserDefaults] setObject:token_string
