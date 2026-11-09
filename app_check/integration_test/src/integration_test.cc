@@ -590,6 +590,7 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
+  EXPECT_GT(token_changed_listener.last_token_.expire_time_millis, 0);
 }
 
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
