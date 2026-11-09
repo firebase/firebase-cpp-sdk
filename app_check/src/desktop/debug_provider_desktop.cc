@@ -234,9 +234,7 @@ std::string DebugAppCheckProvider::DetermineDebugToken() {
   }
 
   // 3. Check local configstore JSON.
-  std::string app_id = (app_ != nullptr && app_->options().app_id() != nullptr)
-                           ? app_->options().app_id()
-                           : "";
+  std::string app_id = app_->options().app_id();
   if (!app_id.empty()) {
     for (const std::string& config_path : ResolveConfigstorePaths()) {
       debug_token_ = ResolveDebugTokenFromConfig(config_path, app_id);
@@ -253,10 +251,7 @@ std::string DebugAppCheckProvider::DetermineDebugToken() {
   debug_token_ = GenerateUuidString();
   if (!logged_token_) {
     logged_token_ = true;
-    std::string project_id =
-        (app_ != nullptr && app_->options().project_id() != nullptr)
-            ? app_->options().project_id()
-            : "";
+    std::string project_id = app_->options().project_id();
     // Split across multiple LogWarning calls to stay under the 512-byte
     // buffer in app/src/log.cc.
     std::string message_to_log =
@@ -301,13 +296,6 @@ void DebugAppCheckProvider::GetTokenInternal(
     bool limited_use,
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
-  if (app_ == nullptr) {
-    if (completion_callback) {
-      completion_callback(AppCheckToken(), kAppCheckErrorUnknown,
-                          "Firebase App is null.");
-    }
-    return;
-  }
   std::string resolved_token = DetermineDebugToken();
 
   // Exchange debug token with the backend to get a proper attestation token.
