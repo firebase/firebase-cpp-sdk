@@ -22,7 +22,6 @@
 #include <iterator>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -135,12 +134,102 @@ std::string ResolveDebugTokenFromConfig(const std::string& config_path,
   return app_it->second.string_value();
 }
 
+namespace {
+
+// Resolves the debug token once at provider construction following the
+// priority order:
+//   1. Explicit SetDebugToken() value
+//   2. Environment variable (FIREBASE_APPCHECK_DEBUG_TOKEN, AppCheckDebugToken,
+//      APP_CHECK_DEBUG_TOKEN)
+//   3. Local configstore (~/.config/configstore/firebase-appcheck.json)
+//   4. Auto-generated UUID
+std::string ResolveDebugToken(App* app, const std::string& explicit_token) {
+#if defined(NDEBUG)
+  firebase::LogWarning(
+      "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use in a "
+      "Release build (NDEBUG defined). Debug tokens are for development "
+      "only; prefer a production provider where one is available.");
+#endif  // defined(NDEBUG)
+
+  // 1. Explicit token passed in from SetDebugToken() at provider creation.
+  if (!explicit_token.empty()) {
+    firebase::LogInfo(
+        "[FirebaseAppCheck] Debug token loaded from SetDebugToken.");
+    return explicit_token;
+  }
+
+  // 2. Check environment variables in precedence order.
+  for (const char* var : {"FIREBASE_APPCHECK_DEBUG_TOKEN", "AppCheckDebugToken",
+                          "APP_CHECK_DEBUG_TOKEN"}) {
+    std::string token = GetNonEmptyEnv(var);
+    if (!token.empty()) {
+      firebase::LogInfo(
+          "[FirebaseAppCheck] Debug token loaded from environment variable "
+          "%s.",
+          var);
+      return token;
+    }
+  }
+
+  // 3. Check local configstore JSON.
+  std::string app_id = app->options().app_id();
+  if (!app_id.empty()) {
+    for (const std::string& config_path : ResolveConfigstorePaths()) {
+      std::string token = ResolveDebugTokenFromConfig(config_path, app_id);
+      if (!token.empty()) {
+        firebase::LogInfo("[FirebaseAppCheck] Debug token loaded from %s.",
+                          config_path.c_str());
+        return token;
+      }
+    }
+  }
+
+  // 4. Fallback: auto-generate UUID and log local secret warning.
+  std::string token = GenerateUuidString();
+  std::string project_id = app->options().project_id();
+  // Split across multiple LogWarning calls to stay under the 512-byte
+  // buffer in app/src/log.cc.
+  std::string message_to_log =
+      std::string("\nWARNING: Firebase App Check debug token: ") + token +
+      "\n\n" +
+      "To use this token for app debugging, register it with your "
+      "project.\n\n" +
+      "You can do so in the Firebase Console: \n" +
+      "https://console.firebase.google.com/project/" + project_id +
+      "/appcheck/apps?selectedAppId=" + app_id + " \n\n" +
+      "Or using the Firebase CLI: \n" +
+      "firebase appcheck:debugtokens:create " + token + " --app " + app_id +
+      "\n\n";
+  firebase::LogWarning("%s", message_to_log.c_str());
+  firebase::LogWarning(
+      "%s",
+      "This debug token will regenerate every time the application is "
+      "run.\n"
+      "For more persistent methods of setting the debug token, please "
+      "review the \n"
+      "\"Debug & test providers\" section of the Firebase App Check "
+      "documentation:\n"
+      "https://firebase.google.com/docs/app-check\n\n"
+      "Note: To keep your project secure, please revoke and delete this "
+      "token using the \n"
+      "Firebase Console or the CLI (`firebase "
+      "appcheck:debugtokens:delete`) "
+      "when you finish debugging.\n\n");
+  firebase::LogWarning(
+      "%s",
+      "Warning: This debug token is a secret and should not be shared or "
+      "uploaded to source code.\n\n"
+      "Debug Token Guide: "
+      "https://firebase.google.com/docs/app-check/ios/debug-provider\n"
+      "Firebase CLI install instructions: "
+      "https://firebase.google.com/docs/cli\n");
+  return token;
+}
+
+}  // namespace
+
 DebugAppCheckProvider::DebugAppCheckProvider(App* app, const std::string& token)
-    : app_(app),
-      scheduler_(),
-      token_mutex_(),
-      debug_token_(token),
-      logged_token_(false) {
+    : app_(app), scheduler_(), debug_token_(ResolveDebugToken(app, token)) {
   firebase::rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -198,109 +287,13 @@ void DebugAppCheckProvider::GetLimitedUseToken(
   GetTokenInternal(true, completion_callback);
 }
 
-std::string DebugAppCheckProvider::DetermineDebugToken() {
-  std::lock_guard<std::mutex> lock(token_mutex_);
-#if defined(NDEBUG)
-  if (!logged_token_) {
-    firebase::LogWarning(
-        "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use in a "
-        "Release build (NDEBUG defined). Debug tokens are for development "
-        "only; prefer a production provider where one is available.");
-  }
-#endif  // defined(NDEBUG)
-
-  // 1. Explicit token passed in from SetDebugToken() at provider creation.
-  if (!debug_token_.empty()) {
-    if (!logged_token_) {
-      logged_token_ = true;
-      firebase::LogInfo(
-          "[FirebaseAppCheck] Debug token loaded from SetDebugToken.");
-    }
-    return debug_token_;
-  }
-
-  // 2. Check environment variables in precedence order.
-  for (const char* var : {"FIREBASE_APPCHECK_DEBUG_TOKEN", "AppCheckDebugToken",
-                          "APP_CHECK_DEBUG_TOKEN"}) {
-    debug_token_ = GetNonEmptyEnv(var);
-    if (!debug_token_.empty()) {
-      logged_token_ = true;
-      firebase::LogInfo(
-          "[FirebaseAppCheck] Debug token loaded from environment variable "
-          "%s.",
-          var);
-      return debug_token_;
-    }
-  }
-
-  // 3. Check local configstore JSON.
-  std::string app_id = app_->options().app_id();
-  if (!app_id.empty()) {
-    for (const std::string& config_path : ResolveConfigstorePaths()) {
-      debug_token_ = ResolveDebugTokenFromConfig(config_path, app_id);
-      if (!debug_token_.empty()) {
-        logged_token_ = true;
-        firebase::LogInfo("[FirebaseAppCheck] Debug token loaded from %s.",
-                          config_path.c_str());
-        return debug_token_;
-      }
-    }
-  }
-
-  // 4. Fallback: auto-generate UUID and log local secret warning.
-  debug_token_ = GenerateUuidString();
-  if (!logged_token_) {
-    logged_token_ = true;
-    std::string project_id = app_->options().project_id();
-    // Split across multiple LogWarning calls to stay under the 512-byte
-    // buffer in app/src/log.cc.
-    std::string message_to_log =
-        std::string("\nWARNING: Firebase App Check debug token: ") +
-        debug_token_ + "\n\n" +
-        "To use this token for app debugging, register it with your "
-        "project.\n\n" +
-        "You can do so in the Firebase Console: \n" +
-        "https://console.firebase.google.com/project/" + project_id +
-        "/appcheck/apps?selectedAppId=" + app_id + " \n\n" +
-        "Or using the Firebase CLI: \n" +
-        "firebase appcheck:debugtokens:create " + debug_token_ + " --app " +
-        app_id + "\n\n";
-    firebase::LogWarning("%s", message_to_log.c_str());
-    firebase::LogWarning(
-        "%s",
-        "This debug token will regenerate every time the application is "
-        "run.\n"
-        "For more persistent methods of setting the debug token, please "
-        "review the \n"
-        "\"Debug & test providers\" section of the Firebase App Check "
-        "documentation:\n"
-        "https://firebase.google.com/docs/app-check\n\n"
-        "Note: To keep your project secure, please revoke and delete this "
-        "token using the \n"
-        "Firebase Console or the CLI (`firebase "
-        "appcheck:debugtokens:delete`) "
-        "when you finish debugging.\n\n");
-    firebase::LogWarning(
-        "%s",
-        "Warning: This debug token is a secret and should not be shared or "
-        "uploaded to source code.\n\n"
-        "Debug Token Guide: "
-        "https://firebase.google.com/docs/app-check/ios/debug-provider\n"
-        "Firebase CLI install instructions: "
-        "https://firebase.google.com/docs/cli\n");
-  }
-  return debug_token_;
-}
-
 void DebugAppCheckProvider::GetTokenInternal(
     bool limited_use,
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
-  std::string resolved_token = DetermineDebugToken();
-
   // Exchange debug token with the backend to get a proper attestation token.
   auto request = std::make_shared<DebugTokenRequest>(app_);
-  request->SetDebugToken(resolved_token);
+  request->SetDebugToken(debug_token_);
   request->SetLimitedUse(limited_use);
 
   // Use an async call, since we don't want to block on the server response.

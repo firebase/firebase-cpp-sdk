@@ -178,17 +178,16 @@ class DebugProviderDesktopTest : public ::testing::Test {
 };
 
 TEST_F(DebugProviderDesktopTest, ResolutionPriorityOrder) {
-  // 4. Default fallback: auto-generated 36-char UUID, cached on the provider.
+  // 4. Default fallback: auto-generated 36-char UUID, resolved at construction.
   DebugAppCheckProvider uuid_provider(app_, "");
-  std::string uuid = uuid_provider.DetermineDebugToken();
+  std::string uuid = uuid_provider.debug_token();
   EXPECT_EQ(uuid.size(), 36u);
-  EXPECT_EQ(uuid_provider.DetermineDebugToken(), uuid);
+  EXPECT_EQ(uuid_provider.debug_token(), uuid);
 
   // 3. Configstore in HOME (~/.config/configstore/firebase-appcheck.json).
   WriteHomeConfigstore(std::string("{\"tokens\":{\"") + kTestAppId +
                        "\":\"home-token\"}}");
-  EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(),
-            "home-token");
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token(), "home-token");
   // The provider joins with '/' regardless of platform; do not compare
   // against fs::path (which uses '\\' on Windows).
   EXPECT_TRUE(LogContains("Debug token loaded from " + temp_dir_.string() +
@@ -200,30 +199,25 @@ TEST_F(DebugProviderDesktopTest, ResolutionPriorityOrder) {
   WriteConfigstore(xdg_dir,
                    "{\"tokens\":{\"1:000:ios:other\":\"other-xdg-token\"}}");
   SetEnvVar("XDG_CONFIG_HOME", xdg_dir.string().c_str());
-  EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(),
-            "home-token");
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token(), "home-token");
 
   WriteConfigstore(xdg_dir, std::string("{\"tokens\":{\"") + kTestAppId +
                                 "\":\"xdg-token\"}}");
-  EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(), "xdg-token");
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token(), "xdg-token");
 
   SetEnvVar("XDG_CONFIG_HOME", "relative/xdg_path");
-  EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(),
-            "home-token");
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token(), "home-token");
 
   // 2. Environment variables: FIREBASE_APPCHECK_DEBUG_TOKEN >
   // AppCheckDebugToken > APP_CHECK_DEBUG_TOKEN > configstore.
   SetEnvVar("APP_CHECK_DEBUG_TOKEN", "old-cpp-env-token");
-  EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(),
-            "old-cpp-env-token");
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token(), "old-cpp-env-token");
 
   SetEnvVar("AppCheckDebugToken", "legacy-env-token");
-  EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(),
-            "legacy-env-token");
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token(), "legacy-env-token");
 
   SetEnvVar("FIREBASE_APPCHECK_DEBUG_TOKEN", "primary-env-token");
-  EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(),
-            "primary-env-token");
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token(), "primary-env-token");
 
   // 1. SetDebugToken takes highest precedence; it is snapshotted when the
   // factory creates the provider.
@@ -231,7 +225,7 @@ TEST_F(DebugProviderDesktopTest, ResolutionPriorityOrder) {
   factory->SetDebugToken("explicit-code-token");
   auto* provider =
       static_cast<DebugAppCheckProvider*>(factory->CreateProvider(app_));
-  EXPECT_EQ(provider->DetermineDebugToken(), "explicit-code-token");
+  EXPECT_EQ(provider->debug_token(), "explicit-code-token");
 }
 
 TEST_F(DebugProviderDesktopTest, ResolveDebugTokenFromConfigEdgeCases) {

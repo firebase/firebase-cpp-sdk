@@ -17,7 +17,6 @@
 
 #include <functional>
 #include <map>
-#include <mutex>
 #include <string>
 
 #include "app/src/scheduler.h"
@@ -45,13 +44,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
       std::function<void(AppCheckToken, int, const std::string&)>
           completion_callback) override;
 
-  // Resolves the debug token (if not already set) following the priority order:
-  // 1. Explicit SetDebugToken
-  // 2. Environment variable (FIREBASE_APPCHECK_DEBUG_TOKEN /
-  // AppCheckDebugToken)
-  // 3. Local configstore (~/.config/configstore/firebase-appcheck.json)
-  // 4. Auto-generated UUID
-  std::string DetermineDebugToken();
+  const std::string& debug_token() const { return debug_token_; }
 
  private:
   void GetTokenInternal(
@@ -61,11 +54,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
 
   App* app_;
   scheduler::Scheduler scheduler_;
-  // Guards debug_token_ / logged_token_: GetToken() is invoked from other
-  // SDKs' worker threads via the function registry.
-  std::mutex token_mutex_;
-  std::string debug_token_;
-  bool logged_token_;
+  const std::string debug_token_;
 };
 
 class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
