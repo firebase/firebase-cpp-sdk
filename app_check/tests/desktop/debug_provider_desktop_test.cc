@@ -242,14 +242,9 @@ TEST_F(DebugProviderDesktopTest, ResolveDebugTokenFromConfigEdgeCases) {
             "");
   EXPECT_FALSE(LogContains("[FirebaseAppCheck]")) << logs_;
 
-  // UTF-8 BOM prefix is stripped before JSON parsing.
-  std::string path =
-      WriteHomeConfigstore(std::string("\xEF\xBB\xBF{\"tokens\":{\"") +
-                           kTestAppId + "\":\"bom-token\"}}");
-  EXPECT_EQ(ResolveDebugTokenFromConfig(path, kTestAppId), "bom-token");
-
   // File exists but lacks the target app ID -> diagnostic info log.
-  path = WriteHomeConfigstore("{\"tokens\":{\"1:000:web:other\":\"tok\"}}");
+  std::string path =
+      WriteHomeConfigstore("{\"tokens\":{\"1:000:web:other\":\"tok\"}}");
   EXPECT_EQ(ResolveDebugTokenFromConfig(path, kTestAppId), "");
   EXPECT_TRUE(LogContains(std::string("contains no debug token for app ID '") +
                           kTestAppId + "'"));

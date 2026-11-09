@@ -106,9 +106,6 @@ std::string ResolveDebugTokenFromConfig(const std::string& config_path,
   }
   std::string json_str((std::istreambuf_iterator<char>(infile)),
                        std::istreambuf_iterator<char>());
-  if (json_str.compare(0, 3, "\xEF\xBB\xBF") == 0) {
-    json_str.erase(0, 3);
-  }
   size_t start = json_str.find_first_not_of(" \t\r\n");
   if (start == std::string::npos) return "";
 
