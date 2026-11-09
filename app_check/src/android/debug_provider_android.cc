@@ -14,7 +14,6 @@
 
 #include "app_check/src/android/debug_provider_android.h"
 
-#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -166,17 +165,8 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(
     const std::string& token) {
-  // The App may not exist yet, so we save the debug token to use later, and
-  // also set Priority #1 environment variables in case the native SDK reads
-  // System.getenv() before SharedPreferences (#4) or injected resources (#3).
+  // The App may not exist yet, so we save the debug token to use later.
   debug_token_ = token;
-  if (!token.empty()) {
-    setenv("FIREBASE_APPCHECK_DEBUG_TOKEN", token.c_str(), 1);
-    setenv("AppCheckDebugToken", token.c_str(), 1);
-  } else {
-    unsetenv("FIREBASE_APPCHECK_DEBUG_TOKEN");
-    unsetenv("AppCheckDebugToken");
-  }
 }
 
 }  // namespace internal
