@@ -257,23 +257,42 @@ std::string DebugAppCheckProvider::DetermineDebugToken() {
         (app_ != nullptr && app_->options().project_id() != nullptr)
             ? app_->options().project_id()
             : "";
-    std::string warning_part1 =
+    // Split across multiple LogWarning calls to stay under the 512-byte
+    // buffer in app/src/log.cc.
+    std::string message_to_log =
         std::string("\nWARNING: Firebase App Check debug token: ") +
         debug_token_ + "\n\n" +
-        "To use this token for app debugging, register it in the Firebase "
-        "Console:\n" +
+        "To use this token for app debugging, register it with your "
+        "project.\n\n" +
+        "You can do so in the Firebase Console: \n" +
         "https://console.firebase.google.com/project/" + project_id +
-        "/appcheck/apps?selectedAppId=" + app_id + "\n\n" +
-        "Or using the Firebase CLI:\n" +
+        "/appcheck/apps?selectedAppId=" + app_id + " \n\n" +
+        "Or using the Firebase CLI: \n" +
         "firebase appcheck:debugtokens:create " + debug_token_ + " --app " +
-        app_id + "\n";
-    firebase::LogWarning("%s", warning_part1.c_str());
+        app_id + "\n\n";
+    firebase::LogWarning("%s", message_to_log.c_str());
+    firebase::LogWarning(
+        "%s",
+        "This debug token will regenerate every time the application is "
+        "run.\n"
+        "For more persistent methods of setting the debug token, please "
+        "review the \n"
+        "\"Debug & test providers\" section of the Firebase App Check "
+        "documentation:\n"
+        "https://firebase.google.com/docs/app-check\n\n"
+        "Note: To keep your project secure, please revoke and delete this "
+        "token using the \n"
+        "Firebase Console or the CLI (`firebase "
+        "appcheck:debugtokens:delete`) "
+        "when you finish debugging.\n\n");
     firebase::LogWarning(
         "%s",
         "Warning: This debug token is a secret and should not be shared or "
-        "uploaded to source code. Revoke it with 'firebase "
-        "appcheck:debugtokens:delete' when finished debugging.\n"
-        "https://firebase.google.com/docs/app-check\n");
+        "uploaded to source code.\n\n"
+        "Debug Token Guide: "
+        "https://firebase.google.com/docs/app-check/ios/debug-provider\n"
+        "Firebase CLI install instructions: "
+        "https://firebase.google.com/docs/cli\n");
   }
   return debug_token_;
 }
@@ -306,7 +325,8 @@ DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
     : provider_map_(), debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
-  for (auto& it : provider_map_) {
+  // Clear the map
+  for (auto it : provider_map_) {
     delete it.second;
   }
   provider_map_.clear();
@@ -314,15 +334,12 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     App* app) {
-  if (app == nullptr) {
-    return nullptr;
-  }
-  auto it = provider_map_.find(app);
+  // Check the map
+  std::map<App*, AppCheckProvider*>::iterator it = provider_map_.find(app);
   if (it != provider_map_.end()) {
     return it->second;
   }
-  // The explicit token (if any) is snapshotted at provider creation, matching
-  // the Android and iOS factories.
+  // Create a new provider and cache it
   AppCheckProvider* provider = new DebugAppCheckProvider(app, debug_token_);
   provider_map_[app] = provider;
   return provider;
