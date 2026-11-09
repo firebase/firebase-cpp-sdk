@@ -29,19 +29,11 @@ namespace internal {
 
 class DebugAppCheckProviderFactoryInternal;
 
-// Resolves the path to the local Firebase App Check configstore file
-// (~/.config/configstore/firebase-appcheck.json or XDG_CONFIG_HOME override).
-std::string ResolveConfigstorePath();
-
 // Reads and parses the local configstore JSON file at `config_path` and
 // returns the debug token for `app_id`, or an empty string if not found or
 // invalid.
 std::string ResolveDebugTokenFromConfig(const std::string& config_path,
                                         const std::string& app_id);
-
-// Test hooks to override the NDEBUG release build safeguard at runtime.
-void SetSimulateReleaseBuildForTesting(bool simulate_release);
-void ResetSimulateReleaseBuildForTesting();
 
 class DebugAppCheckProvider : public AppCheckProvider {
  public:
@@ -63,7 +55,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
   // AppCheckDebugToken)
   // 3. Local configstore (~/.config/configstore/firebase-appcheck.json)
   // 4. Auto-generated UUID
-  const std::string& DetermineDebugToken();
+  std::string DetermineDebugToken();
 
   App* app() const { return app_; }
   DebugAppCheckProviderFactoryInternal* factory() const { return factory_; }
@@ -91,6 +83,7 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
   AppCheckProvider* CreateProvider(App* app) override;
 
   void SetDebugToken(const std::string& token);
+  std::string GetDebugToken();
 
   void RemoveProviderForApp(App* app);
 

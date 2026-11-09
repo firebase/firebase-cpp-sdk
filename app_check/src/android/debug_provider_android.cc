@@ -14,11 +14,13 @@
 
 #include "app_check/src/android/debug_provider_android.h"
 
+#include <cstdlib>
 #include <string>
 #include <vector>
 
 #include "app/src/app_common.h"
 #include "app/src/embedded_file.h"
+#include "app/src/log.h"
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/debug_provider.h"
@@ -83,8 +85,8 @@ void ReleaseDebugProviderClasses(JNIEnv* env) {
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : created_providers_(),
-      android_provider_factory_(nullptr),
+    : android_provider_factory_(nullptr),
+      created_providers_(),
       debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
@@ -101,8 +103,18 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     App* app) {
+  if (app == nullptr) {
+    return nullptr;
+  }
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
                                  kMethodsNotCachedError);
+
+#if defined(NDEBUG)
+  firebase::LogWarning(
+      "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use in a "
+      "Release build (NDEBUG defined). Debug tokens are for development "
+      "only; prefer a production provider where one is available.");
+#endif
 
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
@@ -154,8 +166,17 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(
     const std::string& token) {
-  // The App may not exist yet, so we save the debug token to use later.
+  // The App may not exist yet, so we save the debug token to use later, and
+  // also set Priority #1 environment variables in case the native SDK reads
+  // System.getenv() before SharedPreferences (#4) or injected resources (#3).
   debug_token_ = token;
+  if (!token.empty()) {
+    setenv("FIREBASE_APPCHECK_DEBUG_TOKEN", token.c_str(), 1);
+    setenv("AppCheckDebugToken", token.c_str(), 1);
+  } else {
+    unsetenv("FIREBASE_APPCHECK_DEBUG_TOKEN");
+    unsetenv("AppCheckDebugToken");
+  }
 }
 
 }  // namespace internal

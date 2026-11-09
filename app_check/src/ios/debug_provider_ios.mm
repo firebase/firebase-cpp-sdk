@@ -14,11 +14,14 @@
 
 #include "app_check/src/ios/debug_provider_ios.h"
 
+#include <cstdlib>
+
 #include "firebase/app_check/debug_provider.h"
 
 #import "FIRAppCheckDebugProvider.h"
 #import "FIRAppCheckDebugProviderFactory.h"
 
+#include "app/src/log.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
 #include "app_check/src/ios/util_ios.h"
@@ -92,6 +95,14 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 }
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
+  if (app == nullptr) {
+    return nullptr;
+  }
+#if defined(NDEBUG)
+  firebase::LogWarning("[FirebaseAppCheck] DebugAppCheckProviderFactory is in use in a "
+                       "Release build (NDEBUG defined). Debug tokens are for development "
+                       "only; prefer a production provider where one is available.");
+#endif
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
   if (it != created_providers_.end()) {
@@ -106,7 +117,17 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
-  // Write to the same location that the iOS SDK will read from.
+  // Set the Priority #1 environment variables so explicit SetDebugToken()
+  // takes precedence over SIMULATOR_HOST_HOME configstore (#2) and
+  // FIRAppCheckInjectedDebugToken (#3), while also updating NSUserDefaults (#4)
+  // for backwards compatibility with older iOS SDK versions.
+  if (!token.empty()) {
+    setenv("FIREBASE_APPCHECK_DEBUG_TOKEN", token.c_str(), 1);
+    setenv("AppCheckDebugToken", token.c_str(), 1);
+  } else {
+    unsetenv("FIREBASE_APPCHECK_DEBUG_TOKEN");
+    unsetenv("AppCheckDebugToken");
+  }
   NSString* token_string = (!token.empty()) ? util::StringToNSString(token) : nullptr;
   [[NSUserDefaults standardUserDefaults] setObject:token_string forKey:kDebugTokenUserDefaultsKey];
   [[NSUserDefaults standardUserDefaults] setObject:token_string

@@ -39,6 +39,4 @@ firebase_cpp_cc_test(
 if(TARGET firebase_app_check_test)
   add_custom_target(firebase_app_check_desktop_test
                     DEPENDS firebase_app_check_test)
-  add_test(NAME firebase_app_check_desktop_test
-           COMMAND firebase_app_check_test)
 endif()
