@@ -84,8 +84,8 @@ void ReleaseDebugProviderClasses(JNIEnv* env) {
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : android_provider_factory_(nullptr),
-      created_providers_(),
+    : created_providers_(),
+      android_provider_factory_(nullptr),
       debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {

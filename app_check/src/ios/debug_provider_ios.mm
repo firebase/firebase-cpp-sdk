@@ -117,10 +117,9 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
-  // Set the Priority #1 environment variables so explicit SetDebugToken()
-  // takes precedence over SIMULATOR_HOST_HOME configstore (#2) and
-  // FIRAppCheckInjectedDebugToken (#3), while also updating NSUserDefaults (#4)
-  // for backwards compatibility with older iOS SDK versions.
+  // Export the token as the environment variables the iOS SDK reads, and also
+  // write it to NSUserDefaults for older iOS SDK versions. An empty token
+  // clears both.
   if (!token.empty()) {
     setenv("FIREBASE_APPCHECK_DEBUG_TOKEN", token.c_str(), 1);
     setenv("AppCheckDebugToken", token.c_str(), 1);
