@@ -225,12 +225,12 @@ TEST_F(DebugProviderDesktopTest, ResolutionPriorityOrder) {
   EXPECT_EQ(DebugAppCheckProvider(app_, "").DetermineDebugToken(),
             "primary-env-token");
 
-  // 1. SetDebugToken takes highest precedence, even if called after
-  // CreateProvider() before the first GetToken() / DetermineDebugToken().
+  // 1. SetDebugToken takes highest precedence; it is snapshotted when the
+  // factory creates the provider.
   auto* factory = DebugAppCheckProviderFactory::GetInstance();
+  factory->SetDebugToken("explicit-code-token");
   auto* provider =
       static_cast<DebugAppCheckProvider*>(factory->CreateProvider(app_));
-  factory->SetDebugToken("explicit-code-token");
   EXPECT_EQ(provider->DetermineDebugToken(), "explicit-code-token");
 }
 
@@ -275,8 +275,8 @@ TEST_F(DebugProviderDesktopTest, ResolveDebugTokenFromConfigEdgeCases) {
 
 TEST_F(DebugProviderDesktopTest, GetTokenExchangesTokenAndPropagatesErrors) {
   SetEnvVar("FIREBASE_APPCHECK_DEBUG_TOKEN", "exchange-debug-token");
-  AppCheckProvider* provider =
-      DebugAppCheckProviderFactory::GetInstance()->CreateProvider(app_);
+  DebugAppCheckProvider provider_obj(app_, "");
+  AppCheckProvider* provider = &provider_obj;
 
   std::string ok_config =
       std::string("{config:[{fake:'") + kExpectedExchangeUrl +

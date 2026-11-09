@@ -27,8 +27,6 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-class DebugAppCheckProviderFactoryInternal;
-
 // Reads and parses the local configstore JSON file at `config_path` and
 // returns the debug token for `app_id`, or an empty string if not found or
 // invalid.
@@ -37,9 +35,7 @@ std::string ResolveDebugTokenFromConfig(const std::string& config_path,
 
 class DebugAppCheckProvider : public AppCheckProvider {
  public:
-  DebugAppCheckProvider(
-      App* app, const std::string& token,
-      DebugAppCheckProviderFactoryInternal* factory = nullptr);
+  DebugAppCheckProvider(App* app, const std::string& token);
   ~DebugAppCheckProvider() override;
 
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
@@ -57,9 +53,6 @@ class DebugAppCheckProvider : public AppCheckProvider {
   // 4. Auto-generated UUID
   std::string DetermineDebugToken();
 
-  App* app() const { return app_; }
-  DebugAppCheckProviderFactoryInternal* factory() const { return factory_; }
-
  private:
   void GetTokenInternal(
       bool limited_use,
@@ -67,8 +60,9 @@ class DebugAppCheckProvider : public AppCheckProvider {
           completion_callback);
 
   App* app_;
-  DebugAppCheckProviderFactoryInternal* factory_;
   scheduler::Scheduler scheduler_;
+  // Guards debug_token_ / logged_token_: GetToken() is invoked from other
+  // SDKs' worker threads via the function registry.
   std::mutex token_mutex_;
   std::string debug_token_;
   bool logged_token_;
@@ -83,12 +77,8 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
   AppCheckProvider* CreateProvider(App* app) override;
 
   void SetDebugToken(const std::string& token);
-  std::string GetDebugToken();
-
-  void RemoveProviderForApp(App* app);
 
  private:
-  std::mutex mutex_;
   std::map<App*, AppCheckProvider*> provider_map_;
 
   std::string debug_token_;

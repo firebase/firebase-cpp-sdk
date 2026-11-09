@@ -31,7 +31,6 @@
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
@@ -139,11 +138,8 @@ std::string ResolveDebugTokenFromConfig(const std::string& config_path,
   return app_it->second.string_value();
 }
 
-DebugAppCheckProvider::DebugAppCheckProvider(
-    App* app, const std::string& token,
-    DebugAppCheckProviderFactoryInternal* factory)
+DebugAppCheckProvider::DebugAppCheckProvider(App* app, const std::string& token)
     : app_(app),
-      factory_(factory),
       scheduler_(),
       token_mutex_(),
       debug_token_(token),
@@ -216,10 +212,7 @@ std::string DebugAppCheckProvider::DetermineDebugToken() {
   }
 #endif  // defined(NDEBUG)
 
-  // 1. Check explicit token set via SetDebugToken().
-  if (debug_token_.empty() && factory_ != nullptr) {
-    debug_token_ = factory_->GetDebugToken();
-  }
+  // 1. Explicit token passed in from SetDebugToken() at provider creation.
   if (!debug_token_.empty()) {
     if (!logged_token_) {
       logged_token_ = true;
@@ -313,34 +306,13 @@ void DebugAppCheckProvider::GetTokenInternal(
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : mutex_(), provider_map_(), debug_token_() {}
+    : provider_map_(), debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
-  std::map<App*, AppCheckProvider*> providers_to_delete;
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    providers_to_delete.swap(provider_map_);
-  }
-  for (auto& it : providers_to_delete) {
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(it.first);
-    if (notifier) {
-      notifier->UnregisterObject(it.second);
-    }
+  for (auto& it : provider_map_) {
     delete it.second;
   }
-}
-
-void DebugAppCheckProviderFactoryInternal::RemoveProviderForApp(App* app) {
-  AppCheckProvider* provider_to_delete = nullptr;
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto it = provider_map_.find(app);
-    if (it != provider_map_.end()) {
-      provider_to_delete = it->second;
-      provider_map_.erase(it);
-    }
-  }
-  delete provider_to_delete;
+  provider_map_.clear();
 }
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
@@ -348,37 +320,20 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
   if (app == nullptr) {
     return nullptr;
   }
-  DebugAppCheckProvider* provider = nullptr;
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto it = provider_map_.find(app);
-    if (it != provider_map_.end()) {
-      return it->second;
-    }
-    provider = new DebugAppCheckProvider(app, debug_token_, this);
-    provider_map_[app] = provider;
+  auto it = provider_map_.find(app);
+  if (it != provider_map_.end()) {
+    return it->second;
   }
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-  if (notifier) {
-    notifier->RegisterObject(provider, [](void* object) {
-      auto* debug_provider = static_cast<DebugAppCheckProvider*>(object);
-      if (debug_provider->factory()) {
-        debug_provider->factory()->RemoveProviderForApp(debug_provider->app());
-      }
-    });
-  }
+  // The explicit token (if any) is snapshotted at provider creation, matching
+  // the Android and iOS factories.
+  AppCheckProvider* provider = new DebugAppCheckProvider(app, debug_token_);
+  provider_map_[app] = provider;
   return provider;
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(
     const std::string& token) {
-  std::lock_guard<std::mutex> lock(mutex_);
   debug_token_ = token;
-}
-
-std::string DebugAppCheckProviderFactoryInternal::GetDebugToken() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  return debug_token_;
 }
 
 }  // namespace internal
