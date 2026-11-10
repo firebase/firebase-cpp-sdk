@@ -108,9 +108,7 @@ std::string ResolveDebugTokenFromConfig(const std::string& config_path,
   size_t start = json_str.find_first_not_of(" \t\r\n");
   if (start == std::string::npos) return "";
 
-  Variant root = json_str[start] == '{'
-                     ? firebase::util::JsonToVariant(json_str.c_str())
-                     : Variant();
+  Variant root = firebase::util::JsonToVariant(json_str.c_str());
   if (!root.is_map()) {
     firebase::LogWarning("[FirebaseAppCheck] Failed to parse JSON in %s.",
                          config_path.c_str());

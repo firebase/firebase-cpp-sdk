@@ -32,11 +32,4 @@ firebase_cpp_cc_test(
     firebase_app_check
     firebase_rest_lib
     firebase_testing
-  DEFINES
-    -DFIREBASE_TESTING
 )
-
-if(TARGET firebase_app_check_test)
-  add_custom_target(firebase_app_check_desktop_test
-                    DEPENDS firebase_app_check_test)
-endif()

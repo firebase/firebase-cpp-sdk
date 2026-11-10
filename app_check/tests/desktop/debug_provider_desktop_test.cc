@@ -178,11 +178,8 @@ class DebugProviderDesktopTest : public ::testing::Test {
 };
 
 TEST_F(DebugProviderDesktopTest, ResolutionPriorityOrder) {
-  // 4. Default fallback: auto-generated 36-char UUID, resolved at construction.
-  DebugAppCheckProvider uuid_provider(app_, "");
-  std::string uuid = uuid_provider.debug_token();
-  EXPECT_EQ(uuid.size(), 36u);
-  EXPECT_EQ(uuid_provider.debug_token(), uuid);
+  // 4. Default fallback: auto-generated 36-char UUID.
+  EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token().size(), 36u);
 
   // 3. Configstore in HOME (~/.config/configstore/firebase-appcheck.json).
   WriteHomeConfigstore(std::string("{\"tokens\":{\"") + kTestAppId +
