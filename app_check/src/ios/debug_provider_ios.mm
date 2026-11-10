@@ -93,9 +93,6 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 }
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
-  if (app == nullptr) {
-    return nullptr;
-  }
 #if defined(NDEBUG)
   firebase::LogWarning("[FirebaseAppCheck] DebugAppCheckProviderFactory is in use in a "
                        "Release build (NDEBUG defined). Debug tokens are for development "

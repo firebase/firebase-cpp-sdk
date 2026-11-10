@@ -102,9 +102,6 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     App* app) {
-  if (app == nullptr) {
-    return nullptr;
-  }
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
                                  kMethodsNotCachedError);
 
