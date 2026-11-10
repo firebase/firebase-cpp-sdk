@@ -514,7 +514,8 @@ if(DESKTOP)
         _WIN32_WINNT=0x0A00
         NTDDI_VERSION=0x0A000000
       )
-    elseif(TARGET libcurl_static)
+    endif()
+    if(TARGET libcurl_static)
       target_compile_definitions(libcurl_static PRIVATE
         _WIN32_WINNT=0x0A00
         NTDDI_VERSION=0x0A000000
