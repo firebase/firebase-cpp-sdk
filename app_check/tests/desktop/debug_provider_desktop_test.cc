@@ -14,11 +14,11 @@
 
 #include "app_check/src/desktop/debug_provider_desktop.h"
 
-#include <chrono>  // NOLINT
+#include <chrono>
 #include <cstdlib>
-#include <filesystem>  // NOLINT
+#include <filesystem>
 #include <fstream>
-#include <future>  // NOLINT
+#include <future>
 #include <map>
 #include <memory>
 #include <string>
