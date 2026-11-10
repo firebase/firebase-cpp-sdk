@@ -15,11 +15,13 @@
 #include "app_check/src/desktop/debug_provider_desktop.h"
 
 #include <cerrno>
+#include <codecvt>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
+#include <locale>
 #include <map>
 #include <memory>
 #include <string>
@@ -60,9 +62,23 @@ std::string GenerateUuidString() {
   return std::string(uuid_str);
 }
 
+#if FIREBASE_PLATFORM_WINDOWS
+// Windows paths can contain characters outside the ANSI code page, so the
+// environment is read and files are opened through the UTF-16 APIs. A failed
+// conversion yields an empty string instead of throwing.
+using Utf8Utf16Converter =
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>;
+#endif  // FIREBASE_PLATFORM_WINDOWS
+
 std::string GetNonEmptyEnv(const char* name) {
+#if FIREBASE_PLATFORM_WINDOWS
+  Utf8Utf16Converter converter("", L"");
+  const wchar_t* val = _wgetenv(converter.from_bytes(name).c_str());
+  return val != nullptr ? converter.to_bytes(val) : "";
+#else
   const char* val = std::getenv(name);
   return val != nullptr ? std::string(val) : "";
+#endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
 std::vector<std::string> ResolveConfigstorePaths() {
@@ -93,7 +109,12 @@ std::string ResolveDebugTokenFromConfig(const std::string& config_path,
                                         const std::string& app_id) {
   if (config_path.empty() || app_id.empty()) return "";
   errno = 0;
+#if FIREBASE_PLATFORM_WINDOWS
+  std::ifstream infile(Utf8Utf16Converter("", L"").from_bytes(config_path),
+                       std::ios::binary);
+#else
   std::ifstream infile(config_path.c_str(), std::ios::binary);
+#endif  // FIREBASE_PLATFORM_WINDOWS
   if (!infile.is_open()) {
     // ENOENT (file not created yet) stays silent so apps not using the CLI
     // flow do not log errors; other I/O failures are surfaced.
