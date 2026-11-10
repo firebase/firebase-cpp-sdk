@@ -20,13 +20,13 @@
 #include <stdlib.h>
 
 #include <cassert>
+#include <cinttypes>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
-#include <iomanip>
-#include <sstream>
 
 #include "app/src/assert.h"
-#include "app/src/include/firebase/internal/platform.h"
+#include "app/src/include/firebase/internal/common.h"
 
 namespace firebase {
 
@@ -449,39 +449,18 @@ void Variant::assert_is_blob() const {
       kTypeNames[this->type_]);
 }
 
-#if FIREBASE_PLATFORM_WINDOWS
-#define INT64FORMAT "%I64d"
-#else
-#define INT64FORMAT "%jd"
-#endif  // FIREBASE_PLATFORM_WINDOWS
-
 Variant Variant::AsString() const {
-#ifdef FIREBASE_USE_SNPRINTF
-  static const size_t kBufferSize = 64;
-#endif  // FIREBASE_USE_SNPRINTF
+  static const size_t kBufferSize = 512;
   switch (type_) {
     case kInternalTypeInt64: {
-#ifdef FIREBASE_USE_SNPRINTF
       char buffer[kBufferSize];
-      snprintf(buffer, kBufferSize, INT64FORMAT,
-               static_cast<intmax_t>(int64_value()));
+      std::snprintf(buffer, kBufferSize, "%" PRId64, int64_value());
       return Variant::FromMutableString(buffer);
-#else
-      std::stringstream ss;
-      ss << static_cast<intmax_t>(int64_value());
-      return Variant::FromMutableString(ss.str());
-#endif  // FIREBASE_USE_SNPRINTF
     }
     case kInternalTypeDouble: {
-#ifdef FIREBASE_USE_SNPRINTF
       char buffer[kBufferSize];
-      snprintf(buffer, kBufferSize, "%.16f", double_value());
+      std::snprintf(buffer, kBufferSize, "%.16f", double_value());
       return Variant::FromMutableString(buffer);
-#else
-      std::stringstream ss;
-      ss << std::fixed << std::setprecision(16) << double_value();
-      return Variant::FromMutableString(ss.str());
-#endif  // FIREBASE_USE_SNPRINTF
     }
     case kInternalTypeBool: {
       return bool_value() ? Variant("true") : Variant("false");

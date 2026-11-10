@@ -18,6 +18,7 @@
 
 #include <queue>
 #include <string>
+#include <utility>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -212,18 +213,11 @@ class PollableListenerImpl {
     // the mutex lock and then do the much faster move inside the critical
     // section. We have to do the copy first because the message passed in is
     // const and move constructors require non-const values.
-#ifdef FIREBASE_USE_MOVE_OPERATORS
     Message new_message(message);
     {
       MutexLock lock(mutex_);
       messages_.push(std::move(new_message));
     }
-#else
-    {
-      MutexLock lock(mutex_);
-      messages_.push(message);
-    }
-#endif
   }
 
   void OnTokenReceived(const char* token) {
