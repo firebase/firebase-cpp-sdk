@@ -631,13 +631,18 @@ code.
       policy: peer and hostname verification are always on, TLS 1.2 is the
       minimum version, and certificates are validated against the OS trust
       store (Schannel on Windows, the keychain on macOS) or the distribution's
-      CA bundle on Linux.
+      CA bundle on Linux. The same policy applies to the TLS connection to an
+      HTTPS proxy, if one is configured.
     - General (Linux Desktop): Fixed TLS connections failing with
       `CURLE_SSL_CACERT_BADFILE` on distributions whose CA bundle lives at a
       different path than on the machine the SDK was built on (for example
       RHEL, Fedora, or openSUSE). The CA bundle and directory are now located
       at runtime; the `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, and `SSL_CERT_DIR`
-      environment variables are honored if set before the first request.
+      environment variables are honored if set before the first request
+      (they are ignored in setuid/setgid processes).
+    - Database (Desktop): Fixed writes being silently dropped, and the
+      following request corrupted, when the serialized request was an exact
+      multiple of 16384 bytes long.
     - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
       descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`
