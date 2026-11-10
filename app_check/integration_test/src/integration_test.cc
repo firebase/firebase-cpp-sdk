@@ -74,6 +74,12 @@ using testing::UnorderedElementsAre;
 const char kIntegrationTestRootPath[] = "integration_test_data";
 const std::chrono::milliseconds kGetTokenTimeout =
     std::chrono::milliseconds(5000);
+// How far apart the expiration reported to a token-changed listener and the
+// expiration returned by GetAppCheckToken may be for the same token. On iOS and
+// tvOS the listener's value comes from the token's JWT `exp` claim (server
+// clock), while GetAppCheckToken's value is the local request time plus the
+// token's TTL, so the two differ by clock skew and request latency.
+const std::chrono::milliseconds kExpireTimeTolerance = std::chrono::minutes(5);
 
 class FirebaseAppCheckTest : public FirebaseTest {
  public:
@@ -591,6 +597,10 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
   EXPECT_GT(token_changed_listener.last_token_.expire_time_millis, 0);
+  // The listener must report the same expiration as GetAppCheckToken does for
+  // this token, not just some non-zero value.
+  EXPECT_NEAR(token_changed_listener.last_token_.expire_time_millis,
+              token.expire_time_millis, kExpireTimeTolerance.count());
 }
 
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
