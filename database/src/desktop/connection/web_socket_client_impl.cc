@@ -115,10 +115,12 @@ WebSocketClientImpl::WebSocketClientImpl(
     logger_->LogError("curl_multi_init() failed for %s", uri_.c_str());
     return;
   }
-  // curl_multi_cleanup() would otherwise join libcurl's resolver thread pool,
-  // which can block the destroying thread (the Database scheduler) for a full
-  // DNS timeout if a resolve is in flight when the connection is torn down.
-  curl_multi_setopt(multi_.get(), CURLMOPT_QUICK_EXIT, 1L);
+  // Deliberately not setting CURLMOPT_QUICK_EXIT: it makes curl_multi_cleanup()
+  // detach in-flight resolver threads instead of joining them, and those
+  // threads would then outlive ReleaseCurlGlobal() -> curl_global_cleanup()
+  // (the refcount reaches zero between connections in Database-only
+  // processes). The cost of joining is that the destructor can wait for an
+  // in-flight getaddrinfo() to return.
   // Started last: everything RunEventLoop() touches is initialized above.
   thread_ = Thread(EventLoopRoutine, this);
 }
