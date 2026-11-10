@@ -503,6 +503,25 @@ if(DESKTOP)
   set(BUILD_EXAMPLES OFF)
 
   add_external_library(curl)
+  if(MSVC)
+    # Target baseline Windows 10 (NTDDI_WIN10 = 0x0A000000) when compiling
+    # libcurl so Windows 11 24H2 SDKs (10.0.26100+, NTDDI_VERSION >= 0x0A000010)
+    # use header-only SecureZeroMemory() rather than SecureZeroMemory2() /
+    # RtlSetVolatileMemory from volatileaccessu.lib, which is stripped during
+    # SDK packaging and absent on Windows 10 SDKs.
+    if(TARGET libcurl_object)
+      target_compile_definitions(libcurl_object PRIVATE
+        _WIN32_WINNT=0x0A00
+        NTDDI_VERSION=0x0A000000
+      )
+    endif()
+    if(TARGET libcurl_static)
+      target_compile_definitions(libcurl_static PRIVATE
+        _WIN32_WINNT=0x0A00
+        NTDDI_VERSION=0x0A000000
+      )
+    endif()
+  endif()
 
   # Clean up generic normal variables set specifically for curl so they do not
   # leak into subsequent add_subdirectory() calls (libuv, zlib, firestore, etc.).
