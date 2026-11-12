@@ -19,6 +19,8 @@ options:
   -j, run merge_libraries jobs in parallel
   -v, enable verbose mode
   -L, use LLVM binutils
+  -O, use llvm-objcopy (from the tools directory) for objcopy only, but keep
+      using GNU nm and ar. Much faster than GNU objcopy when renaming many symbols.
   -R, print rename prefix and exit
   -N, print allowed namespaces and exit
   -D, delete package files after using them to save disk space
@@ -41,6 +43,7 @@ binutils_format=
 temp_dir=
 run_in_parallel=0
 use_llvm_binutils=0
+use_llvm_objcopy=0
 
 . "${root_dir}/build_scripts/packaging.conf"
 
@@ -59,7 +62,7 @@ abspath(){
     fi
 }
 
-while getopts "f:b:o:p:d:m:P:t:NRhjLDv" opt; do
+while getopts "f:b:o:p:d:m:P:t:NRhjLODv" opt; do
     case $opt in
         f)
             binutils_format=$OPTARG
@@ -89,6 +92,9 @@ while getopts "f:b:o:p:d:m:P:t:NRhjLDv" opt; do
             ;;
         L)
             use_llvm_binutils=1
+            ;;
+        O)
+            use_llvm_objcopy=1
             ;;
         d)
             variant=$OPTARG
@@ -237,7 +243,11 @@ if [[ ${use_llvm_binutils} -eq 1 ]]; then
     readonly binutils_nm=${tools_path}/llvm-nm
     readonly binutils_ar=${tools_path}/llvm-ar
 else    
-    readonly binutils_objcopy=${tools_path}/objcopy
+    if [[ ${use_llvm_objcopy} -eq 1 ]]; then
+        readonly binutils_objcopy=${tools_path}/llvm-objcopy
+    else
+        readonly binutils_objcopy=${tools_path}/objcopy
+    fi
     if [[ -x ${tools_path}/nm-new ]] ; then
         readonly binutils_nm=${tools_path}/nm-new
     else

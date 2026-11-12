@@ -17,6 +17,7 @@
 Optionally allows you to rename C and C++ symbols from certain libraries.
 """
 
+import concurrent.futures
 import hashlib
 import os
 import fcntl
@@ -103,6 +104,22 @@ flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to 
                     "use the given target, via the --target flag. If not set, "
                     "will autodetect target format. If you want to specify "
                     "different input and output formats, separate them with a comma.")
+flags.DEFINE_integer(
+    "jobs", 0,
+    "Number of object files to process (via objcopy) in parallel. "
+    "If 0, use the number of CPUs on this machine.")
+flags.DEFINE_bool(
+    "binutils_objcopy_is_llvm", None,
+    "Whether --binutils_objcopy_cmd is llvm-objcopy rather than GNU objcopy. "
+    "llvm-objcopy autodetects input formats and does not accept BFD target "
+    "names, so --force_binutils_target will not be applied to it. If not set, "
+    "this is autodetected from the objcopy command's filename.")
+flags.DEFINE_bool(
+    "filter_renames_per_archive", True,
+    "When renaming symbols in each input archive, only pass objcopy the "
+    "renames for symbols that actually appear in that archive (according to "
+    "nm). This greatly reduces the size of the symbol redefinition list, which "
+    "speeds up objcopy considerably.")
 
 # Never rename system namespaces by default when --auto_hide_cpp_namespaces is enabled.
 IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "type_info",
@@ -781,6 +798,12 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     A list of lines of text of the command's stdout.
   """
   global binutils_force_target_format
+  if cmdline[0] == FLAGS.binutils_objcopy_cmd and FLAGS.binutils_objcopy_is_llvm:
+    # llvm-objcopy autodetects the input format (including COFF bigobj) and
+    # writes the output in the same format. It doesn't understand GNU BFD
+    # target names such as "pe-x86-64", so never pass --target to it, and don't
+    # attempt the GNU-specific "ambiguous format" retry logic below.
+    return run_command(cmdline, error_output, ignore_errors)
   if binutils_force_target_format:
     # Once we've had to force the format once, assume all subsequent
     # files use the same format. Also we will need to explicitly specify this
@@ -934,6 +957,74 @@ def shutdown_cache():
       fcntl.lockf(handle, fcntl.LOCK_UN)
 
 
+def get_archive_symbols(archive_file):
+  """Get the symbols in an archive, using the cache if possible.
+
+  Args:
+    archive_file: Library archive file to read symbols from.
+  Returns:
+    Tuple of (defined_symbols, all_symbols), as per read_symbols_from_archive.
+  """
+  key = os.path.abspath(archive_file)
+  if key not in _cache["symbols"]:
+    _cache["symbols"][key] = read_symbols_from_archive(archive_file)
+  return _cache["symbols"][key]
+
+
+def get_unique_object_filename(lib_name_hash, obj_file):
+  """Get a unique (and not too long) name for an object file in an archive.
+
+  Args:
+    lib_name_hash: Hash of the name of the archive containing the object file.
+    obj_file: Name of the object file within the archive.
+  Returns:
+    New object filename, of 255 characters or less.
+  """
+  new_obj_file = "%s_%s" % (lib_name_hash, obj_file)
+  if len(new_obj_file) > 255:
+    # Filename is above the limit, hash the first N characters to bring
+    # the length down to 255 or less.
+    # Hashes are 32 characters plus an underscore.
+    # If len = 256 hash the first 34 chars.
+    # If len = 257 hash the first 35 chars.
+    split = len(new_obj_file) - (255 - 32 - 1)
+    new_obj_file = "%s_%s" % (hashlib.md5(
+        new_obj_file[:split].encode(DEFAULT_ENCODING)).hexdigest(),
+                              new_obj_file[split:])
+  return new_obj_file
+
+
+def move_object_files(obj_file_moves, redefinition_file, jobs):
+  """Move (and rename symbols in) a list of object files, in parallel.
+
+  Each object file is processed by a separate objcopy process, so we use a
+  thread pool to keep several objcopy processes running at once.
+
+  Args:
+    obj_file_moves: List of (src_obj_file, dest_obj_file) tuples.
+    redefinition_file: Filename to use for redefining symbols, or None.
+    jobs: Maximum number of objcopy processes to run at once.
+  """
+  if not obj_file_moves:
+    return
+  # Process the first object file on its own. If binutils needs to autodetect
+  # the target format, run_binutils_command() will set the global
+  # binutils_force_target_format during this call, which all subsequent
+  # (parallel) calls will then use.
+  move_object_file(obj_file_moves[0][0], obj_file_moves[0][1],
+                   redefinition_file)
+  remaining = obj_file_moves[1:]
+  if jobs <= 1 or len(remaining) <= 1:
+    for (src, dest) in remaining:
+      move_object_file(src, dest, redefinition_file)
+    return
+  with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as executor:
+    futures = [executor.submit(move_object_file, src, dest, redefinition_file)
+               for (src, dest) in remaining]
+    for future in concurrent.futures.as_completed(futures):
+      future.result()  # Re-raise any exception from the worker thread.
+
+
 def main(argv):
   global binutils_force_target_format
   binutils_force_target_format = FLAGS.force_binutils_target
@@ -960,6 +1051,10 @@ def main(argv):
     FLAGS.binutils_objcopy_cmd = add_abspath(FLAGS.binutils_objcopy_cmd)
     FLAGS.demangle_cmds = [add_abspath(c) for c in FLAGS.demangle_cmds]
     FLAGS.cache = (os.path.abspath(FLAGS.cache) if FLAGS.cache else None)
+    if FLAGS.binutils_objcopy_is_llvm is None:
+      FLAGS.binutils_objcopy_is_llvm = (
+          "llvm-objcopy" in os.path.basename(FLAGS.binutils_objcopy_cmd))
+    jobs = FLAGS.jobs if FLAGS.jobs > 0 else (os.cpu_count() or 1)
 
     init_cache()
 
@@ -972,13 +1067,7 @@ def main(argv):
       [libfile, regex] = libfile_and_regex.split(":", 1)
       logging.debug("Scanning for C symbols in %s", libfile)
       regex_compiled = re.compile(regex)
-      if os.path.abspath(libfile) in _cache["symbols"]:
-        (defined_symbols,
-         all_symbols) = _cache["symbols"][os.path.abspath(libfile)]
-      else:
-        (defined_symbols, all_symbols) = read_symbols_from_archive(libfile)
-        _cache["symbols"][os.path.abspath(libfile)] = (defined_symbols,
-                                                       all_symbols)
+      (defined_symbols, all_symbols) = get_archive_symbols(libfile)
       for symbol in defined_symbols:
         # For C symbols, only use them if they are defined.
         if (not is_cpp_symbol(symbol)) and regex_compiled.match(symbol):
@@ -994,14 +1083,7 @@ def main(argv):
       all_defined_symbols = set()
       for input_path in input_paths + additional_input_paths:
         logging.debug("Scanning for C++ symbols in %s", input_path[1])
-        if os.path.abspath(input_path[1]) in _cache["symbols"]:
-          (defined_symbols,
-           all_symbols) = _cache["symbols"][os.path.abspath(input_path[1])]
-        else:
-          (defined_symbols,
-           all_symbols) = read_symbols_from_archive(input_path[1])
-          _cache["symbols"][os.path.abspath(input_path[1])] = (defined_symbols,
-                                                               all_symbols)
+        (defined_symbols, all_symbols) = get_archive_symbols(input_path[1])
         cpp_symbols.update(all_symbols
                            if FLAGS.rename_external_cpp_symbols
                            else defined_symbols)
@@ -1016,14 +1098,30 @@ def main(argv):
           rename_symbols.update(rename_symbol(symbol))
       shutdown_demanglers()
 
-    logging.debug("Creating symbol redefinition file for %d symbols",
-                  len(rename_symbols))
-    symbol_redefinition_file = create_symbol_redefinition_file(rename_symbols)
+    logging.debug("Found %d symbols to rename", len(rename_symbols))
+    if not FLAGS.filter_renames_per_archive:
+      # Use a single redefinition file for all input archives.
+      logging.debug("Creating symbol redefinition file for %d symbols",
+                    len(rename_symbols))
+      symbol_redefinition_file = create_symbol_redefinition_file(rename_symbols)
 
     # List of all object files, which will be renamed to have unique names.
     all_obj_files = []
     for input_path in input_paths:
       logging.debug("Checking input archive %s", input_path[1])
+      if FLAGS.filter_renames_per_archive:
+        # objcopy's cost scales with the number of symbol redefinitions it is
+        # given, and the full list of renames (from all input libraries, scan
+        # libraries, and hidden libraries) is often far larger than what any
+        # single archive uses. Only pass along the renames for symbols that
+        # actually appear in this archive.
+        (_, archive_symbols) = get_archive_symbols(input_path[1])
+        archive_renames = {old: new for (old, new) in rename_symbols.items()
+                           if old in archive_symbols}
+        logging.debug("Creating symbol redefinition file for %d of %d symbols",
+                      len(archive_renames), len(rename_symbols))
+        symbol_redefinition_file = create_symbol_redefinition_file(
+            archive_renames)
       # Create a unique directory name from a hash of the input filename.
       lib_name_hash = hashlib.md5(
           input_path[0].encode(DEFAULT_ENCODING)).hexdigest()
@@ -1054,23 +1152,14 @@ def main(argv):
       if symbol_redefinition_file:
         logging.debug("Redefining symbols in %d files", len(obj_file_list))
 
-      for obj_file in obj_file_list:
-        new_obj_file = "%s_%s" % (lib_name_hash, obj_file)
-        if len(new_obj_file) > 255:
-          # Filename is above the limit, hash the first N characters to bring
-          # the length down to 255 or less.
-          # Hashes are 32 characters plus an underscore.
-          # If len = 256 hash the first 34 chars.
-          # If len = 257 hash the first 35 chars.
-          split = len(new_obj_file) - (255 - 32 - 1)
-          new_obj_file = "%s_%s" % (hashlib.md5(
-              new_obj_file[:split].encode(DEFAULT_ENCODING)).hexdigest(),
-                                    new_obj_file[split:])
-
-        # Move the .o file to its new name, renaming symbols if needed.
-        move_object_file(obj_file, new_obj_file, symbol_redefinition_file.name
-                         if symbol_redefinition_file else None)
-        all_obj_files.append(new_obj_file)
+      # Move each .o file to its new name, renaming symbols if needed.
+      obj_file_moves = [
+          (obj_file, get_unique_object_filename(lib_name_hash, obj_file))
+          for obj_file in obj_file_list
+      ]
+      move_object_files(obj_file_moves, symbol_redefinition_file.name
+                        if symbol_redefinition_file else None, jobs)
+      all_obj_files.extend([dest for (_, dest) in obj_file_moves])
 
     symbol_redefinition_file = None
 

@@ -591,6 +591,21 @@ jobs:
           tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
           rm -rf artifacts/packaging-tools-*.tgz
           chmod -R u+x bin
+          if [[ "${{ matrix.sdk_platform }}" != "darwin" ]]; then
+            # Use llvm-objcopy rather than GNU objcopy to rename symbols on
+            # Linux and Windows. GNU objcopy does a linear search of the symbol
+            # redefinition list for every symbol, which is extremely slow for
+            # large (especially Debug) libraries; llvm-objcopy uses a hash table.
+            # The Ubuntu runners come with several versions of LLVM installed,
+            # so use the newest one available.
+            llvm_objcopy=$(ls /usr/bin/llvm-objcopy-* 2>/dev/null | sort -V | tail -n 1)
+            if [[ -z "${llvm_objcopy}" ]]; then
+              sudo apt-get install -y llvm
+              llvm_objcopy=$(command -v llvm-objcopy)
+            fi
+            echo "Using ${llvm_objcopy}: $(${llvm_objcopy} --version | head -n 2 | tr '\n' ' ')"
+            ln -sf "${llvm_objcopy}" bin/llvm-objcopy
+          fi
           # To save space, delete any artifacts that we don't need for packaging.
           for pkg in artifacts/firebase-cpp-sdk-*; do
             if [[ "${pkg}" != "artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}"* ]]; then
@@ -608,11 +623,16 @@ jobs:
               # MacOS: use LLVM binutils for both X64 and ARM64
               additional_flags+=(-L)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x64/"* ]]; then
-              # Windows x64: force input and output target format
-              additional_flags+=(-f pe-x86-64,pe-bigobj-x86-64)
+              # Windows x64: force input and output target format (for GNU
+              # nm and ar; llvm-objcopy autodetects the format).
+              additional_flags+=(-O -f pe-x86-64,pe-bigobj-x86-64)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x86/"* ]]; then
-              # Windows x86: force input and output target format
-              additional_flags+=(-f pe-i386,pe-bigobj-i386)
+              # Windows x86: force input and output target format (for GNU
+              # nm and ar; llvm-objcopy autodetects the format).
+              additional_flags+=(-O -f pe-i386,pe-bigobj-i386)
+            else
+              # Linux: use llvm-objcopy, GNU nm and ar.
+              additional_flags+=(-O)
             fi
             sdk-src/build_scripts/desktop/package.sh -D -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
           done
@@ -783,8 +803,29 @@ jobs:
           # Save the hash of every file into the SDK package.
           find firebase_cpp_sdk -type f -print0 | xargs -0 ${{ env.hashCommand }} --tag > file_hashes.txt
           mv file_hashes.txt firebase_cpp_sdk/
-          # Zip up the SDK package recursively, preserving symlinks.
-          zip -9 -r -y ../firebase_cpp_sdk.zip firebase_cpp_sdk
+
+          # Create the Windows-only SDK package, using hard links to avoid
+          # copying the files.
+          mkdir -p ../windows-sdk
+          cp -al firebase_cpp_sdk ../windows-sdk/firebase_cpp_sdk_windows
+          pushd ../windows-sdk/firebase_cpp_sdk_windows
+          # Remove all non-Windows files.
+          rm -rf xcframeworks frameworks libs/linux libs/ios libs/tvos libs/darwin libs/android Android
+          cat > readme_windows.md <<EOF
+          # Firebase C++ SDK - Windows only
+
+          This package contains only the subset of the Firebase C++ SDK needed for use on
+          Windows. For general SDK information, see the accompanying readme.md file.
+          EOF
+          popd
+
+          # Zip up both SDK packages recursively (in parallel), preserving symlinks.
+          ../sdk-src/build_scripts/other/zip_package.sh ../firebase_cpp_sdk.zip firebase_cpp_sdk &
+          full_zip_pid=$!
+          (cd ../windows-sdk && ../sdk-src/build_scripts/other/zip_package.sh ../firebase_cpp_sdk_windows.zip firebase_cpp_sdk_windows) &
+          windows_zip_pid=$!
+          wait ${full_zip_pid}
+          wait ${windows_zip_pid}
           cd ..
 
       - name: compute SDK hash
@@ -792,6 +833,8 @@ jobs:
         run: |
           ${{ env.hashCommand }} --tag firebase_cpp_sdk.zip > firebase_cpp_sdk_hash.txt
           echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk_windows.zip > firebase_cpp_sdk_windows_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_windows_hash.txt)"
 
       - name: Print final package contents
         shell: bash
@@ -810,51 +853,22 @@ jobs:
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
+          # Already compressed, don't waste time compressing it again.
+          compression-level: 0
 
-  create_windows_only_package:
-    name: create-windows-only-package
-    runs-on: ubuntu-22.04
-    needs: [merge_packages]
-    steps:
-      - name: download SDK zip
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # ratchet:actions/download-artifact@v8
-        with:
-          name: firebase_cpp_sdk.zip
-      - name: unzip SDK and remove non-Windows files
-        run: |
-          set -x
-          unzip -q firebase_cpp_sdk.zip -d windows-sdk
-          cd windows-sdk
-          # Rename the top-level directory.
-          mv firebase_cpp_sdk firebase_cpp_sdk_windows
-          cd firebase_cpp_sdk_windows
-          # Remove all non-Windows files.
-          rm -rf xcframeworks frameworks libs/linux libs/ios libs/tvos libs/darwin libs/android Android
-          cat > readme_windows.md <<EOF
-          # Firebase C++ SDK - Windows only
-
-          This package contains only the subset of the Firebase C++ SDK needed for use on
-          Windows. For general SDK information, see the accompanying readme.md file.
-          EOF
-          cd ..
-          zip -9 -r -y ../firebase_cpp_sdk_windows.zip firebase_cpp_sdk_windows
-          cd ..
-      - name: compute Windows SDK hash
-        shell: bash
-        run: |
-          ${{ env.hashCommand }} --tag firebase_cpp_sdk_windows.zip > firebase_cpp_sdk_windows_hash.txt
-          echo "::warning ::$(cat firebase_cpp_sdk_windows_hash.txt)"
       - name: upload Windows hash
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # ratchet:actions/upload-artifact@v7
         with:
           name: firebase_cpp_sdk_windows_hash.txt
           path: firebase_cpp_sdk_windows_hash.txt
+
       - name: upload Windows SDK zip
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # ratchet:actions/upload-artifact@v7
         with:
           name: firebase_cpp_sdk_windows.zip
           path: firebase_cpp_sdk_windows.zip
-        
+          # Already compressed, don't waste time compressing it again.
+          compression-level: 0
 
   cleanup_packaging_artifacts:
     # Clean up intermediate artifacts from packaging step.
@@ -879,7 +893,7 @@ jobs:
 
   trigger_integration_tests:
     # Trigger the integration_tests workflow.
-    needs: [merge_packages, download_sdk_package, create_windows_only_package, cleanup_packaging_artifacts]
+    needs: [merge_packages, download_sdk_package, cleanup_packaging_artifacts]
     if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled() && !failure()
     runs-on: ubuntu-22.04
     steps:

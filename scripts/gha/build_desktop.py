@@ -265,6 +265,18 @@ def main():
   cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count()),
          '--config', args.config]
 
+  if utils.is_windows_os():
+    # "-j" above only makes MSBuild build multiple *projects* at once; each
+    # project's source files are still compiled one at a time unless /MP is
+    # passed to the compiler. Our own targets pass /MP, but external projects
+    # (gRPC, Abseil, Protobuf, Firestore, etc.) don't, and the external
+    # projects' nested builds don't get "-j" either. Large projects like
+    # grpc.vcxproj and firestore_core.vcxproj are at the end of the dependency
+    # chain, so they end up compiling on a single core for most of the build.
+    # The compiler reads extra options from the CL environment variable, which
+    # is inherited by every cl.exe invocation, including the external projects.
+    os.environ['CL'] = ('/MP ' + os.environ.get('CL', '')).strip()
+    print('Setting CL=%s to enable parallel compilation.' % os.environ['CL'])
   if args.target:
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
     cmd.append('--target')
