@@ -48,9 +48,11 @@ class ConnectionEventHandler;
 // Currently it does not automatically disconnect itself if it has never been
 // used.  Also, it does not handle cache server.
 //
-// This class requires scheduler and expects all the public functions, except
-// for events from WebSocketClientEventHandler, are called from scheduler's
-// worker thread.
+// This class requires scheduler and expects all the public functions,
+// including the WebSocketClientEventHandler callbacks (which the WebSocket
+// client marshals onto the scheduler), to be called from scheduler's worker
+// thread. Those callbacks may destroy this Connection synchronously through
+// ConnectionEventHandler::OnDisconnect(); see the note above OnOpen().
 //
 // This class is designed to be disposable and non-reusable.  That is, once
 // disconnected, it is not able to reconnect again.  Simply create another

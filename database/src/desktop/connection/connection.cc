@@ -154,8 +154,12 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
   logger_->LogDebug("%s Sending data: %s", log_id_.c_str(),
                     is_sensitive ? "(contents hidden)" : to_send.c_str());
 
-  // Split info frames if the length is larger than kMaxFrameSize
-  int num_of_frame = to_send.length() / kMaxFrameSize + 1;
+  // Split into frames if the length is larger than kMaxFrameSize. The count
+  // must equal the number of frames the loop below sends (ceiling division):
+  // for a payload of exactly N * kMaxFrameSize bytes the old `len / size + 1`
+  // announced one frame too many and the server waited for it forever.
+  int num_of_frame =
+      static_cast<int>((to_send.length() + kMaxFrameSize - 1) / kMaxFrameSize);
   if (num_of_frame > 1) {
     logger_->LogDebug("%s Split data into %d frames (size: %d)",
                       log_id_.c_str(), num_of_frame, to_send.length());
@@ -174,8 +178,17 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
   }
 }
 
+// Each WebSocketClientEventHandler callback below locks a *local copy* of
+// safe_this_ rather than the member. Close() calls
+// ConnectionEventHandler::OnDisconnect() synchronously, and
+// PersistentConnection destroys this Connection from inside that callback
+// (realtime_.reset()). If the lock were taken through the member, ~Connection()
+// would free the SafeReference's mutex while the lock still held it, and
+// ~Mutex() would run pthread_mutex_destroy() on a locked mutex. The local copy
+// keeps the shared reference data alive until the lock is released.
 void Connection::OnOpen() {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket opened", log_id_.c_str());
 
@@ -200,7 +213,8 @@ void Connection::OnOpen() {
 }
 
 void Connection::OnMessage(const char* msg) {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;  // See OnOpen().
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket message received", log_id_.c_str());
 
@@ -208,7 +222,8 @@ void Connection::OnMessage(const char* msg) {
 }
 
 void Connection::OnClose() {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;  // See OnOpen().
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket closed", log_id_.c_str());
 
@@ -224,25 +239,20 @@ void Connection::OnClose() {
 }
 
 void Connection::OnError(const WebSocketClientErrorData& error_data) {
-  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+  ConnectionRef self = safe_this_;  // See OnOpen().
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, self);
 
   logger_->LogDebug("%s websocket error occurred.  Uri: %s", log_id_.c_str(),
                     error_data.GetUri().c_str());
 
-  scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
-      safe_this_, [](ConnectionRef conn_ref) {
-        ConnectionRefLock lock(&conn_ref);
-        auto connection = lock.GetReference();
-        if (connection != nullptr) {
-          // If error occurs before the connection is opened, it is due to
-          // connection failed (ex. incorrect url).  Otherwise, it can be
-          // any lower-level error during connection.
-          DisconnectReason reason = connection->ws_connected_
-                                        ? kDisconnectReasonWebsocketError
-                                        : kDisconnectReasonConnectionFailed;
-          connection->Close(reason);
-        }
-      }));
+  if (state_ != kStateDisconnected) {
+    // If error occurs before the connection is opened, it is due to
+    // connection failed (ex. incorrect url).  Otherwise, it can be
+    // any lower-level error during connection.
+    DisconnectReason reason = ws_connected_ ? kDisconnectReasonWebsocketError
+                                            : kDisconnectReasonConnectionFailed;
+    Close(reason);
+  }
 }
 
 void Connection::HandleIncomingFrame(const char* msg) {

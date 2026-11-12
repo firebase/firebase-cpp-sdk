@@ -99,6 +99,22 @@ firebase_cpp_cc_test(firebase_app_rest_util_test
   DEPENDS
     firebase_rest_lib
 )
+firebase_cpp_cc_test(firebase_app_rest_tls_policy_test
+  SOURCES
+    tls_policy_test.cc
+  INCLUDES
+    ${CURL_SOURCE_DIR}/include
+  DEPENDS
+    firebase_rest_lib
+    libcurl
+)
+if(MSVC)
+  # <curl/curl.h> must know libcurl is linked statically, not dllimported.
+  target_compile_definitions(firebase_app_rest_tls_policy_test
+    PRIVATE
+      -DCURL_STATICLIB=1
+  )
+endif()
 
 firebase_cpp_cc_test(firebase_app_rest_www_form_url_encoded_test
   SOURCES
