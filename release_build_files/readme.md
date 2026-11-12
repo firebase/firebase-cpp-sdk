@@ -615,6 +615,10 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - App Check: Default-initialized `AppCheckToken::expire_time_millis` to `0`
+      and populated it from the JWT `exp` claim in iOS token change
+      notifications, fixing an `ArgumentOutOfRangeException` crash on iOS when
+      listening to `TokenChanged` in Unity.
     - General (Desktop): Updated the bundled libcurl from 7.73.0 to 8.23.0.
       Windows apps linking the desktop libraries must now also link the
       `bcrypt`, `iphlpapi`, and `secur32` Windows SDK libraries, and macOS apps

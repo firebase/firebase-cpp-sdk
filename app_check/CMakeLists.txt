@@ -19,6 +19,8 @@ set(common_SRCS
   src/common/app_check.cc
   src/common/common.h
   src/common/debug_provider_common.cc
+  src/common/jwt_util.cc
+  src/common/jwt_util.h
   src/include/firebase/app_check.h
   src/include/firebase/app_check/debug_provider.h
   src/include/firebase/app_check/play_integrity_provider.h
@@ -155,6 +157,7 @@ target_include_directories(firebase_app_check
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
+    ${FLATBUFFERS_SOURCE_DIR}/include
     ${FIREBASE_SPM_SWIFT_HEADERS_DIR}
 )
 target_compile_definitions(firebase_app_check
@@ -185,6 +188,11 @@ elseif(IOS)
       FRAMEWORK TRUE
     )
   endif()
+endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
 endif()
 
 cpp_pack_library(firebase_app_check "")

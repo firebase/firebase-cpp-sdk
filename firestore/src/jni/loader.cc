@@ -17,7 +17,6 @@
 #include "firestore/src/jni/loader.h"
 #include <cassert>
 
-#include <utility>
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
@@ -46,11 +45,7 @@ Loader::~Loader() { Unload(); }
 void Loader::AddEmbeddedFile(const char* name,
                              const unsigned char* data,
                              size_t size) {
-#if defined(_STLPORT_VERSION)
-  embedded_files_.push_back(EmbeddedFile(name, data, size));
-#else
   embedded_files_.emplace_back(name, data, size);
-#endif
 }
 
 void Loader::CacheEmbeddedFiles() {

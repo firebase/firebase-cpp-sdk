@@ -41,10 +41,9 @@ enum TransactionResult {
 /// may call multiple times to apply changes to the data, and should return
 /// success or failure depending on whether it succeeds.
 
-/// @note This version of the callback is no longer supported (unless you are
-/// building for Android with stlport). You should use either one of
-/// DoTransactionWithContext (a simple function pointer that accepts context
-/// data) or DoTransactionFunction (based on std::function).
+/// @note This version of the callback is no longer supported. You should use
+/// either one of DoTransactionWithContext (a simple function pointer that
+/// accepts context data) or DoTransactionFunction (based on std::function).
 ///
 /// @see DoTransactionWithContext for more information.
 typedef TransactionResult (*DoTransaction)(MutableData* data);
@@ -81,8 +80,6 @@ typedef TransactionResult (*DoTransaction)(MutableData* data);
 /// finished, you can use the Future<DataSnapshot> value returned by the method
 /// running the transaction, and call Future::OnCompletion() to register a
 /// callback to be called when the transaction either succeeds or fails.
-///
-/// @see DoTransaction for more information.
 typedef TransactionResult (*DoTransactionWithContext)(MutableData* data,
                                                       void* context);
 

@@ -33,7 +33,6 @@ arch_win=
 debugmode=Release
 msvc_runtime_library=MD
 vs=VS2019
-stl=c++
 linux_abi=legacy
 
 for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n"); do
@@ -120,10 +119,6 @@ for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n");
 	debug)
 	    debugmode=Debug
 	;;
-	# Android STL variant
-	c++)
-	    stl=c++
-        ;;
 	cxx11)
 	    linux_abi=cxx11
         ;;
@@ -141,9 +136,6 @@ for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n");
         ;;
 	vs2015)
 	    vs=VS2015
-        ;;
-	vs2013)
-	    vs=VS2013
         ;;
     esac
 done

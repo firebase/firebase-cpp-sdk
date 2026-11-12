@@ -18,6 +18,7 @@
 #include <limits>
 #include <memory>
 #include <thread>  // NOLINT
+#include <type_traits>
 
 #include "app/rest/request.h"
 #include "app/rest/request_binary.h"
