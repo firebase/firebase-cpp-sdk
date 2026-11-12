@@ -415,8 +415,8 @@ bool EnsureDefaultAppConfiguredOnMainThread(const AppOptions& app_options) {
   return configured;
 }
 
-void PollInstanceId(ReferenceCountedFutureImpl* api, SafeFutureHandle<std::string> handle,
-                    uint64_t start_ms, uint64_t generation) {
+void PollInstanceId(ReferenceCountedFutureImpl* api, FutureHandleId handle_id, uint64_t start_ms,
+                    uint64_t generation) {
   dispatch_after(
       dispatch_time(DISPATCH_TIME_NOW, kInstanceIdPollIntervalMs * NSEC_PER_MSEC),
       dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
@@ -426,14 +426,15 @@ void PollInstanceId(ReferenceCountedFutureImpl* api, SafeFutureHandle<std::strin
           // before the future API is destroyed or replaced, so `api` is valid
           // only while g_active is set AND g_generation still matches.
           if (!g_active || g_generation != generation) return;
+          const SafeFutureHandle<std::string> detached_handle((FutureHandle(handle_id)));
           std::string instance_id = g_resetter->GetInstanceId();
           if (!instance_id.empty()) {
-            api->CompleteWithResult(handle, 0, "", instance_id);
+            api->CompleteWithResult(detached_handle, 0, "", instance_id);
           } else if (firebase::internal::GetTimestampEpoch() - start_ms >= kInstanceIdTimeoutMs) {
-            api->CompleteWithResult(handle, -1, "Timed out waiting for the app instance ID.",
-                                    std::string());
+            api->CompleteWithResult(detached_handle, -1,
+                                    "Timed out waiting for the app instance ID.", std::string());
           } else {
-            PollInstanceId(api, handle, start_ms, generation);
+            PollInstanceId(api, handle_id, start_ms, generation);
           }
         }
       });
@@ -460,8 +461,8 @@ bool ShouldRetrySessionIdErrorLocked(NSError* error, uint64_t start_ms) {
   return false;
 }
 
-void RequestSessionId(ReferenceCountedFutureImpl* api, SafeFutureHandle<int64_t> handle,
-                      uint64_t start_ms, uint64_t generation) {
+void RequestSessionId(ReferenceCountedFutureImpl* api, FutureHandleId handle_id, uint64_t start_ms,
+                      uint64_t generation) {
   @autoreleasepool {
     {
       MutexLock lock(g_mutex);
@@ -473,15 +474,16 @@ void RequestSessionId(ReferenceCountedFutureImpl* api, SafeFutureHandle<int64_t>
         {
           MutexLock lock(g_mutex);
           if (!g_active || g_generation != generation) return;
+          const SafeFutureHandle<int64_t> detached_handle((FutureHandle(handle_id)));
           if (error == nil) {
-            api->CompleteWithResult(handle, 0, "", session_id);
+            api->CompleteWithResult(detached_handle, 0, "", session_id);
             return;
           }
           if (ShouldRetrySessionIdErrorLocked(error, start_ms)) {
             retry = true;
           } else {
             const char* err_str = [[error localizedDescription] UTF8String];
-            api->CompleteWithResult(handle, -1,
+            api->CompleteWithResult(detached_handle, -1,
                                     err_str ? err_str : "Failed to retrieve session ID.",
                                     static_cast<int64_t>(0));
             return;
@@ -491,7 +493,7 @@ void RequestSessionId(ReferenceCountedFutureImpl* api, SafeFutureHandle<int64_t>
           dispatch_after(
               dispatch_time(DISPATCH_TIME_NOW, kInstanceIdPollIntervalMs * NSEC_PER_MSEC),
               dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-                RequestSessionId(api, handle, start_ms, generation);
+                RequestSessionId(api, handle_id, start_ms, generation);
               });
         }
       }
@@ -792,7 +794,7 @@ void GetAnalyticsInstanceId(ReferenceCountedFutureImpl* api,
     api->CompleteWithResult(handle, 0, "", instance_id);
     return;
   }
-  PollInstanceId(api, handle, firebase::internal::GetTimestampEpoch(), g_generation);
+  PollInstanceId(api, handle.get().id(), firebase::internal::GetTimestampEpoch(), g_generation);
 }
 
 void GetSessionId(ReferenceCountedFutureImpl* api, const SafeFutureHandle<int64_t>& handle) {
@@ -807,7 +809,7 @@ void GetSessionId(ReferenceCountedFutureImpl* api, const SafeFutureHandle<int64_
     generation = g_generation;
     start_ms = firebase::internal::GetTimestampEpoch();
   }
-  RequestSessionId(api, handle, start_ms, generation);
+  RequestSessionId(api, handle.get().id(), start_ms, generation);
 }
 
 }  // namespace apple

@@ -428,6 +428,11 @@ void GetId(const std::shared_ptr<InstanceState>& state, SafeFutureHandle<std::st
       inst = state->installations;
     }
 
+    // Capture the raw FutureHandleId rather than SafeFutureHandle<T> so that
+    // _Block_copy / _Block_release on GCD background queues never invoke
+    // FutureHandle::~FutureHandle() concurrently with ~ReferenceCountedFutureImpl()
+    // when the caller deletes Installations while this callback is in flight.
+    const FutureHandleId handle_id = handle.get().id();
     std::shared_ptr<InstanceState> captured_state = state;
     [inst installationIDWithCompletion:^(NSString* _Nullable identifier, NSError* _Nullable error) {
       @autoreleasepool {
@@ -435,14 +440,15 @@ void GetId(const std::shared_ptr<InstanceState>& state, SafeFutureHandle<std::st
         if (!captured_state->alive || captured_state->future_impl == nullptr) {
           return;
         }
+        const SafeFutureHandle<std::string> detached_handle((FutureHandle(handle_id)));
         if (error != nil) {
           std::string err_msg = StdString([error localizedDescription]);
           captured_state->future_impl->Complete(
-              handle, kInstallationsErrorFailure,
+              detached_handle, kInstallationsErrorFailure,
               err_msg.empty() ? "Failed to get installation ID." : err_msg.c_str());
         } else {
-          captured_state->future_impl->CompleteWithResult(handle, kInstallationsErrorNone, "",
-                                                          StdString(identifier));
+          captured_state->future_impl->CompleteWithResult(detached_handle, kInstallationsErrorNone,
+                                                          "", StdString(identifier));
         }
       }
     }];
@@ -462,6 +468,7 @@ void GetToken(const std::shared_ptr<InstanceState>& state, bool force_refresh,
       inst = state->installations;
     }
 
+    const FutureHandleId handle_id = handle.get().id();
     std::shared_ptr<InstanceState> captured_state = state;
     [inst
         authTokenForcingRefresh:(force_refresh ? YES : NO)
@@ -473,16 +480,18 @@ void GetToken(const std::shared_ptr<InstanceState>& state, bool force_refresh,
                          if (!captured_state->alive || captured_state->future_impl == nullptr) {
                            return;
                          }
+                         const SafeFutureHandle<std::string> detached_handle(
+                             (FutureHandle(handle_id)));
                          if (error != nil || token_result == nil) {
                            std::string err_msg =
                                error ? StdString([error localizedDescription]) : std::string();
                            captured_state->future_impl->Complete(
-                               handle, kInstallationsErrorFailure,
+                               detached_handle, kInstallationsErrorFailure,
                                err_msg.empty() ? "Failed to get installation auth token."
                                                : err_msg.c_str());
                          } else {
                            captured_state->future_impl->CompleteWithResult(
-                               handle, kInstallationsErrorNone, "",
+                               detached_handle, kInstallationsErrorNone, "",
                                StdString([token_result authToken]));
                          }
                        }
@@ -502,6 +511,7 @@ void Delete(const std::shared_ptr<InstanceState>& state, SafeFutureHandle<void> 
       inst = state->installations;
     }
 
+    const FutureHandleId handle_id = handle.get().id();
     std::shared_ptr<InstanceState> captured_state = state;
     [inst deleteWithCompletion:^(NSError* _Nullable error) {
       @autoreleasepool {
@@ -509,13 +519,14 @@ void Delete(const std::shared_ptr<InstanceState>& state, SafeFutureHandle<void> 
         if (!captured_state->alive || captured_state->future_impl == nullptr) {
           return;
         }
+        const SafeFutureHandle<void> detached_handle((FutureHandle(handle_id)));
         if (error != nil) {
           std::string err_msg = StdString([error localizedDescription]);
           captured_state->future_impl->Complete(
-              handle, kInstallationsErrorFailure,
+              detached_handle, kInstallationsErrorFailure,
               err_msg.empty() ? "Failed to delete installation." : err_msg.c_str());
         } else {
-          captured_state->future_impl->Complete(handle, kInstallationsErrorNone, "");
+          captured_state->future_impl->Complete(detached_handle, kInstallationsErrorNone, "");
         }
       }
     }];

@@ -31,8 +31,13 @@ _FBL*
 _kFBL*
 _GOOG*
 _kGOOG*
-# nanopb (the embedded copy, or desktop Firestore's when de-duplicated).
+# nanopb and GoogleAppMeasurement internal C helpers / CocoaPods dummy classes.
 _pb_*
+_apmpb_*
+_appmeasurement_*
+_nano_*
+_NANO*
+_*PodsDummy_*
 # Swift (FirebaseCoreInternal). The C++ SDK has no Swift code on desktop.
 _$s*
 _$S*
