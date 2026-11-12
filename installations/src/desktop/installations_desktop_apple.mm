@@ -23,6 +23,7 @@
 #include <set>
 #include <string>
 
+#include "app/src/apple_desktop_runtime_internal.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
@@ -39,8 +40,7 @@
 // inactive so installations_stub.cc falls back to the desktop stubs.
 
 @protocol FIRCppDesktopInstallationsOptionsShape <NSObject>
-- (instancetype)initWithGoogleAppID:(NSString*)googleAppID
-                        GCMSenderID:(NSString*)GCMSenderID;
+- (instancetype)initWithGoogleAppID:(NSString*)googleAppID GCMSenderID:(NSString*)GCMSenderID;
 @property(nonatomic, copy, nullable) NSString* APIKey;
 @property(nonatomic, copy) NSString* bundleID;
 @property(nonatomic, copy, nullable) NSString* clientID;
@@ -70,18 +70,16 @@
 @property(nonatomic, readonly) NSString* authToken;
 @end
 
-typedef void (^FIRCppDesktopInstallationsIDHandler)(
-    NSString* _Nullable identifier, NSError* _Nullable error);
+typedef void (^FIRCppDesktopInstallationsIDHandler)(NSString* _Nullable identifier,
+                                                    NSError* _Nullable error);
 typedef void (^FIRCppDesktopInstallationsTokenHandler)(
     id<FIRCppDesktopInstallationsAuthTokenResultShape> _Nullable tokenResult,
     NSError* _Nullable error);
 
 @protocol FIRCppDesktopInstallationsShape <NSObject>
-- (void)installationIDWithCompletion:
-    (FIRCppDesktopInstallationsIDHandler)completion;
+- (void)installationIDWithCompletion:(FIRCppDesktopInstallationsIDHandler)completion;
 - (void)authTokenForcingRefresh:(BOOL)forceRefresh
-                     completion:
-                         (FIRCppDesktopInstallationsTokenHandler)completion;
+                     completion:(FIRCppDesktopInstallationsTokenHandler)completion;
 - (void)deleteWithCompletion:(void (^)(NSError* _Nullable error))completion;
 @end
 
@@ -110,25 +108,20 @@ BackendMode g_mode_override = kBackendModeAuto;
 std::set<std::string>* g_configured_named_apps = nullptr;
 
 Class<FIRCppDesktopInstallationsClassShape> InstallationsClass() {
-  return (Class<FIRCppDesktopInstallationsClassShape>)NSClassFromString(
-      @"FIRInstallations");
+  return (Class<FIRCppDesktopInstallationsClassShape>)NSClassFromString(@"FIRInstallations");
 }
 
 Class<FIRCppDesktopInstallationsAppClassShape> AppClass() {
-  return (Class<FIRCppDesktopInstallationsAppClassShape>)NSClassFromString(
-      @"FIRApp");
+  return (Class<FIRCppDesktopInstallationsAppClassShape>)NSClassFromString(@"FIRApp");
 }
 
 Class OptionsClass() { return NSClassFromString(@"FIROptions"); }
 
 bool IsAppleSdkPresent() {
-  return InstallationsClass() != Nil && AppClass() != Nil &&
-         OptionsClass() != Nil;
+  return InstallationsClass() != Nil && AppClass() != Nil && OptionsClass() != Nil;
 }
 
-NSString* SafeString(const char* c_str) {
-  return c_str != nullptr ? @(c_str) : @"";
-}
+NSString* SafeString(const char* c_str) { return c_str != nullptr ? @(c_str) : @""; }
 
 std::string StdString(NSString* ns_str) {
   if (ns_str == nil) return std::string();
@@ -149,16 +142,13 @@ BackendMode ResolveMode() {
 }
 
 bool IsDefaultAppName(const char* name) {
-  return name == nullptr || name[0] == '\0' ||
-         std::strcmp(name, firebase::kDefaultAppName) == 0;
+  return name == nullptr || name[0] == '\0' || std::strcmp(name, firebase::kDefaultAppName) == 0;
 }
 
-id<FIRCppDesktopInstallationsOptionsShape> CreateOptions(
-    const AppOptions& app_options) {
+id<FIRCppDesktopInstallationsOptionsShape> CreateOptions(const AppOptions& app_options) {
   id<FIRCppDesktopInstallationsOptionsShape> options =
-      [[OptionsClass() alloc]
-          initWithGoogleAppID:SafeString(app_options.app_id())
-                  GCMSenderID:SafeString(app_options.messaging_sender_id())];
+      [[OptionsClass() alloc] initWithGoogleAppID:SafeString(app_options.app_id())
+                                      GCMSenderID:SafeString(app_options.messaging_sender_id())];
   if (std::strlen(app_options.api_key())) {
     options.APIKey = @(app_options.api_key());
   }
@@ -185,8 +175,7 @@ id<FIRCppDesktopInstallationsOptionsShape> CreateOptions(
 // Configures or retrieves the FIRApp corresponding to `app` on the main thread
 // and returns the associated FIRInstallations instance, or nil if the Apple SDK
 // cannot be configured for `app`.
-id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(
-    const App& app) {
+id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(const App& app) {
   const AppOptions app_options = app.options();
   const std::string app_name = app.name() ? app.name() : "";
   const bool is_default_app = IsDefaultAppName(app_name.c_str());
@@ -195,8 +184,7 @@ id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(
   void (^configure_block)(void) = ^{
     @autoreleasepool {
       Class<FIRCppDesktopInstallationsAppClassShape> app_class = AppClass();
-      Class<FIRCppDesktopInstallationsClassShape> inst_class =
-          InstallationsClass();
+      Class<FIRCppDesktopInstallationsClassShape> inst_class = InstallationsClass();
       if (app_class == Nil || inst_class == Nil) return;
 
       id<FIRCppDesktopInstallationsAppShape> fir_app = nil;
@@ -213,29 +201,27 @@ id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(
           std::string existing_app_id =
               fir_app ? StdString(fir_app.options.googleAppID) : std::string();
           if (!IsAppleGoogleAppId(existing_app_id.c_str())) {
-            LogWarning(
-                "Installations: Existing default FIRApp has non-Apple App ID "
-                "'%s'; falling back to the Installations desktop stubs.",
-                existing_app_id.c_str());
+            LogWarning("Installations: Existing default FIRApp has non-Apple App ID "
+                       "'%s'; falling back to the Installations desktop stubs.",
+                       existing_app_id.c_str());
             return;
           }
         } else {
           if (!IsAppleGoogleAppId(app_options.app_id())) {
-            LogWarning(
-                "Installations: App ID '%s' is not an Apple platform App ID "
-                "(1:<sender>:ios:<id>). Falling back to the Installations "
-                "desktop stubs.",
-                app_options.app_id());
+            LogWarning("Installations: App ID '%s' is not an Apple platform App ID "
+                       "(1:<sender>:ios:<id>). Falling back to the Installations "
+                       "desktop stubs.",
+                       app_options.app_id());
             return;
           }
+          firebase::internal::apple_desktop::EnsureAnalyticsAppActiveStateOnMainThread();
           @try {
             [app_class configureWithOptions:CreateOptions(app_options)];
             fir_app = [app_class defaultApp];
           } @catch (NSException* exception) {
-            LogWarning(
-                "Installations: Failed to configure default FIRApp (%s); "
-                "falling back to the Installations desktop stubs.",
-                [[exception reason] UTF8String]);
+            LogWarning("Installations: Failed to configure default FIRApp (%s); "
+                       "falling back to the Installations desktop stubs.",
+                       [[exception reason] UTF8String]);
             return;
           }
         }
@@ -244,8 +230,7 @@ id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(
         bool named_already_configured = false;
         {
           MutexLock lock(g_mutex);
-          if (g_configured_named_apps != nullptr &&
-              g_configured_named_apps->count(app_name) > 0) {
+          if (g_configured_named_apps != nullptr && g_configured_named_apps->count(app_name) > 0) {
             named_already_configured = true;
           }
         }
@@ -262,24 +247,21 @@ id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(
           std::string existing_app_id =
               fir_app ? StdString(fir_app.options.googleAppID) : std::string();
           if (!IsAppleGoogleAppId(existing_app_id.c_str())) {
-            LogWarning(
-                "Installations: Existing FIRApp '%s' has non-Apple App ID "
-                "'%s'; falling back to the Installations desktop stubs.",
-                app_name.c_str(), existing_app_id.c_str());
+            LogWarning("Installations: Existing FIRApp '%s' has non-Apple App ID "
+                       "'%s'; falling back to the Installations desktop stubs.",
+                       app_name.c_str(), existing_app_id.c_str());
             return;
           }
         } else {
           if (!IsAppleGoogleAppId(app_options.app_id())) {
-            LogWarning(
-                "Installations: App ID '%s' is not an Apple platform App ID "
-                "(1:<sender>:ios:<id>). Falling back to the Installations "
-                "desktop stubs.",
-                app_options.app_id());
+            LogWarning("Installations: App ID '%s' is not an Apple platform App ID "
+                       "(1:<sender>:ios:<id>). Falling back to the Installations "
+                       "desktop stubs.",
+                       app_options.app_id());
             return;
           }
           @try {
-            [app_class configureWithName:ns_name
-                                 options:CreateOptions(app_options)];
+            [app_class configureWithName:ns_name options:CreateOptions(app_options)];
             {
               MutexLock lock(g_mutex);
               if (g_configured_named_apps == nullptr) {
@@ -289,10 +271,9 @@ id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(
             }
             fir_app = [app_class appNamed:ns_name];
           } @catch (NSException* exception) {
-            LogWarning(
-                "Installations: Failed to configure FIRApp '%s' (%s); falling "
-                "back to the Installations desktop stubs.",
-                app_name.c_str(), [[exception reason] UTF8String]);
+            LogWarning("Installations: Failed to configure FIRApp '%s' (%s); falling "
+                       "back to the Installations desktop stubs.",
+                       app_name.c_str(), [[exception reason] UTF8String]);
             return;
           }
         }
@@ -303,10 +284,9 @@ id<FIRCppDesktopInstallationsShape> ConfigureOrGetInstallationsOnMainThread(
       @try {
         fir_installations = [inst_class installationsWithApp:fir_app];
       } @catch (NSException* exception) {
-        LogWarning(
-            "Installations: Failed to obtain FIRInstallations instance (%s); "
-            "falling back to the Installations desktop stubs.",
-            [[exception reason] UTF8String]);
+        LogWarning("Installations: Failed to obtain FIRInstallations instance (%s); "
+                   "falling back to the Installations desktop stubs.",
+                   [[exception reason] UTF8String]);
         fir_installations = nil;
       }
     }
@@ -326,16 +306,14 @@ BackendMode ParseBackendMode(const char* value) {
   if (value == nullptr || value[0] == '\0') return kBackendModeAuto;
   NSString* mode = [@(value) lowercaseString];
   if ([mode isEqualToString:@"debug"]) return kBackendModeEnabled;
-  for (NSString* off in
-       @[ @"disabled", @"disable", @"0", @"off", @"false", @"no" ]) {
+  for (NSString* off in @[ @"disabled", @"disable", @"0", @"off", @"false", @"no" ]) {
     if ([mode isEqualToString:off]) return kBackendModeDisabled;
   }
-  for (NSString* on in
-       @[ @"enabled", @"enable", @"1", @"on", @"true", @"yes" ]) {
+  for (NSString* on in @[ @"enabled", @"enable", @"1", @"on", @"true", @"yes" ]) {
     if ([mode isEqualToString:on]) return kBackendModeEnabled;
   }
-  LogWarning("Installations: Ignoring unrecognized %s value '%s'.",
-             kBackendModeEnvironmentVariable, value);
+  LogWarning("Installations: Ignoring unrecognized %s value '%s'.", kBackendModeEnvironmentVariable,
+             value);
   return kBackendModeAuto;
 }
 
@@ -348,30 +326,29 @@ void SetBackendMode(BackendMode mode) {
   g_mode_override = mode;
 }
 
-std::shared_ptr<InstanceState> CreateInstance(
-    const App& app, ReferenceCountedFutureImpl* future_impl) {
+std::shared_ptr<InstanceState> CreateInstance(const App& app,
+                                              ReferenceCountedFutureImpl* future_impl) {
   @autoreleasepool {
     const BackendMode mode = ResolveMode();
     if (mode == kBackendModeDisabled) {
-      LogInfo(
-          "Installations: Firebase Apple SDK backend disabled via %s; using "
-          "desktop stubs.",
-          kBackendModeEnvironmentVariable);
+      LogInfo("Installations: Firebase Apple SDK backend disabled via %s; using "
+              "desktop stubs.",
+              kBackendModeEnvironmentVariable);
       return nullptr;
     }
 
     if (!IsAppleSdkPresent()) {
       if (mode == kBackendModeEnabled) {
-        LogWarning(
-            "Installations: %s requested the Firebase Apple SDK backend, but "
-            "FIRInstallations / FIRApp are not linked into this binary. Link "
-            "with firebase_cpp_link_apple_analytics_sdk(); falling back to "
-            "desktop stubs.",
-            kBackendModeEnvironmentVariable);
+        LogWarning("Installations: %s requested the Firebase Apple SDK backend, but "
+                   "FIRInstallations / FIRApp are not linked into this binary. Link "
+                   "with firebase_cpp_link_apple_analytics_sdk(); falling back to "
+                   "desktop stubs.",
+                   kBackendModeEnvironmentVariable);
       }
       return nullptr;
     }
 
+    firebase::internal::apple_desktop::EnsureRuntimeSupport();
     id<FIRCppDesktopInstallationsShape> fir_installations =
         ConfigureOrGetInstallationsOnMainThread(app);
     if (fir_installations == nil) {
@@ -382,9 +359,8 @@ std::shared_ptr<InstanceState> CreateInstance(
     state->alive = true;
     state->future_impl = future_impl;
     state->installations = fir_installations;
-    LogInfo(
-        "Installations: Initialized macOS desktop backend via the Firebase "
-        "Apple SDK (FIRInstallations).");
+    LogInfo("Installations: Initialized macOS desktop backend via the Firebase "
+            "Apple SDK (FIRInstallations).");
     return state;
   }
 }
@@ -392,8 +368,7 @@ std::shared_ptr<InstanceState> CreateInstance(
 bool IsInstanceActive(const std::shared_ptr<InstanceState>& state) {
   if (!state) return false;
   MutexLock lock(state->mutex);
-  return state->alive && state->future_impl != nullptr &&
-         state->installations != nil;
+  return state->alive && state->future_impl != nullptr && state->installations != nil;
 }
 
 void CleanupInstance(const std::shared_ptr<InstanceState>& state) {
@@ -410,8 +385,7 @@ void LogHeartbeat(const App& app) {
   @autoreleasepool {
     if (ResolveMode() == kBackendModeDisabled || !IsAppleSdkPresent()) return;
     Class<FIRCppDesktopInstallationsAppClassShape> app_class = AppClass();
-    Class<FIRCppDesktopInstallationsClassShape> inst_class =
-        InstallationsClass();
+    Class<FIRCppDesktopInstallationsClassShape> inst_class = InstallationsClass();
     if (app_class == Nil || inst_class == Nil) return;
 
     bool default_configured = false;
@@ -433,6 +407,7 @@ void LogHeartbeat(const App& app) {
       }
     }
     if (fir_app != nil) {
+      firebase::internal::apple_desktop::EnsureRuntimeSupport();
       @try {
         (void)[inst_class installationsWithApp:fir_app];
       } @catch (NSException*) {
@@ -441,23 +416,20 @@ void LogHeartbeat(const App& app) {
   }
 }
 
-void GetId(const std::shared_ptr<InstanceState>& state,
-           SafeFutureHandle<std::string> handle) {
+void GetId(const std::shared_ptr<InstanceState>& state, SafeFutureHandle<std::string> handle) {
   if (!state) return;
   @autoreleasepool {
     id<FIRCppDesktopInstallationsShape> inst = nil;
     {
       MutexLock lock(state->mutex);
-      if (!state->alive || state->future_impl == nullptr ||
-          state->installations == nil) {
+      if (!state->alive || state->future_impl == nullptr || state->installations == nil) {
         return;
       }
       inst = state->installations;
     }
 
     std::shared_ptr<InstanceState> captured_state = state;
-    [inst installationIDWithCompletion:^(NSString* _Nullable identifier,
-                                         NSError* _Nullable error) {
+    [inst installationIDWithCompletion:^(NSString* _Nullable identifier, NSError* _Nullable error) {
       @autoreleasepool {
         MutexLock lock(captured_state->mutex);
         if (!captured_state->alive || captured_state->future_impl == nullptr) {
@@ -467,11 +439,10 @@ void GetId(const std::shared_ptr<InstanceState>& state,
           std::string err_msg = StdString([error localizedDescription]);
           captured_state->future_impl->Complete(
               handle, kInstallationsErrorFailure,
-              err_msg.empty() ? "Failed to get installation ID."
-                              : err_msg.c_str());
+              err_msg.empty() ? "Failed to get installation ID." : err_msg.c_str());
         } else {
-          captured_state->future_impl->CompleteWithResult(
-              handle, kInstallationsErrorNone, "", StdString(identifier));
+          captured_state->future_impl->CompleteWithResult(handle, kInstallationsErrorNone, "",
+                                                          StdString(identifier));
         }
       }
     }];
@@ -485,52 +456,47 @@ void GetToken(const std::shared_ptr<InstanceState>& state, bool force_refresh,
     id<FIRCppDesktopInstallationsShape> inst = nil;
     {
       MutexLock lock(state->mutex);
-      if (!state->alive || state->future_impl == nullptr ||
-          state->installations == nil) {
+      if (!state->alive || state->future_impl == nullptr || state->installations == nil) {
         return;
       }
       inst = state->installations;
     }
 
     std::shared_ptr<InstanceState> captured_state = state;
-    [inst authTokenForcingRefresh:(force_refresh ? YES : NO)
-                       completion:^(
-                           id<FIRCppDesktopInstallationsAuthTokenResultShape> _Nullable token_result,
-                           NSError* _Nullable error) {
-                         @autoreleasepool {
-                           MutexLock lock(captured_state->mutex);
-                           if (!captured_state->alive ||
-                               captured_state->future_impl == nullptr) {
-                             return;
-                           }
-                           if (error != nil || token_result == nil) {
-                             std::string err_msg =
-                                 error ? StdString([error localizedDescription])
-                                       : std::string();
-                             captured_state->future_impl->Complete(
-                                 handle, kInstallationsErrorFailure,
-                                 err_msg.empty()
-                                     ? "Failed to get installation auth token."
-                                     : err_msg.c_str());
-                           } else {
-                             captured_state->future_impl->CompleteWithResult(
-                                 handle, kInstallationsErrorNone, "",
-                                 StdString([token_result authToken]));
-                           }
+    [inst
+        authTokenForcingRefresh:(force_refresh ? YES : NO)
+                     completion:^(
+                         id<FIRCppDesktopInstallationsAuthTokenResultShape> _Nullable token_result,
+                         NSError* _Nullable error) {
+                       @autoreleasepool {
+                         MutexLock lock(captured_state->mutex);
+                         if (!captured_state->alive || captured_state->future_impl == nullptr) {
+                           return;
                          }
-                       }];
+                         if (error != nil || token_result == nil) {
+                           std::string err_msg =
+                               error ? StdString([error localizedDescription]) : std::string();
+                           captured_state->future_impl->Complete(
+                               handle, kInstallationsErrorFailure,
+                               err_msg.empty() ? "Failed to get installation auth token."
+                                               : err_msg.c_str());
+                         } else {
+                           captured_state->future_impl->CompleteWithResult(
+                               handle, kInstallationsErrorNone, "",
+                               StdString([token_result authToken]));
+                         }
+                       }
+                     }];
   }
 }
 
-void Delete(const std::shared_ptr<InstanceState>& state,
-            SafeFutureHandle<void> handle) {
+void Delete(const std::shared_ptr<InstanceState>& state, SafeFutureHandle<void> handle) {
   if (!state) return;
   @autoreleasepool {
     id<FIRCppDesktopInstallationsShape> inst = nil;
     {
       MutexLock lock(state->mutex);
-      if (!state->alive || state->future_impl == nullptr ||
-          state->installations == nil) {
+      if (!state->alive || state->future_impl == nullptr || state->installations == nil) {
         return;
       }
       inst = state->installations;
@@ -547,11 +513,9 @@ void Delete(const std::shared_ptr<InstanceState>& state,
           std::string err_msg = StdString([error localizedDescription]);
           captured_state->future_impl->Complete(
               handle, kInstallationsErrorFailure,
-              err_msg.empty() ? "Failed to delete installation."
-                              : err_msg.c_str());
+              err_msg.empty() ? "Failed to delete installation." : err_msg.c_str());
         } else {
-          captured_state->future_impl->Complete(handle, kInstallationsErrorNone,
-                                                "");
+          captured_state->future_impl->Complete(handle, kInstallationsErrorNone, "");
         }
       }
     }];

@@ -45,6 +45,23 @@ class ParseNmOutputTest(unittest.TestCase):
     self.assertEqual(check.parse_nm_output(text),
                      [("libx.a[a.o]", "_foo", "T")])
 
+  def test_macho_nm_format_preserves_weakness(self):
+    text = "\n".join([
+        "libCore.a:Core.o: 0000000000000100 (__TEXT,__text) external _FIRConfigure",
+        "libCore.a:Core.o:                  (undefined) external _memcpy",
+        "libCore.a:Core.o: 0000000000000200 (__DATA,__data) weak private external [no dead strip] __OBJC_PROTOCOL_$_NSCopying",
+        "libCore.a:Core.o: 0000000000000300 (__TEXT,__text) weak private external ___copy_helper_block_e8_32s",
+        "libCore.a:Core.o: (common) (alignment 2^3) external _g_shared_global",
+        "libEmpty.a:Empty.o: no symbols",
+    ])
+    self.assertEqual(check.parse_macho_nm_output(text), [
+        ("libCore.a:Core.o", "_FIRConfigure", "T"),
+        ("libCore.a:Core.o", "_memcpy", "U"),
+        ("libCore.a:Core.o", "__OBJC_PROTOCOL_$_NSCopying", "W"),
+        ("libCore.a:Core.o", "___copy_helper_block_e8_32s", "W"),
+        ("libCore.a:Core.o", "_g_shared_global", "C"),
+    ])
+
 
 class FindConflictsTest(unittest.TestCase):
 
@@ -101,9 +118,13 @@ class EndToEndTest(unittest.TestCase):
 
   def test_detects_conflict(self):
     with tempfile.TemporaryDirectory() as tmp:
-      forced = self._archive(tmp, "sdk", "int pb_encode(void){return 1;}\n"
-                             "int sdk_only(void){return 2;}\n")
-      clean = self._archive(tmp, "clean", "int other(void){return 3;}\n")
+      forced = self._archive(tmp, "sdk",
+                             "int pb_encode(void){return 1;}\n"
+                             "int sdk_only(void){return 2;}\n"
+                             "__attribute__((weak)) int weak_helper(void){return 9;}\n")
+      clean = self._archive(tmp, "clean",
+                            "int other(void){return 3;}\n"
+                            "__attribute__((weak)) int weak_helper(void){return 9;}\n")
       clashing = self._archive(tmp, "firestore_nanopb",
                                "int pb_encode(void){return 4;}\n")
       self.assertEqual(

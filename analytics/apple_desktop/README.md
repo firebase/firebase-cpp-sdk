@@ -1,28 +1,31 @@
-# Firebase Analytics on macOS desktop via the Firebase Apple SDK
+# Firebase Analytics & Installations on macOS desktop via the Firebase Apple SDK
 
-On macOS desktop, `firebase::analytics` can forward to the Firebase Apple SDK
-(`FIRAnalytics` / GoogleAppMeasurement) when it is **embedded** in your app.
-If it isn't, Analytics keeps the desktop stub behavior from before.
+On macOS desktop, `firebase::analytics` and `firebase::installations` can
+forward to the Firebase Apple SDK (`FIRAnalytics` / GoogleAppMeasurement and
+`FIRInstallations`) when it is **embedded** in your app.
+If it isn't, Analytics and Installations keep the desktop stub behavior from before.
 
 ```
 your app / FirebaseCppApp.bundle
 ├── firebase_analytics (analytics_desktop.cc)
-│     └── analytics_desktop_apple.mm ── NSClassFromString("FIRAnalytics") ──┐
-└── embedded Firebase Apple SDK (force-loaded static archives)  ◄───────────┘
+│     └── analytics_desktop_apple.mm ── NSClassFromString("FIRAnalytics") ──────┐
+├── firebase_installations (installations.cc)                                   │
+│     └── installations_desktop_apple.mm ─ NSClassFromString("FIRInstallations")┼─┐
+└── embedded Firebase Apple SDK (force-loaded static archives)  ◄───────────────┴─┘
       FirebaseAnalytics, GoogleAppMeasurement, FirebaseCore,
       FirebaseCoreInternal (Swift), FirebaseInstallations, GoogleUtilities,
       FBLPromises, nanopb (or desktop Firestore's copy)
 ```
 
-`firebase_analytics` binds to the Apple SDK **at runtime**, so it has no new
-link-time dependency. Only the final binary (app, bundle or dylib) chooses to
-embed the SDK.
+`firebase_analytics` and `firebase_installations` bind to the Apple SDK **at
+runtime**, so they have no new link-time dependency. Only the final binary
+(app, bundle or dylib) chooses to embed the SDK.
 
 ## Embedding the SDK (CMake)
 
 ```cmake
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
-target_link_libraries(my_app firebase_analytics firebase_app)
+target_link_libraries(my_app firebase_analytics firebase_installations firebase_app)
 firebase_cpp_link_apple_analytics_sdk(my_app)   # macOS only; no-op elsewhere
 ```
 
@@ -91,6 +94,20 @@ which this SDK cannot fix:
 * Analytics starts once per process. It survives play-mode cycles and domain
   reloads. Switching Firebase projects, or changing debug mode, requires
   restarting the Editor.
+* **Unprovisioned macOS apps & Unity Editor (`FIRInstallations` Keychain):**
+  Provisioned Mac App Store / signed Developer ID apps store `FIRInstallations`
+  credentials in Apple's Data Protection Keychain (`GULKeychainUtils`). Because
+  the Unity Editor (`Unity.app`) and unprovisioned local desktop/CMake builds
+  lack an Apple `application-identifier` entitlement (`SecItemAdd` `-34018`),
+  the embedded desktop runtime automatically falls back to `0600` user-only
+  files under `~/Library/Application Support/com.google.firebase.cpp.keychain/`.
+* **Desktop / Editor session activation (`GetSessionId` & `session_start`):**
+  GoogleAppMeasurement expects `NSApplicationDidBecomeActiveNotification` to
+  fire *after* `+[FIRApp configure]`. Because CLI binaries never post AppKit
+  activation notifications and the Unity Editor is already active before Play
+  Mode starts, the desktop runtime initializes the embedded
+  `APMScreenViewReporter` active state on startup without broadcasting
+  synthetic notifications to the host process.
 
 Feature mapping compared with the stubs:
 

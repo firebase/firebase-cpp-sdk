@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'analytics/**'
+      - 'installations/**'
+      - 'app/src/apple_desktop_runtime_internal.h'
       - 'cmake/firebase_apple_desktop_sdk*'
       - 'scripts/check_duplicate_symbols*'
       - 'ios_spm/Package.swift'
@@ -82,6 +84,8 @@ jobs:
           BINARY=build/integration_test.app/Contents/MacOS/integration_test
           ls -l "${BINARY}"
           # The Firebase Apple SDK classes must be present for the runtime
-          # lookup in analytics_desktop_apple.mm to succeed.
+          # lookup in analytics_desktop_apple.mm and installations_desktop_apple.mm
+          # to succeed.
           nm -m "${BINARY}" | grep -E '_OBJC_CLASS_\$_FIRAnalytics$'
+          nm -m "${BINARY}" | grep -E '_OBJC_CLASS_\$_FIRInstallations$'
           nm -m "${BINARY}" | grep -E '_OBJC_CLASS_\$_FIRApp$'

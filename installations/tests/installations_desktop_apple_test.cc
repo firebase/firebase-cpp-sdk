@@ -13,7 +13,8 @@
 // limitations under the License.
 
 // Tests for the macOS desktop Firebase Apple SDK Installations backend that do
-// not require the Apple SDK to be embedded (this test binary does not embed it).
+// not require the Apple SDK to be embedded (this test binary does not embed
+// it).
 
 #include "installations/src/desktop/installations_desktop_apple.h"
 
@@ -67,8 +68,7 @@ class InstallationsDesktopAppleFallbackTest : public ::testing::Test {
   App* app_ = nullptr;
 };
 
-TEST_F(InstallationsDesktopAppleFallbackTest,
-       FallsBackToStubsWithoutAppleSdk) {
+TEST_F(InstallationsDesktopAppleFallbackTest, FallsBackToStubsWithoutAppleSdk) {
   auto* installations = Installations::GetInstance(app_);
   ASSERT_NE(installations, nullptr);
 

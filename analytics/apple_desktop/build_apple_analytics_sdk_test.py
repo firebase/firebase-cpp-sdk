@@ -16,6 +16,7 @@
 """Tests for build_apple_analytics_sdk.py (platform independent helpers)."""
 
 import os
+import tempfile
 import unittest
 
 import build_apple_analytics_sdk as sdk
@@ -120,6 +121,45 @@ class ModuleNameTest(unittest.TestCase):
                      "nanopb")
     self.assertEqual(sdk.sanitize_module_name("GoogleUtilities-Environment"),
                      "GoogleUtilities_Environment")
+
+  def test_collect_legacy_native_build_layout(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      core_dir = os.path.join(tmp, "FirebaseCore.build")
+      swift_dir = os.path.join(tmp, "FirebaseCoreInternal.build")
+      deps_dir = os.path.join(tmp, sdk.DEPS_TARGET + ".build")
+      for d in (core_dir, swift_dir, deps_dir):
+        os.makedirs(d)
+      open(os.path.join(core_dir, "FIRApp.c.o"), "w").close()
+      open(os.path.join(swift_dir, "Heartbeat.swift.o"), "w").close()
+      open(os.path.join(deps_dir, "shim.c.o"), "w").close()
+
+      modules = sdk.collect_module_objects(tmp)
+      self.assertEqual(sorted(modules.keys()),
+                       ["FirebaseCore", "FirebaseCoreInternal"])
+      self.assertEqual(sdk.collect_swift_modules(tmp, modules),
+                       {"FirebaseCoreInternal"})
+
+  def test_collect_swiftbuild_merged_object_layout(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      open(os.path.join(tmp, "FirebaseCore.o"), "w").close()
+      open(os.path.join(tmp, "FirebaseInstallations.o"), "w").close()
+      open(os.path.join(tmp, "FirebaseCoreInternal.o"), "w").close()
+      open(os.path.join(tmp, sdk.DEPS_TARGET + ".o"), "w").close()
+      os.makedirs(os.path.join(tmp, "FirebaseCoreInternal.swiftmodule"))
+
+      modules = sdk.collect_module_objects(tmp)
+      self.assertEqual(
+          sorted(modules.keys()),
+          ["FirebaseCore", "FirebaseCoreInternal", "FirebaseInstallations"])
+      self.assertEqual(sdk.collect_swift_modules(tmp, modules),
+                       {"FirebaseCoreInternal"})
+
+  def test_analytics_binary_frameworks_excludes_firestore_deps(self):
+    self.assertIn("FirebaseAnalytics", sdk.ANALYTICS_BINARY_FRAMEWORKS)
+    self.assertIn("GoogleAppMeasurement", sdk.ANALYTICS_BINARY_FRAMEWORKS)
+    self.assertNotIn("grpc", sdk.ANALYTICS_BINARY_FRAMEWORKS)
+    self.assertNotIn("FirebaseFirestoreInternal",
+                     sdk.ANALYTICS_BINARY_FRAMEWORKS)
 
 
 class PrivacyManifestTest(unittest.TestCase):

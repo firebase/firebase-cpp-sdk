@@ -128,3 +128,9 @@ if(NOT APPLE AND NOT ANDROID AND UNIX)
     )
   endif()
 endif()
+
+# Provide firebase_cpp_link_apple_analytics_sdk() on macOS desktop when packaged
+# with the CMake helper and SwiftPM builder scripts.
+if(APPLE AND NOT IOS AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/cmake/firebase_apple_desktop_sdk.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/cmake/firebase_apple_desktop_sdk.cmake")
+endif()

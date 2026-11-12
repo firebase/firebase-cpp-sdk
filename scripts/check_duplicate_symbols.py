@@ -48,9 +48,23 @@ DEFAULT_IGNORES = [
     r"^___swift_",  # Swift runtime helper thunks (linkonce).
     r"^_\$s",   # Swift symbols; the C++ SDK contains no Swift on desktop.
     r"^_\$S",   # Legacy Swift mangling prefix.
+    r"^__OBJC_(?:LABEL_|PROTOCOL_REFERENCE_)?PROTOCOL_\$_",  # ObjC protocols.
+    r"^___(?:block_descriptor|(?:copy|destroy)_helper_block)_",  # Block helpers.
 ]
 # nm -P type letters for defined, external, non-weak symbols.
 STRONG_DEFINED_TYPES = set("TDBSCRIA")
+
+# Mach-O `nm -m -g -A` symbol line after "<location>: ": preserves the Mach-O
+# N_WEAK_DEF ("weak") attribute that POSIX `nm -P` drops on Darwin.
+_MACHO_NM_RE = re.compile(
+    r"^\s*(?:[0-9a-fA-F]+\s+)?"
+    r"(?P<section>\([^)]+\))\s+"
+    r"(?:\(alignment [^)]+\)\s+)?"
+    r"(?P<attrs>(?:weak\s+(?:\[[^\]]+\]\s+)*)?(?:private\s+)?"
+    r"(?:external|non-external)"
+    r"(?:\s+automatically hidden|\s+\[[^\]]+\])*)\s+"
+    r"(?P<symbol>.+)$"
+)
 
 
 def parse_nm_output(text):
@@ -73,6 +87,40 @@ def parse_nm_output(text):
     if len(fields) < 2:
       continue
     symbol, symbol_type = fields[0], fields[1]
+    location = re.sub(r"\s*\(for architecture [^)]*\)$", "", location)
+    results.append((location, symbol, symbol_type))
+  return results
+
+
+def parse_macho_nm_output(text):
+  """Parses Darwin `nm -m -g -A` output into (member, symbol, type) tuples.
+
+  POSIX `nm -P` on Mach-O prints section letters (T/D/S) even for `N_WEAK_DEF`
+  weak definitions (ObjC protocols, Clang ARC block helpers, C++/Swift ODR
+  symbols, `__attribute__((weak))`), whereas `nm -m` exposes `weak` directly.
+  """
+  results = []
+  for line in text.splitlines():
+    line = line.rstrip()
+    if not line or line.endswith(":"):
+      continue
+    location, sep, rest = line.rpartition(": ")
+    if not sep or rest == "no symbols":
+      continue
+    match = _MACHO_NM_RE.match(rest)
+    if not match:
+      continue
+    section = match.group("section")
+    attrs = match.group("attrs")
+    symbol = match.group("symbol")
+    if section == "(undefined)":
+      symbol_type = "U"
+    elif attrs.startswith("weak "):
+      symbol_type = "W"
+    elif section == "(common)":
+      symbol_type = "C"
+    else:
+      symbol_type = "T"
     location = re.sub(r"\s*\(for architecture [^)]*\)$", "", location)
     results.append((location, symbol, symbol_type))
   return results
@@ -115,7 +163,8 @@ def find_conflicts(force_loaded, linked, ignores):
 
 
 def run_nm(nm, path, arch):
-  cmd = [nm, "-g", "-P", "-A"]
+  use_macho = sys.platform == "darwin"
+  cmd = [nm, "-m", "-g", "-A"] if use_macho else [nm, "-g", "-P", "-A"]
   if arch:
     cmd += ["-arch", arch]
   cmd.append(path)
@@ -123,7 +172,8 @@ def run_nm(nm, path, arch):
                           stderr=subprocess.PIPE)
   if result.returncode != 0:
     raise RuntimeError("%s failed for %s:\n%s" % (nm, path, result.stderr))
-  return parse_nm_output(result.stdout)
+  return (parse_macho_nm_output(result.stdout) if use_macho
+          else parse_nm_output(result.stdout))
 
 
 def main(argv):

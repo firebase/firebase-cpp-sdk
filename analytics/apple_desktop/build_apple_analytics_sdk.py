@@ -70,6 +70,18 @@ SYSTEM_FRAMEWORKS = [
     "SystemConfiguration",
 ]
 SYSTEM_LIBRARIES = ["c++", "objc", "sqlite3", "z"]
+# Binary xcframeworks in the FirebaseAnalytics transitive dependency graph.
+# SwiftPM resolves all binaryTargets declared in firebase-ios-sdk's
+# Package.swift into <scratch>/artifacts/ (including Firestore's grpc, grpcpp,
+# absl, openssl_grpc, FirebaseFirestoreInternal), so filter to only Analytics'.
+ANALYTICS_BINARY_FRAMEWORKS = frozenset({
+    "FirebaseAnalytics",
+    "GoogleAppMeasurement",
+    "GoogleAppMeasurementIdentitySupport",
+    "GoogleAdsOnDeviceConversion",
+})
+# Bump when archive collection or manifest semantics change to invalidate caches.
+STAMP_FORMAT_VERSION = "2"
 
 _VERSION_RE = re.compile(
     r'firebase-ios-sdk(?:\.git)?"\s*,\s*exact:\s*"([0-9][0-9A-Za-z.\-]*)"')
@@ -286,8 +298,8 @@ def render_size_report(manifest):
 def compute_stamp(version, archs, deployment_target, template_text,
                   configuration="release"):
   digest = hashlib.sha256()
-  for part in (version, ",".join(archs), deployment_target, template_text,
-               configuration):
+  for part in (STAMP_FORMAT_VERSION, version, ",".join(archs),
+               deployment_target, template_text, configuration):
     digest.update(part.encode("utf-8"))
     digest.update(b"\0")
   return digest.hexdigest()
@@ -338,9 +350,15 @@ def build_arch(package_dir, scratch_dir, arch, configuration):
 
 
 def collect_module_objects(bin_path):
-  """Returns {module_name: [object files]} for a SwiftPM bin directory."""
+  """Returns {module_name: [object files]} for a SwiftPM bin directory.
+
+  Supports both SwiftPM's legacy `native` build system (`<Module>.build/*.o`)
+  and Swift 6.4+ / Xcode 27+'s `swiftbuild` backend (`<Module>.o` merged
+  relocatable objects directly under `Products/<Config>/`).
+  """
   modules = {}
-  for entry in sorted(os.listdir(bin_path)):
+  entries = sorted(os.listdir(bin_path))
+  for entry in entries:
     build_dir = os.path.join(bin_path, entry)
     if not entry.endswith(".build") or not os.path.isdir(build_dir):
       continue
@@ -352,29 +370,59 @@ def collect_module_objects(bin_path):
       objects.extend(os.path.join(root, f) for f in files if f.endswith(".o"))
     if objects:
       modules[name] = sorted(objects)
+  if modules:
+    return modules
+
+  # SwiftPM `swiftbuild` layout: merged per-module `<Module>.o` in bin_path.
+  for entry in entries:
+    obj_path = os.path.join(bin_path, entry)
+    if not entry.endswith(".o") or not os.path.isfile(obj_path):
+      continue
+    name = entry[:-len(".o")]
+    if name == DEPS_TARGET:
+      continue
+    modules[name] = [obj_path]
   return modules
 
 
-def archive_modules(per_arch_objects, work_dir, lib_dir):
-  """Creates universal lib<Module>.a archives. Returns module records."""
+def collect_swift_modules(bin_path, module_objects):
+  """Returns the set of module names compiled from Swift sources."""
+  swift_mods = set()
+  for name, objects in module_objects.items():
+    if any(o.endswith(".swift.o") for o in objects):
+      swift_mods.add(name)
+    elif os.path.exists(os.path.join(bin_path, name + ".swiftmodule")):
+      swift_mods.add(name)
+  return swift_mods
+
+
+def archive_thin_modules(arch, modules, work_dir):
+  """Archives one architecture's module objects immediately (before a subsequent
+  arch build in SwiftPM's `swiftbuild` overwrites the shared Products/ dir)."""
+  arch_dir = os.path.join(work_dir, arch)
+  os.makedirs(arch_dir, exist_ok=True)
+  thin_archives = {}
+  for name, objects in sorted(modules.items()):
+    archive = os.path.join(arch_dir, "lib%s.a" % sanitize_module_name(name))
+    if os.path.exists(archive):
+      os.remove(archive)
+    _run(["libtool", "-static", "-no_warning_for_no_symbols", "-o", archive]
+         + objects)
+    thin_archives[name] = archive
+  return thin_archives
+
+
+def merge_module_archives(per_arch_archives, swift_modules, lib_dir):
+  """Creates universal lib<Module>.a archives from per-arch thin archives."""
   os.makedirs(lib_dir, exist_ok=True)
-  names = sorted(set().union(*[set(m) for m in per_arch_objects.values()]))
+  names = sorted(set().union(*[set(m) for m in per_arch_archives.values()]))
   records = []
   for name in names:
     thin = []
-    has_swift = False
-    for arch, modules in sorted(per_arch_objects.items()):
-      objects = modules.get(name)
-      if not objects:
+    for arch, archives in sorted(per_arch_archives.items()):
+      archive = archives.get(name)
+      if not archive:
         raise RuntimeError("Module %s was not built for %s" % (name, arch))
-      has_swift = has_swift or any(o.endswith(".swift.o") for o in objects)
-      arch_dir = os.path.join(work_dir, arch)
-      os.makedirs(arch_dir, exist_ok=True)
-      archive = os.path.join(arch_dir, "lib%s.a" % sanitize_module_name(name))
-      if os.path.exists(archive):
-        os.remove(archive)
-      _run(["libtool", "-static", "-no_warning_for_no_symbols", "-o", archive]
-           + objects)
       thin.append(archive)
     universal = os.path.join(lib_dir, "lib%s.a" % sanitize_module_name(name))
     if len(thin) == 1:
@@ -383,7 +431,7 @@ def archive_modules(per_arch_objects, work_dir, lib_dir):
       _run(["lipo", "-create", "-output", universal] + thin)
     records.append({
         "name": name,
-        "kind": "swift" if has_swift else "source",
+        "kind": "swift" if name in swift_modules else "source",
         "archive": os.path.relpath(universal, os.path.dirname(lib_dir)),
         "size_bytes": os.path.getsize(universal),
     })
@@ -391,19 +439,28 @@ def archive_modules(per_arch_objects, work_dir, lib_dir):
 
 
 def extract_binary_frameworks(scratch_dir, frameworks_dir, output_dir,
-                              requested_archs=None):
+                              requested_archs=None,
+                              allowed_names=ANALYTICS_BINARY_FRAMEWORKS):
   """Copies static macOS slices of downloaded binary xcframeworks."""
   records = []
+  seen_names = set()
   artifacts = os.path.join(scratch_dir, "artifacts")
   os.makedirs(frameworks_dir, exist_ok=True)
   for root, dirs, _ in os.walk(artifacts):
+    # Skip SwiftPM 6.4+'s internal `artifacts/extract/` staging duplicate tree.
+    dirs[:] = [d for d in dirs if d != "extract"]
     for directory in sorted(dirs):
       if not directory.endswith(".xcframework"):
+        continue
+      name = directory[:-len(".xcframework")]
+      if name in seen_names:
+        continue
+      if allowed_names is not None and name not in allowed_names:
         continue
       xcframework = os.path.join(root, directory)
       with open(os.path.join(xcframework, "Info.plist"), "rb") as info_file:
         library = select_macos_library(plistlib.load(info_file))
-      name = directory[:-len(".xcframework")]
+      seen_names.add(name)
       if library is None:
         print("Skipping %s: no macOS slice." % name)
         continue
@@ -500,24 +557,33 @@ def main(argv):
   scratch_dir = os.path.join(output_dir, "spm")
   if os.path.isdir(scratch_dir):
     for entry in os.listdir(scratch_dir):
-      if entry.endswith("-apple-macosx"):
-        shutil.rmtree(os.path.join(scratch_dir, entry), ignore_errors=True)
+      entry_path = os.path.join(scratch_dir, entry)
+      if (entry.endswith("-apple-macosx") or entry == "out") and (
+          not os.path.islink(entry_path)):
+        shutil.rmtree(entry_path, ignore_errors=True)
   render_package(script_dir, package_dir, version, deployment_target)
   _run(["swift", "package", "--package-path", package_dir, "--scratch-path",
         scratch_dir, "resolve"], env=_swift_env())
 
-  per_arch_objects = {}
+  for stale in ("lib", "frameworks", "thin"):
+    shutil.rmtree(os.path.join(output_dir, stale), ignore_errors=True)
+  thin_dir = os.path.join(output_dir, "thin")
+  per_arch_archives = {}
+  swift_modules = set()
   bin_paths = []
   for arch in args.archs:
     bin_path = build_arch(package_dir, scratch_dir, arch, args.configuration)
-    bin_paths.append(bin_path)
-    per_arch_objects[arch] = collect_module_objects(bin_path)
+    if bin_path not in bin_paths:
+      bin_paths.append(bin_path)
+    arch_objects = collect_module_objects(bin_path)
+    if not arch_objects:
+      raise RuntimeError(
+          "No compiled SwiftPM module objects found in %s" % bin_path)
+    swift_modules |= collect_swift_modules(bin_path, arch_objects)
+    per_arch_archives[arch] = archive_thin_modules(arch, arch_objects, thin_dir)
 
-  for stale in ("lib", "frameworks", "thin"):
-    shutil.rmtree(os.path.join(output_dir, stale), ignore_errors=True)
-  modules = archive_modules(per_arch_objects,
-                            os.path.join(output_dir, "thin"),
-                            os.path.join(output_dir, "lib"))
+  modules = merge_module_archives(per_arch_archives, swift_modules,
+                                  os.path.join(output_dir, "lib"))
   modules += extract_binary_frameworks(scratch_dir,
                                        os.path.join(output_dir, "frameworks"),
                                        output_dir,

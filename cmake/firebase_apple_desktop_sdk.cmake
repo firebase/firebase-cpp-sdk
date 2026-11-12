@@ -50,9 +50,14 @@ set(FIREBASE_APPLE_ANALYTICS_SDK_DIR "" CACHE PATH
 option(FIREBASE_APPLE_ANALYTICS_SDK_CHECK_DUPLICATE_SYMBOLS
        "Fail the link if the embedded Firebase Apple SDK duplicates symbols of other static libraries." ON)
 
-set(_FIREBASE_APPLE_SDK_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
-get_filename_component(_FIREBASE_APPLE_SDK_REPO_DIR
+# Stored as CACHE INTERNAL so callers in parent/sibling directory scopes (e.g.
+# after add_subdirectory(firebase-cpp-sdk) or in firebase-unity-sdk) resolve
+# these paths rather than expanding them as empty directory-scoped variables.
+set(_FIREBASE_APPLE_SDK_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
+get_filename_component(_firebase_apple_sdk_repo_dir
                        "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+set(_FIREBASE_APPLE_SDK_REPO_DIR "${_firebase_apple_sdk_repo_dir}" CACHE INTERNAL "")
+unset(_firebase_apple_sdk_repo_dir)
 
 # Collects the static libraries a target links, transitively, as
 # $<TARGET_FILE:...> expressions. Only libraries known when this runs are

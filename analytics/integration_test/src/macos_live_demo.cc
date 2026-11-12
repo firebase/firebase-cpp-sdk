@@ -65,7 +65,8 @@ bool WaitForFuture(const firebase::Future<T>& future, const char* label,
     elapsed += kStepMs;
   }
   if (future.status() != firebase::kFutureStatusComplete) {
-    std::fprintf(stderr, "[ERROR] %s did not complete within %d ms (status=%d)\n",
+    std::fprintf(stderr,
+                 "[ERROR] %s did not complete within %d ms (status=%d)\n",
                  label, timeout_ms, static_cast<int>(future.status()));
     return false;
   }
@@ -141,7 +142,8 @@ int main(int argc, char* argv[]) {
 #endif
 
   // Enable DebugView mode BEFORE initializing Analytics so the Apple SDK sees
-  // /google/firebase/debug_mode = YES in NSUserDefaults at startup.
+  // /google/measurement/debug_mode = YES (and /google/firebase/debug_mode =
+  // YES) in NSUserDefaults at startup.
   firebase::analytics::SetDesktopDebugMode(true);
 
   firebase::App* app = firebase::App::Create();
@@ -171,14 +173,17 @@ int main(int argc, char* argv[]) {
   }
 
   bool desktop_initialized = firebase::analytics::IsDesktopInitialized();
-  std::printf("  Analytics Apple Backend:   %s\n",
-              desktop_initialized ? "ACTIVE (FIRAnalytics)" : "STUB (Fallback)");
+  std::printf("  Analytics Apple Backend:   %s\n", desktop_initialized
+                                                       ? "ACTIVE (FIRAnalytics)"
+                                                       : "STUB (Fallback)");
   if (!desktop_initialized) {
     std::fprintf(
         stderr,
         "[WARNING] Analytics Apple SDK backend is not active! Check that:\n"
-        "  1. The app was built with -DFIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK=ON\n"
-        "  2. google-services-desktop.json has an Apple App ID (1:...:ios:...)\n");
+        "  1. The app was built with "
+        "-DFIREBASE_ANALYTICS_TEST_EMBED_APPLE_SDK=ON\n"
+        "  2. google-services-desktop.json has an Apple App ID "
+        "(1:...:ios:...)\n");
   }
 
   // 2. Fetch the real Firebase Installation ID (FID) and Auth Token.
@@ -207,6 +212,7 @@ int main(int argc, char* argv[]) {
       firebase::analytics::kUserPropertySignUpMethod, "macOS_Desktop_SDK");
 
   const firebase::analytics::Parameter kVerificationParams[] = {
+      firebase::analytics::Parameter("source", "macos_cpp_sdk_demo"),
       firebase::analytics::Parameter("sdk_layer", "firebase_cpp_sdk"),
       firebase::analytics::Parameter("apple_sdk_bridged", "true"),
       firebase::analytics::Parameter("installation_id", fid.c_str()),
@@ -265,7 +271,8 @@ int main(int argc, char* argv[]) {
     std::fflush(stdout);
     PumpMainLoopMilliseconds(1000);
   }
-  std::printf("\n============================================================\n");
+  std::printf(
+      "\n============================================================\n");
   std::printf("  Done! Check Firebase Console -> Analytics -> DebugView.\n");
   std::printf("============================================================\n");
 

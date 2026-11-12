@@ -29,6 +29,7 @@
 
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/analytics_desktop_apple.h"
+#include "app/src/apple_desktop_runtime_internal.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
@@ -108,6 +109,10 @@ NSString* const kFIRConsentStatusDenied = @"denied";
 // NSUserDefaults key GoogleAppMeasurement uses to persist debug mode
 // (APMPersistedConfigDebugModeKey). It is read when the SDK starts.
 NSString* const kDebugModeUserDefaultsKey = @"/google/measurement/debug_mode";
+// NSUserDefaults key FirebaseCore's FIRLogger uses to persist debug mode
+// (kFIRPersistedDebugModeKey). Setting both keeps DebugView uploads and
+// FIRLogger debug output synchronized.
+NSString* const kFirebaseDebugModeUserDefaultsKey = @"/google/firebase/debug_mode";
 
 // Bundle ID prefix of the Unity Editor application
 // (com.unity3d.UnityEditor5.x).
@@ -116,10 +121,18 @@ NSString* const kUnityEditorBundleIdPrefix = @"com.unity3d.UnityEditor";
 const double kMillisecondsPerSecond = 1000.0;
 const int64_t kInstanceIdPollIntervalMs = 100;
 const uint64_t kInstanceIdTimeoutMs = 30000;
+const uint64_t kSessionIdStartupTimeoutMs = 10000;
+const uint64_t kSessionIdPostResetSettleMs = 5000;
+
+NSString* const kAPMErrorDomain = @"com.google.gmp.measurement.ErrorDomain";
+NSString* const kAPMErrorAnalyticsUninitialized = @"Analytics uninitialized";
+NSString* const kAPMErrorSessionIdNotFound = @"Session ID not found";
 
 Mutex g_mutex;  // NOLINT
 bool g_active = false;
 uint64_t g_generation = 0;
+uint64_t g_last_init_or_reset_ms = 0;
+bool g_analytics_storage_denied = false;
 BackendMode g_mode_override = kBackendModeAuto;
 bool g_debug_mode_set_by_api = false;
 bool g_debug_mode_value = false;
@@ -289,8 +302,10 @@ void WriteDebugModeFlag(bool enabled) {
   NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
   if (enabled) {
     [defaults setBool:YES forKey:kDebugModeUserDefaultsKey];
+    [defaults setBool:YES forKey:kFirebaseDebugModeUserDefaultsKey];
   } else {
     [defaults removeObjectForKey:kDebugModeUserDefaultsKey];
+    [defaults removeObjectForKey:kFirebaseDebugModeUserDefaultsKey];
   }
 }
 
@@ -344,6 +359,7 @@ bool EnsureDefaultAppConfiguredOnMainThread(const AppOptions& app_options) {
           configured = false;
           return;
         }
+        firebase::internal::apple_desktop::EnsureAnalyticsAppActiveStateOnMainThread();
         MutexLock lock(g_mutex);
         if (g_configured_app_id == nullptr) {
           // The host (or FirebaseInstallations) configured FIRApp itself. Reuse it.
@@ -373,6 +389,7 @@ bool EnsureDefaultAppConfiguredOnMainThread(const AppOptions& app_options) {
         return;
       }
 
+      firebase::internal::apple_desktop::EnsureAnalyticsAppActiveStateOnMainThread();
       @try {
         [app_class configureWithOptions:CreateOptions(app_options)];
       } @catch (NSException* exception) {
@@ -420,6 +437,66 @@ void PollInstanceId(ReferenceCountedFutureImpl* api, SafeFutureHandle<std::strin
           }
         }
       });
+}
+
+// Returns true if `error` comes from GoogleAppMeasurement's transient async
+// worker-queue startup ("Analytics uninitialized") or the brief window right
+// after initialization/ResetAnalyticsData() before APMSessionReporter's async
+// setInternalUserProperty:_sid block commits to SQLite. Permanent errors such
+// as "Analytics disabled" return false immediately. Must be called with
+// g_mutex held.
+bool ShouldRetrySessionIdErrorLocked(NSError* error, uint64_t start_ms) {
+  if (error == nil || ![error.domain isEqualToString:kAPMErrorDomain]) return false;
+  const uint64_t now_ms = firebase::internal::GetTimestampEpoch();
+  if (now_ms - start_ms >= kSessionIdStartupTimeoutMs) return false;
+  NSString* desc = [error localizedDescription];
+  if (desc == nil) return false;
+  if ([desc isEqualToString:kAPMErrorAnalyticsUninitialized]) return true;
+  if (!g_analytics_storage_denied &&
+      now_ms - g_last_init_or_reset_ms < kSessionIdPostResetSettleMs &&
+      [desc isEqualToString:kAPMErrorSessionIdNotFound]) {
+    return true;
+  }
+  return false;
+}
+
+void RequestSessionId(ReferenceCountedFutureImpl* api, SafeFutureHandle<int64_t> handle,
+                      uint64_t start_ms, uint64_t generation) {
+  @autoreleasepool {
+    {
+      MutexLock lock(g_mutex);
+      if (!g_active || g_generation != generation) return;
+    }
+    [AnalyticsClass() sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
+      @autoreleasepool {
+        bool retry = false;
+        {
+          MutexLock lock(g_mutex);
+          if (!g_active || g_generation != generation) return;
+          if (error == nil) {
+            api->CompleteWithResult(handle, 0, "", session_id);
+            return;
+          }
+          if (ShouldRetrySessionIdErrorLocked(error, start_ms)) {
+            retry = true;
+          } else {
+            const char* err_str = [[error localizedDescription] UTF8String];
+            api->CompleteWithResult(handle, -1,
+                                    err_str ? err_str : "Failed to retrieve session ID.",
+                                    static_cast<int64_t>(0));
+            return;
+          }
+        }
+        if (retry) {
+          dispatch_after(
+              dispatch_time(DISPATCH_TIME_NOW, kInstanceIdPollIntervalMs * NSEC_PER_MSEC),
+              dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                RequestSessionId(api, handle, start_ms, generation);
+              });
+        }
+      }
+    }];
+  }
 }
 
 }  // namespace
@@ -492,6 +569,7 @@ bool Initialize(const App& app, bool collection_enabled, bool collection_enabled
               kBackendModeEnvironmentVariable);
     }
 
+    firebase::internal::apple_desktop::EnsureRuntimeSupport();
     if (!EnsureDefaultAppConfiguredOnMainThread(app.options())) return false;
 
     if (collection_enabled_set) {
@@ -502,6 +580,7 @@ bool Initialize(const App& app, bool collection_enabled, bool collection_enabled
     {
       MutexLock lock(g_mutex);
       if (g_resetter == nullptr) g_resetter = new AnalyticsDataResetter();
+      g_last_init_or_reset_ms = firebase::internal::GetTimestampEpoch();
       ++g_generation;
       g_active = true;
     }
@@ -562,6 +641,8 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   @autoreleasepool {
     NSMutableDictionary* dict =
         [NSMutableDictionary dictionaryWithCapacity:consent_settings.size()];
+    bool has_analytics_storage = false;
+    bool analytics_storage_denied = false;
     for (const auto& setting : consent_settings) {
       NSString* type = nil;
       switch (setting.first) {
@@ -593,7 +674,15 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
           LogError("Unknown ConsentStatus value: %d", setting.second);
           return;
       }
+      if (setting.first == kConsentTypeAnalyticsStorage) {
+        has_analytics_storage = true;
+        analytics_storage_denied = (setting.second == kConsentStatusDenied);
+      }
       [dict setObject:status forKey:type];
+    }
+    if (has_analytics_storage) {
+      MutexLock lock(g_mutex);
+      g_analytics_storage_denied = analytics_storage_denied;
     }
     [analytics setConsent:dict];
   }
@@ -621,6 +710,8 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 void ResetAnalyticsData() {
   MutexLock lock(g_mutex);
   if (!g_active) return;
+  g_analytics_storage_denied = false;
+  g_last_init_or_reset_ms = firebase::internal::GetTimestampEpoch();
   g_resetter->Reset();
 }
 
@@ -706,6 +797,7 @@ void GetAnalyticsInstanceId(ReferenceCountedFutureImpl* api,
 
 void GetSessionId(ReferenceCountedFutureImpl* api, const SafeFutureHandle<int64_t>& handle) {
   uint64_t generation = 0;
+  uint64_t start_ms = 0;
   {
     MutexLock lock(g_mutex);
     if (!g_active) {
@@ -713,24 +805,9 @@ void GetSessionId(ReferenceCountedFutureImpl* api, const SafeFutureHandle<int64_
       return;
     }
     generation = g_generation;
+    start_ms = firebase::internal::GetTimestampEpoch();
   }
-  SafeFutureHandle<int64_t> handle_copy = handle;
-  @autoreleasepool {
-    [AnalyticsClass() sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
-      @autoreleasepool {
-        MutexLock lock(g_mutex);
-        if (!g_active || g_generation != generation) return;
-        if (error) {
-          const char* err_str = [[error localizedDescription] UTF8String];
-          api->CompleteWithResult(
-              handle_copy, -1, err_str ? err_str : "Failed to retrieve session ID.",
-              static_cast<int64_t>(0));
-        } else {
-          api->CompleteWithResult(handle_copy, 0, "", session_id);
-        }
-      }
-    }];
-  }
+  RequestSessionId(api, handle, start_ms, generation);
 }
 
 }  // namespace apple

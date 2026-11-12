@@ -43,3 +43,14 @@ cp -af "${sourcepath}"/release_build_files/* "${destpath}"
 cp -f "${sourcepath}/generate_xml_from_google_services_json.py" "${destpath}/"
 cp -f "${sourcepath}/generate_xml_from_google_services_json.exe" "${destpath}/"
 
+# Copy macOS Apple SDK embedding helper and scripts into packaged SDK.
+mkdir -p "${destpath}/cmake"
+cp -f "${sourcepath}/cmake/firebase_apple_desktop_sdk.cmake" "${destpath}/cmake/"
+cp -f "${sourcepath}/cmake/firebase_apple_desktop_sdk_unexported_symbols.txt" "${destpath}/cmake/"
+mkdir -p "${destpath}/analytics"
+cp -af "${sourcepath}/analytics/apple_desktop" "${destpath}/analytics/"
+mkdir -p "${destpath}/ios_spm"
+cp -f "${sourcepath}/ios_spm/Package.swift" "${destpath}/ios_spm/"
+mkdir -p "${destpath}/scripts"
+cp -f "${sourcepath}/scripts/check_duplicate_symbols.py" "${destpath}/scripts/"
+

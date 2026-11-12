@@ -232,12 +232,14 @@ else()
   # If a config file is present, copy it into the binary location so that it's
   # possible to create the default Firebase app.
   set(FOUND_JSON_FILE FALSE)
+  set(SELECTED_CONFIG_FILE "")
   foreach(config "google-services-desktop.json" "google-services.json")
     if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/${config}")
+      set(SELECTED_CONFIG_FILE "${CMAKE_CURRENT_LIST_DIR}/${config}")
       add_custom_command(
         TARGET ${integration_test_target_name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-          "${CMAKE_CURRENT_LIST_DIR}/${config}" $<TARGET_FILE_DIR:${integration_test_target_name}>/google-services-desktop.json)
+          "${SELECTED_CONFIG_FILE}" $<TARGET_FILE_DIR:${integration_test_target_name}>/google-services-desktop.json)
       set(FOUND_JSON_FILE TRUE)
       break()
     endif()
@@ -262,7 +264,22 @@ target_link_libraries(${integration_test_target_name} ${firebase_libs}
 option(FIREBASE_INSTALLATIONS_TEST_EMBED_APPLE_SDK
        "Embed the Firebase Apple SDK in the macOS desktop integration test." OFF)
 if(APPLE AND NOT IOS AND FIREBASE_INSTALLATIONS_TEST_EMBED_APPLE_SDK)
-  set(FIREBASE_INSTALLATIONS_TEST_BUNDLE_ID "com.google.firebase.cpp.installations.testapp"
+  set(DEFAULT_INSTALLATIONS_BUNDLE_ID "com.google.firebase.cpp.installations.testapp")
+  if(SELECTED_CONFIG_FILE AND EXISTS "${SELECTED_CONFIG_FILE}")
+    execute_process(
+      COMMAND ${FIREBASE_PYTHON_EXECUTABLE}
+        "${FIREBASE_CPP_SDK_DIR}/generate_xml_from_google_services_json.py"
+        -l -i "${SELECTED_CONFIG_FILE}"
+      OUTPUT_VARIABLE DETECTED_BUNDLE_ID
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+    )
+    if(DETECTED_BUNDLE_ID)
+      string(REGEX REPLACE "\n.*$" "" DETECTED_BUNDLE_ID "${DETECTED_BUNDLE_ID}")
+      set(DEFAULT_INSTALLATIONS_BUNDLE_ID "${DETECTED_BUNDLE_ID}")
+    endif()
+  endif()
+  set(FIREBASE_INSTALLATIONS_TEST_BUNDLE_ID "${DEFAULT_INSTALLATIONS_BUNDLE_ID}"
       CACHE STRING "Bundle ID of the macOS desktop integration test app.")
   set_target_properties(${integration_test_target_name} PROPERTIES
     MACOSX_BUNDLE TRUE

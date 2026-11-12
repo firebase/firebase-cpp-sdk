@@ -36,3 +36,7 @@ _pb_*
 # Swift (FirebaseCoreInternal). The C++ SDK has no Swift code on desktop.
 _$s*
 _$S*
+# SwiftPM auto-generated resource bundle accessors.
+_*_SWIFTPM_MODULE_BUNDLE
+_OBJC_CLASS_$_*_SWIFTPM_MODULE_BUNDLER_FINDER
+_OBJC_METACLASS_$_*_SWIFTPM_MODULE_BUNDLER_FINDER

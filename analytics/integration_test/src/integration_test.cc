@@ -463,9 +463,10 @@ TEST_F(FirebaseAnalyticsTest, TestInstallationsAndAnalyticsCoexist) {
 #if defined(FIREBASE_ANALYTICS_TEST_APPLE_SDK_EMBEDDED)
   EXPECT_NE(*installation_id.result(), "FakeId");
   EXPECT_NE(*analytics_instance_id.result(), "FakeAnalyticsInstanceId0");
-  LogInfo("Verified real macOS Installation ID (%s) and Analytics Instance ID (%s)",
-          installation_id.result()->c_str(),
-          analytics_instance_id.result()->c_str());
+  LogInfo(
+      "Verified real macOS Installation ID (%s) and Analytics Instance ID (%s)",
+      installation_id.result()->c_str(),
+      analytics_instance_id.result()->c_str());
 #endif  // defined(FIREBASE_ANALYTICS_TEST_APPLE_SDK_EMBEDDED)
 
   delete installations;
