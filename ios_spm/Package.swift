@@ -26,7 +26,7 @@ let package = Package(
         .library(name: "FirebaseDependencies", targets: ["FirebaseDependencies"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", exact: "13.1.1"),
+        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", exact: "13.2.0"),
         .package(url: "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git", exact: "3.1.0"),
     ],
     targets: [
