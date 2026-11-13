@@ -93,11 +93,9 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 }
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
-#if defined(NDEBUG)
-  firebase::LogWarning("[FirebaseAppCheck] DebugAppCheckProviderFactory is in use in a "
-                       "Release build (NDEBUG defined). Debug tokens are for development "
-                       "only; prefer a production provider where one is available.");
-#endif
+  firebase::LogWarning("[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
+                       "are for development only; prefer a production provider where one is "
+                       "available.");
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
   if (it != created_providers_.end()) {

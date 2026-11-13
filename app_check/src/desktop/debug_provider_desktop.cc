@@ -15,16 +15,15 @@
 #include "app_check/src/desktop/debug_provider_desktop.h"
 
 #include <cerrno>
-#include <codecvt>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
-#include <iterator>
-#include <locale>
+#include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -41,6 +40,15 @@
 #include "app_check/src/desktop/debug_token_request.h"
 #include "app_check/src/desktop/token_response.h"
 #include "firebase/app_check/debug_provider.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
+#include <cwchar>
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
 namespace app_check {
@@ -63,18 +71,52 @@ std::string GenerateUuidString() {
 }
 
 #if FIREBASE_PLATFORM_WINDOWS
-// Windows paths can contain characters outside the ANSI code page, so the
-// environment is read and files are opened through the UTF-16 APIs. A failed
-// conversion yields an empty string instead of throwing.
-using Utf8Utf16Converter =
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>;
+// Windows paths and environment variables can contain characters outside the
+// ANSI code page, so they are accessed through the UTF-16 APIs. A failed
+// conversion yields std::nullopt / an empty string instead of throwing.
+std::optional<std::wstring> Utf8ToWide(std::string_view input) {
+  if (input.empty()) return std::wstring();
+  if (input.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+    return std::nullopt;
+  }
+  const int input_len = static_cast<int>(input.size());
+  const int wide_len = ::MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, input.data(), input_len, nullptr, 0);
+  if (wide_len <= 0) return std::nullopt;
+  std::wstring output(static_cast<size_t>(wide_len), L'\0');
+  if (::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, input.data(),
+                            input_len, output.data(), wide_len) != wide_len) {
+    return std::nullopt;
+  }
+  return output;
+}
+
+std::string WideToUtf8(std::wstring_view input) {
+  if (input.empty() ||
+      input.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+    return "";
+  }
+  const int input_len = static_cast<int>(input.size());
+  const int utf8_len =
+      ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, input.data(),
+                            input_len, nullptr, 0, nullptr, nullptr);
+  if (utf8_len <= 0) return "";
+  std::string output(static_cast<size_t>(utf8_len), '\0');
+  if (::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, input.data(),
+                            input_len, output.data(), utf8_len, nullptr,
+                            nullptr) != utf8_len) {
+    return "";
+  }
+  return output;
+}
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 std::string GetNonEmptyEnv(const char* name) {
 #if FIREBASE_PLATFORM_WINDOWS
-  Utf8Utf16Converter converter("", L"");
-  const wchar_t* val = _wgetenv(converter.from_bytes(name).c_str());
-  return val != nullptr ? converter.to_bytes(val) : "";
+  std::optional<std::wstring> wide_name = Utf8ToWide(name);
+  if (!wide_name.has_value() || wide_name->empty()) return "";
+  const wchar_t* val = _wgetenv(wide_name->c_str());
+  return val != nullptr ? WideToUtf8(val) : "";
 #else
   const char* val = std::getenv(name);
   return val != nullptr ? std::string(val) : "";
@@ -103,29 +145,66 @@ std::vector<std::string> ResolveConfigstorePaths() {
   return paths;
 }
 
+struct FileCloser {
+  void operator()(std::FILE* file) const { std::fclose(file); }
+};
+
 }  // namespace
 
 std::string ResolveDebugTokenFromConfig(const std::string& config_path,
                                         const std::string& app_id) {
   if (config_path.empty() || app_id.empty()) return "";
-  errno = 0;
 #if FIREBASE_PLATFORM_WINDOWS
-  std::ifstream infile(Utf8Utf16Converter("", L"").from_bytes(config_path),
-                       std::ios::binary);
+  std::optional<std::wstring> wide_path = Utf8ToWide(config_path);
+  if (!wide_path.has_value()) {
+    firebase::LogWarning(
+        "[FirebaseAppCheck] Failed to convert config path to UTF-16: %s.",
+        config_path.c_str());
+    return "";
+  }
+  errno = 0;
+  std::unique_ptr<std::FILE, FileCloser> file(
+      _wfopen(wide_path->c_str(), L"rb"));
 #else
-  std::ifstream infile(config_path.c_str(), std::ios::binary);
+  errno = 0;
+  std::unique_ptr<std::FILE, FileCloser> file(
+      std::fopen(config_path.c_str(), "rb"));
 #endif  // FIREBASE_PLATFORM_WINDOWS
-  if (!infile.is_open()) {
+  if (!file) {
+    const int open_errno = errno;
     // ENOENT (file not created yet) stays silent so apps not using the CLI
     // flow do not log errors; other I/O failures are surfaced.
-    if (errno != 0 && errno != ENOENT) {
+    if (open_errno != 0 && open_errno != ENOENT) {
       firebase::LogWarning("[FirebaseAppCheck] Failed to open %s (errno=%d).",
-                           config_path.c_str(), errno);
+                           config_path.c_str(), open_errno);
     }
     return "";
   }
-  std::string json_str((std::istreambuf_iterator<char>(infile)),
-                       std::istreambuf_iterator<char>());
+
+  // Cap reads so a corrupted or unexpected file cannot exhaust memory.
+  constexpr size_t kMaxConfigBytes = 1024 * 1024;
+  std::string json_str;
+  char buffer[4096];
+  while (true) {
+    const size_t bytes_read = std::fread(buffer, 1, sizeof(buffer), file.get());
+    if (bytes_read > 0) {
+      if (json_str.size() + bytes_read > kMaxConfigBytes) {
+        firebase::LogWarning(
+            "[FirebaseAppCheck] Config file %s exceeds %zu bytes.",
+            config_path.c_str(), kMaxConfigBytes);
+        return "";
+      }
+      json_str.append(buffer, bytes_read);
+    }
+    if (bytes_read < sizeof(buffer)) {
+      if (std::ferror(file.get()) != 0) {
+        firebase::LogWarning("[FirebaseAppCheck] Failed to read %s.",
+                             config_path.c_str());
+        return "";
+      }
+      break;
+    }
+  }
   size_t start = json_str.find_first_not_of(" \t\r\n");
   if (start == std::string::npos) return "";
 
@@ -163,12 +242,10 @@ namespace {
 //   3. Local configstore (~/.config/configstore/firebase-appcheck.json)
 //   4. Auto-generated UUID
 std::string ResolveDebugToken(App* app, const std::string& explicit_token) {
-#if defined(NDEBUG)
   firebase::LogWarning(
-      "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use in a "
-      "Release build (NDEBUG defined). Debug tokens are for development "
-      "only; prefer a production provider where one is available.");
-#endif  // defined(NDEBUG)
+      "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
+      "are for development only; prefer a production provider where one is "
+      "available.");
 
   // 1. Explicit token passed in from SetDebugToken() at provider creation.
   if (!explicit_token.empty()) {

@@ -178,8 +178,13 @@ class DebugProviderDesktopTest : public ::testing::Test {
 };
 
 TEST_F(DebugProviderDesktopTest, ResolutionPriorityOrder) {
-  // 4. Default fallback: auto-generated 36-char UUID.
+  // 4. Default fallback: auto-generated 36-char UUID, plus unconditional
+  // development-only warning.
   EXPECT_EQ(DebugAppCheckProvider(app_, "").debug_token().size(), 36u);
+  EXPECT_TRUE(LogContains(
+      "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
+      "are for development only; prefer a production provider where one is "
+      "available."));
 
   // 3. Configstore in HOME (~/.config/configstore/firebase-appcheck.json).
   WriteHomeConfigstore(std::string("{\"tokens\":{\"") + kTestAppId +
@@ -232,6 +237,11 @@ TEST_F(DebugProviderDesktopTest, ResolveDebugTokenFromConfigEdgeCases) {
                 (temp_dir_ / "nonexistent.json").string(), kTestAppId),
             "");
   EXPECT_FALSE(LogContains("[FirebaseAppCheck]")) << logs_;
+
+  // Non-ENOENT I/O failure (e.g. opening/reading a directory) logs a warning.
+  ClearLogs();
+  EXPECT_EQ(ResolveDebugTokenFromConfig(temp_dir_.string(), kTestAppId), "");
+  EXPECT_TRUE(LogContains("[FirebaseAppCheck]")) << logs_;
 
   // File exists but lacks the target app ID -> diagnostic info log.
   std::string path =
