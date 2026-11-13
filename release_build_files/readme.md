@@ -84,7 +84,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:35.1.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:35.2.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -219,45 +219,45 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics (13.1.1)
+|                          | Firebase/Analytics (13.2.0)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck (13.1.1)
+|                          | Firebase/AppCheck (13.2.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Auth (13.2.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Firestore (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Functions (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Installations (13.1.1)
+|                          | Firebase/Installations (13.2.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging (13.1.1)
+|                          | Firebase/Messaging (13.2.0)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Database (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig (13.1.1)
+|                          | Firebase/RemoteConfig (13.2.0)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Storage (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 User Messaging Platform    | firebase_ump.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/CoreOnly (13.1.1)
+|                          | Firebase/CoreOnly (13.2.0)
 |                          | GoogleUserMessagingPlatform (3.1.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
@@ -278,45 +278,45 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics (13.1.1)
+|                          | Firebase/Analytics (13.2.0)
 Firebase App Check         | firebase_app_check.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/AppCheck (13.1.1)
+|                          | Firebase/AppCheck (13.2.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Auth (13.2.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Firestore (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Functions (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | Firebase/Installations (13.1.1)
+|                          | Firebase/Installations (13.2.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/Messaging (13.1.1)
+|                          | Firebase/Messaging (13.2.0)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Database (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig (13.1.1)
+|                          | Firebase/RemoteConfig (13.2.0)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage (13.1.1)
-|                          | Firebase/Auth (13.1.1)
+|                          | Firebase/Storage (13.2.0)
+|                          | Firebase/Auth (13.2.0)
 User Messaging Platform    | libfirebase_ump.a
 |                          | libfirebase_app.a
-|                          | Firebase/CoreOnly (13.1.1)
+|                          | Firebase/CoreOnly (13.2.0)
 |                          | GoogleUserMessagingPlatform (3.1.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
