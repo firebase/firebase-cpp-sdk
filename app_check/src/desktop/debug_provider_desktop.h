@@ -15,14 +15,47 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 
+#include <functional>
 #include <map>
 #include <string>
 
+#include "app/src/scheduler.h"
 #include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
+
+// Reads and parses the local configstore JSON file at `config_path` and
+// returns the debug token for `app_id`, or an empty string if not found or
+// invalid.
+std::string ResolveDebugTokenFromConfig(const std::string& config_path,
+                                        const std::string& app_id);
+
+class DebugAppCheckProvider : public AppCheckProvider {
+ public:
+  DebugAppCheckProvider(App* app, const std::string& token);
+  ~DebugAppCheckProvider() override;
+
+  void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
+                    completion_callback) override;
+
+  void GetLimitedUseToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) override;
+
+  const std::string& debug_token() const { return debug_token_; }
+
+ private:
+  void GetTokenInternal(
+      bool limited_use,
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback);
+
+  App* app_;
+  scheduler::Scheduler scheduler_;
+  const std::string debug_token_;
+};
 
 class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
