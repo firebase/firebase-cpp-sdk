@@ -130,13 +130,7 @@ target_compile_definitions(firebase_analytics
     -DINTERNAL_EXPERIMENTAL=1
 )
 
-# Reject static/global C++ objects with non-trivial destructors so SDK state
-# cannot be destroyed before user-owned static Firebase objects at process exit.
-# Restricted to CXX so C (`analytics_desktop_dynamic.c`) and Swift sources do
-# not receive a C++-only warning flag.
-target_compile_options(
-    firebase_analytics PRIVATE
-    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=exit-time-destructors>)
+firebase_cpp_reject_exit_time_destructors(firebase_analytics)
 
 
 

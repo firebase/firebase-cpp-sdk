@@ -184,11 +184,7 @@ target_compile_definitions(firebase_auth
     -DINTERNAL_EXPERIMENTAL=1
 )
 
-# Reject static/global C++ objects with non-trivial destructors so SDK state
-# cannot be destroyed before user-owned static Firebase objects at process exit.
-target_compile_options(
-    firebase_auth PRIVATE
-    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=exit-time-destructors>)
+firebase_cpp_reject_exit_time_destructors(firebase_auth)
 
 if(ANDROID)
   firebase_cpp_proguard_file(auth)

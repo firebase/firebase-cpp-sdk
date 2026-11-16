@@ -338,11 +338,7 @@ else()
   target_compile_options(firebase_app PRIVATE -fno-exceptions)
 endif()
 
-# Reject static/global C++ objects with non-trivial destructors so SDK state
-# cannot be destroyed before user-owned static Firebase objects at process exit.
-target_compile_options(
-    firebase_app PRIVATE
-    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=exit-time-destructors>)
+firebase_cpp_reject_exit_time_destructors(firebase_app)
 
 target_include_directories(firebase_app
   PUBLIC

@@ -414,11 +414,11 @@ target_compile_definitions(firebase_firestore
   PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC -DPB_NO_PACKED_STRUCTS
 )
 
-# Reject static/global C++ objects with non-trivial destructors so SDK state
-# cannot be destroyed before user-owned static Firebase objects at process exit.
-target_compile_options(
-    firebase_firestore PRIVATE
-    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang,AppleClang>>:-Werror=exit-time-destructors>)
+# firebase_cpp_reject_exit_time_destructors() is not applied here. Firestore
+# sources include firebase-ios-sdk headers that declare function-local
+# statics with destructors (Firestore/core/src/api/stages.h,
+# Firestore/core/src/model/field_index.h), which Clang reports in every
+# translation unit that includes them.
 
 if(ANDROID)
   firebase_cpp_proguard_file(firestore)
