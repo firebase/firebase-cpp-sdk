@@ -27,6 +27,12 @@ namespace internal {
 // Wraps an instance of T in inline aligned storage whose destructor is never
 // called.
 //
+// Use only for function-local statics. NoDestructor never destroys T, so an
+// automatic variable or data member of this type leaks whatever T owns. This
+// cannot be enforced at compile time: rejecting trivially destructible T would
+// break NoDestructor<std::mutex>, which is trivially destructible on some
+// standard libraries and not on others.
+//
 // Intended for function-local statics that must outlive process teardown, such
 // as global registries, mutexes, and loggers accessed when user-owned static
 // Firebase objects run their destructors during exit():
@@ -52,13 +58,19 @@ template <typename T>
 class NoDestructor {
  public:
   // Constructs the wrapped T in place, forwarding any arguments.
-  // Disabled when decaying a single argument yields NoDestructor itself so
+  // Participates in overload resolution only when T is constructible from the
+  // arguments, so NoDestructor<T> is not implicitly convertible from argument
+  // lists T itself rejects. Without this, GCC 10 treats a braced list such as
+  // `{1, 2}` as a candidate for the deleted copy constructor too and reports
+  // an ambiguity.
+  // Also disabled when decaying a single argument yields NoDestructor itself so
   // non-const lvalue copy attempts hit the deleted copy constructor instead of
   // forwarding into T's constructors (for example, firebase::Variant).
   template <typename... Args,
             typename std::enable_if<
-                !std::is_same<void(typename std::decay<Args>::type&...),
-                              void(NoDestructor&)>::value,
+                std::is_constructible<T, Args&&...>::value &&
+                    !std::is_same<void(typename std::decay<Args>::type&...),
+                                  void(NoDestructor&)>::value,
                 int>::type = 0>
   explicit NoDestructor(Args&&... args) {
     new (storage_) T(std::forward<Args>(args)...);
