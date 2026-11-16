@@ -49,6 +49,8 @@ const bool RemoteConfigInternal::kDefaultValueForBool = false;
 
 static const char* kFilePathSuffix = "remote_config_data";
 
+static bool g_initialization_fails_for_testing = false;
+
 template <typename T>
 struct RCDataHandle {
   RCDataHandle(
@@ -101,10 +103,14 @@ RemoteConfigInternal::~RemoteConfigInternal() {
 void RemoteConfigInternal::InternalInit() {
   file_manager_.Load(&configs_);
   AsyncSaveToFile();
-  initialized_ = true;
+  initialized_ = !g_initialization_fails_for_testing;
 }
 
 bool RemoteConfigInternal::Initialized() const { return initialized_; }
+
+void RemoteConfigInternal::SetInitializationFailsForTesting(bool fails) {
+  g_initialization_fails_for_testing = fails;
+}
 
 void RemoteConfigInternal::Cleanup() {
   // Do nothing.

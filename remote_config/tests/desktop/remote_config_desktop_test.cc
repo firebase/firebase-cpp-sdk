@@ -25,6 +25,7 @@
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
 #include "remote_config/src/desktop/metadata.h"
+#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {
@@ -594,6 +595,51 @@ TEST_F(RemoteConfigDesktopTest, SetCustomSignalsPersistence) {
   EXPECT_EQ(loaded_signals.size(), 2);
   EXPECT_EQ(loaded_signals.at("persisted_key"), Variant("persisted_val"));
   EXPECT_EQ(loaded_signals.at("persisted_num"), Variant(999));
+}
+
+TEST(RemoteConfigInstanceTest,
+     DestroyAppBeforeRemoteConfigClearsCachedInstance) {
+  App* app = testing::CreateApp();
+  ASSERT_NE(app, nullptr);
+  RemoteConfig* remote_config1 = RemoteConfig::GetInstance(app);
+  ASSERT_NE(remote_config1, nullptr);
+
+  // Deleting the App first cleans up remote_config1 and removes it from the
+  // per-App map, so a recreated App gets a new RemoteConfig.
+  delete app;
+  app = testing::CreateApp();
+  ASSERT_NE(app, nullptr);
+  RemoteConfig* remote_config2 = RemoteConfig::GetInstance(app);
+  ASSERT_NE(remote_config2, nullptr);
+  EXPECT_NE(remote_config2, remote_config1);
+
+  // Deleting the already cleaned-up remote_config1 must not evict
+  // remote_config2, even if the allocator reused the App's address.
+  delete remote_config1;
+  EXPECT_EQ(RemoteConfig::GetInstance(app), remote_config2);
+
+  delete remote_config2;
+  delete app;
+}
+
+TEST(RemoteConfigInstanceTest, GetInstanceReturnsNullWhenInitializationFails) {
+  App* app = testing::CreateApp();
+  ASSERT_NE(app, nullptr);
+
+  RemoteConfigInternal::SetInitializationFailsForTesting(true);
+  // GetInstance() also has to delete the instance it could not initialize;
+  // only a leak checker can see that part.
+  RemoteConfig* failed_remote_config = RemoteConfig::GetInstance(app);
+  RemoteConfigInternal::SetInitializationFailsForTesting(false);
+  EXPECT_EQ(failed_remote_config, nullptr);
+
+  // The instance that failed to initialize must not be cached for the App.
+  RemoteConfig* remote_config = RemoteConfig::GetInstance(app);
+  ASSERT_NE(remote_config, nullptr);
+  EXPECT_EQ(RemoteConfig::GetInstance(app), remote_config);
+
+  delete remote_config;
+  delete app;
 }
 
 }  // namespace internal

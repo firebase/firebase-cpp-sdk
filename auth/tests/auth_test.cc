@@ -149,6 +149,31 @@ TEST_F(AuthTest, TestAuthCreation) {
   delete firebase_app;
 }
 
+TEST_F(AuthTest, TestAuthIsRecreatedAfterDeletion) {
+  // Deleting an Auth removes its own entry, and only its own entry, from the
+  // App-to-Auth map.
+  firebase_app_ = testing::CreateApp();
+  Auth* deleted_auth = Auth::GetAuth(firebase_app_);
+  ASSERT_NE(nullptr, deleted_auth);
+
+  App* other_app = testing::CreateApp(testing::MockAppOptions(), "other_app");
+  ASSERT_NE(nullptr, other_app);
+  Auth* other_auth = Auth::GetAuth(other_app);
+  ASSERT_NE(nullptr, other_auth);
+
+  delete deleted_auth;
+  EXPECT_EQ(other_auth, Auth::GetAuth(other_app));
+
+  // A stale map entry would hand back the deleted Auth here, which TearDown()
+  // would then delete a second time.
+  firebase_auth_ = Auth::GetAuth(firebase_app_);
+  ASSERT_NE(nullptr, firebase_auth_);
+  EXPECT_EQ(firebase_app_, &firebase_auth_->app());
+
+  delete other_auth;
+  delete other_app;
+}
+
 // Creates and destroys multiple auth objects to ensure destruction doesn't
 // result in data races due to callbacks from the Java layer.
 TEST_F(AuthTest, TestAuthCreateDestroy) {

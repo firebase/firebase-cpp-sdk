@@ -33,6 +33,7 @@
 #include "app/src/time.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "installations/src/include/firebase/installations.h"
+#include "installations/src/installations_internal.h"
 // [END installations_includes]
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
@@ -46,6 +47,7 @@
 #include "testing/ticker.h"
 
 using testing::Eq;
+using testing::IsNull;
 using testing::NotNull;
 
 namespace firebase {
@@ -173,6 +175,25 @@ TEST_F(InstallationsTest, DestroyAppBeforeInstallationsClearsCachedInstance) {
 
   delete installations2;
 }
+
+#if FIREBASE_PLATFORM_DESKTOP && !defined(FIREBASE_ANDROID_FOR_DESKTOP)
+// Only the desktop implementation can be told to fail initialization.
+TEST_F(InstallationsTest, GetInstanceReturnsNullWhenInitializationFails) {
+  internal::InstallationsInternal::SetInitializationFailsForTesting(true);
+  // GetInstance() also has to delete the instance it could not initialize;
+  // only a leak checker can see that part.
+  Installations* failed_installations =
+      Installations::GetInstance(firebase_app_);
+  internal::InstallationsInternal::SetInitializationFailsForTesting(false);
+  EXPECT_THAT(failed_installations, IsNull());
+
+  // The instance that failed to initialize must not be cached for the App.
+  Installations* installations = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations, NotNull());
+  CheckSuccessWithValue(installations->GetId(), std::string("FakeId"));
+  delete installations;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP && !defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
 }  // namespace installations
 }  // namespace firebase
