@@ -19,6 +19,7 @@
 
 #include "app/src/app_common.h"
 #include "app/src/embedded_file.h"
+#include "app/src/log.h"
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/debug_provider.h"
@@ -103,6 +104,11 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     App* app) {
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
                                  kMethodsNotCachedError);
+
+  firebase::LogWarning(
+      "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
+      "are for development only; prefer a production provider where one is "
+      "available.");
 
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);

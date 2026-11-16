@@ -19,6 +19,7 @@
 #import "FIRAppCheckDebugProvider.h"
 #import "FIRAppCheckDebugProviderFactory.h"
 
+#include "app/src/log.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
 #include "app_check/src/ios/util_ios.h"
@@ -92,6 +93,9 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 }
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
+  firebase::LogWarning("[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
+                       "are for development only; prefer a production provider where one is "
+                       "available.");
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
   if (it != created_providers_.end()) {
