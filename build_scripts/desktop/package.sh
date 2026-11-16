@@ -220,8 +220,6 @@ readonly deps_hidden_firebase_app="
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 readonly deps_hidden_firebase_database="
-*/${subdir}${prefix}uv_a.${ext}
-*/${subdir}${prefix}libuWS.${ext}
 "
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
@@ -375,17 +373,33 @@ for product in ${product_list[*]}; do
 	echo "rm -f ${deps[*]}" >>  "${merge_libraries_tmp}/merge_${product}.sh"
     fi
     chmod u+x "${merge_libraries_tmp}/merge_${product}.sh"
-    if [[ ${run_in_parallel} -eq 0 ]]; then
-      # Run immediately if not set to run in parallel.
-      "${merge_libraries_tmp}/merge_${product}.sh"
-    else
+    if [[ ${run_in_parallel} -ne 0 ]]; then
       echo "echo \"${libfile_out}\" DONE" >> "${merge_libraries_tmp}/merge_${product}.sh"
     fi
 done
 
-if [[ ${run_in_parallel} -ne 0 ]]; then
-  # Analytics is the smallest SDK, so it should be the shortest job.
+if [[ ${run_in_parallel} -eq 0 ]]; then
+  # Run sequentially only after all merge_${product}.sh scripts are generated so
+  # `find . -path ${dep}` above resolves shared hidden deps (e.g. libcurl.a in
+  # deps_hidden_firebase_app) before merge_app.sh deletes them under -D. The
+  # first script to run populates ${cache_file} from --scan_libs="${allfiles}".
+  for product in ${product_list[*]}; do
+    if [[ -x "${merge_libraries_tmp}/merge_${product}.sh" ]]; then
+      "${merge_libraries_tmp}/merge_${product}.sh"
+    fi
+  done
+else
+  # Analytics is the smallest SDK, so it should be the shortest job; fall back
+  # to the first built product if analytics was excluded from the CMake build.
   shortest=analytics
+  if [[ ! -x "${merge_libraries_tmp}/merge_${shortest}.sh" ]]; then
+    for product in ${product_list[*]}; do
+      if [[ -x "${merge_libraries_tmp}/merge_${product}.sh" ]]; then
+        shortest="${product}"
+        break
+      fi
+    done
+  fi
   echo "There are ${#product_list[@]} jobs to run."
   echo "Running shortest job to populate cache, then remaining jobs in parallel..."
   "${merge_libraries_tmp}/merge_${shortest}.sh"

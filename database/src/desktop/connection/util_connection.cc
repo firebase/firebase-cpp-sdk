@@ -27,7 +27,6 @@ std::unique_ptr<WebSocketClientInterface> CreateWebSocketClient(
     const HostInfo& info, WebSocketClientEventHandler* delegate,
     const char* opt_last_session_id, Logger* logger,
     scheduler::Scheduler* scheduler, const std::string& app_check_token) {
-  // Currently we use uWebSockets implementation.
   std::string uri = info.GetConnectionUrl(opt_last_session_id);
   return std::make_unique<WebSocketClientImpl>(
       uri, info.user_agent(), logger, scheduler, app_check_token, delegate);

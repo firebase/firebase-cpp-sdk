@@ -157,11 +157,9 @@ Currently, the third party libraries that can be provided this way are:
 
 | Library |
 | ------- |
-| CURL |
+| CURL (8.14.0 or newer, built with WebSocket support) |
 | FLATBUFFERS |
-| LIBUV |
 | NANOPB |
-| UWEBSOCKETS |
 | ZLIB |
 
 #### Building with CMake for iOS

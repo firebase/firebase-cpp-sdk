@@ -36,9 +36,6 @@
 namespace firebase {
 namespace auth {
 
-// No static_assert available without C++11, unfortunately.
-#define AUTH_STATIC_ASSERT(x) typedef char AUTH_STATIC_ASSERT_FAILED[(x) ? 1 : -1]
-
 OBJ_C_PTR_WRAPPER(FIRAuth);
 OBJ_C_PTR_WRAPPER(FIRAuthCredential);
 OBJ_C_PTR_WRAPPER(FIRPhoneAuthCredential);

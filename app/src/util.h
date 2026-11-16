@@ -55,9 +55,7 @@ namespace firebase {
 #else  // !FIREBASE_PLATFORM_ANDROID
 // No-ops on other platforms. Consume the variables to prevent warnings.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(x) \
-  {                                                                \
-    (void)(x);                                                     \
-  }
+  { (void)(x); }
 #define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(x, y) \
   {                                                                \
     (void)(x);                                                     \

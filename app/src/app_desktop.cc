@@ -158,9 +158,7 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
   }
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
   LogDebug("Validating semaphore creation.");
-  {
-    firebase::Semaphore sem_test(0);
-  }
+  { firebase::Semaphore sem_test(0); }
 
   AppOptions options_with_defaults = options;
   if (options_with_defaults.PopulateRequiredWithDefaults()) {

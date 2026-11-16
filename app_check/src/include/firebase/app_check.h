@@ -53,8 +53,9 @@ struct AppCheckToken {
   /// A Firebase App Check token.
   std::string token;
 
-  /// The time at which the token will expire in milliseconds since epoch.
-  int64_t expire_time_millis;
+  /// The time at which the token will expire in milliseconds since epoch, or 0
+  /// if the expiration time is unknown.
+  int64_t expire_time_millis = 0;
 };
 
 /// @brief Base class used to receive messages when AppCheck token changes.
@@ -63,6 +64,10 @@ class AppCheckListener {
   virtual ~AppCheckListener() = 0;
   /// This method gets invoked on the UI thread on changes to the token state.
   /// Does not trigger on token expiry.
+  ///
+  /// @note On iOS and tvOS, token.expire_time_millis is derived from the
+  /// token's JWT `exp` claim, and is 0 if the token is not a JWT with a valid
+  /// `exp` claim.
   virtual void OnAppCheckTokenChanged(const AppCheckToken& token) = 0;
 };
 

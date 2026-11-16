@@ -26,6 +26,8 @@ enable_language(CXX)
 set(rest_SRCS
     controller_curl.cc
     controller_interface.cc
+    curl/curl_handles.cc
+    curl/tls_policy.cc
     gzipheader.cc
     request.cc
     request_binary_gzip.cc
@@ -78,8 +80,12 @@ target_compile_definitions(firebase_rest_lib
 
 set(FIREBASE_CURL_DEPENDENCY libcurl)
 if (MSVC)
-  # libcurl on Windows depends on internal Windows SSL via its crypt32 library.
-  set(FIREBASE_CURL_DEPENDENCY ${FIREBASE_CURL_DEPENDENCY} crypt32)
+  # libcurl on Windows (Schannel/SSPI) depends on these Windows SDK libraries:
+  # crypt32 (certificate store), bcrypt (BCryptGenRandom), iphlpapi
+  # (if_nametoindex) and secur32 (InitSecurityInterface). These are also
+  # pulled in via #pragma comment(lib) in curl_handles.cc and transport_curl.cc
+  # for consumers of the merged firebase_app.lib.
+  set(FIREBASE_CURL_DEPENDENCY ${FIREBASE_CURL_DEPENDENCY} crypt32 bcrypt iphlpapi secur32)
 endif()
 
 # firebase_rest_lib has a dependency on flatbuffers, which needs to be included.
@@ -137,7 +143,9 @@ if(FIREBASE_CPP_BUILD_TESTS)
 endif()
 
 cpp_pack_library(firebase_rest_lib "deps/app")
-cpp_pack_library(libcurl "deps/app/external")
+# libcurl is an ALIAS of libcurl_static, and install(TARGETS) used by
+# cpp_pack_library does not accept ALIAS targets, so pack the real target.
+cpp_pack_library(libcurl_static "deps/app/external")
 cpp_pack_library(zlibstatic "deps/app/external")
 cpp_pack_library_file(${OPENSSL_SSL_LIBRARY} "deps/app/external")
 cpp_pack_library_file(${OPENSSL_CRYPTO_LIBRARY} "deps/app/external")

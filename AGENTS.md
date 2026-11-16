@@ -117,10 +117,12 @@ build for iOS, and have the user inform you of any build issues that come up.
 
 Common system library dependencies for desktop:
 *   **Windows**: Common dependencies include `advapi32.lib`, `ws2_32.lib`,
-    `crypt32.lib`. Specific products might need others (e.g., Firestore:
-    `rpcrt4.lib`, `ole32.lib`, `shell32.lib`).
+    `crypt32.lib`, `bcrypt.lib`, `iphlpapi.lib`, `secur32.lib`. Specific
+    products might need others (e.g., Firestore: `rpcrt4.lib`, `ole32.lib`,
+    `shell32.lib`).
 *   **macOS**: Common dependencies include `pthread` (system library) and
-    frameworks like `CoreFoundation`, `Foundation`, and `Security`.
+    frameworks like `CoreFoundation`, `Foundation`, `Security`, and
+    `SystemConfiguration`.
 *   **Linux**: Common dependencies include `pthread` (system library). When
     using GCC 5+, define `-D_GLIBCXX_USE_CXX11_ABI=0`.
 

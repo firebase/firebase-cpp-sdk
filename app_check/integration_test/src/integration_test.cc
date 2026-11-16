@@ -590,6 +590,21 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
+  EXPECT_GT(token_changed_listener.last_token_.expire_time_millis, 0);
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // On iOS and tvOS the listener's expiration comes from the token's JWT `exp`
+  // claim (server clock), while GetAppCheckToken's is the local request time
+  // plus the token's TTL, so the two differ by clock skew and request latency.
+  const std::chrono::milliseconds kExpireTimeTolerance =
+      std::chrono::minutes(5);
+  EXPECT_NEAR(token_changed_listener.last_token_.expire_time_millis,
+              token.expire_time_millis, kExpireTimeTolerance.count());
+#else
+  // On other platforms the listener and GetAppCheckToken receive the same
+  // token, so the expirations must be identical.
+  EXPECT_EQ(token_changed_listener.last_token_.expire_time_millis,
+            token.expire_time_millis);
+#endif
 }
 
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {

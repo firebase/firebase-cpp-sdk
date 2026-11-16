@@ -18,13 +18,15 @@ if(TARGET curl OR NOT DOWNLOAD_CURL)
   return()
 endif()
 
-set(version 7_73_0)
+set(version 8_23_0)
 
 ExternalProject_Add(
   curl
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+  DOWNLOAD_NAME curl-${version}.tar.gz
   URL https://github.com/curl/curl/archive/curl-${version}.tar.gz
+  URL_HASH SHA256=d0605d5883124ef5ae64c6d2b307e1417c482b362583b57491fdf37d9a99a792
 
   PREFIX ${PROJECT_BINARY_DIR}
 

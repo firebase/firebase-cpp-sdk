@@ -21,6 +21,7 @@
 #include <cctype>
 #include <string>
 
+#include "app/rest/curl/curl_handles.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/no_destructor.h"
 #include "app/src/variant_util.h"
@@ -55,14 +56,25 @@ static ::firebase::Mutex& UtilCurlMutex() {
 CURL* g_curl_instance = nullptr;
 int g_init_ref_count = 0;
 
+// Returns an opaque void* (matching TransportCurl::curl_ in transport_curl.h)
+// so public/internal headers that include util.h do not need <curl/curl.h> in
+// their include path.
 void* CreateCurlPtr() {  // NOLINT
   MutexLock lock(UtilCurlMutex());
-  return curl_easy_init();
+  curl::AcquireCurlGlobal();
+  CURL* curl = curl_easy_init();
+  if (curl == nullptr) {
+    curl::ReleaseCurlGlobal();
+  }
+  return curl;
 }
 
 void DestroyCurlPtr(void* curl_ptr) {
   MutexLock lock(UtilCurlMutex());
-  curl_easy_cleanup(static_cast<CURL*>(curl_ptr));
+  if (curl_ptr != nullptr) {
+    curl_easy_cleanup(static_cast<CURL*>(curl_ptr));
+    curl::ReleaseCurlGlobal();
+  }
 }
 
 void Initialize() {

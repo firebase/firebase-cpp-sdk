@@ -95,7 +95,9 @@ LogLevel Logger::GetLogLevel() const { return log_level_; }
 
 void Logger::LogMessageImplV(LogLevel log_level, const char* format,
                              va_list args) const {
-  parent_logger_->LogMessageV(log_level, format, args);
+  if (parent_logger_ != nullptr) {
+    parent_logger_->LogMessageV(log_level, format, args);
+  }
 }
 
 }  // namespace firebase

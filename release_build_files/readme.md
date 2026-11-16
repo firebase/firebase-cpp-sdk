@@ -410,9 +410,9 @@ User Messaging Platform (stub)  | libfirebase_ump.a
 
 The provided libraries have been tested using Xcode 26.4. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
-system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
-`Security` OS X system frameworks (consult your compiler documentation for more
-information).
+system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`,
+`Security`, and `SystemConfiguration` OS X system frameworks (consult your
+compiler documentation for more information).
 
 #### Windows libraries
 
@@ -457,13 +457,13 @@ information):
 
 Firebase C++ Library | Windows SDK library dependencies
 -------------------- | -----------------------------------------------------
-Authentication       | `advapi32, ws2_32, crypt32`
-App Check            | `advapi32, ws2_32, crypt32`
-Firestore            | `advapi32, ws2_32, crypt32, rpcrt4, ole32, shell32, dbghelp, bcrypt`
-Functions            | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
-Realtime Database    | `advapi32, ws2_32, crypt32, iphlpapi, psapi, userenv, shell32`
-Remote Config        | `advapi32, ws2_32, crypt32, rpcrt4, ole32, icu`
-Storage              | `advapi32, ws2_32, crypt32`
+Authentication       | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
+App Check            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
+Firestore            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, shell32, dbghelp`
+Functions            | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32`
+Realtime Database    | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, shell32`
+Remote Config        | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32, rpcrt4, ole32, icu`
+Storage              | `advapi32, ws2_32, crypt32, bcrypt, iphlpapi, secur32`
 
 ## Getting Started
 
@@ -621,6 +621,38 @@ code.
       `UMP`) is owned by a static object (for example a static
       `std::unique_ptr`) and destroyed after the SDK's own globals.
       ([#110](https://github.com/firebase/firebase-cpp-sdk/issues/110))
+    - App Check: Default-initialized `AppCheckToken::expire_time_millis` to `0`
+      and populated it from the JWT `exp` claim in iOS token change
+      notifications, fixing an `ArgumentOutOfRangeException` crash on iOS when
+      listening to `TokenChanged` in Unity.
+    - General (Desktop): Updated the bundled libcurl from 7.73.0 to 8.23.0.
+      Windows apps linking the desktop libraries must now also link the
+      `bcrypt`, `iphlpapi`, and `secur32` Windows SDK libraries, and macOS apps
+      must now also link the `SystemConfiguration` framework. Builds that
+      supply their own libcurl via `CURL_SOURCE_DIR` require libcurl 8.14.0 or
+      newer built with WebSocket support.
+    - Database (Desktop): Replaced the uWebSockets/libuv WebSocket transport
+      with libcurl's WebSocket implementation, driven by one lightweight
+      event-driven thread per connection. Windows apps no longer need to link
+      `psapi` or `userenv` for the Realtime Database. Realtime Database
+      connections now honor the same proxy environment variables
+      (`https_proxy`, `all_proxy`, `no_proxy`, ...) as the REST transport.
+    - General (Desktop): REST and WebSocket connections now share one TLS
+      policy: peer and hostname verification are always on, TLS 1.2 is the
+      minimum version, and certificates are validated against the OS trust
+      store (Schannel on Windows, the keychain on macOS) or the distribution's
+      CA bundle on Linux. The same policy applies to the TLS connection to an
+      HTTPS proxy, if one is configured.
+    - General (Linux Desktop): Fixed TLS connections failing with
+      `CURLE_SSL_CACERT_BADFILE` on distributions whose CA bundle lives at a
+      different path than on the machine the SDK was built on (for example
+      RHEL, Fedora, or openSUSE). The CA bundle and directory are now located
+      at runtime; the `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, and `SSL_CERT_DIR`
+      environment variables are honored if set before the first request
+      (they are ignored in setuid/setgid processes).
+    - Database (Desktop): Fixed writes being silently dropped, and the
+      following request corrupted, when the serialized request was an exact
+      multiple of 16384 bytes long.
     - General (Linux Desktop): Fixed a potential 1-byte buffer underflow and file
       descriptor leak when reading `/etc/timezone` in `GetTimezone()`.
     - Database, Functions, Storage (Android): Fixed a crash in `GetInstance()`

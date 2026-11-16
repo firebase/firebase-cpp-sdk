@@ -274,11 +274,12 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_DistantDescendantChange) {
 
   // Set up some dummy data.
   CacheNode initial_cache(Variant(std::map<Variant, Variant>{std::make_pair(
-                              "aaa", std::map<Variant, Variant>{std::make_pair(
-                                         "bbb",
-                                         std::map<Variant, Variant>{
-                                             std::make_pair("ccc", 1000),
-                                         })})}),
+                              "aaa",
+                              std::map<Variant, Variant>{std::make_pair(
+                                  "bbb",
+                                  std::map<Variant, Variant>{
+                                      std::make_pair("ccc", 1000),
+                                  })})}),
                           true, false);
   ViewCache old_view_cache(initial_cache, initial_cache);
 
@@ -299,11 +300,12 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_DistantDescendantChange) {
 
   // Both caches are expected to be the same.
   CacheNode expected_cache(Variant(std::map<Variant, Variant>{std::make_pair(
-                               "aaa", std::map<Variant, Variant>{std::make_pair(
-                                          "bbb",
-                                          std::map<Variant, Variant>{
-                                              std::make_pair("ccc", -9999),
-                                          })})}),
+                               "aaa",
+                               std::map<Variant, Variant>{std::make_pair(
+                                   "bbb",
+                                   std::map<Variant, Variant>{
+                                       std::make_pair("ccc", -9999),
+                                   })})}),
                            true, false);
   ViewCache expected_view_cache(expected_cache, expected_cache);
 

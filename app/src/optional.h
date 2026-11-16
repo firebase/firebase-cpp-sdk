@@ -52,7 +52,7 @@ class Optional {
   // Optional using its copy constructor.
   Optional(const Optional& other) : has_value_(other.has_value()) {
     if (other.has_value()) {
-      new (aligned_buffer()) value_type(other.value());
+      new (buffer_) value_type(other.value());
     }
   }
 
@@ -67,12 +67,11 @@ class Optional {
     return *this;
   }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
   // Move contructor. If the other Optional has a value, it is moved into this
   // Optional using its move constructor.
   Optional(Optional&& other) noexcept : has_value_(other.has_value_) {
     if (has_value()) {
-      new (aligned_buffer()) value_type(std::move(other.value()));
+      new (buffer_) value_type(std::move(other.value()));
       other.reset();
     }
   }
@@ -80,19 +79,20 @@ class Optional {
   // Move assignment. If the other Optional has a value, it is move constructed
   // or move assigned into this Optional.
   Optional& operator=(Optional&& other) noexcept {
-    if (other.has_value()) {
-      *this = std::move(other.value());
-    } else {
-      reset();
+    if (this != &other) {
+      if (other.has_value()) {
+        *this = std::move(other.value());
+      } else {
+        reset();
+      }
+      other.reset();
     }
-    other.reset();
     return *this;
   }
-#endif  // FIREBASE_USE_MOVE_OPERATORS
 
   // Initialize this Optional with the given value.
   explicit Optional(const value_type& initial_value) : has_value_(true) {
-    new (aligned_buffer()) value_type(initial_value);
+    new (buffer_) value_type(initial_value);
   }
 
   // Set value directly via copy constructor.
@@ -100,16 +100,15 @@ class Optional {
     if (has_value()) {
       value() = other;
     } else {
-      new (aligned_buffer()) value_type(other);
+      new (buffer_) value_type(other);
     }
     has_value_ = true;
     return *this;
   }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
   // Move construction with a given value.
   explicit Optional(value_type&& initial_value) : has_value_(true) {
-    new (aligned_buffer()) value_type(std::move(initial_value));
+    new (buffer_) value_type(std::move(initial_value));
   }
 
   // Set value directly via move constructor.
@@ -117,12 +116,11 @@ class Optional {
     if (has_value()) {
       value() = std::move(other);
     } else {
-      new (aligned_buffer()) value_type(std::move(other));
+      new (buffer_) value_type(std::move(other));
     }
     has_value_ = true;
     return *this;
   }
-#endif  // FIREBASE_USE_MOVE_OPERATORS
 
   ~Optional() { reset(); }
 
@@ -171,22 +169,11 @@ class Optional {
 
  private:
   const T* aligned_buffer() const {
-    return reinterpret_cast<const T*>(&buffer_);
+    return std::launder(reinterpret_cast<const T*>(buffer_));
   }
-  T* aligned_buffer() { return reinterpret_cast<T*>(&buffer_); }
+  T* aligned_buffer() { return std::launder(reinterpret_cast<T*>(buffer_)); }
 
-  // Older versions of Visual Studio (2013 and prior) do not have support
-  // for alignof, but do have __alignof, so map it to use that if necessary.
-#if (defined(_MSC_VER) && _MSC_VER <= 1800)
-#define FIREBASE_ALIGNOF __alignof
-#else
-#define FIREBASE_ALIGNOF alignof
-#endif  // (defined(_MSC_VER) && _MSC_VER <= 1800)
-
-  typename FIREBASE_ALIGNED_STORAGE<sizeof(T), FIREBASE_ALIGNOF(T)>::type
-      buffer_;
-
-#undef FIREBASE_ALIGNOF
+  alignas(T) unsigned char buffer_[sizeof(T)];
 
   bool has_value_;
 };

@@ -198,7 +198,6 @@ Future<DataSnapshot> DatabaseReference::RunTransaction(
                    : Future<DataSnapshot>();
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
 static TransactionResult CallStdFunction(MutableData* data,
                                          void* function_void) {
   if (function_void) {
@@ -226,21 +225,6 @@ Future<DataSnapshot> DatabaseReference::RunTransaction(
   return internal_->RunTransaction(CallStdFunction, function_void,
                                    DeleteStdFunction, trigger_local_events);
 }
-#else
-TransactionResult CallFunctionPtrWithNoArgs(MutableData* data, void* fn_void) {
-  DoTransaction fn = reinterpret_cast<DoTransaction>(fn_void);
-  return fn(data);
-}
-
-Future<DataSnapshot> DatabaseReference::RunTransaction(
-    DoTransaction transaction_function, bool trigger_local_events) {
-  return internal_ ? internal_->RunTransaction(
-                         CallFunctionPtrWithNoArgs,
-                         reinterpret_cast<void*>(transaction_function), nullptr,
-                         trigger_local_events)
-                   : Future<DataSnapshot>();
-}
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 Future<DataSnapshot> DatabaseReference::RunTransactionLastResult() {
   return internal_ ? internal_->RunTransactionLastResult()

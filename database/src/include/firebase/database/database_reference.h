@@ -229,44 +229,12 @@ class DatabaseReference : public Query {
   /// @note Only one RunTransaction() should be running on a given database
   /// location at the same time.
   ///
-  /// @note This version (that accepts an std::function) is not available when
-  /// using stlport on Android. If you don't wish to use std::function, use the
-  /// overloaded method that accepts a simple function pointer with a context.
+  /// @note If you don't wish to use std::function, use the overloaded method
+  /// that accepts a simple function pointer with a context.
   Future<DataSnapshot> RunTransaction(
       DoTransactionFunction transaction_function,
       bool trigger_local_events = true);
 #endif  //  defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-  /// @brief Run a user-supplied callback function, possibly multiple times, to
-  /// perform an atomic transaction on the database.
-  ///
-  /// @see firebase::database::DoTransaction for more information.
-  ///
-  /// @param[in] transaction_function The user-supplied function that will be
-  /// called, possibly multiple times, to perform the database transaction.
-  /// @param[in] trigger_local_events If true, events will be triggered for
-  /// intermediate state changes during the transaction. If false, only the
-  /// final state will cause events to be triggered.
-  ///
-  /// @returns A Future result, which will complete when the transaction either
-  /// succeeds or fails. When the Future is completed, if its Error is
-  /// kErrorNone, the operation succeeded and the transaction was committed, and
-  /// the new value of the data will be returned in the DataSnapshot result. If
-  /// the Error is kErrorTransactionAbortedByUser, the transaction was aborted
-  /// because the transaction function returned kTransactionResultAbort, and the
-  /// old value will be returned in DataSnapshot. Otherwise, if some other error
-  /// occurred, Error and ErrorMessage will be set and DataSnapshot will be
-  /// invalid.
-  ///
-  /// @note Only one RunTransaction() should be running on a given database
-  /// location at the same time.
-  ///
-  /// @note This version (that accepts a simple function pointer) is only
-  /// available when using stlport and std::function is not available.
-  Future<DataSnapshot> RunTransaction(DoTransaction transaction_function,
-                                      bool trigger_local_events = true);
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /// @brief Get the result of the most recent call to RunTransaction().
   ///

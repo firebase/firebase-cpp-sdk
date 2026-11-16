@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,26 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include(ExternalProject)
-
-if(TARGET libuv OR NOT DOWNLOAD_LIBUV)
-  return()
-endif()
-
-set(version v1.33.1)
-
-ExternalProject_Add(
-  libuv
-
-  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME libuv-${version}.tar.gz
-  URL https://github.com/libuv/libuv/archive/${version}.tar.gz
-
-  PREFIX ${PROJECT_BINARY_DIR}
-
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-  TEST_COMMAND ""
-  HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
+firebase_cpp_cc_test(
+  firebase_app_check_jwt_util_test
+  SOURCES
+    jwt_util_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_app_check
+    firebase_testing
 )

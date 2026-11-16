@@ -112,18 +112,8 @@ JNIEnv* MetadataInternal::GetJNIEnv() {
 // in which case this function will return nullptr).
 static std::map<std::string, std::string>* CreateMapCopy(
     const std::map<std::string, std::string>* src) {
-  std::map<std::string, std::string>* dest = nullptr;
-  if (src != nullptr) {
-    dest = new std::map<std::string, std::string>;
-#if defined(_STLPORT_VERSION)
-    for (auto i = src->begin(); i != src->end(); ++i) {
-      dest->insert(*i);
-    }
-#else
-    *dest = *src;
-#endif  // defined(_STLPORT_VERSION)
-  }
-  return dest;
+  return src != nullptr ? new std::map<std::string, std::string>(*src)
+                        : nullptr;
 }
 
 MetadataInternal::MetadataInternal(const MetadataInternal& src)

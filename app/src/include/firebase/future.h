@@ -253,9 +253,6 @@ class FutureBase {
 #endif
   ///
   /// @param[in] callback Function or lambda to call.
-  ///
-  /// @note This method is not available when using STLPort on Android, as
-  /// `std::function` is not supported on STLPort.
   void OnCompletion(std::function<void(const FutureBase&)> callback) const;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
@@ -292,9 +289,6 @@ class FutureBase {
   ///
   /// @param[in] callback Function or lambda to call.
   /// @return A handle that can be passed to RemoveOnCompletion.
-  ///
-  /// @note This method is not available when using STLPort on Android, as
-  /// `std::function` is not supported on STLPort.
   CompletionCallbackHandle AddOnCompletion(
       std::function<void(const FutureBase&)> callback) const;
 
@@ -473,9 +467,6 @@ class Future : public FutureBase {
   ///
   /// @param[in] callback Function or lambda to call.
   ///
-  /// @note This method is not available when using STLPort on Android, as
-  /// `std::function` is not supported on STLPort.
-  ///
   /// @note This is the same callback as FutureBase::OnCompletion(), so you
   /// can't expect to set both and have both run; again, only the most recently
   /// registered one will run.
@@ -516,9 +507,6 @@ class Future : public FutureBase {
   ///
   /// @param[in] callback Function or lambda to call.
   /// @return A handle that can be passed to RemoveOnCompletion.
-  ///
-  /// @note This method is not available when using STLPort on Android, as
-  /// `std::function` is not supported on STLPort.
   inline CompletionCallbackHandle AddOnCompletion(
       std::function<void(const Future<ResultType>&)> callback) const;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)

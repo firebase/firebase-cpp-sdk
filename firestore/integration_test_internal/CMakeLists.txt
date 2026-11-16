@@ -376,7 +376,7 @@ else()
       "-framework SystemConfiguration"
     )
   elseif(MSVC)
-    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32)
+    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32 bcrypt iphlpapi secur32)
   else()
     set(ADDITIONAL_LIBS pthread)
   endif()

@@ -177,7 +177,7 @@ class DatabaseInternal {
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
 
-  bool persistence_enabled_;
+  bool persistence_enabled_ = false;
 
   // The logger for this instance of the database.
   Logger logger_;

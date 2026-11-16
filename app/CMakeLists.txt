@@ -123,7 +123,6 @@ set(common_SRCS
     src/reference_counted_future_impl.cc
     src/scheduler.cc
     src/thread_cpp11.cc
-    src/thread_pthread.cc
     src/time.cc
     src/secure/user_secure_manager.cc
     src/util.cc

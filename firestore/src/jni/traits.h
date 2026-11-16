@@ -202,11 +202,7 @@ T RankedToJni(T value, ConverterChoice<3>) {
   return value;
 }
 
-#if defined(_STLPORT_VERSION)
-using nullptr_t = decltype(nullptr);
-#else
 using nullptr_t = std::nullptr_t;
-#endif
 
 inline jobject RankedToJni(nullptr_t, ConverterChoice<2>) { return nullptr; }
 

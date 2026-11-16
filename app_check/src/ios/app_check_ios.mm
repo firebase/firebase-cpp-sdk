@@ -24,6 +24,7 @@
 #include "app/src/app_ios.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/common/common.h"
+#include "app_check/src/common/jwt_util.h"
 #include "app_check/src/ios/util_ios.h"
 #include "firebase/app_check.h"
 
@@ -140,11 +141,8 @@ NSMutableArray* listeners_;
   NSDictionary* userInfo = notification.userInfo;
   NSString* app_name = (NSString*)userInfo[kFIRAppCheckAppNameNotificationKey];
   NSString* token = (NSString*)userInfo[kFIRAppCheckTokenNotificationKey];
-  // TODO(b/263138261): Include expiration time in this app check token.
-  // Note: The notification contains a token string, but does not currently
-  // contain expiration time.
-  firebase::app_check::AppCheckToken cpp_token;
-  cpp_token.token = firebase::util::NSStringToString(token);
+  firebase::app_check::AppCheckToken cpp_token =
+      firebase::app_check::internal::AppCheckTokenFromJwt(firebase::util::NSStringToString(token));
 
   for (NSValue* listener_value in listeners_) {
     firebase::app_check::AppCheckListener* listener =

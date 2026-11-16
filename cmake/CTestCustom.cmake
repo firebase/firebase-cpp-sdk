@@ -15,9 +15,6 @@
 # Define the tests that need to be ignored.
 set(CTEST_CUSTOM_TESTS_IGNORE
     ${CTEST_CUSTOM_TESTS_IGNORE}
-    # Tests from libuv, that can't be disabled normally.
-    uv_test
-    uv_test_a
     # Tests from zlib, that can't be disabled normally.
     example
     example64
