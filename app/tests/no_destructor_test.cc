@@ -87,7 +87,8 @@ static_assert(
     "NoDestructor<T> must forward arguments T accepts.");
 
 TEST(NoDestructorTest, ForwardsConstructorArguments) {
-  NoDestructor<std::string> str("hello");
+  // Static: std::string allocates here with the legacy libstdc++ ABI.
+  static NoDestructor<std::string> str("hello");
   EXPECT_EQ(*str, "hello");
   EXPECT_EQ(str->size(), 5u);
   EXPECT_EQ(str.get(), &*str);
@@ -139,7 +140,7 @@ TEST(NoDestructorTest, PreservesOverAlignedStorage) {
 }
 
 TEST(NoDestructorTest, ConstAccess) {
-  const NoDestructor<std::string> str("const");
+  static const NoDestructor<std::string> str("const");
   EXPECT_EQ(*str, "const");
   EXPECT_EQ(str->size(), 5u);
   EXPECT_EQ(str.get(), &*str);
