@@ -170,10 +170,23 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
   jobject installations_instance_local = env->CallStaticObjectMethod(
       installations_class,
       installations::GetMethodId(installations::kGetInstance), platform_app);
+  env->DeleteLocalRef(platform_app);
+  if (util::CheckAndClearJniExceptions(env)) {
+    installations_instance_local = nullptr;
+  }
   FIREBASE_ASSERT(installations_instance_local);
+  if (!installations_instance_local) {
+    // FIREBASE_ASSERT() does not abort when the application installed its own
+    // log callback. Initialized() is false from here on, so Cleanup() is never
+    // called for this instance: drop the reference taken above.
+    if (lock.RemoveReference() == 1) {
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
+    return;
+  }
   internal_obj_ = env->NewGlobalRef(installations_instance_local);
   env->DeleteLocalRef(installations_instance_local);
-  env->DeleteLocalRef(platform_app);
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 

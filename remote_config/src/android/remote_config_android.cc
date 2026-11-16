@@ -715,6 +715,16 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   env->DeleteLocalRef(platform_app);
   if (util::CheckAndClearJniExceptions(env)) config_instance_local = nullptr;
   FIREBASE_ASSERT(config_instance_local);
+  if (!config_instance_local) {
+    // FIREBASE_ASSERT() does not abort when the application installed its own
+    // log callback. Initialized() is false from here on, so Cleanup() is never
+    // called for this instance: drop the reference taken above.
+    if (lock.RemoveReference() == 1) {
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
+    return;
+  }
   internal_obj_ = env->NewGlobalRef(config_instance_local);
   env->DeleteLocalRef(config_instance_local);
   LogDebug("%s API Initialized", kApiIdentifier);
