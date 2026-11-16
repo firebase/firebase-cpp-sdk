@@ -147,10 +147,9 @@ class AppCallback {
   }
 
   // Adds a callback during FIREBASE_APP_REGISTER_CALLBACKS static
-  // initialization. Intentionally leaves CallbacksMutex() unlocked because
-  // registration runs during single-threaded dynamic initialization before
-  // main() and avoids constructing platform Mutex primitives in early static
-  // constructors on platforms with restricted pre-main runtime state.
+  // initialization. Not synchronized: registration runs during single-threaded
+  // dynamic initialization, before any thread can call the notification
+  // functions.
   static void AddCallback(AppCallback* callback);
 
  private:
