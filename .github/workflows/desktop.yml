@@ -13,6 +13,8 @@ on:
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   GITHUB_TOKEN: ${{ github.token }}
+  # Fail Clang builds on SDK statics that need an exit-time destructor.
+  FIREBASE_CPP_WERROR_EXIT_TIME_DESTRUCTORS: 1
 
 permissions:
   contents: read
@@ -227,6 +229,13 @@ jobs:
           find build -name "*.dylib"
           find build -name "*.a"
           find build -name "*.so"
+
+      # Linux builds use GCC, which has no -Wexit-time-destructors.
+      - name: Check firebase libraries for exit-time destructors (linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          python scripts/gha/check_exit_time_destructors.py build/
 
       - name: Inspect firebase libraries for cpu arch and msvc runtime.
         shell: bash

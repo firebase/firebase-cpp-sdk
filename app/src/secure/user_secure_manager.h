@@ -76,8 +76,6 @@ class UserSecureManager {
   static void CreateScheduler();
   static void DestroyScheduler();
 
-  // Guards static scheduler pointer
-  static Mutex* s_scheduler_mutex_;
   static scheduler::Scheduler* s_scheduler_;
   static int32_t s_scheduler_ref_count_;
 

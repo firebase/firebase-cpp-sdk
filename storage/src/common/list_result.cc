@@ -14,6 +14,7 @@
 
 #include "firebase/storage/list_result.h"
 
+#include "app/src/no_destructor.h"
 #include "list_result_internal.h"
 
 namespace firebase {
@@ -59,18 +60,18 @@ StorageListResult& StorageListResult::operator=(StorageListResult&& other) {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 const std::vector<StorageReference>& StorageListResult::prefixes() const {
-  static const std::vector<StorageReference> empty_vector;
-  return internal_ ? internal_->prefixes_ : empty_vector;
+  static const NoDestructor<std::vector<StorageReference>> empty_vector;
+  return internal_ ? internal_->prefixes_ : *empty_vector;
 }
 
 const std::vector<StorageReference>& StorageListResult::items() const {
-  static const std::vector<StorageReference> empty_vector;
-  return internal_ ? internal_->items_ : empty_vector;
+  static const NoDestructor<std::vector<StorageReference>> empty_vector;
+  return internal_ ? internal_->items_ : *empty_vector;
 }
 
 const std::string& StorageListResult::next_page_token() const {
-  static const std::string empty_string;
-  return internal_ ? internal_->next_page_token_ : empty_string;
+  static const NoDestructor<std::string> empty_string;
+  return internal_ ? internal_->next_page_token_ : *empty_string;
 }
 
 bool StorageListResult::is_valid() const { return internal_ != nullptr; }

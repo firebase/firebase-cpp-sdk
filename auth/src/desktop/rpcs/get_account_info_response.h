@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include "app/src/no_destructor.h"
 #include "auth/src/desktop/rpcs/auth_response.h"
 #include "auth/src/desktop/visual_studio_compatibility.h"
 
@@ -92,9 +93,10 @@ class GetAccountInfoResponse : public AuthResponse {
     if (!application_data_->users.empty()) {
       return application_data_->users[0]->providerUserInfo;
     }
-    static std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>
+    static const NoDestructor<
+        std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>>
         fallback;
-    return fallback;
+    return *fallback;
   }
 };
 

@@ -41,7 +41,8 @@ IndexedVariant RangedFilter::UpdateChild(
     const Variant& new_child, const Path& affected_path,
     const CompleteChildSource* source,
     ChildChangeAccumulator* opt_change_accumulator) const {
-  const Variant& variant = Matches(key, new_child) ? new_child : kNullVariant;
+  const Variant& variant =
+      Matches(key, new_child) ? new_child : GetNullVariant();
   return indexed_filter_->UpdateChild(indexed_variant, key, variant,
                                       affected_path, source,
                                       opt_change_accumulator);

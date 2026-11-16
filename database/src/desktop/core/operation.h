@@ -56,8 +56,8 @@ struct OperationSource {
 
   static OperationSource ForServerTaggedQuery(const QueryParams& params);
 
-  static const OperationSource kUser;
-  static const OperationSource kServer;
+  static const OperationSource& User();
+  static const OperationSource& Server();
 };
 
 enum AckStatus {

@@ -28,6 +28,7 @@
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/scheduler.h"
 #include "app/src/uuid.h"
 #include "app_check/src/desktop/debug_token_request.h"
@@ -135,12 +136,12 @@ void DebugAppCheckProvider::GetTokenInternal(
     bool limited_use,
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
-  static std::mutex token_mutex;
+  static NoDestructor<std::mutex> token_mutex;
   static bool logged_token = false;
   std::string message_to_log;
 
   {
-    std::lock_guard<std::mutex> lock(token_mutex);
+    std::lock_guard<std::mutex> lock(*token_mutex);
     if (debug_token_.empty()) {
       if (const char* env_token = std::getenv("APP_CHECK_DEBUG_TOKEN")) {
         debug_token_ = env_token;

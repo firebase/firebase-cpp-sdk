@@ -21,14 +21,22 @@ namespace installations {
 
 namespace internal {
 
+static bool g_initialization_fails_for_testing = false;
+
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {}
+    : app_(app),
+      initialized_(!g_initialization_fails_for_testing),
+      future_impl_(kInstallationsFnCount) {}
 
 InstallationsInternal::~InstallationsInternal() {}
 
 void InstallationsInternal::LogHeartbeat(const firebase::App& app) {}
 
-bool InstallationsInternal::Initialized() const { return true; }
+bool InstallationsInternal::Initialized() const { return initialized_; }
+
+void InstallationsInternal::SetInitializationFailsForTesting(bool fails) {
+  g_initialization_fails_for_testing = fails;
+}
 
 void InstallationsInternal::Cleanup() {}
 

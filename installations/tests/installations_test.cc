@@ -33,6 +33,7 @@
 #include "app/src/time.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "installations/src/include/firebase/installations.h"
+#include "installations/src/installations_internal.h"
 // [END installations_includes]
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
@@ -46,6 +47,7 @@
 #include "testing/ticker.h"
 
 using testing::Eq;
+using testing::IsNull;
 using testing::NotNull;
 
 namespace firebase {
@@ -143,6 +145,55 @@ TEST_F(InstallationsTest, GetTokenForceRefresh) {
   CheckSuccessWithValue(installations->GetTokenLastResult(), expected_value);
   delete installations;
 }
+
+TEST_F(InstallationsTest, DestroyAppBeforeInstallationsClearsCachedInstance) {
+  Installations* installations1 = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations1, NotNull());
+  CheckSuccessWithValue(installations1->GetId(), std::string("FakeId"));
+
+  // Deleting the App first runs CleanupNotifier -> DeleteInternal(), which
+  // tears down installations_internal_ and removes the entry from the per-App
+  // map so a recreated App cannot observe a gutted Installations shell.
+  delete firebase_app_;
+  firebase_app_ = nullptr;
+  EXPECT_EQ(installations1->GetId().status(), kFutureStatusInvalid);
+
+  firebase_app_ = testing::CreateApp();
+  ASSERT_THAT(firebase_app_, NotNull());
+
+  Installations* installations2 = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations2, NotNull());
+  EXPECT_NE(installations2, installations1);
+  CheckSuccessWithValue(installations2->GetId(), std::string("FakeId"));
+
+  // Deleting the already-cleaned-up installations1 (for example from a
+  // late-running static std::unique_ptr destructor) must be a no-op and must
+  // not evict installations2 even if the allocator reused the App* address.
+  delete installations1;
+  EXPECT_EQ(Installations::GetInstance(firebase_app_), installations2);
+  CheckSuccessWithValue(installations2->GetId(), std::string("FakeId"));
+
+  delete installations2;
+}
+
+#if FIREBASE_PLATFORM_DESKTOP && !defined(FIREBASE_ANDROID_FOR_DESKTOP)
+// Only the desktop implementation can be told to fail initialization.
+TEST_F(InstallationsTest, GetInstanceReturnsNullWhenInitializationFails) {
+  internal::InstallationsInternal::SetInitializationFailsForTesting(true);
+  // GetInstance() also has to delete the instance it could not initialize;
+  // only a leak checker can see that part.
+  Installations* failed_installations =
+      Installations::GetInstance(firebase_app_);
+  internal::InstallationsInternal::SetInitializationFailsForTesting(false);
+  EXPECT_THAT(failed_installations, IsNull());
+
+  // The instance that failed to initialize must not be cached for the App.
+  Installations* installations = Installations::GetInstance(firebase_app_);
+  ASSERT_THAT(installations, NotNull());
+  CheckSuccessWithValue(installations->GetId(), std::string("FakeId"));
+  delete installations;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP && !defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
 }  // namespace installations
 }  // namespace firebase

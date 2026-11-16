@@ -130,6 +130,8 @@ target_compile_definitions(firebase_analytics
     -DINTERNAL_EXPERIMENTAL=1
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_analytics)
+
 
 
 if(ANDROID)

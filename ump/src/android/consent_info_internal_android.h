@@ -48,7 +48,7 @@ bool RegisterNatives();
 void ReleaseClasses(JNIEnv* env);
 
 namespace internal {
-extern ::firebase::Mutex g_cached_ump_embedded_files_mutex;
+::firebase::Mutex& CachedUmpEmbeddedFilesMutex();
 extern std::vector<::firebase::internal::EmbeddedFile>*
     g_cached_ump_embedded_files;
 
@@ -136,7 +136,6 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   const EnumCache& enums() { return enums_; }
 
   static ConsentInfoInternalAndroid* s_instance;
-  static firebase::Mutex s_instance_mutex;
 
   EnumCache enums_;
 

@@ -26,6 +26,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/intrusive_list.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 
 // Set this to 1 to enable verbose logging in this module.
 #if !defined(FIREBASE_FUTURE_TRACE_ENABLE)
@@ -47,9 +48,10 @@ static_assert(sizeof(FutureBase) == sizeof(Future<int>),
 typedef void DataDeleteFn(void* data_to_delete);
 typedef std::pair<FutureHandleId, FutureBackingData*> BackingPair;
 
-// NOLINTNEXTLINE
-const FutureHandle ReferenceCountedFutureImpl::kInvalidHandle(
-    kInvalidFutureHandle);
+const FutureHandle& ReferenceCountedFutureImpl::InvalidHandle() {
+  static const NoDestructor<FutureHandle> invalid_handle(kInvalidFutureHandle);
+  return *invalid_handle;
+}
 
 namespace {
 
@@ -74,7 +76,7 @@ class FutureProxyManager {
     MutexLock lock(mutex_);
     for (FutureHandle& h : clients_) {
       api_->ForceReleaseFuture(h);
-      h = ReferenceCountedFutureImpl::kInvalidHandle;
+      h = ReferenceCountedFutureImpl::InvalidHandle();
     }
     clients_.clear();
   }
@@ -110,7 +112,7 @@ class FutureProxyManager {
     MutexLock lock(mutex_);
     for (FutureHandle& h : clients_) {
       if (h == handle) {
-        h = ReferenceCountedFutureImpl::kInvalidHandle;
+        h = ReferenceCountedFutureImpl::InvalidHandle();
         // Release one reference. This can delete subject_, which in turn will
         // delete `this`, as the subject owns the proxy. This is expected and
         // fine; as long as we don't do anything after the ReleaseFuture call.
@@ -123,7 +125,7 @@ class FutureProxyManager {
   void CompleteClients(int error, const char* error_msg) {
     MutexLock lock(mutex_);
     for (const FutureHandle& h : clients_) {
-      if (h != ReferenceCountedFutureImpl::kInvalidHandle) {
+      if (h != ReferenceCountedFutureImpl::InvalidHandle()) {
         api_->Complete(h, error, error_msg);
       }
     }

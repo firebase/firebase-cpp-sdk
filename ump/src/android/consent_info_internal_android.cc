@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "app/src/assert.h"
+#include "app/src/no_destructor.h"
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
 #include "firebase/internal/common.h"
@@ -33,9 +34,16 @@ namespace ump {
 namespace internal {
 
 ConsentInfoInternalAndroid* ConsentInfoInternalAndroid::s_instance = nullptr;
-firebase::Mutex ConsentInfoInternalAndroid::s_instance_mutex;
 
-::firebase::Mutex g_cached_ump_embedded_files_mutex;
+static firebase::Mutex& InstanceMutex() {
+  static NoDestructor<firebase::Mutex> instance_mutex;
+  return *instance_mutex;
+}
+
+::firebase::Mutex& CachedUmpEmbeddedFilesMutex() {
+  static NoDestructor<::firebase::Mutex> cached_ump_embedded_files_mutex;
+  return *cached_ump_embedded_files_mutex;
+}
 std::vector<::firebase::internal::EmbeddedFile>* g_cached_ump_embedded_files =
     nullptr;
 
@@ -161,7 +169,7 @@ ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
   env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
                                    consent_info_helper::kDisconnect));
 
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   s_instance = nullptr;
 
   env->DeleteGlobalRef(helper_);
@@ -230,7 +238,7 @@ void ConsentInfoInternalAndroid::CacheEnumValues(JNIEnv* env) {
 void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(
     JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_internal_ptr,
     jlong future_handle, jint error_code, jobject error_message_obj) {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   if (consent_info_internal_ptr == 0 || s_instance == nullptr) {
     // Calling this with a null pointer, or if there is no active
     // instance, is a no-op, so just return.
@@ -259,7 +267,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
       activity_(nullptr),
       helper_(nullptr),
       has_requested_consent_info_update_(false) {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   FIREBASE_ASSERT(s_instance == nullptr);
   s_instance = this;
 
@@ -268,8 +276,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
 
   // Ensure we only load these files once.
   {
-    MutexLock lock(
-        ::firebase::ump::internal::g_cached_ump_embedded_files_mutex);
+    MutexLock lock(::firebase::ump::internal::CachedUmpEmbeddedFilesMutex());
     if (::firebase::ump::internal::g_cached_ump_embedded_files == nullptr) {
       ::firebase::ump::internal::g_cached_ump_embedded_files =
           new std::vector<firebase::internal::EmbeddedFile>();

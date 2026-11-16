@@ -140,6 +140,8 @@ target_compile_definitions(firebase_remote_config
     -DINTERNAL_EXPERIMENTAL=1
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_remote_config)
+
 if(ANDROID)
   firebase_cpp_proguard_file(remote_config)
 elseif(IOS)

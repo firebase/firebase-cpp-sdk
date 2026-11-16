@@ -21,6 +21,7 @@
 
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 
@@ -182,14 +183,18 @@ class CallbackDispatcher {
 };
 
 static CallbackDispatcher* g_callback_dispatcher = nullptr;
-// Mutex that controls access to g_callback_dispatcher and g_callback_ref_count.
-static Mutex* g_callback_mutex = new Mutex();
 static int g_callback_ref_count = 0;
 static Thread::Id g_callback_thread_id;
 static bool g_callback_thread_id_initialized = false;
 
+// Mutex that controls access to g_callback_dispatcher and g_callback_ref_count.
+static Mutex& CallbackMutex() {
+  static NoDestructor<Mutex> callback_mutex;
+  return *callback_mutex;
+}
+
 void Initialize() {
-  MutexLock lock(*g_callback_mutex);
+  MutexLock lock(CallbackMutex());
   if (g_callback_ref_count == 0) {
     g_callback_dispatcher = new CallbackDispatcher();
   }
@@ -198,7 +203,7 @@ void Initialize() {
 
 // Add a reference to the module if it's already initialized.
 static bool InitializeIfInitialized() {
-  MutexLock lock(*g_callback_mutex);
+  MutexLock lock(CallbackMutex());
   if (IsInitialized()) {
     Initialize();
     return true;
@@ -213,7 +218,7 @@ bool IsInitialized() { return g_callback_ref_count > 0; }
 static void Terminate(int number_of_references_to_remove) {
   CallbackDispatcher* dispatcher_to_destroy = nullptr;
   {
-    MutexLock lock(*g_callback_mutex);
+    MutexLock lock(CallbackMutex());
     if (!g_callback_ref_count) {
       LogWarning("Callback module already shut down");
       return;
@@ -235,13 +240,13 @@ static void Terminate(int number_of_references_to_remove) {
 }
 
 void Terminate(bool flush_all) {
-  MutexLock lock(*g_callback_mutex);
+  MutexLock lock(CallbackMutex());
   int ref_count = 1;
   // g_callback_ref_count is used to track the number of current references to
   // g_callback_dispatcher so we need to decrement the reference count by just
-  // the outstanding number of items in the queue.  In particular,
-  // PollDispatcher() could be executing at this point since g_callback_mutex
-  // isn't held by the ref count is > 0 for the duration of the function.
+  // the outstanding number of items in the queue. In particular,
+  // PollCallbacks() could be executing at this point since CallbackMutex()
+  // isn't held while dispatching, though ref_count > 0 for the duration.
   if (flush_all && g_callback_dispatcher) {
     ref_count += g_callback_dispatcher->FlushCallbacks();
   }
@@ -249,7 +254,7 @@ void Terminate(bool flush_all) {
 }
 
 void* AddCallback(Callback* callback) {
-  MutexLock lock(*g_callback_mutex);
+  MutexLock lock(CallbackMutex());
   Initialize();
   return g_callback_dispatcher->AddCallback(callback);
 }

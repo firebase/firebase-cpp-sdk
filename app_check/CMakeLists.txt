@@ -165,6 +165,8 @@ target_compile_definitions(firebase_app_check
     -DINTERNAL_EXPERIMENTAL=1
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_app_check)
+
 if(ANDROID)
   firebase_cpp_proguard_file(app_check)
 elseif(IOS)

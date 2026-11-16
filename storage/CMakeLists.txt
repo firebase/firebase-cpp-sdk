@@ -111,6 +111,8 @@ target_compile_definitions(firebase_storage
     ${additional_DEFINES}
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_storage)
+
 if(ANDROID)
   firebase_cpp_proguard_file(storage)
 elseif(IOS)

@@ -16,8 +16,6 @@
 
 #include <dlfcn.h>
 
-#include <iostream>
-
 #include "app/src/log.h"
 #include "app/src/secure/user_secure_data_handle.h"
 

@@ -16,12 +16,14 @@
 
 #include "firestore/src/common/util.h"
 
+#include "app/src/no_destructor.h"
+
 namespace firebase {
 namespace firestore {
 
 const std::string& EmptyString() {
-  static const std::string kEmptyString;
-  return kEmptyString;
+  static const NoDestructor<std::string> empty_string;
+  return *empty_string;
 }
 
 }  // namespace firestore

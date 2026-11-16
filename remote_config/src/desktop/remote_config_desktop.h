@@ -146,6 +146,11 @@ class RemoteConfigInternal {
   static Variant StringToVariant(const std::string& from);
 
   bool Initialized() const;
+
+  // Makes instances constructed from now on report Initialized() == false, so
+  // that tests can reach the failed-initialization path of
+  // RemoteConfig::GetInstance(), which no desktop build takes otherwise.
+  static void SetInitializationFailsForTesting(bool fails);
   void Cleanup();
 
   // When this is deleted, it will clean up all ListenerRegistrations.

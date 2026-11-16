@@ -48,8 +48,15 @@ class InstallationsInternal {
 
   void Cleanup();
 
+  // Makes instances constructed from now on report Initialized() == false, so
+  // that tests can reach the failed-initialization path of
+  // Installations::GetInstance(), which no desktop build takes otherwise.
+  static void SetInitializationFailsForTesting(bool fails);
+
  private:
   const firebase::App& app_;  // NOLINT
+
+  const bool initialized_;
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;

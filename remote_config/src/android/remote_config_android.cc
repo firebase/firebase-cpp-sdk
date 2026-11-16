@@ -25,6 +25,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/time.h"
 #include "app/src/util.h"
@@ -254,7 +255,10 @@ static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
     kValueSourceRemoteValue,   // FirebaseRemoteConfig.VALUE_SOURCE_REMOTE (2)
 };
 
-ReferenceCount RemoteConfigInternal::initializer_;  // NOLINT
+static ReferenceCount& Initializer() {
+  static NoDestructor<ReferenceCount> initializer;
+  return *initializer;
+}
 
 static bool CacheJNIMethodIds(
     JNIEnv* env, jobject activity,
@@ -672,8 +676,8 @@ struct ConfigUpdateListenerWrapper {
 };
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
-    : app_(app), future_impl_(kRemoteConfigFnCount) {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+    : app_(app), future_impl_(kRemoteConfigFnCount), internal_obj_(nullptr) {
+  ReferenceCountLock<ReferenceCount> lock(&Initializer());
   LogDebug("Firebase RemoteConfig API Initializing");
   static const char* kApiIdentifier = "Remote Config";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
@@ -711,6 +715,16 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   env->DeleteLocalRef(platform_app);
   if (util::CheckAndClearJniExceptions(env)) config_instance_local = nullptr;
   FIREBASE_ASSERT(config_instance_local);
+  if (!config_instance_local) {
+    // FIREBASE_ASSERT() does not abort when the application installed its own
+    // log callback. Initialized() is false from here on, so Cleanup() is never
+    // called for this instance: drop the reference taken above.
+    if (lock.RemoveReference() == 1) {
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
+    return;
+  }
   internal_obj_ = env->NewGlobalRef(config_instance_local);
   env->DeleteLocalRef(config_instance_local);
   LogDebug("%s API Initialized", kApiIdentifier);
@@ -731,7 +745,7 @@ bool RemoteConfigInternal::Initialized() const {
 }
 
 void RemoteConfigInternal::Cleanup() {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+  ReferenceCountLock<ReferenceCount> lock(&Initializer());
   if (lock.RemoveReference() == 1) {
     JNIEnv* env = app_.GetJNIEnv();
     ReleaseClasses(env);

@@ -27,6 +27,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_ios.h"
 
@@ -357,44 +358,39 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
   }
 }
 
-// Guards g_partial_apps.
-static Mutex* g_partial_apps_mutex = new Mutex();
-// Stores partially initialized apps, indexed by app name
-static std::map<std::string, App*>* g_partial_apps;
+using PartialAppMap = std::map<std::string, App*>;
+
+// Guards PartialApps().
+static Mutex& PartialAppsMutex() {
+  static NoDestructor<Mutex> partial_apps_mutex;
+  return *partial_apps_mutex;
+}
+
+// Stores partially initialized apps, indexed by app name.
+static PartialAppMap& PartialApps() {
+  static NoDestructor<PartialAppMap> partial_apps;
+  return *partial_apps;
+}
 
 App* FindPartialAppByName(const char* name) {
   assert(name);
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(name));
-    if (it == g_partial_apps->end()) {
-      return nullptr;
-    }
-    return it->second;
+  MutexLock lock(PartialAppsMutex());
+  auto& partial_apps = PartialApps();
+  auto it = partial_apps.find(std::string(name));
+  if (it == partial_apps.end()) {
+    return nullptr;
   }
-  return nullptr;
+  return it->second;
 }
 
 void AddPartialApp(App* app) {
-  MutexLock lock(*g_partial_apps_mutex);
-  if (!g_partial_apps) {
-    g_partial_apps = new std::map<std::string, App*>();
-  }
-  (*g_partial_apps)[std::string(app->name())] = app;
+  MutexLock lock(PartialAppsMutex());
+  PartialApps()[std::string(app->name())] = app;
 }
 
 void RemovePartialApp(App* app) {
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(app->name()));
-    if (it != g_partial_apps->end()) {
-      g_partial_apps->erase(it);
-      if (g_partial_apps->empty()) {
-        delete g_partial_apps;
-        g_partial_apps = nullptr;
-      }
-    }
-  }
+  MutexLock lock(PartialAppsMutex());
+  PartialApps().erase(std::string(app->name()));
 }
 
 }  // namespace internal

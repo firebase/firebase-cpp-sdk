@@ -79,6 +79,17 @@ option(FIREBASE_USE_LINUX_CXX11_ABI
 option(FIREBASE_GITHUB_ACTION_BUILD
        "Indicates that this build was created from a GitHub Action" OFF)
 
+# Defaults to the environment variable of the same name, which the CI
+# workflows set, so the check reaches CMake however it is launched (build
+# scripts, Gradle, Xcode). See cmake/exit_time_destructors.cmake.
+set(firebase_werror_exit_time_destructors_default OFF)
+if("$ENV{FIREBASE_CPP_WERROR_EXIT_TIME_DESTRUCTORS}")
+  set(firebase_werror_exit_time_destructors_default ON)
+endif()
+option(FIREBASE_CPP_WERROR_EXIT_TIME_DESTRUCTORS
+       "Treat exit-time destructors in SDK libraries as errors (Clang only)."
+       ${firebase_werror_exit_time_destructors_default})
+
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
@@ -116,6 +127,7 @@ endif()
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
 include(cpp_pack)
+include(exit_time_destructors)
 
 if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   enable_testing()

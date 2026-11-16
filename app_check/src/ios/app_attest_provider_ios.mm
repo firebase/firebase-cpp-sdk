@@ -99,8 +99,11 @@ AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
 }  // namespace internal
 
 AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
-  static AppAttestProviderFactory g_app_attest_provider_factory;
-  return &g_app_attest_provider_factory;
+  // Heap-allocated function-local singleton (AppAttestProviderFactory has a
+  // private constructor) so the factory is never destroyed during exit() while
+  // AppCheckInternal still references it or its created providers.
+  static AppAttestProviderFactory* g_app_attest_provider_factory = new AppAttestProviderFactory();
+  return g_app_attest_provider_factory;
 }
 
 AppAttestProviderFactory::AppAttestProviderFactory()

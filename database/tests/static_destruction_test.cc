@@ -1,0 +1,80 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// A Database owned by a static object is destroyed during exit(), after main()
+// has returned, and must still be able to remove itself from the SDK's
+// registry of Database instances. See
+// https://github.com/firebase/firebase-cpp-sdk/issues/110 for the Auth case.
+//
+// The checks happen after GoogleTest has reported its result, so a regression
+// shows up as the test binary crashing or aborting on exit rather than as a
+// failed expectation.
+
+#include <memory>
+
+#include "app/src/include/firebase/app.h"
+#include "database/src/include/firebase/database.h"
+#include "gtest/gtest.h"
+
+namespace firebase {
+namespace database {
+namespace {
+
+// Owns Apps and Database instances the way an application-level singleton
+// would. Members are destroyed in reverse order of declaration.
+struct ExitTimeOwner {
+  // Destroyed after `app_destroyed_first`, so by then it has already been
+  // cleaned up by its App.
+  std::unique_ptr<Database> database_outliving_app;
+  std::unique_ptr<App> app_destroyed_first;
+
+  std::unique_ptr<App> app;
+  // Destroyed before `app`, which is the documented order.
+  std::unique_ptr<Database> database;
+};
+
+// Constructed during static initialization of this translation unit, which the
+// linker places ahead of the SDK's libraries, so it is destroyed after any
+// static the SDK itself registers for destruction at exit.
+ExitTimeOwner g_exit_time_owner;
+
+AppOptions TestAppOptions() {
+  AppOptions options;
+  options.set_app_id("1:1234567890:android:0123456789abcdef");
+  options.set_api_key("not_a_real_api_key");
+  options.set_project_id("static-destruction-test");
+  options.set_database_url("https://static-destruction-test.firebaseio.com");
+  return options;
+}
+
+TEST(DatabaseStaticDestructionTest, DatabaseOwnedByStaticIsDestroyedAfterMain) {
+  g_exit_time_owner.app.reset(App::Create(TestAppOptions()));
+  ASSERT_NE(g_exit_time_owner.app, nullptr);
+  g_exit_time_owner.database.reset(
+      Database::GetInstance(g_exit_time_owner.app.get()));
+  ASSERT_NE(g_exit_time_owner.database, nullptr);
+
+  g_exit_time_owner.app_destroyed_first.reset(
+      App::Create(TestAppOptions(), "app_destroyed_first"));
+  ASSERT_NE(g_exit_time_owner.app_destroyed_first, nullptr);
+  g_exit_time_owner.database_outliving_app.reset(
+      Database::GetInstance(g_exit_time_owner.app_destroyed_first.get()));
+  ASSERT_NE(g_exit_time_owner.database_outliving_app, nullptr);
+}
+
+}  // namespace
+}  // namespace database
+}  // namespace firebase
