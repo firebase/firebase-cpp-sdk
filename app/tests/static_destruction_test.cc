@@ -28,6 +28,14 @@
 #include "app/src/util.h"
 #include "gtest/gtest.h"
 
+// Smoke test: tears down firebase_app state (Apps, CleanupNotifier, callbacks,
+// Futures, logging) from static destructors that run after main() returns.
+// It does not detect a regression on its own, because destruction order
+// between these globals and SDK globals in other translation units is
+// unspecified. The guarantee comes from building with
+// FIREBASE_CPP_WERROR_EXIT_TIME_DESTRUCTORS and from
+// scripts/gha/check_exit_time_destructors.py.
+
 namespace firebase {
 namespace {
 
@@ -160,6 +168,9 @@ struct ExitTimeSdkHolder {
     AbortIfFalse(exit_future.result() != nullptr && *exit_future.result() == 77,
                  "exit_future result mismatch during static destruction");
     exit_future.Release();
+    // Drop the last reference before deleting the backing API, which otherwise
+    // warns that a Future still exists.
+    exit_future_handle = SafeFutureHandle<int>();
     future_impl.reset();
 
     // 2. Normal destruction order during exit(): subscriber before its App.
