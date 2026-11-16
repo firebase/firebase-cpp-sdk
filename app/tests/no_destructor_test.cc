@@ -76,6 +76,16 @@ static_assert(!std::is_constructible<NoDestructor<Variant>,
                                      NoDestructor<Variant>&&>::value,
               "Rvalue NoDestructor<Variant> must not be move constructible.");
 
+// The forwarding constructor must only accept argument lists T accepts.
+// std::vector<int> has no (int, int, int) constructor.
+static_assert(
+    !std::is_constructible<NoDestructor<std::vector<int>>, int, int,
+                           int>::value,
+    "NoDestructor<T> must not be constructible from arguments T rejects.");
+static_assert(
+    std::is_constructible<NoDestructor<std::string>, size_t, char>::value,
+    "NoDestructor<T> must forward arguments T accepts.");
+
 TEST(NoDestructorTest, ForwardsConstructorArguments) {
   NoDestructor<std::string> str("hello");
   EXPECT_EQ(*str, "hello");
@@ -84,14 +94,17 @@ TEST(NoDestructorTest, ForwardsConstructorArguments) {
 }
 
 TEST(NoDestructorTest, DefaultConstructs) {
-  NoDestructor<std::map<int, int>> map;
+  // Static, as in production use, so the map node allocated below stays
+  // reachable and LeakSanitizer does not report it.
+  static NoDestructor<std::map<int, int>> map;
   EXPECT_TRUE(map->empty());
   (*map)[1] = 2;
   EXPECT_EQ(map->at(1), 2);
 }
 
 TEST(NoDestructorTest, BraceEnclosedInitializerList) {
-  NoDestructor<std::vector<int>> values({10, 20, 30});
+  // Static so the vector's heap buffer stays reachable (see DefaultConstructs).
+  static NoDestructor<std::vector<int>> values({10, 20, 30});
   ASSERT_EQ(values->size(), 3u);
   EXPECT_EQ((*values)[0], 10);
   EXPECT_EQ((*values)[1], 20);
