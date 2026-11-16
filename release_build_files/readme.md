@@ -621,6 +621,10 @@ code.
       `UMP`) is owned by a static object (for example a static
       `std::unique_ptr`) and destroyed after the SDK's own globals.
       ([#110](https://github.com/firebase/firebase-cpp-sdk/issues/110))
+    - Installations: Fixed a crash when an `Installations` object is used
+      after its `App` has been destroyed. Its methods now return an invalid
+      `Future` in that state, and `Installations::GetInstance()` on a newly
+      created `App` returns a new instance instead of the stale one.
     - App Check: Default-initialized `AppCheckToken::expire_time_millis` to `0`
       and populated it from the JWT `exp` claim in iOS token change
       notifications, fixing an `ArgumentOutOfRangeException` crash on iOS when
