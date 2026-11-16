@@ -16,7 +16,6 @@
 
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 #include <set>
 #include <string>
 #include <utility>
