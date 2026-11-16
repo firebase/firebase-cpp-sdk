@@ -613,7 +613,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 14.2.0
 - Changes
     - App Check: Default-initialized `AppCheckToken::expire_time_millis` to `0`
       and populated it from the JWT `exp` claim in iOS token change
