@@ -615,6 +615,8 @@ code.
 ## Release Notes
 ### 14.2.0
 - Changes
+    - General (Android): Update to Firebase Android BoM version 35.2.0.
+    - General (iOS): Update to Firebase CocoaPods version 13.2.0.
     - App Check (Desktop): The App Check Debug Provider now automatically loads
       CLI-provisioned debug tokens from `~/.config/configstore/firebase-appcheck.json`
       and the `FIREBASE_APPCHECK_DEBUG_TOKEN` / `AppCheckDebugToken` environment
