@@ -106,7 +106,10 @@ PersistentConnection::PersistentConnection(
     App* app, const HostInfo& info,
     PersistentConnectionEventHandler* event_handler,
     scheduler::Scheduler* scheduler, Logger* logger)
-    : app_(app),
+    : auth_token_future_status_(kInvalidTokenFuture),
+      app_check_token_future_status_(kInvalidTokenFuture),
+      pending_get_token_attempt_(0),
+      app_(app),
       safe_this_(this),
       scheduler_(scheduler),
       host_info_(info),
@@ -114,12 +117,15 @@ PersistentConnection::PersistentConnection(
       realtime_(nullptr),
       connection_state_(kDisconnected),
       is_first_connection_(true),
+      current_get_token_attempt_(0),
       invalid_auth_token_count(0),
       next_request_id_(0),
       force_auth_refresh_(false),
       next_listen_id_(0),
       next_write_id_(0),
-      logger_(logger) {
+      logger_(logger),
+      retry_helper_(scheduler, logger, kMinRetryDelayAfterFailureMs,
+                    kMaxRetryDelayMs, kRetryExponent, kJitterFactor) {
   FIREBASE_DEV_ASSERT(app);
   FIREBASE_DEV_ASSERT(scheduler);
   FIREBASE_DEV_ASSERT(event_handler_);
@@ -134,6 +140,7 @@ PersistentConnection::~PersistentConnection() {
   // Clear safe reference immediately so that scheduled callback can skip
   // executing code which requires reference to this.
   safe_this_.ClearReference();
+  retry_helper_.Cancel();
 
   // Clear pending token futures
   {
@@ -142,6 +149,7 @@ PersistentConnection::~PersistentConnection() {
     auth_token_future_status_ = kInvalidTokenFuture;
     pending_app_check_token_future_ = Future<std::string>();
     app_check_token_future_status_ = kInvalidTokenFuture;
+    pending_get_token_attempt_ = 0;
   }
 
   // Destroy the client so that no more event will be triggered from this point.
@@ -186,6 +194,7 @@ void PersistentConnection::OnReady(int64_t timestamp,
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
   logger_->LogDebug("%s OnReady", log_id_.c_str());
+  last_connection_established_time_ms_ = ::firebase::internal::GetTimestamp();
 
   // Trigger OnServerInfoUpdate based on timestamp delta
   logger_->LogDebug("%s Handle timestamp: %lld in ms", log_id_.c_str(),
@@ -318,8 +327,22 @@ void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
   CancelSentTransactions();
 
   if (ShouldReconnect()) {
+    bool last_connection_was_successful = false;
+    if (last_connection_established_time_ms_.has_value()) {
+      uint64_t now = ::firebase::internal::GetTimestamp();
+      uint64_t elapsed = (now >= *last_connection_established_time_ms_)
+                             ? (now - *last_connection_established_time_ms_)
+                             : 0;
+      last_connection_was_successful =
+          elapsed > kSuccessfulConnectionEstablishedDelayMs;
+    }
+    if (reason == Connection::kDisconnectReasonServerReset ||
+        last_connection_was_successful) {
+      retry_helper_.SignalSuccess();
+    }
     TryScheduleReconnect();
   }
+  last_connection_established_time_ms_.reset();
 
   // Trigger OnDisconnect event
   event_handler_->OnDisconnect();
@@ -487,17 +510,16 @@ void PersistentConnection::InterruptInternal(InterruptReason reason) {
                     static_cast<int>(reason));
 
   interrupt_reasons_.insert(reason);
+  ++current_get_token_attempt_;
 
   if (realtime_) {
     realtime_->Close();
     realtime_.reset(nullptr);
   } else {
-    // TODO(chkuang): Implement Retry
-    // retryHelper.cancel();
+    retry_helper_.Cancel();
     connection_state_ = kDisconnected;
   }
-  // TODO(chkuang): Implement Retry
-  // retryHelper.signalSuccess();
+  retry_helper_.SignalSuccess();
 }
 
 void PersistentConnection::ResumeInternal(InterruptReason reason) {
@@ -521,70 +543,71 @@ void PersistentConnection::TryScheduleReconnect() {
   force_auth_refresh_ = false;
   logger_->LogDebug("%s Scheduling connection attempt", log_id_.c_str());
 
-  scheduler_->Schedule(new callback::CallbackValue2<ThisRef, bool>(
-      safe_this_, force_refresh, [](ThisRef ref, bool force_refresh) {
-        ThisRefLock lock(&ref);
-        auto* connection = lock.GetReference();
-        if (!connection) return;
-        // TODO(chkuang): Implement Exponential Backoff Retry
-        connection->connection_state_ = kGettingToken;
-        connection->logger_->LogDebug("%s Trying to fetch auth token",
-                                      connection->log_id_.c_str());
+  ThisRef safe_ref = safe_this_;
+  retry_helper_.Retry([safe_ref, force_refresh]() mutable {
+    ThisRefLock lock(&safe_ref);
+    auto* connection = lock.GetReference();
+    if (!connection) return;
 
-        // Get Token Asynchronously to make sure the token is not expired.
-        Future<std::string> auth_future;
-        bool auth_succeeded =
-            connection->app_->function_registry()->CallFunction(
-                ::firebase::internal::FnAuthGetTokenAsync, connection->app_,
-                &force_refresh, &auth_future);
-        Future<std::string> app_check_future;
-        bool app_check_succeeded =
-            connection->app_->function_registry()->CallFunction(
-                ::firebase::internal::FnAppCheckGetTokenAsync, connection->app_,
-                nullptr, &app_check_future);
+    FIREBASE_DEV_ASSERT(connection->connection_state_ == kDisconnected);
+    connection->connection_state_ = kGettingToken;
+    const uint64_t attempt = ++connection->current_get_token_attempt_;
+    connection->logger_->LogDebug("%s Trying to fetch auth token",
+                                  connection->log_id_.c_str());
 
-        // Check that the futures are actually valid (assuming they were made)
-        auth_succeeded &= auth_future.status() != kFutureStatusInvalid;
-        app_check_succeeded &=
-            app_check_future.status() != kFutureStatusInvalid;
+    // Get Token Asynchronously to make sure the token is not expired.
+    Future<std::string> auth_future;
+    bool auth_succeeded = connection->app_->function_registry()->CallFunction(
+        ::firebase::internal::FnAuthGetTokenAsync, connection->app_,
+        &force_refresh, &auth_future);
+    Future<std::string> app_check_future;
+    bool app_check_succeeded =
+        connection->app_->function_registry()->CallFunction(
+            ::firebase::internal::FnAppCheckGetTokenAsync, connection->app_,
+            nullptr, &app_check_future);
 
-        if (auth_succeeded || app_check_succeeded) {
-          // If either succeeded, we need to wait for the successful one(s) to
-          // finish.
-          MutexLock future_lock(connection->pending_token_future_mutex_);
-          if (auth_succeeded) {
-            connection->pending_auth_token_future_ = auth_future;
-            connection->auth_token_future_status_ = kWaitingForTokenFuture;
-          } else {
-            connection->pending_auth_token_future_ = Future<std::string>();
-            connection->auth_token_future_status_ = kInvalidTokenFuture;
-          }
+    // Check that the futures are actually valid (assuming they were made)
+    auth_succeeded &= auth_future.status() != kFutureStatusInvalid;
+    app_check_succeeded &= app_check_future.status() != kFutureStatusInvalid;
 
-          if (app_check_succeeded) {
-            connection->pending_app_check_token_future_ = app_check_future;
-            connection->app_check_token_future_status_ = kWaitingForTokenFuture;
-          } else {
-            connection->pending_app_check_token_future_ = Future<std::string>();
-            connection->app_check_token_future_status_ = kInvalidTokenFuture;
-          }
+    if (auth_succeeded || app_check_succeeded) {
+      // If either succeeded, we need to wait for the successful one(s) to
+      // finish.
+      MutexLock future_lock(connection->pending_token_future_mutex_);
+      connection->pending_get_token_attempt_ = attempt;
+      if (auth_succeeded) {
+        connection->pending_auth_token_future_ = auth_future;
+        connection->auth_token_future_status_ = kWaitingForTokenFuture;
+      } else {
+        connection->pending_auth_token_future_ = Future<std::string>();
+        connection->auth_token_future_status_ = kInvalidTokenFuture;
+      }
 
-          // Note: purposefully wait to add callbacks in case they are called
-          // immediately.
-          if (auth_succeeded) {
-            auth_future.OnCompletion(OnAuthTokenFutureComplete, connection);
-          }
-          if (app_check_succeeded) {
-            app_check_future.OnCompletion(OnAppCheckTokenFutureComplete,
-                                          connection);
-          }
-        } else {
-          // If both failed, assume neither are present, and start the
-          // connection anyway.
-          connection->auth_token_.clear();
-          connection->app_check_token_.clear();
-          connection->OpenNetworkConnection();
-        }
-      }));
+      if (app_check_succeeded) {
+        connection->pending_app_check_token_future_ = app_check_future;
+        connection->app_check_token_future_status_ = kWaitingForTokenFuture;
+      } else {
+        connection->pending_app_check_token_future_ = Future<std::string>();
+        connection->app_check_token_future_status_ = kInvalidTokenFuture;
+      }
+
+      // Note: purposefully wait to add callbacks in case they are called
+      // immediately.
+      if (auth_succeeded) {
+        auth_future.OnCompletion(OnAuthTokenFutureComplete, connection);
+      }
+      if (app_check_succeeded) {
+        app_check_future.OnCompletion(OnAppCheckTokenFutureComplete,
+                                      connection);
+      }
+    } else {
+      // If both failed, assume neither are present, and start the
+      // connection anyway.
+      connection->auth_token_.clear();
+      connection->app_check_token_.clear();
+      connection->OpenNetworkConnection();
+    }
+  });
 }
 
 void PersistentConnection::OnAuthTokenFutureComplete(
@@ -596,6 +619,7 @@ void PersistentConnection::OnAuthTokenFutureComplete(
   // If the connection is destroyed or being destroyed, do nothing.
   if (!lock.GetReference()) return;
 
+  uint64_t attempt = 0;
   {
     // Update your own status, and check if App Check is finished.
     MutexLock future_lock(connection->pending_token_future_mutex_);
@@ -610,15 +634,17 @@ void PersistentConnection::OnAuthTokenFutureComplete(
       // callback finish the connection.
       return;
     }
+    attempt = connection->pending_get_token_attempt_;
   }
 
-  connection->scheduler_->Schedule(new callback::CallbackValue1<ThisRef>(
-      connection->safe_this_, [](ThisRef ref) {
-        ThisRefLock lock(&ref);
-        if (lock.GetReference()) {
-          lock.GetReference()->HandleTokenFutures();
-        }
-      }));
+  connection->scheduler_->Schedule(
+      new callback::CallbackValue2<ThisRef, uint64_t>(
+          connection->safe_this_, attempt, [](ThisRef ref, uint64_t attempt) {
+            ThisRefLock lock(&ref);
+            if (lock.GetReference()) {
+              lock.GetReference()->HandleTokenFutures(attempt);
+            }
+          }));
 }
 
 void PersistentConnection::OnAppCheckTokenFutureComplete(
@@ -630,6 +656,7 @@ void PersistentConnection::OnAppCheckTokenFutureComplete(
   // If the connection is destroyed or being destroyed, do nothing.
   if (!lock.GetReference()) return;
 
+  uint64_t attempt = 0;
   {
     // Update your own status, and check if Auth is finished.
     MutexLock future_lock(connection->pending_token_future_mutex_);
@@ -644,18 +671,27 @@ void PersistentConnection::OnAppCheckTokenFutureComplete(
       // callback finish the connection.
       return;
     }
+    attempt = connection->pending_get_token_attempt_;
   }
 
-  connection->scheduler_->Schedule(new callback::CallbackValue1<ThisRef>(
-      connection->safe_this_, [](ThisRef ref) {
-        ThisRefLock lock(&ref);
-        if (lock.GetReference()) {
-          lock.GetReference()->HandleTokenFutures();
-        }
-      }));
+  connection->scheduler_->Schedule(
+      new callback::CallbackValue2<ThisRef, uint64_t>(
+          connection->safe_this_, attempt, [](ThisRef ref, uint64_t attempt) {
+            ThisRefLock lock(&ref);
+            if (lock.GetReference()) {
+              lock.GetReference()->HandleTokenFutures(attempt);
+            }
+          }));
 }
 
-void PersistentConnection::HandleTokenFutures() {
+void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
+  if (get_token_attempt != current_get_token_attempt_) {
+    logger_->LogDebug(
+        "%s Ignoring getToken result, because this was not the latest attempt.",
+        log_id_.c_str());
+    return;
+  }
+
   FIREBASE_DEV_ASSERT(auth_token_future_status_ != kWaitingForTokenFuture);
   FIREBASE_DEV_ASSERT(app_check_token_future_status_ != kWaitingForTokenFuture);
 
@@ -673,12 +709,16 @@ void PersistentConnection::HandleTokenFutures() {
     if (connection_state_ == kGettingToken) {
       logger_->LogDebug("%s Successfully fetched token, opening connection",
                         log_id_.c_str());
-      if (auth_token_future_status_ == kCompletedTokenFuture) {
+      if (auth_token_future_status_ == kCompletedTokenFuture &&
+          pending_auth_token_future_.error() == 0 &&
+          pending_auth_token_future_.result() != nullptr) {
         auth_token_ = *pending_auth_token_future_.result();
       } else {
         auth_token_.clear();
       }
-      if (app_check_token_future_status_ == kCompletedTokenFuture) {
+      if (app_check_token_future_status_ == kCompletedTokenFuture &&
+          pending_app_check_token_future_.error() == 0 &&
+          pending_app_check_token_future_.result() != nullptr) {
         app_check_token_ = *pending_app_check_token_future_.result();
       } else {
         app_check_token_.clear();
@@ -1165,8 +1205,8 @@ void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
       ++invalid_auth_token_count;
 
       if (invalid_auth_token_count >= kInvalidAuthTokenThreshold) {
-        // TODO(chkuang): Maximize retry interval (after retry is properly
-        //                implemented).
+        // Set a long reconnect delay because recovery is unlikely.
+        retry_helper_.SetMaxDelay();
         logger_->LogWarning(
             "Provided authentication credentials are invalid. This indicates "
             "your FirebaseApp instance was not initialized correctly. Make "

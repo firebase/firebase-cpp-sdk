@@ -37,6 +37,7 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/connection.h"
 #include "database/src/desktop/connection/host_info.h"
+#include "database/src/desktop/connection/retry_helper.h"
 #include "database/src/desktop/core/tag.h"
 #include "database/src/include/firebase/database/common.h"
 
@@ -333,7 +334,7 @@ class PersistentConnection : public ConnectionEventHandler {
   // Callback function when the App Check future to fetch token is complete.
   static void OnAppCheckTokenFutureComplete(
       const Future<std::string>& app_check_future, void* user_data);
-  void HandleTokenFutures();
+  void HandleTokenFutures(uint64_t get_token_attempt);
 
   // Mutex to protect pending_token_future_
   Mutex pending_token_future_mutex_;
@@ -347,6 +348,7 @@ class PersistentConnection : public ConnectionEventHandler {
   TokenFutureStatus auth_token_future_status_;
   Future<std::string> pending_app_check_token_future_;
   TokenFutureStatus app_check_token_future_status_;
+  uint64_t pending_get_token_attempt_;
 
   // Start to establish connection to RT DB server.
   void OpenNetworkConnection();
@@ -495,6 +497,11 @@ class PersistentConnection : public ConnectionEventHandler {
   static const char* kServerResponseData;
 
   static int kInvalidAuthTokenThreshold;
+  static constexpr uint64_t kMinRetryDelayAfterFailureMs = 1000;
+  static constexpr uint64_t kMaxRetryDelayMs = 30000;
+  static constexpr double kRetryExponent = 1.3;
+  static constexpr double kJitterFactor = 0.7;
+  static constexpr uint64_t kSuccessfulConnectionEstablishedDelayMs = 30000;
 
   // Log id.  Unique for each persistent connection.
   static std::atomic<uint32_t> next_log_id_;
@@ -526,6 +533,8 @@ class PersistentConnection : public ConnectionEventHandler {
   // States
   ConnectionState connection_state_;
   bool is_first_connection_;
+  Optional<uint64_t> last_connection_established_time_ms_;
+  uint64_t current_get_token_attempt_;
 
   // Session
   std::string last_session_id_;
@@ -575,6 +584,8 @@ class PersistentConnection : public ConnectionEventHandler {
   uint64_t next_write_id_;
 
   Logger* logger_;
+
+  RetryHelper retry_helper_;
 };
 
 class PersistentConnectionEventHandler {
