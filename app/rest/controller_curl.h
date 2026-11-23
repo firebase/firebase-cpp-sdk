@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_REST_CONTROLLER_CURL_H_
 #define FIREBASE_APP_REST_CONTROLLER_CURL_H_
 
+#include <atomic>
 #include <cstdint>
 
 #include "app/rest/controller_interface.h"
@@ -120,10 +121,12 @@ class ControllerCurl : public Controller {
 
   // Whether the transfer is running.
   bool transferring_;
-  // Number of bytes transferred.
-  int64_t bytes_transferred_;
-  // Total size of the transfer.
-  int64_t transfer_size_;
+  // Number of bytes transferred. Written by the transport thread and read by
+  // the thread that owns the controller.
+  std::atomic<int64_t> bytes_transferred_;
+  // Total size of the transfer. Written by the transport thread and read by
+  // the thread that owns the controller.
+  std::atomic<int64_t> transfer_size_;
 
   // Handle to this controller which is updated when it's moved.
   ControllerCurl** this_handle_;

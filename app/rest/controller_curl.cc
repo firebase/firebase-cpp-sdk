@@ -57,8 +57,8 @@ ControllerCurl& ControllerCurl::operator=(ControllerCurl&& other) noexcept {
   is_paused_ = other.is_paused_;
   response_ = other.response_;
   transferring_ = other.transferring_;
-  bytes_transferred_ = other.bytes_transferred_;
-  transfer_size_ = other.transfer_size_;
+  bytes_transferred_ = other.bytes_transferred_.load();
+  transfer_size_ = other.transfer_size_.load();
   this_handle_ = other.this_handle_;
   this_handle_mutex_ = other.this_handle_mutex_;
   if (this_handle_mutex_) {
