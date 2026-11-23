@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <memory>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "app/src/logger.h"
@@ -34,6 +35,26 @@ namespace {
 
 constexpr int kWaitTimeoutMs = 5000;
 
+struct SharedTestState {
+  Semaphore sem{0};
+  Semaphore extra_sem{0};
+  std::atomic<int> count{0};
+  std::atomic<int> second_count{0};
+  std::atomic<bool> flag{false};
+};
+
+RetryHelper::Options MakeOptions(
+    uint64_t min_delay_ms, uint64_t max_delay_ms, double retry_exponent,
+    double jitter_factor, RetryHelper::RandomGenerator random_generator) {
+  RetryHelper::Options options;
+  options.min_retry_delay_after_failure_ms = min_delay_ms;
+  options.max_retry_delay_ms = max_delay_ms;
+  options.retry_exponent = retry_exponent;
+  options.jitter_factor = jitter_factor;
+  options.random_generator = std::move(random_generator);
+  return options;
+}
+
 class RetryHelperTest : public ::testing::Test {
  protected:
   RetryHelperTest() : logger_(nullptr) {}
@@ -43,21 +64,20 @@ class RetryHelperTest : public ::testing::Test {
 };
 
 TEST_F(RetryHelperTest, FirstRetryIsImmediate) {
-  RetryHelper helper(
-      &scheduler_, &logger_, RetryHelper::kDefaultMinRetryDelayAfterFailureMs,
-      RetryHelper::kDefaultMaxRetryDelayMs, RetryHelper::kDefaultRetryExponent,
-      RetryHelper::kDefaultJitterFactor, []() { return 0.5; });
+  RetryHelper::Options options;
+  options.random_generator = []() { return 0.5; };
+  RetryHelper helper(&scheduler_, &logger_, std::move(options));
 
   EXPECT_TRUE(helper.last_was_success());
   EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
 
-  Semaphore sem(0);
-  helper.Retry([&sem]() { sem.Post(); });
+  auto state = std::make_shared<SharedTestState>();
+  helper.Retry([state]() { state->sem.Post(); });
 
   EXPECT_FALSE(helper.last_was_success());
   EXPECT_EQ(helper.last_scheduled_delay_ms(), 0u);
   EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
-  EXPECT_TRUE(sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 }
 
 TEST_F(RetryHelperTest, ExponentialBackoffCurveWithDeterministicRng) {
@@ -69,8 +89,9 @@ TEST_F(RetryHelperTest, ExponentialBackoffCurveWithDeterministicRng) {
   const std::vector<double> rng_values = {0.0, 0.5, 0.999999};
 
   for (double rng_value : rng_values) {
-    RetryHelper helper(&scheduler_, &logger_, 1000, 30000, 1.3, 0.7,
-                       [rng_value]() { return rng_value; });
+    RetryHelper helper(&scheduler_, &logger_,
+                       MakeOptions(1000, 30000, 1.3, 0.7,
+                                   [rng_value]() { return rng_value; }));
 
     // Initial retry is immediate (0 ms).
     helper.Retry([]() {});
@@ -98,8 +119,9 @@ TEST_F(RetryHelperTest, CapIsAppliedBeforeJitter) {
   // 9000, never exceeding 30000 and never computing jitter on an uncapped
   // 23283 * 1.3 = 30267.
   double rng_value = 0.0;
-  RetryHelper helper(&scheduler_, &logger_, 1000, 30000, 1.3, 0.7,
-                     [&rng_value]() { return rng_value; });
+  RetryHelper helper(
+      &scheduler_, &logger_,
+      MakeOptions(1000, 30000, 1.3, 0.7, [&rng_value]() { return rng_value; }));
 
   // Advance to the step just before cap (23283) and then to cap (30000).
   helper.Retry([]() {});  // 0
@@ -120,8 +142,8 @@ TEST_F(RetryHelperTest, CapIsAppliedBeforeJitter) {
 }
 
 TEST_F(RetryHelperTest, SignalSuccessResetsBackoffAndMakesNextRetryImmediate) {
-  RetryHelper helper(&scheduler_, &logger_, 1000, 30000, 1.3, 0.7,
-                     []() { return 0.5; });
+  RetryHelper helper(&scheduler_, &logger_,
+                     MakeOptions(1000, 30000, 1.3, 0.7, []() { return 0.5; }));
 
   helper.Retry([]() {});  // 0
   helper.Retry([]() {});  // 1000 -> 650
@@ -133,11 +155,11 @@ TEST_F(RetryHelperTest, SignalSuccessResetsBackoffAndMakesNextRetryImmediate) {
   EXPECT_TRUE(helper.last_was_success());
   EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
 
-  Semaphore sem(0);
-  helper.Retry([&sem]() { sem.Post(); });
+  auto state = std::make_shared<SharedTestState>();
+  helper.Retry([state]() { state->sem.Post(); });
   EXPECT_EQ(helper.last_scheduled_delay_ms(), 0u);
   EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
-  EXPECT_TRUE(sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 
   helper.Retry([]() {});
   EXPECT_EQ(helper.current_retry_delay_ms(), 1000u);
@@ -147,8 +169,9 @@ TEST_F(RetryHelperTest, SignalSuccessResetsBackoffAndMakesNextRetryImmediate) {
 
 TEST_F(RetryHelperTest, SetMaxDelayJumpsToMaxDelay) {
   double rng_value = 0.5;
-  RetryHelper helper(&scheduler_, &logger_, 1000, 30000, 1.3, 0.7,
-                     [&rng_value]() { return rng_value; });
+  RetryHelper helper(
+      &scheduler_, &logger_,
+      MakeOptions(1000, 30000, 1.3, 0.7, [&rng_value]() { return rng_value; }));
 
   // Simulate initial attempt that failed auth before delay built up.
   helper.Retry([]() {});
@@ -179,20 +202,19 @@ TEST_F(RetryHelperTest, SetMaxDelayJumpsToMaxDelay) {
 }
 
 TEST_F(RetryHelperTest, CancelPreventsPendingTaskAndResetsCurrentDelay) {
-  RetryHelper helper(&scheduler_, &logger_, 100, 1000, 1.3, 0.0,
-                     []() { return 0.0; });
+  RetryHelper helper(&scheduler_, &logger_,
+                     MakeOptions(100, 1000, 1.3, 0.0, []() { return 0.0; }));
 
   // Cancel when nothing is scheduled should be safe and leave delay at 0.
   helper.Cancel();
   EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
 
   // First retry is immediate; wait for it to finish so second retry is delayed.
-  Semaphore first_sem(0);
-  helper.Retry([&first_sem]() { first_sem.Post(); });
-  EXPECT_TRUE(first_sem.TimedWait(kWaitTimeoutMs));
+  auto state = std::make_shared<SharedTestState>();
+  helper.Retry([state]() { state->sem.Post(); });
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 
-  std::atomic<bool> second_ran(false);
-  helper.Retry([&second_ran]() { second_ran.store(true); });
+  helper.Retry([state]() { state->flag.store(true); });
   EXPECT_EQ(helper.current_retry_delay_ms(), 100u);
   EXPECT_EQ(helper.last_scheduled_delay_ms(), 100u);
 
@@ -201,7 +223,7 @@ TEST_F(RetryHelperTest, CancelPreventsPendingTaskAndResetsCurrentDelay) {
 
   // Wait past the 100ms delay to verify the cancelled callback never runs.
   ::firebase::internal::Sleep(200);
-  EXPECT_FALSE(second_ran.load());
+  EXPECT_FALSE(state->flag.load());
 
   // Next Retry() after Cancel() (without SignalSuccess) starts at min delay.
   helper.Retry([]() {});
@@ -211,122 +233,135 @@ TEST_F(RetryHelperTest, CancelPreventsPendingTaskAndResetsCurrentDelay) {
 }
 
 TEST_F(RetryHelperTest, OverlappingRetryCancelsPreviousTask) {
-  RetryHelper helper(&scheduler_, &logger_, 200, 1000, 1.3, 0.0,
-                     []() { return 0.0; });
+  RetryHelper helper(&scheduler_, &logger_,
+                     MakeOptions(200, 1000, 1.3, 0.0, []() { return 0.0; }));
 
   // Burn the immediate 0ms first attempt.
-  Semaphore init_sem(0);
-  helper.Retry([&init_sem]() { init_sem.Post(); });
-  EXPECT_TRUE(init_sem.TimedWait(kWaitTimeoutMs));
-
-  std::atomic<int> first_count(0);
-  std::atomic<int> second_count(0);
-  Semaphore second_sem(0);
+  auto state = std::make_shared<SharedTestState>();
+  helper.Retry([state]() { state->extra_sem.Post(); });
+  EXPECT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
 
   // Schedule a 200ms retry, then immediately supersede it with another Retry().
-  helper.Retry([&first_count]() { first_count.fetch_add(1); });
+  helper.Retry([state]() { state->count.fetch_add(1); });
   EXPECT_EQ(helper.last_scheduled_delay_ms(), 200u);
 
   // Reset to 0ms via SignalSuccess so the replacement runs immediately while
   // ensuring the cancelled 200ms task never fires even after sleeping past it.
   helper.SignalSuccess();
-  helper.Retry([&second_count, &second_sem]() {
-    second_count.fetch_add(1);
-    second_sem.Post();
+  helper.Retry([state]() {
+    state->second_count.fetch_add(1);
+    state->sem.Post();
   });
   EXPECT_EQ(helper.last_scheduled_delay_ms(), 0u);
-  EXPECT_TRUE(second_sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 
   ::firebase::internal::Sleep(250);
-  EXPECT_EQ(first_count.load(), 0);
-  EXPECT_EQ(second_count.load(), 1);
+  EXPECT_EQ(state->count.load(), 0);
+  EXPECT_EQ(state->second_count.load(), 1);
 }
 
 TEST_F(RetryHelperTest, ReentrantRetryInsideCallbackDoesNotDeadlock) {
-  RetryHelper helper(&scheduler_, &logger_, 10, 100, 1.3, 0.0,
-                     []() { return 0.0; });
+  auto state = std::make_shared<SharedTestState>();
+  auto helper = std::make_shared<RetryHelper>(
+      &scheduler_, &logger_,
+      MakeOptions(10, 100, 1.3, 0.0, []() { return 0.0; }));
+  std::weak_ptr<RetryHelper> weak_helper = helper;
 
-  Semaphore second_sem(0);
-  std::atomic<int> count(0);
-
-  helper.Retry([&helper, &second_sem, &count]() {
-    count.fetch_add(1);
-    helper.Retry([&second_sem, &count]() {
-      count.fetch_add(1);
-      second_sem.Post();
-    });
+  helper->Retry([weak_helper, state]() {
+    state->count.fetch_add(1);
+    if (auto locked_helper = weak_helper.lock()) {
+      locked_helper->Retry([state]() {
+        state->count.fetch_add(1);
+        state->sem.Post();
+      });
+    }
+    state->extra_sem.Post();
   });
 
-  EXPECT_TRUE(second_sem.TimedWait(kWaitTimeoutMs));
-  EXPECT_EQ(count.load(), 2);
-  EXPECT_EQ(helper.current_retry_delay_ms(), 10u);
+  EXPECT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_EQ(state->count.load(), 2);
+  EXPECT_EQ(helper->current_retry_delay_ms(), 10u);
 }
 
 TEST_F(RetryHelperTest, ReentrantCancelInsideCallbackDoesNotDeadlock) {
-  RetryHelper helper(&scheduler_, &logger_, 10, 100, 1.3, 0.0,
-                     []() { return 0.0; });
+  auto state = std::make_shared<SharedTestState>();
+  auto helper = std::make_shared<RetryHelper>(
+      &scheduler_, &logger_,
+      MakeOptions(10, 100, 1.3, 0.0, []() { return 0.0; }));
+  std::weak_ptr<RetryHelper> weak_helper = helper;
 
-  Semaphore cancel_only_sem(0);
-  helper.Retry([&helper, &cancel_only_sem]() {
-    helper.Cancel();
-    cancel_only_sem.Post();
+  helper->Retry([weak_helper, state]() {
+    if (auto locked_helper = weak_helper.lock()) {
+      locked_helper->Cancel();
+    }
+    state->extra_sem.Post();
   });
-  EXPECT_TRUE(cancel_only_sem.TimedWait(kWaitTimeoutMs));
-  EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
+  EXPECT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_EQ(helper->current_retry_delay_ms(), 0u);
 
-  Semaphore sem(0);
-  helper.Retry([&helper, &sem]() {
-    // Re-entrantly schedule and then cancel inside the active callback.
-    helper.Retry(
-        []() { FAIL() << "Cancelled re-entrant retry should not run"; });
-    helper.Cancel();
-    sem.Post();
+  helper->Retry([weak_helper, state]() {
+    if (auto locked_helper = weak_helper.lock()) {
+      // Re-entrantly schedule and then cancel inside the active callback.
+      locked_helper->Retry(
+          []() { FAIL() << "Cancelled re-entrant retry should not run"; });
+      locked_helper->Cancel();
+    }
+    state->sem.Post();
   });
 
-  EXPECT_TRUE(sem.TimedWait(kWaitTimeoutMs));
-  EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_EQ(helper->current_retry_delay_ms(), 0u);
 
   ::firebase::internal::Sleep(50);
 }
 
 TEST_F(RetryHelperTest, DestructorCancelsPendingTaskWithoutUaf) {
-  std::atomic<bool> callback_ran(false);
+  auto state = std::make_shared<SharedTestState>();
   {
     auto helper = std::make_unique<RetryHelper>(
-        &scheduler_, &logger_, 100, 1000, 1.3, 0.0, []() { return 0.0; });
+        &scheduler_, &logger_,
+        MakeOptions(100, 1000, 1.3, 0.0, []() { return 0.0; }));
 
-    Semaphore init_sem(0);
-    helper->Retry([&init_sem]() { init_sem.Post(); });
-    EXPECT_TRUE(init_sem.TimedWait(kWaitTimeoutMs));
+    helper->Retry([state]() { state->sem.Post(); });
+    EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 
-    helper->Retry([&callback_ran]() { callback_ran.store(true); });
+    helper->Retry([state]() { state->flag.store(true); });
     EXPECT_EQ(helper->last_scheduled_delay_ms(), 100u);
   }  // Destroy RetryHelper while 100ms task is queued.
 
   ::firebase::internal::Sleep(200);
-  EXPECT_FALSE(callback_ran.load());
+  EXPECT_FALSE(state->flag.load());
 }
 
-TEST_F(RetryHelperTest, DestructorWaitsForInFlightCallbackWithoutUaf) {
-  auto helper = std::make_unique<RetryHelper>(&scheduler_, &logger_, 10, 100,
-                                              1.3, 0.0, []() { return 0.0; });
+TEST_F(RetryHelperTest,
+       DestructorCompletesWhileCallbackIsInFlightWithoutDeadlockOrUaf) {
+  struct InFlightState {
+    Semaphore entered{0};
+    Semaphore allow_finish{0};
+    Semaphore finished{0};
+    std::atomic<bool> allow_finish_succeeded{false};
+    std::atomic<bool> callback_finished{false};
+  };
+  auto state = std::make_shared<InFlightState>();
+  auto helper = std::make_unique<RetryHelper>(
+      &scheduler_, &logger_,
+      MakeOptions(10, 100, 1.3, 0.0, []() { return 0.0; }));
 
-  Semaphore entered(0);
-  std::atomic<bool> destroyed_after_callback(false);
-  std::atomic<bool> callback_finished(false);
-
-  helper->Retry([&entered, &destroyed_after_callback, &callback_finished]() {
-    entered.Post();
-    ::firebase::internal::Sleep(80);
-    EXPECT_FALSE(destroyed_after_callback.load());
-    callback_finished.store(true);
+  helper->Retry([state]() {
+    state->entered.Post();
+    state->allow_finish_succeeded.store(
+        state->allow_finish.TimedWait(kWaitTimeoutMs));
+    state->callback_finished.store(true);
+    state->finished.Post();
   });
 
-  EXPECT_TRUE(entered.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(state->entered.TimedWait(kWaitTimeoutMs));
   helper.reset();
-  destroyed_after_callback.store(true);
-
-  EXPECT_TRUE(callback_finished.load());
+  state->allow_finish.Post();
+  EXPECT_TRUE(state->finished.TimedWait(kWaitTimeoutMs));
+  EXPECT_TRUE(state->allow_finish_succeeded.load());
+  EXPECT_TRUE(state->callback_finished.load());
 }
 
 TEST_F(RetryHelperTest, DefaultRngProducesValuesWithinExpectedJitterBounds) {
@@ -336,10 +371,10 @@ TEST_F(RetryHelperTest, DefaultRngProducesValuesWithinExpectedJitterBounds) {
   for (int i = 0; i < 64; ++i) {
     helper.SignalSuccess();
     helper.Retry([]() {});  // 0 ms
-    helper.Retry([]() {});  // 1000 ms * [0.3, 1.0) -> [300, 1000]
+    helper.Retry([]() {});  // 1000 ms * [0.3, 1.0) -> [300, 1000)
     uint64_t delay = helper.last_scheduled_delay_ms();
     EXPECT_GE(delay, 300u);
-    EXPECT_LE(delay, 1000u);
+    EXPECT_LT(delay, 1000u);
     observed_delays.insert(delay);
     helper.Cancel();
   }
@@ -349,17 +384,16 @@ TEST_F(RetryHelperTest, DefaultRngProducesValuesWithinExpectedJitterBounds) {
 }
 
 TEST_F(RetryHelperTest, SecondRetryRespectsScheduledDelay) {
-  RetryHelper helper(&scheduler_, &logger_, 80, 500, 1.3, 0.0,
-                     []() { return 0.0; });
+  RetryHelper helper(&scheduler_, &logger_,
+                     MakeOptions(80, 500, 1.3, 0.0, []() { return 0.0; }));
 
-  Semaphore first_sem(0);
-  helper.Retry([&first_sem]() { first_sem.Post(); });
-  EXPECT_TRUE(first_sem.TimedWait(kWaitTimeoutMs));
+  auto state = std::make_shared<SharedTestState>();
+  helper.Retry([state]() { state->extra_sem.Post(); });
+  EXPECT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
 
   const uint64_t start_ms = ::firebase::internal::GetTimestamp();
-  Semaphore second_sem(0);
-  helper.Retry([&second_sem]() { second_sem.Post(); });
-  EXPECT_TRUE(second_sem.TimedWait(kWaitTimeoutMs));
+  helper.Retry([state]() { state->sem.Post(); });
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
   const uint64_t elapsed_ms = ::firebase::internal::GetTimestamp() - start_ms;
 
   // Allow slight OS timer granularity slack while ensuring it actually waited.
@@ -367,20 +401,29 @@ TEST_F(RetryHelperTest, SecondRetryRespectsScheduledDelay) {
 }
 
 TEST_F(RetryHelperTest, HandlesNullLoggerAndEmptyCallbackSafely) {
-  RetryHelper helper(&scheduler_, /*logger=*/nullptr, 10, 100, 1.3, 0.0,
-                     []() { return 0.0; });
+  RetryHelper helper(&scheduler_, /*logger=*/nullptr,
+                     MakeOptions(10, 100, 1.3, 0.0, []() { return 0.0; }));
 
-  // Empty callback at 0 ms and delayed backoff should execute without crashing,
-  // and Cancel() with nullptr logger should be safe.
+  auto state = std::make_shared<SharedTestState>();
+
+  // Empty callback at 0 ms should execute without crashing.
   helper.Retry(nullptr);
+  scheduler_.Schedule([state]() { state->sem.Post(); }, 0);
+  EXPECT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
+
+  // Empty callback at delayed backoff should execute without crashing.
   helper.Retry(nullptr);
   EXPECT_EQ(helper.current_retry_delay_ms(), 10u);
+  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 10);
+  EXPECT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
 
-  Semaphore sem(0);
-  helper.SignalSuccess();
-  helper.Retry([&sem]() { sem.Post(); });
-  EXPECT_TRUE(sem.TimedWait(kWaitTimeoutMs));
+  // Cancel() with nullptr logger should be safe both with no pending task and
+  // with a pending task.
+  helper.Cancel();
+  EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
 
+  helper.Retry(nullptr);
+  EXPECT_EQ(helper.current_retry_delay_ms(), 10u);
   helper.Cancel();
   EXPECT_EQ(helper.current_retry_delay_ms(), 0u);
 }
