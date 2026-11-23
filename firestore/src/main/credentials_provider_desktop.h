@@ -18,7 +18,6 @@
 #define FIREBASE_FIRESTORE_SRC_MAIN_CREDENTIALS_PROVIDER_DESKTOP_H_
 
 #include <memory>
-#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
 #include "Firestore/core/src/credentials/auth_token.h"
@@ -28,6 +27,7 @@
 #include "Firestore/core/src/util/statusor.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 #if defined(__ANDROID__)
 #error "This header should not be used on Android."
@@ -61,8 +61,8 @@ class FirebaseCppCredentialsProvider
           listener) override;
 
  private:
-  void AddAuthStateListener();
-  void RemoveAuthStateListener();
+  void AddAuthStateListener() FIREBASE_EXCLUDES(contents_->mutex);
+  void RemoveAuthStateListener() FIREBASE_EXCLUDES(contents_->mutex);
 
   // Callback for the function registry-based pseudo-AuthStateListener
   // interface.
@@ -74,9 +74,9 @@ class FirebaseCppCredentialsProvider
   // `AuthToken::Unauthenticated()`.
   void RequestToken(
       firestore::credentials::TokenListener<firestore::credentials::AuthToken>
-          listener);
+          listener) FIREBASE_REQUIRES(contents_->mutex);
 
-  bool IsSignedIn() const;
+  bool IsSignedIn() const FIREBASE_REQUIRES(contents_->mutex);
 
   // Wraps the data that is used by `auth::User::GetToken` callback. This
   // credentials provider holds a shared pointer to `Contents`, while the
@@ -97,7 +97,7 @@ class FirebaseCppCredentialsProvider
     //
     // TODO(b/148688333): make sure not to hold the mutex while calling methods
     // on `app`.
-    std::recursive_mutex mutex;
+    Mutex mutex;
 
     App& app;
 
@@ -105,7 +105,7 @@ class FirebaseCppCredentialsProvider
     // Credentials commonly change when a different user signs in; comparing
     // generations at the point where a token is requested and the point where
     // the token is retrieved allows identifying obsolete requests.
-    int token_generation = 0;
+    int token_generation FIREBASE_GUARDED_BY(mutex) = 0;
   };
   std::shared_ptr<Contents> contents_;
 };

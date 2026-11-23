@@ -29,8 +29,35 @@ namespace firebase {
 
 #if !defined(DOXYGEN)
 
+// Clang Thread Safety Analysis annotations. No-ops on non-Clang compilers and
+// SWIG. See https://clang.llvm.org/docs/ThreadSafetyAnalysis.html.
+#if defined(__clang__) && !defined(SWIG)
+#define FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(x) __attribute__((x))
+#else
+#define FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(x)
+#endif
+
+#define FIREBASE_CAPABILITY(x) \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(capability(x))
+#define FIREBASE_SCOPED_CAPABILITY \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(scoped_lockable)
+#define FIREBASE_GUARDED_BY(x) \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(guarded_by(x))
+#define FIREBASE_PT_GUARDED_BY(x) \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(pt_guarded_by(x))
+#define FIREBASE_ACQUIRE(...) \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(acquire_capability(__VA_ARGS__))
+#define FIREBASE_RELEASE(...) \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(release_capability(__VA_ARGS__))
+#define FIREBASE_REQUIRES(...) \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(requires_capability(__VA_ARGS__))
+#define FIREBASE_EXCLUDES(...) \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(locks_excluded(__VA_ARGS__))
+#define FIREBASE_NO_THREAD_SAFETY_ANALYSIS \
+  FIREBASE_THREAD_ANNOTATION_ATTRIBUTE__(no_thread_safety_analysis)
+
 /// @brief A simple synchronization lock. Only one thread at a time can Acquire.
-class Mutex {
+class FIREBASE_CAPABILITY("mutex") Mutex {
  public:
   // Bitfield that describes the mutex configuration.
   enum Mode {
@@ -45,10 +72,10 @@ class Mutex {
   ~Mutex();
 
   // Acquires the lock for this mutex, blocking until it is available.
-  void Acquire();
+  void Acquire() FIREBASE_ACQUIRE();
 
   // Releases the lock for this mutex acquired by a previous `Acquire()` call.
-  void Release();
+  void Release() FIREBASE_RELEASE();
 
 // Returns the implementation-defined native mutex handle.
 // Used by firebase::Thread implementation.
@@ -80,10 +107,12 @@ class Mutex {
 ///     // ... logic ...
 ///   }
 ///   \endcode
-class MutexLock {
+class FIREBASE_SCOPED_CAPABILITY MutexLock {
  public:
-  explicit MutexLock(Mutex& mutex) : mutex_(&mutex) { mutex_->Acquire(); }
-  ~MutexLock() { mutex_->Release(); }
+  explicit MutexLock(Mutex& mutex) FIREBASE_ACQUIRE(mutex) : mutex_(&mutex) {
+    mutex_->Acquire();
+  }
+  ~MutexLock() FIREBASE_RELEASE() { mutex_->Release(); }
 
  private:
   // Copy is disallowed.

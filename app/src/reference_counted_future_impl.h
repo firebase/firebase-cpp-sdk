@@ -432,7 +432,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// Allocate a new handle. It's unlikely that we'll ever allocate four
   /// billion of these to loop back to the start, but just in case, skip over
   /// the one marked as kInvalidFutureHandle.
-  FutureHandleId AllocHandleId() {
+  FutureHandleId AllocHandleId() FIREBASE_REQUIRES(mutex_) {
     const FutureHandleId id = next_future_handle_++;
     if (next_future_handle_ == kInvalidFutureHandle) next_future_handle_++;
     return id;
@@ -548,10 +548,12 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// Releases the mutex, calling the Future's completion callbacks, if any.
   /// (The mutex is released before calling the callbacks.)
-  void ReleaseMutexAndRunCallbacks(const FutureHandle& handle);
+  void ReleaseMutexAndRunCallbacks(const FutureHandle& handle)
+      FIREBASE_RELEASE(mutex_);
 
   void RunCallback(FutureBase* future_base,
-                   FutureBase::CompletionCallback callback, void* user_data);
+                   FutureBase::CompletionCallback callback, void* user_data)
+      FIREBASE_REQUIRES(mutex_);
 
   bool is_orphaned() const;
 
@@ -564,14 +566,15 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// Future to access the backing data. The backing data is deleted once no
   /// more Futures reference it.
   // TODO(jsanmiya): Use unordered_map when available (i.e. when not stlport).
-  std::map<FutureHandleId, FutureBackingData*> backings_;
+  std::map<FutureHandleId, FutureBackingData*> backings_
+      FIREBASE_GUARDED_BY(mutex_);
 
   /// A unique int that is incremented by one after every call to @ref Alloc.
-  FutureHandleId next_future_handle_;
+  FutureHandleId next_future_handle_ FIREBASE_GUARDED_BY(mutex_);
 
   /// Optionally keep a future around for the most recent call to a function.
   /// The functions are specified in `fn_idx` of @ref Alloc.
-  std::vector<FutureBase> last_results_;
+  std::vector<FutureBase> last_results_ FIREBASE_GUARDED_BY(mutex_);
 
   /// Clean up any stale Future instances.
   TypedCleanupNotifier<FutureBase> cleanup_;
@@ -583,9 +586,9 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// This flag prevents this instance from being considered safe to delete
   /// before the callback is finished, which would be unsafe because it would
   /// clean up the future that is passed to the callback.
-  bool is_running_callback_ = false;
+  bool is_running_callback_ FIREBASE_GUARDED_BY(mutex_) = false;
 
-  bool is_orphaned_ = false;
+  bool is_orphaned_ FIREBASE_GUARDED_BY(mutex_) = false;
 };
 
 /// Specialize the case where the data is void since we don't need to

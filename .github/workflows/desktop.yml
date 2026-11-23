@@ -256,7 +256,7 @@ jobs:
           LANG: en_US
         run: |
           cd build
-          ctest --repeat until-pass:3 --output-on-failure -E firestore_util_test
+          ctest --repeat until-pass:3 --output-on-failure -LE multi_app_stress -E firestore_util_test
 
       - name: Run unit tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
@@ -269,7 +269,7 @@ jobs:
         run: |
           ulimit -c unlimited
           cd build
-          sudo ctest --repeat until-pass:3 --output-on-failure
+          sudo ctest --repeat until-pass:3 --output-on-failure -LE multi_app_stress
 
       - name: Prep bins for achive (linux)
         # Copies all of the binary files into one directory for ease in
@@ -414,3 +414,276 @@ jobs:
           fi
         env:
           JOB_STATUS: ${{ job.status }}
+
+  linux_clang_thread_safety:
+    name: linux-clang-thread-safety
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
+          submodules: false
+      - name: Cache ccache files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # ratchet:actions/cache@v6
+        with:
+          path: ccache_dir
+          key: linux-clang-tsa-ccache-${{ hashFiles('CMakeLists.txt', 'cmake/external/*.cmake') }}
+          restore-keys: |
+            linux-clang-tsa-ccache-
+      - name: Setup python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
+        with:
+          python-version: "3.10"
+      - name: Install Clang and build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm ccache ninja-build libssl-dev libsecret-1-dev libglib2.0-dev zlib1g-dev protobuf-compiler pkg-config python3-venv
+          python3 -m pip install -r external/pip_requirements.txt
+          clang++ --version
+      - name: Configure with Clang -Wthread-safety
+        run: |
+          CC=clang CXX=clang++ cmake -G Ninja -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DFIREBASE_CPP_BUILD_TESTS=ON \
+            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON \
+            -DFIREBASE_USE_BORINGSSL=OFF \
+            -DFIREBASE_LINUX_USE_CXX11_ABI=ON \
+            -DFIREBASE_CPP_ENABLE_THREAD_SAFETY_ANALYSIS=ON \
+            -DFIREBASE_GITHUB_ACTION_BUILD=ON \
+            -DCMAKE_C_FLAGS="-Wno-unknown-warning-option" \
+            -DCMAKE_CXX_FLAGS="-Wno-unknown-warning-option"
+      - name: Build SDK libraries and collect -Wthread-safety diagnostics
+        run: |
+          set -o pipefail
+          cmake --build build -j "$(nproc)" --target \
+            firebase_app firebase_rest_lib firebase_analytics firebase_app_check \
+            firebase_auth firebase_database firebase_firestore firebase_functions \
+            firebase_installations firebase_messaging firebase_remote_config \
+            firebase_storage firebase_ump \
+            firebase_multi_app_lifecycle_unit_test \
+            firebase_multi_app_emulator_stress_test \
+            2>&1 | tee tsa_build.log
+          echo "=== UNIQUE -Wthread-safety DIAGNOSTICS ==="
+          grep -E "\[-Wthread-safety" tsa_build.log | sed "s|${GITHUB_WORKSPACE}/||g" | sort -u | tee tsa_unique_warnings.txt || true
+          COUNT=$(wc -l < tsa_unique_warnings.txt)
+          echo "Total unique -Wthread-safety warnings: ${COUNT}"
+          if [[ "${COUNT}" -gt 0 ]]; then
+            echo "::warning::Found ${COUNT} unique -Wthread-safety diagnostics (see tsa_unique_warnings.txt)"
+          fi
+      - name: Upload thread-safety logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # ratchet:actions/upload-artifact@v7
+        with:
+          name: linux-clang-thread-safety-logs
+          path: |
+            tsa_build.log
+            tsa_unique_warnings.txt
+
+  linux_asan_ubsan:
+    name: linux-asan-ubsan
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
+          submodules: false
+      - name: Cache ccache files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # ratchet:actions/cache@v6
+        with:
+          path: ccache_dir
+          key: linux-asan-ubsan-ccache-${{ hashFiles('CMakeLists.txt', 'cmake/external/*.cmake') }}
+          restore-keys: |
+            linux-asan-ubsan-ccache-
+      - name: Setup python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
+        with:
+          python-version: "3.10"
+      - name: Install Clang, sanitizers, and build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm gdb ccache ninja-build libssl-dev libsecret-1-dev libglib2.0-dev zlib1g-dev protobuf-compiler pkg-config python3-venv
+          python3 -m pip install -r external/pip_requirements.txt
+      - name: Configure with ASan + UBSan
+        run: |
+          SAN_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g -Wno-unknown-warning-option"
+          CC=clang CXX=clang++ cmake -G Ninja -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DFIREBASE_CPP_BUILD_TESTS=ON \
+            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON \
+            -DFIREBASE_USE_BORINGSSL=OFF \
+            -DFIREBASE_LINUX_USE_CXX11_ABI=ON \
+            -DFIREBASE_GITHUB_ACTION_BUILD=ON \
+            -DCMAKE_C_FLAGS="${SAN_FLAGS}" \
+            -DCMAKE_CXX_FLAGS="${SAN_FLAGS}" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build unit and stress tests (ASan + UBSan)
+        run: cmake --build build -j "$(nproc)"
+      - name: Run unit suite and offline multi-App stress tests (ASan + UBSan)
+        id: asan_unit
+        continue-on-error: true
+        env:
+          ASAN_OPTIONS: "detect_leaks=0:symbolize=1:print_stacktrace=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=0"
+        run: |
+          export ASAN_SYMBOLIZER_PATH="$(which llvm-symbolizer)"
+          set -o pipefail
+          python3 scripts/gha/run_sanitizer_suite.py \
+            --build_dir build --mode asan --run_unit_ctest --run_unit_stress \
+            --case_timeout 90 2>&1 | tee asan_unit_and_stress.log
+      - name: Set up Node (18)
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # ratchet:actions/setup-node@v7
+        with:
+          node-version: 18.x
+      - name: Install firebase-tools
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # ratchet:nick-fields/retry@v4
+        with:
+          shell: bash
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm install -g firebase-tools
+      - name: Setup java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # ratchet:actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Run emulator multi-App stress tests (ASan + UBSan)
+        id: asan_emulator
+        continue-on-error: true
+        env:
+          ASAN_OPTIONS: "detect_leaks=0:symbolize=1:print_stacktrace=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=0"
+        run: |
+          export ASAN_SYMBOLIZER_PATH="$(which llvm-symbolizer)"
+          set -o pipefail
+          firebase emulators:exec \
+            --config testing/stress/firebase.json \
+            --only auth,firestore,database,storage \
+            --project demo-example \
+            'python3 scripts/gha/run_sanitizer_suite.py --build_dir build --mode asan --run_emulator_stress --case_timeout 90' \
+            2>&1 | tee asan_emulator_stress.log
+      - name: Upload ASan/UBSan logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # ratchet:actions/upload-artifact@v7
+        with:
+          name: linux-asan-ubsan-logs
+          path: |
+            asan_unit_and_stress.log
+            asan_emulator_stress.log
+      - name: Final ASan/UBSan status
+        run: |
+          echo "unit+offline_stress: ${{ steps.asan_unit.outcome }}"
+          echo "emulator_stress: ${{ steps.asan_emulator.outcome }}"
+          if [[ "${{ steps.asan_unit.outcome }}" != "success" || "${{ steps.asan_emulator.outcome }}" != "success" ]]; then
+            exit 1
+          fi
+
+  linux_tsan:
+    name: linux-tsan
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # ratchet:lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
+          submodules: false
+      - name: Cache ccache files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # ratchet:actions/cache@v6
+        with:
+          path: ccache_dir
+          key: linux-tsan-ccache-${{ hashFiles('CMakeLists.txt', 'cmake/external/*.cmake') }}
+          restore-keys: |
+            linux-tsan-ccache-
+      - name: Setup python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # ratchet:actions/setup-python@v7
+        with:
+          python-version: "3.10"
+      - name: Install Clang, TSan, and build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm gdb ccache ninja-build libssl-dev libsecret-1-dev libglib2.0-dev zlib1g-dev protobuf-compiler pkg-config python3-venv
+          python3 -m pip install -r external/pip_requirements.txt
+          sudo sysctl -w vm.mmap_rnd_bits=28 || true
+      - name: Configure with TSan
+        run: |
+          TSAN_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -g -Wno-unknown-warning-option"
+          CC=clang CXX=clang++ cmake -G Ninja -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DFIREBASE_CPP_BUILD_TESTS=ON \
+            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON \
+            -DFIREBASE_USE_BORINGSSL=OFF \
+            -DFIREBASE_LINUX_USE_CXX11_ABI=ON \
+            -DFIREBASE_GITHUB_ACTION_BUILD=ON \
+            -DCMAKE_C_FLAGS="${TSAN_FLAGS}" \
+            -DCMAKE_CXX_FLAGS="${TSAN_FLAGS}" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=thread"
+      - name: Build unit and stress tests (TSan)
+        run: cmake --build build -j "$(nproc)"
+      - name: Run unit suite and offline multi-App stress tests (TSan)
+        id: tsan_unit
+        continue-on-error: true
+        env:
+          TSAN_OPTIONS: "halt_on_error=0:second_deadlock_stack=1:history_size=7:symbolize=1"
+        run: |
+          export TSAN_SYMBOLIZER_PATH="$(which llvm-symbolizer)"
+          set -o pipefail
+          python3 scripts/gha/run_sanitizer_suite.py \
+            --build_dir build --mode tsan --run_unit_ctest --run_unit_stress \
+            --case_timeout 120 2>&1 | tee tsan_unit_and_stress.log
+      - name: Set up Node (18)
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # ratchet:actions/setup-node@v7
+        with:
+          node-version: 18.x
+      - name: Install firebase-tools
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # ratchet:nick-fields/retry@v4
+        with:
+          shell: bash
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm install -g firebase-tools
+      - name: Setup java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # ratchet:actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Run emulator multi-App stress tests (TSan)
+        id: tsan_emulator
+        continue-on-error: true
+        env:
+          TSAN_OPTIONS: "halt_on_error=0:second_deadlock_stack=1:history_size=7:symbolize=1"
+        run: |
+          export TSAN_SYMBOLIZER_PATH="$(which llvm-symbolizer)"
+          set -o pipefail
+          firebase emulators:exec \
+            --config testing/stress/firebase.json \
+            --only auth,firestore,database,storage \
+            --project demo-example \
+            'python3 scripts/gha/run_sanitizer_suite.py --build_dir build --mode tsan --run_emulator_stress --case_timeout 120' \
+            2>&1 | tee tsan_emulator_stress.log
+      - name: Upload TSan logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # ratchet:actions/upload-artifact@v7
+        with:
+          name: linux-tsan-logs
+          path: |
+            tsan_unit_and_stress.log
+            tsan_emulator_stress.log
+      - name: Final TSan status
+        run: |
+          echo "unit+offline_stress: ${{ steps.tsan_unit.outcome }}"
+          echo "emulator_stress: ${{ steps.tsan_emulator.outcome }}"
+          if [[ "${{ steps.tsan_unit.outcome }}" != "success" || "${{ steps.tsan_emulator.outcome }}" != "success" ]]; then
+            exit 1
+          fi

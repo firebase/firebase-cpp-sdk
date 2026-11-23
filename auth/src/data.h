@@ -148,11 +148,13 @@ struct AuthData {
 
   /// User-supplied listener classes. All of these are updated when Auth's
   /// sign in state changes.
-  std::vector<AuthStateListener*> listeners;
+  std::vector<AuthStateListener*> listeners
+      FIREBASE_GUARDED_BY(listeners_mutex);
 
   /// User-supplied ID token listeners. All of these are updated when Auth's
   /// ID token changes.
-  std::vector<IdTokenListener*> id_token_listeners;
+  std::vector<IdTokenListener*> id_token_listeners
+      FIREBASE_GUARDED_BY(listeners_mutex);
 
   /// Unique phone provider for this Auth. Initialized the first time
   /// PhoneAuthProvider::GetInstance() is called.
@@ -168,10 +170,11 @@ struct AuthData {
   Mutex token_listener_mutex;
 
   // Tracks if the Id Token listener is expecting a callback to occur.
-  bool expect_id_token_listener_callback;
+  bool expect_id_token_listener_callback
+      FIREBASE_GUARDED_BY(expect_id_token_mutex);
 
   // Tracks if the persistent cache load is pending.
-  bool persistent_cache_load_pending;
+  bool persistent_cache_load_pending FIREBASE_GUARDED_BY(listeners_mutex);
 
   // Mutex protecting `expect_id_token_listener_callback`
   Mutex expect_id_token_mutex;

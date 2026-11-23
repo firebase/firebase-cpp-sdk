@@ -79,6 +79,14 @@ option(FIREBASE_USE_LINUX_CXX11_ABI
 option(FIREBASE_GITHUB_ACTION_BUILD
        "Indicates that this build was created from a GitHub Action" OFF)
 
+set(firebase_thread_safety_analysis_default OFF)
+if("$ENV{FIREBASE_CPP_ENABLE_THREAD_SAFETY_ANALYSIS}")
+  set(firebase_thread_safety_analysis_default ON)
+endif()
+option(FIREBASE_CPP_ENABLE_THREAD_SAFETY_ANALYSIS
+       "Enable Clang -Wthread-safety on Firebase SDK libraries."
+       ${firebase_thread_safety_analysis_default})
+
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
@@ -116,6 +124,7 @@ endif()
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
 include(cpp_pack)
+include(thread_safety)
 
 if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   enable_testing()
@@ -686,6 +695,27 @@ if (FIREBASE_INCLUDE_REMOTE_CONFIG)
 endif()
 if (FIREBASE_INCLUDE_STORAGE)
   add_subdirectory(storage)
+endif()
+
+foreach(firebase_sdk_target
+    firebase_app
+    firebase_rest_lib
+    firebase_analytics
+    firebase_app_check
+    firebase_auth
+    firebase_database
+    firebase_firestore
+    firebase_functions
+    firebase_installations
+    firebase_messaging
+    firebase_remote_config
+    firebase_storage
+    firebase_ump)
+  firebase_cpp_enable_thread_safety_analysis(${firebase_sdk_target})
+endforeach()
+
+if(DESKTOP AND FIREBASE_CPP_BUILD_TESTS)
+  add_subdirectory(testing/stress)
 endif()
 
 # Place the CMake and gradle build files provided to easily link against the

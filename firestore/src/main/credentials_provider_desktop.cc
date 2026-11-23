@@ -154,7 +154,7 @@ FirebaseCppCredentialsProvider::~FirebaseCppCredentialsProvider() {
 void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<User> listener) {
   {
-    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
+    MutexLock lock(contents_->mutex);
 
     if (!listener) {
       SIMPLE_HARD_ASSERT(change_listener_,
@@ -179,7 +179,7 @@ void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
 
 void FirebaseCppCredentialsProvider::GetToken(
     TokenListener<AuthToken> listener) {
-  std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
+  MutexLock lock(contents_->mutex);
 
   if (IsSignedIn()) {
     RequestToken(std::move(listener));
@@ -207,7 +207,7 @@ void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
   auto provider = static_cast<FirebaseCppCredentialsProvider*>(context);
   Contents* contents = provider->contents_.get();
 
-  std::lock_guard<std::recursive_mutex> lock(contents->mutex);
+  MutexLock lock(contents->mutex);
 
   // The currently signed-in user may have changed, increase the token
   // generation to reflect that.
@@ -251,7 +251,7 @@ void FirebaseCppCredentialsProvider::RequestToken(
           return;
         }
 
-        std::lock_guard<std::recursive_mutex> lock(contents->mutex);
+        MutexLock lock(contents->mutex);
         OnToken(future_token, contents->app, contents->token_generation,
                 std::move(listener), expected_generation);
       });
