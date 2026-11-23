@@ -262,17 +262,19 @@ static bool ReplaceEntryWithBack(const T& entry, std::vector<T>* v) {
 // Remove a listener of type T from listener_vector and unique auth object in
 // auth_vector.  Both vectors must be in sync, i.e addition must either
 // succeed or fail otherwise this method asserts.
+// Returns true if `listener` was registered and has been removed.
 template <typename T>
-static void RemoveListener(T listener, std::vector<T>* listener_vector,
+static bool RemoveListener(T listener, std::vector<T>* listener_vector,
                            Auth* auth, std::vector<Auth*>* auth_vector,
                            Mutex* mutex) {
   MutexLock lock(*mutex);
   // Remove `listener` from our vector of listeners.
-  ReplaceEntryWithBack(listener, listener_vector);
+  const bool removed = ReplaceEntryWithBack(listener, listener_vector);
   // Remove this Auth from the listener's vector of Auths.
   // This ensures the listener doesn't try to unregister itself again when it is
   // destroyed.
   ReplaceEntryWithBack(auth, auth_vector);
+  return removed;
 }
 
 void Auth::RemoveAuthStateListener(AuthStateListener* listener) {
@@ -283,13 +285,11 @@ void Auth::RemoveAuthStateListener(AuthStateListener* listener) {
 
 void Auth::RemoveIdTokenListener(IdTokenListener* listener) {
   if (!auth_data_) return;
-  int listener_count = auth_data_->id_token_listeners.size();
-  RemoveListener(listener, &auth_data_->id_token_listeners, this,
-                 &listener->auths_, &auth_data_->listeners_mutex);
   // RemoveListener is valid even if the listener is not registered.
   // This makes sure that we only decrease the reference count if a listener
   // was actually removed.
-  if (auth_data_->id_token_listeners.size() < listener_count) {
+  if (RemoveListener(listener, &auth_data_->id_token_listeners, this,
+                     &listener->auths_, &auth_data_->listeners_mutex)) {
     DisableTokenAutoRefresh(auth_data_);
   }
 }
