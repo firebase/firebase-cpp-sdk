@@ -53,9 +53,9 @@ HeartbeatController::HeartbeatController(const std::string& app_id,
                                          const Logger& logger,
                                          const DateProvider& date_provider)
     : storage_(app_id, logger),
-      scheduler_(),
+      date_provider_(date_provider),
       last_logged_date_(""),
-      date_provider_(date_provider) {}
+      scheduler_() {}
 
 HeartbeatController::~HeartbeatController() {}
 

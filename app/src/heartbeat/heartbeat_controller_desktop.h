@@ -77,7 +77,6 @@ class HeartbeatController {
   std::string DecodeAndDecompress(const std::string& input);
 
   HeartbeatStorageDesktop storage_;
-  scheduler::Scheduler scheduler_;
   const DateProvider& date_provider_;
 
   std::time_t last_read_all_heartbeats_time_ = 0;
@@ -88,6 +87,10 @@ class HeartbeatController {
   std::string last_logged_date_;
   std::string last_flushed_all_heartbeats_date_;
   std::string last_flushed_todays_heartbeat_date_;
+
+  // Declared last so that it is destroyed first. Its destructor joins the
+  // scheduler thread, which uses the members above until then.
+  scheduler::Scheduler scheduler_;
 };
 
 }  // namespace heartbeat
