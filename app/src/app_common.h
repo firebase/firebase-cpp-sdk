@@ -93,6 +93,12 @@ void RegisterSdkUsage(void* platform_resource);
 // NOTE: This is an internal method, use App::UserAgent() instead.
 const char* GetUserAgent();
 
+// Get a copy of the user agent string for all registered libraries.
+// Unlike GetUserAgent(), the copy is made while holding the app mutex, so this
+// is safe to call while another thread registers a library or destroys the
+// last App.
+std::string GetUserAgentString();
+
 // Get the version of a registered library.
 // This returns an empty string if the library isn't registered.
 std::string GetLibraryVersion(const char* library);

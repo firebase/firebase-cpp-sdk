@@ -471,6 +471,11 @@ const char* GetUserAgent() {
   return LibraryRegistry::Initialize()->GetUserAgent();
 }
 
+std::string GetUserAgentString() {
+  MutexLock lock(*g_app_mutex);
+  return LibraryRegistry::Initialize()->GetUserAgent();
+}
+
 std::string GetLibraryVersion(const char* library) {
   MutexLock lock(*g_app_mutex);
   return LibraryRegistry::Initialize()->GetLibraryVersion(library);

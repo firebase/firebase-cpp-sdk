@@ -61,7 +61,7 @@ HeartbeatController::~HeartbeatController() {}
 
 void HeartbeatController::LogHeartbeat() {
   std::function<void(void)> log_heartbeat_funct = [&]() {
-    std::string user_agent = App::GetUserAgent();
+    std::string user_agent = app_common::GetUserAgentString();
     std::string current_date = date_provider_.GetDate();
     // Stop early if the in-memory last_logged date is today or later.
     if (!this->last_logged_date_.empty() &&
