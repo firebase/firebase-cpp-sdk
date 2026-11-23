@@ -513,7 +513,8 @@ jobs:
           python3 -m pip install -r external/pip_requirements.txt
       - name: Configure with ASan + UBSan
         run: |
-          SAN_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g -Wno-unknown-warning-option"
+          SAN_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g -Wno-unknown-warning-option"
+          SAN_CXX_FLAGS="${SAN_C_FLAGS} -fno-sanitize=vptr"
           CC=clang CXX=clang++ cmake -G Ninja -S . -B build \
             -DCMAKE_BUILD_TYPE=Debug \
             -DFIREBASE_CPP_BUILD_TESTS=ON \
@@ -521,8 +522,8 @@ jobs:
             -DFIREBASE_USE_BORINGSSL=OFF \
             -DFIREBASE_LINUX_USE_CXX11_ABI=ON \
             -DFIREBASE_GITHUB_ACTION_BUILD=ON \
-            -DCMAKE_C_FLAGS="${SAN_FLAGS}" \
-            -DCMAKE_CXX_FLAGS="${SAN_FLAGS}" \
+            -DCMAKE_C_FLAGS="${SAN_C_FLAGS}" \
+            -DCMAKE_CXX_FLAGS="${SAN_CXX_FLAGS}" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
             -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build unit and stress tests (ASan + UBSan)
@@ -531,6 +532,7 @@ jobs:
         id: asan_unit
         continue-on-error: true
         env:
+          LANG: en_US
           ASAN_OPTIONS: "detect_leaks=0:symbolize=1:print_stacktrace=1"
           UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=0"
         run: |
@@ -638,8 +640,16 @@ jobs:
         id: tsan_unit
         continue-on-error: true
         env:
-          TSAN_OPTIONS: "halt_on_error=0:second_deadlock_stack=1:history_size=7:symbolize=1"
+          LANG: en_US
         run: |
+          cat > /tmp/tsan.supp <<'EOF'
+          # Uninstrumented system GLib/GIO/libsecret libraries used by UserSecureLinuxInternal.
+          called_from_lib:libglib-2.0.so
+          called_from_lib:libgio-2.0.so
+          called_from_lib:libgobject-2.0.so
+          called_from_lib:libsecret-1.so
+          EOF
+          export TSAN_OPTIONS="halt_on_error=0:second_deadlock_stack=1:history_size=7:symbolize=1:suppressions=/tmp/tsan.supp"
           export TSAN_SYMBOLIZER_PATH="$(which llvm-symbolizer)"
           set -o pipefail
           python3 scripts/gha/run_sanitizer_suite.py \
@@ -665,7 +675,7 @@ jobs:
         id: tsan_emulator
         continue-on-error: true
         env:
-          TSAN_OPTIONS: "halt_on_error=0:second_deadlock_stack=1:history_size=7:symbolize=1"
+          TSAN_OPTIONS: "halt_on_error=0:second_deadlock_stack=1:history_size=7:symbolize=1:suppressions=/tmp/tsan.supp"
         run: |
           export TSAN_SYMBOLIZER_PATH="$(which llvm-symbolizer)"
           set -o pipefail
