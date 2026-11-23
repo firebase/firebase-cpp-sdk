@@ -18,6 +18,7 @@ Optionally allows you to rename C and C++ symbols from certain libraries.
 """
 
 import concurrent.futures
+import contextlib
 import hashlib
 import os
 import fcntl
@@ -26,6 +27,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from absl import app
 from absl import flags
 from absl import logging
@@ -120,6 +122,14 @@ flags.DEFINE_bool(
     "renames for symbols that actually appear in that archive (according to "
     "nm). This greatly reduces the size of the symbol redefinition list, which "
     "speeds up objcopy considerably.")
+flags.DEFINE_bool(
+    "log_timing", True,
+    "Log how long each phase of merging takes (at INFO level), to help find "
+    "bottlenecks.")
+flags.DEFINE_float(
+    "log_timing_archive_threshold", 10.0,
+    "With --log_timing, also log a line for each input archive that takes at "
+    "least this many seconds to extract and process.")
 
 # Never rename system namespaces by default when --auto_hide_cpp_namespaces is enabled.
 IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "type_info",
@@ -341,6 +351,10 @@ def replace_strings_in_archive(archive_path, replacements):
 # Running C++ name demangler processes, in the order we will query them.
 _demanglers = []
 
+# Number of symbols that weren't already in the demangle cache, which means
+# they had to be sent through the demangler processes.
+_demangle_cache_misses = 0
+
 
 def init_demanglers():
   """Initialize the demanglers.
@@ -376,6 +390,8 @@ def demangle_symbol(symbol):
   if FLAGS.platform == "windows":
     symbol = re.sub(r"^\$[^$]*\$", "", symbol)  # Filter out "$pdata$" etc.
   if symbol not in _cache["demangle"][FLAGS.platform]:
+    global _demangle_cache_misses
+    _demangle_cache_misses += 1
     _cache["demangle"][FLAGS.platform][symbol] = symbol  # Default: no change
     for demangler in _demanglers:
       demangled_symbol = demangler.demangle(symbol)
@@ -965,10 +981,58 @@ def get_archive_symbols(archive_file):
   Returns:
     Tuple of (defined_symbols, all_symbols), as per read_symbols_from_archive.
   """
+  global _symbol_cache_misses
   key = os.path.abspath(archive_file)
   if key not in _cache["symbols"]:
+    _symbol_cache_misses += 1
     _cache["symbols"][key] = read_symbols_from_archive(archive_file)
   return _cache["symbols"][key]
+
+
+# Number of archives whose symbols weren't already in the cache.
+_symbol_cache_misses = 0
+
+
+class PhaseTimer(object):
+  """Measures and logs how long each phase of merging takes.
+
+  Every log line is tagged with the output library name, since package.sh runs
+  several instances of this script in parallel and their output interleaves.
+  """
+
+  def __init__(self, label, enabled):
+    self.label = label
+    self.enabled = enabled
+    self.start_time = time.monotonic()
+    self.totals = {}  # Phase name -> total seconds. Preserves insertion order.
+
+  def log(self, message, *args):
+    if self.enabled:
+      logging.info("[timing %s] " + message, self.label, *args)
+
+  @contextlib.contextmanager
+  def phase(self, name, log=True):
+    """Context manager that times a phase, adding it to the totals.
+
+    Args:
+      name: Name of the phase.
+      log: If True, log the time for this phase when it finishes. Set this to
+        False for phases that run many times; they are still included in the
+        summary.
+    """
+    start = time.monotonic()
+    try:
+      yield
+    finally:
+      elapsed = time.monotonic() - start
+      self.totals[name] = self.totals.get(name, 0.0) + elapsed
+      if log:
+        self.log("%s: %.1fs", name, elapsed)
+
+  def log_summary(self):
+    total = time.monotonic() - self.start_time
+    self.log("TOTAL %.1fs | %s", total, ", ".join(
+        "%s %.1fs" % (name, secs) for (name, secs) in self.totals.items()))
 
 
 def get_unique_object_filename(lib_name_hash, obj_file):
@@ -1055,23 +1119,33 @@ def main(argv):
       FLAGS.binutils_objcopy_is_llvm = (
           "llvm-objcopy" in os.path.basename(FLAGS.binutils_objcopy_cmd))
     jobs = FLAGS.jobs if FLAGS.jobs > 0 else (os.cpu_count() or 1)
+    timer = PhaseTimer(os.path.basename(output_path), FLAGS.log_timing)
+    timer.log("Merging %d input libraries (%d scan libraries) with %d jobs",
+              len(input_paths), len(additional_input_paths), jobs)
 
-    init_cache()
+    with timer.phase("load cache"):
+      init_cache()
+    timer.log("Cache contains symbols for %d libraries and %d demangled "
+              "symbols", len(_cache["symbols"]),
+              len(_cache["demangle"][FLAGS.platform]))
 
     # Scan through subset of libs in FLAGS.hide_c_symbols to find C symbols to
     # rename.
     rename_symbols = {}
-    for libfile_and_regex in FLAGS.hide_c_symbols:
-      if ':' not in libfile_and_regex:
-        libfile_and_regex += ':.'
-      [libfile, regex] = libfile_and_regex.split(":", 1)
-      logging.debug("Scanning for C symbols in %s", libfile)
-      regex_compiled = re.compile(regex)
-      (defined_symbols, all_symbols) = get_archive_symbols(libfile)
-      for symbol in defined_symbols:
-        # For C symbols, only use them if they are defined.
-        if (not is_cpp_symbol(symbol)) and regex_compiled.match(symbol):
-          rename_symbols.update(rename_symbol(symbol))
+    with timer.phase("scan C symbols"):
+      for libfile_and_regex in FLAGS.hide_c_symbols:
+        if ':' not in libfile_and_regex:
+          libfile_and_regex += ':.'
+        [libfile, regex] = libfile_and_regex.split(":", 1)
+        logging.debug("Scanning for C symbols in %s", libfile)
+        regex_compiled = re.compile(regex)
+        (defined_symbols, all_symbols) = get_archive_symbols(libfile)
+        for symbol in defined_symbols:
+          # For C symbols, only use them if they are defined.
+          if (not is_cpp_symbol(symbol)) and regex_compiled.match(symbol):
+            rename_symbols.update(rename_symbol(symbol))
+    timer.log("Found %d C symbols to rename in %d libraries",
+              len(rename_symbols), len(FLAGS.hide_c_symbols))
 
     os.chdir(working_root)
 
@@ -1081,21 +1155,40 @@ def main(argv):
       # hide_cpp_namespaces.
       cpp_symbols = set()
       all_defined_symbols = set()
-      for input_path in input_paths + additional_input_paths:
-        logging.debug("Scanning for C++ symbols in %s", input_path[1])
-        (defined_symbols, all_symbols) = get_archive_symbols(input_path[1])
-        cpp_symbols.update(all_symbols
-                           if FLAGS.rename_external_cpp_symbols
-                           else defined_symbols)
-        all_defined_symbols.update(defined_symbols)
+      with timer.phase("scan C++ symbols"):
+        for input_path in input_paths + additional_input_paths:
+          logging.debug("Scanning for C++ symbols in %s", input_path[1])
+          (defined_symbols, all_symbols) = get_archive_symbols(input_path[1])
+          cpp_symbols.update(all_symbols
+                             if FLAGS.rename_external_cpp_symbols
+                             else defined_symbols)
+          all_defined_symbols.update(defined_symbols)
+      timer.log("Scanned %d libraries (%d not cached): %d symbols, %d defined",
+                len(input_paths) + len(additional_input_paths),
+                _symbol_cache_misses, len(cpp_symbols),
+                len(all_defined_symbols))
 
       # If we are set to scan for namespaces, do that now.
       if FLAGS.auto_hide_cpp_namespaces:
-        add_automatic_namespaces(all_defined_symbols)
+        demangle_misses_before = _demangle_cache_misses
+        with timer.phase("find namespaces"):
+          add_automatic_namespaces(all_defined_symbols)
+        timer.log("Found %d namespaces to hide (%d symbols demangled)",
+                  len(FLAGS.hide_cpp_namespaces),
+                  _demangle_cache_misses - demangle_misses_before)
 
-      for symbol in cpp_symbols:
-        if is_cpp_symbol(symbol):
-          rename_symbols.update(rename_symbol(symbol))
+      demangle_misses_before = _demangle_cache_misses
+      num_cpp_symbols = 0
+      with timer.phase("compute C++ renames"):
+        for symbol in cpp_symbols:
+          if is_cpp_symbol(symbol):
+            num_cpp_symbols += 1
+            rename_symbols.update(rename_symbol(symbol))
+      timer.log("Checked %d C++ symbols against %d namespaces "
+                "(%d symbols demangled); %d total symbols to rename",
+                num_cpp_symbols, len(FLAGS.hide_cpp_namespaces),
+                _demangle_cache_misses - demangle_misses_before,
+                len(rename_symbols))
       shutdown_demanglers()
 
     logging.debug("Found %d symbols to rename", len(rename_symbols))
@@ -1107,47 +1200,58 @@ def main(argv):
 
     # List of all object files, which will be renamed to have unique names.
     all_obj_files = []
+    total_renames_passed = 0
     for input_path in input_paths:
       logging.debug("Checking input archive %s", input_path[1])
+      archive_start = time.monotonic()
+      archive_name = os.path.basename(input_path[0])
       if FLAGS.filter_renames_per_archive:
         # objcopy's cost scales with the number of symbol redefinitions it is
         # given, and the full list of renames (from all input libraries, scan
         # libraries, and hidden libraries) is often far larger than what any
         # single archive uses. Only pass along the renames for symbols that
         # actually appear in this archive.
-        (_, archive_symbols) = get_archive_symbols(input_path[1])
-        archive_renames = {old: new for (old, new) in rename_symbols.items()
-                           if old in archive_symbols}
-        logging.debug("Creating symbol redefinition file for %d of %d symbols",
-                      len(archive_renames), len(rename_symbols))
-        symbol_redefinition_file = create_symbol_redefinition_file(
-            archive_renames)
+        with timer.phase("filter renames", log=False):
+          (_, archive_symbols) = get_archive_symbols(input_path[1])
+          archive_renames = {old: new for (old, new) in rename_symbols.items()
+                             if old in archive_symbols}
+          logging.debug(
+              "Creating symbol redefinition file for %d of %d symbols",
+              len(archive_renames), len(rename_symbols))
+          symbol_redefinition_file = create_symbol_redefinition_file(
+              archive_renames)
+        num_renames = len(archive_renames)
+      else:
+        num_renames = len(rename_symbols)
+      total_renames_passed += num_renames
       # Create a unique directory name from a hash of the input filename.
       lib_name_hash = hashlib.md5(
           input_path[0].encode(DEFAULT_ENCODING)).hexdigest()
-      (obj_file_list, errors) = list_objects_in_archive(input_path[1])
-      if errors:
-        logging.fatal("Error listing archive %s: %s", input_path[1], errors)
+      with timer.phase("extract archives", log=False):
+        (obj_file_list, errors) = list_objects_in_archive(input_path[1])
+        if errors:
+          logging.fatal("Error listing archive %s: %s", input_path[1], errors)
 
-      # If any of the filenames in this archive contain a "/" or "\", we need to
-      # replace them with "_".
-      obj_file_renames = {}
-      for obj_file in obj_file_list:
-        if "/" in obj_file or "\\" in obj_file:
-          # Extracting this will fail because it contains subdirectories.
-          obj_file_bin = obj_file.encode(DEFAULT_ENCODING)
-          new_obj_file_bin = re.sub(b"[^0-9a-zA-Z_.]", b"_", obj_file_bin)
-          old_obj_regex_bin = re.sub(b"[^0-9a-zA-Z_.]", b".", obj_file_bin)
-          obj_file_renames[old_obj_regex_bin] = new_obj_file_bin
-      if obj_file_renames:
-        # We renamed some object files within the .a file.
-        input_path[1] = replace_strings_in_archive(input_path[1],
-                                                   obj_file_renames)
+        # If any of the filenames in this archive contain a "/" or "\", we
+        # need to replace them with "_".
+        obj_file_renames = {}
+        for obj_file in obj_file_list:
+          if "/" in obj_file or "\\" in obj_file:
+            # Extracting this will fail because it contains subdirectories.
+            obj_file_bin = obj_file.encode(DEFAULT_ENCODING)
+            new_obj_file_bin = re.sub(b"[^0-9a-zA-Z_.]", b"_", obj_file_bin)
+            old_obj_regex_bin = re.sub(b"[^0-9a-zA-Z_.]", b".", obj_file_bin)
+            obj_file_renames[old_obj_regex_bin] = new_obj_file_bin
+        if obj_file_renames:
+          # We renamed some object files within the .a file.
+          input_path[1] = replace_strings_in_archive(input_path[1],
+                                                     obj_file_renames)
 
-      logging.debug("Extracting input archive %s", input_path[1])
-      (obj_file_list, errors) = extract_archive(input_path[1])
-      if errors:
-        logging.fatal("Error extracting archive %s: %s", input_path[1], errors)
+        logging.debug("Extracting input archive %s", input_path[1])
+        (obj_file_list, errors) = extract_archive(input_path[1])
+        if errors:
+          logging.fatal("Error extracting archive %s: %s", input_path[1],
+                        errors)
 
       if symbol_redefinition_file:
         logging.debug("Redefining symbols in %d files", len(obj_file_list))
@@ -1157,29 +1261,40 @@ def main(argv):
           (obj_file, get_unique_object_filename(lib_name_hash, obj_file))
           for obj_file in obj_file_list
       ]
-      move_object_files(obj_file_moves, symbol_redefinition_file.name
-                        if symbol_redefinition_file else None, jobs)
+      with timer.phase("objcopy", log=False):
+        move_object_files(obj_file_moves, symbol_redefinition_file.name
+                          if symbol_redefinition_file else None, jobs)
       all_obj_files.extend([dest for (_, dest) in obj_file_moves])
+      archive_elapsed = time.monotonic() - archive_start
+      if archive_elapsed >= FLAGS.log_timing_archive_threshold:
+        timer.log("  %s: %.1fs (%d objects, %d renames)", archive_name,
+                  archive_elapsed, len(obj_file_list), num_renames)
 
+    timer.log("Processed %d objects from %d input libraries (%d renames "
+              "passed to objcopy in total)", len(all_obj_files),
+              len(input_paths), total_renames_passed)
     symbol_redefinition_file = None
 
     # Remove any existing output lib so we can create a new one from scratch.
     if os.path.isfile(output_path):
       os.remove(output_path)
 
-    if (FLAGS.skip_creating_archives):
-      output_path_dir = output_path + ".dir"
-      logging.debug("Copying object files to %s", output_path_dir)
-      if not os.path.exists(output_path_dir):
-        os.makedirs(output_path_dir)
-      for obj_file in all_obj_files:
-        logging.debug("Copy %s to %s" % (obj_file, os.path.join(output_path_dir, os.path.basename(obj_file))))
-        shutil.copyfile(obj_file, os.path.join(output_path_dir, os.path.basename(obj_file)))
-    else:
-      logging.debug("Creating output archive %s", output_path)
-      create_archive(output_path, all_obj_files, input_path[1])
+    with timer.phase("create archive"):
+      if (FLAGS.skip_creating_archives):
+        output_path_dir = output_path + ".dir"
+        logging.debug("Copying object files to %s", output_path_dir)
+        if not os.path.exists(output_path_dir):
+          os.makedirs(output_path_dir)
+        for obj_file in all_obj_files:
+          logging.debug("Copy %s to %s" % (obj_file, os.path.join(output_path_dir, os.path.basename(obj_file))))
+          shutil.copyfile(obj_file, os.path.join(output_path_dir, os.path.basename(obj_file)))
+      else:
+        logging.debug("Creating output archive %s", output_path)
+        create_archive(output_path, all_obj_files, input_path[1])
 
-    shutdown_cache()
+    with timer.phase("save cache"):
+      shutdown_cache()
+    timer.log_summary()
 
   except Exception as e:
     logging.error("Got error: %s", e)
