@@ -16,9 +16,12 @@
 
 #include "app/src/heartbeat/date_provider.h"
 
+#include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <string>
+
+#include "app/src/include/firebase/internal/platform.h"
 
 namespace firebase {
 namespace heartbeat {
@@ -26,10 +29,18 @@ namespace heartbeat {
 std::string DateProviderImpl::GetDate() const {
   std::time_t t = std::time(nullptr);
   // Use UTC time so that local time zone changes are ignored.
-  std::tm* tm = std::gmtime(&t);
+  // std::gmtime() returns a pointer to shared static storage, so use the
+  // reentrant variants: heartbeats are logged from one scheduler thread per
+  // App.
+  std::tm tm = {};
+#if FIREBASE_PLATFORM_WINDOWS
+  gmtime_s(&tm, &t);
+#else
+  gmtime_r(&t, &tm);
+#endif  // FIREBASE_PLATFORM_WINDOWS
   std::ostringstream ss;
   // Format the date as yyyy-mm-dd, independent of locale.
-  ss << std::put_time(tm, "%Y-%m-%d");
+  ss << std::put_time(&tm, "%Y-%m-%d");
   return ss.str();
 }
 
