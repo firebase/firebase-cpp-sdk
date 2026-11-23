@@ -618,6 +618,8 @@ code.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.
+    - Storage (Desktop): Fixed a crash when destroying a `Listener` that was
+      never passed to a storage operation.
 
 ### 14.2.0
 - Changes
