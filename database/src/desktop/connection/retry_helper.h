@@ -30,6 +30,9 @@ namespace connection {
 
 // Schedules retry attempts with exponential backoff and random jitter on a
 // Scheduler, matching the Android/iOS RTDB connection retry behavior.
+// Callbacks passed to Retry() execute on the Scheduler worker thread without
+// holding RetryHelper's internal lock and must guard any external lifetimes
+// (e.g., via SafeReference or std::shared_ptr).
 class RetryHelper {
  public:
   // Returns a uniform random double in [0.0, 1.0).
@@ -40,13 +43,17 @@ class RetryHelper {
   static constexpr double kDefaultRetryExponent = 1.3;
   static constexpr double kDefaultJitterFactor = 0.7;
 
-  RetryHelper(scheduler::Scheduler* scheduler, Logger* logger,
-              uint64_t min_retry_delay_after_failure_ms =
-                  kDefaultMinRetryDelayAfterFailureMs,
-              uint64_t max_retry_delay_ms = kDefaultMaxRetryDelayMs,
-              double retry_exponent = kDefaultRetryExponent,
-              double jitter_factor = kDefaultJitterFactor,
-              RandomGenerator random_generator = nullptr);
+  struct Options {
+    uint64_t min_retry_delay_after_failure_ms =
+        kDefaultMinRetryDelayAfterFailureMs;
+    uint64_t max_retry_delay_ms = kDefaultMaxRetryDelayMs;
+    double retry_exponent = kDefaultRetryExponent;
+    double jitter_factor = kDefaultJitterFactor;
+    RandomGenerator random_generator = nullptr;
+  };
+
+  RetryHelper(scheduler::Scheduler* scheduler, Logger* logger);
+  RetryHelper(scheduler::Scheduler* scheduler, Logger* logger, Options options);
   ~RetryHelper();
 
   // RetryHelper is neither copyable nor movable.
@@ -55,12 +62,18 @@ class RetryHelper {
 
   // Schedules |callback| to run after the next backoff delay, cancelling any
   // previously scheduled pending retry.
+  // Note: |callback| executes without holding RetryHelper's internal lock, so
+  // it may run concurrently with RetryHelper destruction and must guard any
+  // external object lifetimes (e.g., via SafeReference or std::shared_ptr).
   void Retry(std::function<void()> callback);
 
   // Resets backoff state after a successful connection or interrupt.
   void SignalSuccess();
 
   // Jumps the current backoff delay directly to |max_retry_delay_ms_|.
+  // Note: Matching Android's RetryHelper, this does not clear
+  // |last_was_success_|; if |last_was_success_| is true, the next Retry()
+  // still runs at 0 ms before subsequent failures use |max_retry_delay_ms_|.
   void SetMaxDelay();
 
   // Cancels any pending scheduled retry and resets the current retry delay.
@@ -72,8 +85,8 @@ class RetryHelper {
   bool last_was_success() const;
 
  private:
-  typedef firebase::internal::SafeReference<RetryHelper> ThisRef;
-  typedef firebase::internal::SafeReferenceLock<RetryHelper> ThisRefLock;
+  using ThisRef = firebase::internal::SafeReference<RetryHelper>;
+  using ThisRefLock = firebase::internal::SafeReferenceLock<RetryHelper>;
 
   double NextRandom();
 
@@ -84,7 +97,7 @@ class RetryHelper {
   const double retry_exponent_;
   const double jitter_factor_;
   RandomGenerator random_generator_;
-  std::mt19937_64 rng_;
+  std::minstd_rand rng_;
 
   mutable ThisRef safe_this_;
   scheduler::RequestHandle scheduled_retry_;

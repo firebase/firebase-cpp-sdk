@@ -24,17 +24,19 @@ namespace database {
 namespace internal {
 namespace connection {
 
+RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger)
+    : RetryHelper(scheduler, logger, Options()) {}
+
 RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger,
-                         uint64_t min_retry_delay_after_failure_ms,
-                         uint64_t max_retry_delay_ms, double retry_exponent,
-                         double jitter_factor, RandomGenerator random_generator)
+                         Options options)
     : scheduler_(scheduler),
       logger_(logger),
-      min_retry_delay_after_failure_ms_(min_retry_delay_after_failure_ms),
-      max_retry_delay_ms_(max_retry_delay_ms),
-      retry_exponent_(retry_exponent),
-      jitter_factor_(jitter_factor),
-      random_generator_(std::move(random_generator)),
+      min_retry_delay_after_failure_ms_(
+          options.min_retry_delay_after_failure_ms),
+      max_retry_delay_ms_(options.max_retry_delay_ms),
+      retry_exponent_(options.retry_exponent),
+      jitter_factor_(options.jitter_factor),
+      random_generator_(std::move(options.random_generator)),
       rng_(random_generator_ ? 0 : std::random_device{}()),
       safe_this_(this),
       scheduled_retry_id_(0),
@@ -44,12 +46,13 @@ RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger,
       last_was_success_(true) {
   FIREBASE_DEV_ASSERT(scheduler_ != nullptr);
   FIREBASE_DEV_ASSERT(min_retry_delay_after_failure_ms_ <= max_retry_delay_ms_);
+  FIREBASE_DEV_ASSERT(std::isfinite(retry_exponent_) && retry_exponent_ >= 1.0);
   FIREBASE_DEV_ASSERT(jitter_factor_ >= 0.0 && jitter_factor_ <= 1.0);
 }
 
 RetryHelper::~RetryHelper() {
-  // Clear SafeReference first so any in-flight callback completes under
-  // SafeReferenceLock before this object is torn down, and any unstarted
+  // Clear SafeReference first so any callback checking/clearing state completes
+  // under SafeReferenceLock before this object is torn down, and any unstarted
   // callback becomes a no-op.
   safe_this_.ClearReference();
   if (scheduled_retry_.IsValid()) {
@@ -68,7 +71,8 @@ void RetryHelper::Retry(std::function<void()> callback) {
 
     if (scheduled_retry_.IsValid()) {
       if (logger_) {
-        logger_->LogDebug("Cancelling previous scheduled retry");
+        logger_->LogDebug(
+            "[ConnectionRetryHelper] Cancelling previous scheduled retry");
       }
       previous_retry = scheduled_retry_;
       scheduled_retry_ = scheduler::RequestHandle();
@@ -82,7 +86,8 @@ void RetryHelper::Retry(std::function<void()> callback) {
       if (current_retry_delay_ == 0) {
         current_retry_delay_ = min_retry_delay_after_failure_ms_;
       } else {
-        const double new_delay_double = current_retry_delay_ * retry_exponent_;
+        const double new_delay_double =
+            static_cast<double>(current_retry_delay_) * retry_exponent_;
         if (new_delay_double >= static_cast<double>(max_retry_delay_ms_)) {
           current_retry_delay_ = max_retry_delay_ms_;
         } else {
@@ -91,33 +96,36 @@ void RetryHelper::Retry(std::function<void()> callback) {
       }
       const double random_value = NextRandom();
       delay_ms = static_cast<uint64_t>(
-          ((1.0 - jitter_factor_) * current_retry_delay_) +
-          (jitter_factor_ * current_retry_delay_ * random_value));
+          ((1.0 - jitter_factor_) * static_cast<double>(current_retry_delay_)) +
+          (jitter_factor_ * static_cast<double>(current_retry_delay_) *
+           random_value));
     }
 
     last_was_success_ = false;
     last_scheduled_delay_ms_ = delay_ms;
     if (logger_) {
-      logger_->LogDebug("Scheduling retry in %llums",
+      logger_->LogDebug("[ConnectionRetryHelper] Scheduling retry in %llums",
                         static_cast<unsigned long long>(delay_ms));
     }
 
     const uint64_t task_id = ++next_task_id_;
     scheduled_retry_id_ = task_id;
-    ThisRef safe_ref = safe_this_;
     scheduled_retry_ = scheduler_->Schedule(
-        [safe_ref, task_id, callback]() mutable {
-          ThisRefLock callback_lock(&safe_ref);
-          RetryHelper* helper = callback_lock.GetReference();
-          if (!helper || helper->scheduled_retry_id_ != task_id) {
-            return;
+        [safe_ref = safe_this_, task_id,
+         callback = std::move(callback)]() mutable {
+          {
+            ThisRefLock callback_lock(&safe_ref);
+            RetryHelper* helper = callback_lock.GetReference();
+            if (!helper || helper->scheduled_retry_id_ != task_id) {
+              return;
+            }
+            // Clear scheduled_retry_ before invoking the user callback so
+            // re-entrant Retry() or Cancel() calls will not invoke
+            // RequestHandle::Cancel() on the currently running request while
+            // Scheduler::TriggerCallback() holds status->mutex.
+            helper->scheduled_retry_ = scheduler::RequestHandle();
+            helper->scheduled_retry_id_ = 0;
           }
-          // Clear scheduled_retry_ before invoking the user callback so
-          // re-entrant Retry() or Cancel() calls will not invoke
-          // RequestHandle::Cancel() on the currently running request while
-          // Scheduler::TriggerCallback() holds status->mutex.
-          helper->scheduled_retry_ = scheduler::RequestHandle();
-          helper->scheduled_retry_id_ = 0;
           if (callback) {
             callback();
           }
@@ -158,13 +166,15 @@ void RetryHelper::Cancel() {
     }
     if (scheduled_retry_.IsValid()) {
       if (logger_) {
-        logger_->LogDebug("Cancelling existing retry attempt");
+        logger_->LogDebug(
+            "[ConnectionRetryHelper] Cancelling existing retry attempt");
       }
       to_cancel = scheduled_retry_;
       scheduled_retry_ = scheduler::RequestHandle();
       scheduled_retry_id_ = 0;
     } else if (logger_) {
-      logger_->LogDebug("No existing retry attempt to cancel");
+      logger_->LogDebug(
+          "[ConnectionRetryHelper] No existing retry attempt to cancel");
     }
     current_retry_delay_ = 0;
   }
@@ -191,7 +201,9 @@ bool RetryHelper::last_was_success() const {
 
 double RetryHelper::NextRandom() {
   if (random_generator_) {
-    return random_generator_();
+    const double val = random_generator_();
+    FIREBASE_DEV_ASSERT(std::isfinite(val) && val >= 0.0 && val <= 1.0);
+    return val;
   }
   std::uniform_real_distribution<double> dist(0.0, 1.0);
   double val = dist(rng_);
