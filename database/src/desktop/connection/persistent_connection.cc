@@ -124,8 +124,7 @@ PersistentConnection::PersistentConnection(
       next_listen_id_(0),
       next_write_id_(0),
       logger_(logger),
-      retry_helper_(scheduler, logger, kMinRetryDelayAfterFailureMs,
-                    kMaxRetryDelayMs, kRetryExponent, kJitterFactor) {
+      retry_helper_(scheduler, logger) {
   FIREBASE_DEV_ASSERT(app);
   FIREBASE_DEV_ASSERT(scheduler);
   FIREBASE_DEV_ASSERT(event_handler_);
@@ -143,14 +142,7 @@ PersistentConnection::~PersistentConnection() {
   retry_helper_.Cancel();
 
   // Clear pending token futures
-  {
-    MutexLock future_lock(pending_token_future_mutex_);
-    pending_auth_token_future_ = Future<std::string>();
-    auth_token_future_status_ = kInvalidTokenFuture;
-    pending_app_check_token_future_ = Future<std::string>();
-    app_check_token_future_status_ = kInvalidTokenFuture;
-    pending_get_token_attempt_ = 0;
-  }
+  ClearPendingTokenFutures();
 
   // Destroy the client so that no more event will be triggered from this point.
   realtime_.reset(nullptr);
@@ -511,6 +503,7 @@ void PersistentConnection::InterruptInternal(InterruptReason reason) {
 
   interrupt_reasons_.insert(reason);
   ++current_get_token_attempt_;
+  ClearPendingTokenFutures();
 
   if (realtime_) {
     realtime_->Close();
@@ -732,6 +725,15 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
           log_id_.c_str());
     }
   }
+}
+
+void PersistentConnection::ClearPendingTokenFutures() {
+  MutexLock lock(pending_token_future_mutex_);
+  pending_auth_token_future_ = Future<std::string>();
+  auth_token_future_status_ = kInvalidTokenFuture;
+  pending_app_check_token_future_ = Future<std::string>();
+  app_check_token_future_status_ = kInvalidTokenFuture;
+  pending_get_token_attempt_ = 0;
 }
 
 void PersistentConnection::OpenNetworkConnection() {

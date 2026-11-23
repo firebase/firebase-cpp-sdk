@@ -335,6 +335,7 @@ class PersistentConnection : public ConnectionEventHandler {
   static void OnAppCheckTokenFutureComplete(
       const Future<std::string>& app_check_future, void* user_data);
   void HandleTokenFutures(uint64_t get_token_attempt);
+  void ClearPendingTokenFutures();
 
   // Mutex to protect pending_token_future_
   Mutex pending_token_future_mutex_;
@@ -497,10 +498,6 @@ class PersistentConnection : public ConnectionEventHandler {
   static const char* kServerResponseData;
 
   static int kInvalidAuthTokenThreshold;
-  static constexpr uint64_t kMinRetryDelayAfterFailureMs = 1000;
-  static constexpr uint64_t kMaxRetryDelayMs = 30000;
-  static constexpr double kRetryExponent = 1.3;
-  static constexpr double kJitterFactor = 0.7;
   static constexpr uint64_t kSuccessfulConnectionEstablishedDelayMs = 30000;
 
   // Log id.  Unique for each persistent connection.
