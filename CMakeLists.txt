@@ -714,6 +714,17 @@ foreach(firebase_sdk_target
   firebase_cpp_enable_thread_safety_analysis(${firebase_sdk_target})
 endforeach()
 
+# Firestore Core exports -Werror -Wthread-safety via its PUBLIC interface on
+# Clang, which would turn pre-existing SDK header warnings (e.g.
+# ReferenceCountedFutureImpl::GetLastResultCount) into hard build errors in
+# probe/macOS builds. Keep them as warnings for this diagnostic probe.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND TARGET firebase_app)
+  target_compile_options(firebase_app PUBLIC
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=thread-safety>
+    $<$<COMPILE_LANGUAGE:OBJCXX>:-Wno-error=thread-safety>
+  )
+endif()
+
 if(DESKTOP AND FIREBASE_CPP_BUILD_TESTS)
   add_subdirectory(testing/stress)
 endif()

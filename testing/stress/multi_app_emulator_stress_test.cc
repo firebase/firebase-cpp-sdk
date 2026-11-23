@@ -73,8 +73,9 @@ AppOptions MakeEmulatorAppOptions() {
   options.set_api_key("fake-api-key-for-emulator");
   options.set_project_id("demo-example");
   options.set_storage_bucket("demo-example.appspot.com");
-  options.set_database_url("http://" + db_host + ":" + std::to_string(db_port) +
-                           "/?ns=demo-example");
+  std::string db_url = "http://" + db_host + ":" + std::to_string(db_port) +
+                       "/?ns=demo-example";
+  options.set_database_url(db_url.c_str());
   return options;
 }
 
@@ -235,8 +236,8 @@ TEST(MultiAppEmulatorStressTest, DatabaseUnreachableReconnectSpinAndTeardown) {
   ASSERT_NE(db, nullptr);
 
 #if defined(__linux__)
-  struct timespec cpu_start{};
-  struct timespec cpu_end{};
+  struct timespec cpu_start {};
+  struct timespec cpu_end {};
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cpu_start);
 #endif
 

@@ -539,10 +539,10 @@ jobs:
           python3 scripts/gha/run_sanitizer_suite.py \
             --build_dir build --mode asan --run_unit_ctest --run_unit_stress \
             --case_timeout 90 2>&1 | tee asan_unit_and_stress.log
-      - name: Set up Node (18)
+      - name: Set up Node (22)
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # ratchet:actions/setup-node@v7
         with:
-          node-version: 18.x
+          node-version: 22.x
       - name: Install firebase-tools
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # ratchet:nick-fields/retry@v4
         with:
@@ -554,7 +554,7 @@ jobs:
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # ratchet:actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
       - name: Run emulator multi-App stress tests (ASan + UBSan)
         id: asan_emulator
         continue-on-error: true
@@ -579,10 +579,13 @@ jobs:
             asan_unit_and_stress.log
             asan_emulator_stress.log
       - name: Final ASan/UBSan status
+        env:
+          UNIT_OUTCOME: ${{ steps.asan_unit.outcome }}
+          EMULATOR_OUTCOME: ${{ steps.asan_emulator.outcome }}
         run: |
-          echo "unit+offline_stress: ${{ steps.asan_unit.outcome }}"
-          echo "emulator_stress: ${{ steps.asan_emulator.outcome }}"
-          if [[ "${{ steps.asan_unit.outcome }}" != "success" || "${{ steps.asan_emulator.outcome }}" != "success" ]]; then
+          echo "unit+offline_stress: ${UNIT_OUTCOME}"
+          echo "emulator_stress: ${EMULATOR_OUTCOME}"
+          if [[ "${UNIT_OUTCOME}" != "success" || "${EMULATOR_OUTCOME}" != "success" ]]; then
             exit 1
           fi
 
@@ -642,10 +645,10 @@ jobs:
           python3 scripts/gha/run_sanitizer_suite.py \
             --build_dir build --mode tsan --run_unit_ctest --run_unit_stress \
             --case_timeout 120 2>&1 | tee tsan_unit_and_stress.log
-      - name: Set up Node (18)
+      - name: Set up Node (22)
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # ratchet:actions/setup-node@v7
         with:
-          node-version: 18.x
+          node-version: 22.x
       - name: Install firebase-tools
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # ratchet:nick-fields/retry@v4
         with:
@@ -657,7 +660,7 @@ jobs:
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # ratchet:actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
       - name: Run emulator multi-App stress tests (TSan)
         id: tsan_emulator
         continue-on-error: true
@@ -681,9 +684,12 @@ jobs:
             tsan_unit_and_stress.log
             tsan_emulator_stress.log
       - name: Final TSan status
+        env:
+          UNIT_OUTCOME: ${{ steps.tsan_unit.outcome }}
+          EMULATOR_OUTCOME: ${{ steps.tsan_emulator.outcome }}
         run: |
-          echo "unit+offline_stress: ${{ steps.tsan_unit.outcome }}"
-          echo "emulator_stress: ${{ steps.tsan_emulator.outcome }}"
-          if [[ "${{ steps.tsan_unit.outcome }}" != "success" || "${{ steps.tsan_emulator.outcome }}" != "success" ]]; then
+          echo "unit+offline_stress: ${UNIT_OUTCOME}"
+          echo "emulator_stress: ${EMULATOR_OUTCOME}"
+          if [[ "${UNIT_OUTCOME}" != "success" || "${EMULATOR_OUTCOME}" != "success" ]]; then
             exit 1
           fi
