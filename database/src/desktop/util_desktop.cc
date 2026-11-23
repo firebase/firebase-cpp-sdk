@@ -20,28 +20,38 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "app/src/assert.h"
+#include "app/src/base64.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/view/indexed_filter.h"
 #include "database/src/desktop/view/limited_filter.h"
 #include "database/src/desktop/view/ranged_filter.h"
 #include "database/src/desktop/view/variant_filter.h"
-#include "openssl/sha.h"
 
-// If building against OpenSSL, use the evp header for base64 encoding logic,
-// otherwise assume to be building against BoringSSL, which uses a different
-// header file. Note that this is purposefully after including a header shared
-// across both implementations, which will make this be defined.
-#ifdef OPENSSL_IS_BORINGSSL
-#include "openssl/base64.h"
-#else
-#include "openssl/evp.h"
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+// clang-format off
+#include <windows.h>
+#include <bcrypt.h>
+// clang-format on
+#if defined(_MSC_VER)
+#pragma comment(lib, "bcrypt.lib")
+#endif  // defined(_MSC_VER)
+#else
+#include "openssl/sha.h"
+#endif  // defined(_WIN32)
 
 namespace firebase {
 namespace database {
@@ -726,28 +736,73 @@ bool VariantsAreEquivalent(const Variant& a, const Variant& b) {
   return true;
 }
 
-size_t GetBase64Length(size_t len) {
-  // Based on the OpenSSL documentation, for every 3 bytes of input provided,
-  // 4 bytes will be produced. If len is not divisible by 3, then it will be
-  // padded to be divisible by 3. Finally, a NUL character will be added.
-  return 1 + 4 * ((len + 2) / 3);
+namespace {
+
+constexpr size_t kSha1DigestLength = 20;
+
+std::string ComputeSha1Digest(std::string_view input) {
+  std::string digest(kSha1DigestLength, '\0');
+#if defined(_WIN32)
+  BCRYPT_ALG_HANDLE alg_handle = nullptr;
+  NTSTATUS status = BCryptOpenAlgorithmProvider(
+      &alg_handle, BCRYPT_SHA1_ALGORITHM, nullptr, 0);
+  FIREBASE_ASSERT_RETURN("", BCRYPT_SUCCESS(status));
+  struct AlgHandleCloser {
+    BCRYPT_ALG_HANDLE handle = nullptr;
+    ~AlgHandleCloser() {
+      if (handle != nullptr) {
+        BCryptCloseAlgorithmProvider(handle, 0);
+      }
+    }
+  } alg_closer{alg_handle};
+
+  BCRYPT_HASH_HANDLE hash_handle = nullptr;
+  status =
+      BCryptCreateHash(alg_handle, &hash_handle, nullptr, 0, nullptr, 0, 0);
+  FIREBASE_ASSERT_RETURN("", BCRYPT_SUCCESS(status));
+  struct HashHandleCloser {
+    BCRYPT_HASH_HANDLE handle = nullptr;
+    ~HashHandleCloser() {
+      if (handle != nullptr) {
+        BCryptDestroyHash(handle);
+      }
+    }
+  } hash_closer{hash_handle};
+
+  size_t offset = 0;
+  while (offset < input.size()) {
+    const size_t chunk = std::min<size_t>(input.size() - offset,
+                                          std::numeric_limits<ULONG>::max());
+    status = BCryptHashData(
+        hash_handle,
+        reinterpret_cast<PUCHAR>(const_cast<char*>(input.data() + offset)),
+        static_cast<ULONG>(chunk), 0);
+    FIREBASE_ASSERT_RETURN("", BCRYPT_SUCCESS(status));
+    offset += chunk;
+  }
+
+  status =
+      BCryptFinishHash(hash_handle, reinterpret_cast<PUCHAR>(digest.data()),
+                       static_cast<ULONG>(digest.size()), 0);
+  FIREBASE_ASSERT_RETURN("", BCRYPT_SUCCESS(status));
+#else
+  static_assert(kSha1DigestLength == SHA_DIGEST_LENGTH);
+  const auto* data_ptr = input.empty()
+                             ? reinterpret_cast<const uint8_t*>("")
+                             : reinterpret_cast<const uint8_t*>(input.data());
+  SHA1(data_ptr, input.size(), reinterpret_cast<uint8_t*>(digest.data()));
+#endif  // defined(_WIN32)
+  return digest;
 }
 
-const std::string& GetBase64SHA1(const std::string& input,
-                                 std::string* output) {
-  assert(output != nullptr);
+}  // namespace
 
-  uint8_t sha_hash[SHA_DIGEST_LENGTH];
-  memset(sha_hash, 0x0, SHA_DIGEST_LENGTH);
-  SHA1(reinterpret_cast<const uint8_t*>(input.c_str()), input.size(), sha_hash);
-
-  // The length of base64 encoded SHA-1 string is always 29, including '\0',
-  // assuming SHA_DIGEST_LENGTH is 20
-  assert(GetBase64Length(SHA_DIGEST_LENGTH) == 29);
-  uint8_t encode[29];
-  EVP_EncodeBlock(encode, sha_hash, SHA_DIGEST_LENGTH);
-  *output = reinterpret_cast<char*>(encode);
-  return *output;
+std::string GetBase64SHA1(std::string_view input) {
+  const std::string sha_digest = ComputeSha1Digest(input);
+  std::string encoded;
+  FIREBASE_ASSERT_RETURN(
+      "", firebase::internal::Base64EncodeWithPadding(sha_digest, &encoded));
+  return encoded;
 }
 
 void AppendHashRepAsDouble(std::stringstream* ss, double value) {
@@ -985,9 +1040,8 @@ const std::string& GetHash(const Variant& data, std::string* output) {
 
   std::string hash_rep;
   GetHashRepresentation(data, &hash_rep);
-  std::string base64_encoded;
 
-  *output = hash_rep.empty() ? "" : GetBase64SHA1(hash_rep, &base64_encoded);
+  *output = hash_rep.empty() ? "" : GetBase64SHA1(hash_rep);
   return *output;
 }
 

@@ -638,6 +638,10 @@ code.
       `psapi` or `userenv` for the Realtime Database. Realtime Database
       connections now honor the same proxy environment variables
       (`https_proxy`, `all_proxy`, `no_proxy`, ...) as the REST transport.
+    - Database (Desktop): Replaced the OpenSSL/BoringSSL SHA-1 and Base64
+      dependency on Windows with Windows CNG (`BCrypt`) and the SDK's built-in
+      Base64 encoder. Windows CMake builds with
+      `-DFIREBASE_INCLUDE_FIRESTORE=OFF` no longer require OpenSSL or BoringSSL.
     - General (Desktop): REST and WebSocket connections now share one TLS
       policy: peer and hostname verification are always on, TLS 1.2 is the
       minimum version, and certificates are validated against the OS trust

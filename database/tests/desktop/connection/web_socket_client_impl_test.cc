@@ -393,8 +393,7 @@ class TestWebSocketEchoServer {
       return;
     }
 
-    std::string accept_key;
-    GetBase64SHA1(ws_key + kWebSocketGuid, &accept_key);
+    const std::string accept_key = GetBase64SHA1(ws_key + kWebSocketGuid);
 
     std::string response =
         "HTTP/1.1 101 Switching Protocols\r\n"

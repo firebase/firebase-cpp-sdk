@@ -343,12 +343,10 @@ firebase_cpp_cc_test(
     desktop/connection/web_socket_client_impl_test.cc
   INCLUDES
     ${CURL_SOURCE_DIR}/include
-    ${OPENSSL_INCLUDE_DIR}
   DEPENDS
     firebase_database
     firebase_testing
     libcurl
-    ${OPENSSL_CRYPTO_LIBRARY}
 )
 
 if(MSVC)
@@ -373,10 +371,7 @@ firebase_cpp_cc_test(
   firebase_rtdb_desktop_connection_connection_test
   SOURCES
     desktop/connection/connection_test.cc
-  INCLUDES
-    ${OPENSSL_INCLUDE_DIR}
   DEPENDS
-    ${OPENSSL_CRYPTO_DIR}
     firebase_app_for_testing
     firebase_database
     firebase_testing

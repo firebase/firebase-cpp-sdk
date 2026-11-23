@@ -2169,9 +2169,8 @@ TEST(UtilDesktopTest, GetBase64SHA1) {
       {"αβγωΑΒΓΩ", "WtUIYTivR0gge33nOEyQiBZGkmM="},
   };
 
-  std::string encoded;
-  for (auto& test : test_cases) {
-    EXPECT_THAT(GetBase64SHA1(test.first, &encoded), Eq(test.second));
+  for (const auto& test : test_cases) {
+    EXPECT_THAT(GetBase64SHA1(test.first), Eq(test.second));
   }
 }
 

@@ -47,6 +47,9 @@ function(download_external_sources)
     endif()
   endfunction()
   check_use_local_directory(BORINGSSL)
+  if(NOT FIREBASE_DESKTOP_NEEDS_OPENSSL)
+    set(DOWNLOAD_BORINGSSL OFF)
+  endif()
   check_use_local_directory(CURL)
   check_use_local_directory(FLATBUFFERS)
   check_use_local_directory(ZLIB)
@@ -104,7 +107,7 @@ function(download_external_sources)
   )
 
   # On desktop, make a few tweaks to the downloaded files.
-  if(NOT ANDROID AND NOT IOS)
+  if(NOT ANDROID AND NOT IOS AND FIREBASE_DESKTOP_NEEDS_OPENSSL)
     if (FIREBASE_USE_BORINGSSL)
       # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
       # unless the header file contains OPENSSL_VERSION_NUMBER.
@@ -238,7 +241,7 @@ function(build_external_dependencies)
   message(STATUS "Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
   message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
-  if(NOT ANDROID AND NOT IOS)
+  if(NOT ANDROID AND NOT IOS AND FIREBASE_DESKTOP_NEEDS_OPENSSL)
     if (FIREBASE_USE_BORINGSSL)
       execute_process(
         COMMAND ${ENV_COMMAND} ${CMAKE_COMMAND} -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl

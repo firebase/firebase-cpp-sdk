@@ -33,8 +33,9 @@ instructions for your specific platform.
 *   **CMake**: Version 3.7 or newer.
 *   **Python**: Version 3.7 or newer.
 *   **Abseil-py**: Python package.
-*   **OpenSSL**: Required for desktop builds, unless you build with the
-    `-DFIREBASE_USE_BORINGSSL=YES` cmake flag.
+*   **OpenSSL**: Required for Linux and macOS desktop builds (and Windows
+    desktop builds only when `FIREBASE_INCLUDE_FIRESTORE=ON`), unless you build
+    with the `-DFIREBASE_USE_BORINGSSL=YES` cmake flag.
 *   **libsecret-1-dev**: (Linux Desktop) Required for secure credential storage.
     Install using `sudo apt-get install libsecret-1-dev`.
 *   **Android SDK & NDK**: Required for building Android libraries. `sdkmanager`

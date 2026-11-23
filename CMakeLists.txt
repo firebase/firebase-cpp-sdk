@@ -242,6 +242,16 @@ if(FIREBASE_INCLUDE_FIRESTORE AND DESKTOP)
   set(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD ON)
 endif()
 
+# On Windows, libcurl uses native Schannel/SSPI and Realtime Database uses
+# Windows BCrypt, so OpenSSL/BoringSSL is only needed on Desktop when building
+# on non-Windows platforms (Linux/macOS) or when building Firestore's external
+# CMake build (whose gRPC dependency requires OpenSSL/BoringSSL).
+if(DESKTOP AND (NOT WIN32 OR FIRESTORE_USE_EXTERNAL_CMAKE_BUILD))
+  set(FIREBASE_DESKTOP_NEEDS_OPENSSL ON)
+else()
+  set(FIREBASE_DESKTOP_NEEDS_OPENSSL OFF)
+endif()
+
 # Disable compiling the Objective-C (and Swift) stuff from the
 # firebase-ios-sdk since it's not needed and can sometimes fail to build.
 set(FIRESTORE_INCLUDE_OBJC OFF CACHE BOOL "Disabled for the CPP SDK")
@@ -284,7 +294,7 @@ else()
   set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
 endif()
 
-if(DESKTOP)
+if(FIREBASE_DESKTOP_NEEDS_OPENSSL)
   # Use the static versions of the OpenSSL libraries.
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   if (MSVC)
@@ -325,7 +335,9 @@ if(DESKTOP)
   message(STATUS "Building external project dependencies...")
   build_external_dependencies()
   message(STATUS "Build of external project dependencies complete.")
-  
+endif()
+
+if(FIREBASE_DESKTOP_NEEDS_OPENSSL)
   if(FIREBASE_USE_BORINGSSL)
     set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
     set(OPENSSL_NO_ASM TRUE)  # Force cross-platform BoringSSL, no ASM.

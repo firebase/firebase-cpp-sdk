@@ -56,8 +56,9 @@ set(ios_SRCS
     src/ios/util_ios.mm)
 
 if (NOT OPENSSL_FOUND)
-  # Only log a message if building for Desktop, since mobile doesn't care.
-  if (NOT ANDROID AND NOT IOS)
+  # Only log a message on non-Windows Desktop; mobile doesn't use OpenSSL and
+  # Windows uses native BCrypt + Schannel instead.
+  if (NOT ANDROID AND NOT IOS AND NOT WIN32)
     message(FATAL_ERROR "Unable to find OpenSSL, which is needed for Realtime \
             Database's desktop implementation. Install OpenSSL and add it to \
             your PATH, or set the CMake option FIREBASE_INCLUDE_DATABASE to \
@@ -166,14 +167,19 @@ if(ANDROID OR IOS)
 else()
   set(additional_include_DIR
       ${CURL_SOURCE_DIR}/include
-      ${FLATBUFFERS_SOURCE_DIR}/include
-      ${OPENSSL_INCLUDE_DIR})
+      ${FLATBUFFERS_SOURCE_DIR}/include)
 
   set(additional_link_LIB
       firebase_rest_lib
       leveldb
-      libcurl
-      OpenSSL::Crypto)
+      libcurl)
+
+  if(WIN32)
+    list(APPEND additional_link_LIB bcrypt)
+  else()
+    list(APPEND additional_include_DIR ${OPENSSL_INCLUDE_DIR})
+    list(APPEND additional_link_LIB OpenSSL::Crypto)
+  endif()
 
   set(additional_DEFINES
       -DFIREBASE_TARGET_DESKTOP=1)

@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -252,9 +253,8 @@ bool VariantIsEmpty(const Variant& variant);
 // this function performs that additional recursive equality check on submaps.
 bool VariantsAreEquivalent(const Variant& a, const Variant& b);
 
-// Returns a string which is hashed with SHA-1 and then Base64 encoded
-// using the input string.
-const std::string& GetBase64SHA1(const std::string& input, std::string* output);
+// Returns the Base64-encoded SHA-1 digest of `input`.
+std::string GetBase64SHA1(std::string_view input);
 
 // Compare two Variant as child keys for sorting.
 // Expect both Variants are string.

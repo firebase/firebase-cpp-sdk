@@ -59,12 +59,15 @@ required packages:
 The following prerequisites are required when building the libraries for
 desktop platforms.
 
-- [OpenSSL](https://www.openssl.org/), needed for Realtime Database and Cloud Firestore
+- [OpenSSL](https://www.openssl.org/), needed on Linux and macOS (and on
+  Windows only when building Cloud Firestore without
+  `-DFIREBASE_USE_BORINGSSL=ON`)
 
 ### Prerequisites for Windows
-Prebuilt packages for openssl can be found using google and if CMake fails to
-find the install path use the command line option
-**-DOPENSSL_ROOT_DIR=[Open SSL Dir]**.
+OpenSSL is not required on Windows when building with
+`-DFIREBASE_INCLUDE_FIRESTORE=OFF` (or `-DFIREBASE_USE_BORINGSSL=ON`). If
+building Cloud Firestore against system OpenSSL and CMake fails to find the
+install path, use the command line option **-DOPENSSL_ROOT_DIR=[Open SSL Dir]**.
 
 ### Prerequisites for Mac
 Home brew can be used to install required dependencies:
