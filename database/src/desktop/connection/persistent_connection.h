@@ -339,6 +339,9 @@ class PersistentConnection : public ConnectionEventHandler {
   // Callback function when the App Check future to fetch token is complete.
   static void OnAppCheckTokenFutureComplete(
       ThisRef safe_ref, const Future<std::string>& result_data);
+  static void OnTokenFutureComplete(ThisRef safe_ref,
+                                    const Future<std::string>& result_data,
+                                    bool is_auth);
   void HandleTokenFutures(uint64_t get_token_attempt);
   void ClearPendingTokenFutures();
 
@@ -503,7 +506,6 @@ class PersistentConnection : public ConnectionEventHandler {
   static const char* kServerResponseData;
 
   static int kInvalidAuthTokenThreshold;
-  static constexpr uint64_t kSuccessfulConnectionEstablishedDelayMs = 30000;
 
   // Log id.  Unique for each persistent connection.
   static std::atomic<uint32_t> next_log_id_;
