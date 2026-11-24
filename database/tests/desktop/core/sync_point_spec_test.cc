@@ -234,7 +234,11 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
 
   int current_write_id = 0;
 
-  std::map<int, EventRegistration*> registrations;
+  struct RegistrationRecord {
+    void* listener_ptr;
+    QuerySpec query_spec;
+  };
+  std::map<int, RegistrationRecord> registrations;
   for (const test_data::Step* spec : *test_spec->steps()) {
     if (spec->comment()) {
       logger_.LogInfo(" > %s", spec->comment()->c_str());
@@ -256,11 +260,12 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
         int callback_id = spec->callbackId();
         if (callback_id != 0 && registrations.count(callback_id) != 0) {
           event_registration = new TestEventRegistration(
-              registrations[callback_id]->query_spec());
+              registrations[callback_id].query_spec);
         } else {
           event_registration = new TestEventRegistration(query->query_spec());
           if (callback_id != 0) {
-            registrations[callback_id] = event_registration;
+            registrations[callback_id] =
+                RegistrationRecord{event_registration, query->query_spec()};
           }
         }
         std::vector<Event> actual = sync_tree_->AddEventRegistration(
@@ -269,14 +274,12 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
         break;
       }
       case test_data::StepType_unlisten: {
-        EventRegistration* event_registration = nullptr;
         int callback_id = spec->callbackId();
         EXPECT_TRUE(callback_id != 0 && registrations.count(callback_id) != 0);
-        event_registration = registrations[callback_id];
-        ASSERT_NE(event_registration, nullptr);
+        const RegistrationRecord& record = registrations[callback_id];
+        ASSERT_NE(record.listener_ptr, nullptr);
         std::vector<Event> actual = sync_tree_->RemoveEventRegistration(
-            event_registration->query_spec(),
-            static_cast<void*>(event_registration), kErrorNone);
+            record.query_spec, record.listener_ptr, kErrorNone);
         EXPECT_THAT(actual, Pointwise(EventEq(), expected));
         break;
       }

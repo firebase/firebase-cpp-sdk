@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -366,13 +367,17 @@ FutureHandle ReferenceCountedFutureImpl::AllocInternal(
   // Note that it's theoretically possible to have a handle collision if we
   // allocate four billion more handles before releasing one. We ignore this
   // possibility.
-  MutexLock lock(mutex_);
-  const FutureHandleId id = AllocHandleId();
-  FIREBASE_FUTURE_TRACE("API: Allocated handle id %d", id);
-  backings_.insert(BackingPair(id, backing));
-  const FutureHandle handle(id, this);
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    const FutureHandleId id = AllocHandleId();
+    FIREBASE_FUTURE_TRACE("API: Allocated handle id %d", id);
+    backings_.insert(BackingPair(id, backing));
+    handle = FutureHandle(id, this);
+  }
 
-  // Update the most recent Future for this function.
+  // Update the most recent Future for this function after releasing mutex_ so
+  // lock order is consistently FutureBase::mutex_ -> mutex_.
   if (0 <= fn_idx && fn_idx < static_cast<int>(last_results_.size())) {
     FIREBASE_FUTURE_TRACE("API: Future handle %d (fn %d) --> %08x", handle.id(),
                           fn_idx, &last_results_[fn_idx]);
@@ -422,15 +427,18 @@ void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallbacks(
 
   // Call the completion callbacks, if any have been registered,
   // removing them from the list as we go.
+  // Keep `future_base` alive past `mutex_.Release()` so `~FutureBase()` runs
+  // outside `mutex_` and preserves the FutureBase::mutex_ -> mutex_ lock order.
+  std::optional<FutureBase> future_base;
   if (backing->completion_single_callback != nullptr ||
       !backing->completion_multiple_callbacks.empty()) {
-    FutureBase future_base(this, handle);
+    future_base.emplace(this, handle);
     if (backing->completion_single_callback != nullptr) {
       CompletionCallbackData* data = backing->completion_single_callback;
       auto callback = data->completion_callback;
       auto user_data = data->callback_user_data;
       backing->completion_single_callback = nullptr;
-      RunCallback(&future_base, callback, user_data);
+      RunCallback(&*future_base, callback, user_data);
       // ClearSingleCallbackData calls delete_fn, deletes data, and decrements
       // refcount.
       backing->ClearSingleCallbackData(&data);
@@ -441,13 +449,14 @@ void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallbacks(
       auto callback = data->completion_callback;
       auto user_data = data->callback_user_data;
       backing->completion_multiple_callbacks.pop_front();
-      RunCallback(&future_base, callback, user_data);
+      RunCallback(&*future_base, callback, user_data);
       // ClearSingleCallbackData calls delete_fn, deletes data, and decrements
       // refcount.
       backing->ClearSingleCallbackData(&data);
     }
   }
   mutex_.Release();
+  future_base.reset();
 }
 
 void ReferenceCountedFutureImpl::RunCallback(
@@ -726,20 +735,20 @@ bool ReferenceCountedFutureImpl::IsRunningCallback() const {
 }
 
 bool ReferenceCountedFutureImpl::IsReferencedExternally() const {
-  MutexLock lock(mutex_);
-
-  int total_references = 0;
   int internal_references = 0;
-  for (auto i = backings_.begin(); i != backings_.end(); ++i) {
-    // Count the total number of references to all valid Futures.
-    total_references += i->second->reference_count;
-  }
-  for (int i = 0; i < last_results_.size(); i++) {
+  for (size_t i = 0; i < last_results_.size(); i++) {
     if (last_results_[i].status() != kFutureStatusInvalid) {
       // If the status is not invalid, this entry is using up a reference.
       // Count up the internal references.
       internal_references++;
     }
+  }
+
+  MutexLock lock(mutex_);
+  int total_references = 0;
+  for (auto i = backings_.begin(); i != backings_.end(); ++i) {
+    // Count the total number of references to all valid Futures.
+    total_references += i->second->reference_count;
   }
   // If there are more references than the internal ones, someone is holding
   // onto a Future.
@@ -766,30 +775,36 @@ void ReferenceCountedFutureImpl::SetContextData(
 // available when build INTERNAL_EXPERIMENTAL.
 #if defined(INTERNAL_EXPERIMENTAL)
 FutureBase ReferenceCountedFutureImpl::LastResultProxy(int fn_idx) {
-  MutexLock lock(mutex_);
-  const FutureBase& future = last_results_[fn_idx];
+  const FutureBase future = last_results_[fn_idx];
   // We only do this complicated dance if the Future is pending.
   if (future.status() != kFutureStatusPending) {
     return future;
   }
-
-  // Get the subject backing and (if needed) allocate the ProxyManager.
   const FutureHandle handle = future.GetHandle();
-  FutureBackingData* backing = BackingFromHandle(handle.id());
-  if (!backing->proxy) {
-    backing->proxy = new FutureProxyManager(this, handle);
-  }
 
-  // Allocate the client backing. We reuse the subject data, with a noop
-  // delete function, because the subject owns the data.
-  FutureHandle client_handle =
-      AllocInternal(kNoFunctionIndex, backing->data, [](void*) {});
-  // Use the context data to inform the proxy manager when the client dies.
-  SetContextData(
-      client_handle,
-      new FutureProxyManager::UnregisterData(backing->proxy, client_handle),
-      FutureProxyManager::UnregisterCallback);
-  backing->proxy->RegisterClient(client_handle);
+  FutureHandle client_handle;
+  {
+    MutexLock lock(mutex_);
+    // Get the subject backing and (if needed) allocate the ProxyManager.
+    FutureBackingData* backing = BackingFromHandle(handle.id());
+    if (backing == nullptr || backing->status != kFutureStatusPending) {
+      return future;
+    }
+    if (!backing->proxy) {
+      backing->proxy = new FutureProxyManager(this, handle);
+    }
+
+    // Allocate the client backing. We reuse the subject data, with a noop
+    // delete function, because the subject owns the data.
+    client_handle =
+        AllocInternal(kNoFunctionIndex, backing->data, [](void*) {});
+    // Use the context data to inform the proxy manager when the client dies.
+    SetContextData(
+        client_handle,
+        new FutureProxyManager::UnregisterData(backing->proxy, client_handle),
+        FutureProxyManager::UnregisterCallback);
+    backing->proxy->RegisterClient(client_handle);
+  }
 
   return FutureBase(this, client_handle);
 }

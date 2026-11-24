@@ -40,15 +40,23 @@ void CleanupNotifier::UnregisterObject(void* object) {
 }
 
 void CleanupNotifier::CleanupAll() {
-  MutexLock lock(mutex_);
-  if (!cleaned_up_) {
-    while (callbacks_.begin() != callbacks_.end()) {
-      std::pair<void*, CleanupCallback> object_and_callback =
-          *callbacks_.begin();
-      object_and_callback.second(object_and_callback.first);
-      UnregisterObject(object_and_callback.first);
+  for (;;) {
+    std::pair<void*, CleanupCallback> object_and_callback;
+    {
+      MutexLock lock(mutex_);
+      if (cleaned_up_) return;
+      if (callbacks_.empty()) {
+        cleaned_up_ = true;
+        return;
+      }
+      auto it = callbacks_.begin();
+      object_and_callback = *it;
+      callbacks_.erase(it);
     }
-    cleaned_up_ = true;
+    // Invoke cleanup callbacks outside mutex_ so callbacks that acquire their
+    // own mutex (e.g., FutureBase::Release) and call UnregisterObject cannot
+    // invert lock order with mutex_.
+    object_and_callback.second(object_and_callback.first);
   }
 }
 

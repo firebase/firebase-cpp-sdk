@@ -149,18 +149,18 @@ AuthData::~AuthData() {
 }
 
 Auth AuthData::MakeAuthHandle() {
-  auto handle = app_state.FindServiceHandle<AuthData>(
-      &::firebase::internal::kAuthServiceTag);
-  return Auth(std::move(handle));
+  auto state = app_state.weak_from_this().lock();
+  if (!state) return Auth();
+  return Auth(std::shared_ptr<AuthData>(std::move(state), this));
 }
 
 User AuthData::MakeCurrentUserHandle() {
-  auto handle = app_state.FindServiceHandle<AuthData>(
-      &::firebase::internal::kAuthServiceTag);
-  if (!handle) return User();
+  auto state = app_state.weak_from_this().lock();
+  if (!state) return User();
   MutexLock lock(future_impl.mutex());
   if (user_impl == nullptr) return User();
-  return User(std::weak_ptr<AuthData>(handle));
+  return User(std::weak_ptr<AuthData>(
+      std::shared_ptr<AuthData>(std::move(state), this)));
 }
 
 void AuthData::AddInternalAuthStateListener(AuthStateListener* listener) {
@@ -262,17 +262,20 @@ void Auth::AddAuthStateListener(AuthStateListener* listener) {
 
 void Auth::AddIdTokenListener(IdTokenListener* listener) {
   if (!auth_data_ || !listener) return;
-  MutexLock lock(auth_data_->listeners_mutex);
-  const bool listener_added =
-      PushBackIfMissing(listener, &auth_data_->id_token_listeners);
-  const bool auth_added = AddWeakIfMissing(auth_data_, &listener->auths_);
-  FIREBASE_ASSERT_RETURN_VOID(listener_added == auth_added);
-  (void)auth_added;
+  bool listener_added = false;
+  {
+    MutexLock lock(auth_data_->listeners_mutex);
+    listener_added =
+        PushBackIfMissing(listener, &auth_data_->id_token_listeners);
+    const bool auth_added = AddWeakIfMissing(auth_data_, &listener->auths_);
+    FIREBASE_ASSERT_RETURN_VOID(listener_added == auth_added);
+    (void)auth_added;
 
-  if (listener_added) {
-    if (!auth_data_->persistent_cache_load_pending) {
+    if (listener_added && !auth_data_->persistent_cache_load_pending) {
       listener->OnIdTokenChanged(*this);
     }
+  }
+  if (listener_added) {
     EnableTokenAutoRefresh(auth_data_.get());
   }
 }

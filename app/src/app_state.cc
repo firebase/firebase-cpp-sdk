@@ -87,6 +87,12 @@ void AppState::DestroyServices() {
       if (it != index_.end() && it->second == entry.service.get()) {
         index_.erase(it);
       }
+      if (entry.type_tag == &kAuthServiceTag && entry.instance_key.empty()) {
+        auth_token_provider_.store(nullptr, std::memory_order_release);
+      } else if (entry.type_tag == &kAppCheckServiceTag &&
+                 entry.instance_key.empty()) {
+        app_check_token_provider_.store(nullptr, std::memory_order_release);
+      }
       to_destroy = std::move(entry.service);
     }
     // Destroy outside services_mutex_ so the service's destructor can safely
@@ -107,6 +113,11 @@ bool AppState::DetachService(const void* type_tag, std::string_view key,
 
     Service* target = it->second;
     index_.erase(it);
+    if (type_tag == &kAuthServiceTag && key.empty()) {
+      auth_token_provider_.store(nullptr, std::memory_order_release);
+    } else if (type_tag == &kAppCheckServiceTag && key.empty()) {
+      app_check_token_provider_.store(nullptr, std::memory_order_release);
+    }
 
     for (auto vec_it = owned_services_.begin(); vec_it != owned_services_.end();
          ++vec_it) {

@@ -379,13 +379,11 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// Return internally-held future to the last result for `fn_idx`.
   const FutureBase& LastResult(int fn_idx) const {
-    MutexLock lock(mutex_);
     return last_results_[fn_idx];
   }
 
   /// The Future for `LastResult(fn_idx)` will return kFutureStatusInvalid.
   void InvalidateLastResult(int fn_idx) {
-    MutexLock lock(mutex_);
     last_results_[fn_idx] = FutureBase();
   }
 

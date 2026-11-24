@@ -594,11 +594,13 @@ IdTokenRefreshThread::IdTokenRefreshThread()
     : ref_count_(0), is_shutting_down_(false), wakeup_sem_(0) {}
 
 void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
-  MutexLock lock(ref_count_mutex_);
-  set_is_shutting_down(false);
-  auth_data_ = auth_data;
-  auth_data_->AddInternalIdTokenListener(&token_refresh_listener_);
-  ref_count_ = 0;
+  {
+    MutexLock lock(ref_count_mutex_);
+    set_is_shutting_down(false);
+    auth_data_ = auth_data;
+    ref_count_ = 0;
+  }
+  auth_data->AddInternalIdTokenListener(&token_refresh_listener_);
 
   thread_ = firebase::Thread(
       [](IdTokenRefreshThread* refresh_thread) {
@@ -606,14 +608,15 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
         ExponentialBackoff backoff;
 
         while (!refresh_thread->is_shutting_down()) {
-          // Note: Make sure to always make future_impl.mutex the innermost
-          // lock, to prevent deadlocks!
+          // Read token timestamp before acquiring future_impl.mutex() so
+          // future_impl.mutex() remains strictly the innermost lock.
+          const uint64_t last_token_timestamp =
+              refresh_thread->token_refresh_listener_.GetTokenTimestamp();
           refresh_thread->ref_count_mutex_.Acquire();
           auth_data->future_impl.mutex().Acquire();
           if (auth_data->user_impl && refresh_thread->ref_count_ > 0) {
             uint64_t ms_since_last_refresh =
-                internal::GetTimestampEpoch() -
-                refresh_thread->token_refresh_listener_.GetTokenTimestamp();
+                internal::GetTimestampEpoch() - last_token_timestamp;
 
             if (ms_since_last_refresh >= kMsPerTokenRefresh) {
               Future<std::string> future = GetUserTokenInternal(

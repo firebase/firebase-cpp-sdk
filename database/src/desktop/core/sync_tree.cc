@@ -601,7 +601,10 @@ static void CollectDistinctViewsForSubTree(Tree<SyncPoint>* subtree,
 }
 
 std::vector<Event> SyncTree::RemoveEventRegistration(
-    const QuerySpec& query_spec, void* listener_ptr, Error cancel_error) {
+    const QuerySpec& query_spec_in, void* listener_ptr, Error cancel_error) {
+  // Copy query_spec before maybe_sync_point->RemoveEventRegistration() deletes
+  // the EventRegistration that may own the caller's QuerySpec reference.
+  const QuerySpec query_spec = query_spec_in;
   std::vector<Event> cancel_events;
   persistence_manager_->RunInTransaction([&]() {
     // Find the sync_point first. Then deal with whether or not it has matching

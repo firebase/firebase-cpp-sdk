@@ -16,6 +16,7 @@
 
 #include "app/src/heartbeat/date_provider.h"
 
+#include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -26,10 +27,15 @@ namespace heartbeat {
 std::string DateProviderImpl::GetDate() const {
   std::time_t t = std::time(nullptr);
   // Use UTC time so that local time zone changes are ignored.
-  std::tm* tm = std::gmtime(&t);
+  std::tm utc_tm{};
+#if defined(_WIN32)
+  gmtime_s(&utc_tm, &t);
+#else
+  gmtime_r(&t, &utc_tm);
+#endif
   std::ostringstream ss;
   // Format the date as yyyy-mm-dd, independent of locale.
-  ss << std::put_time(tm, "%Y-%m-%d");
+  ss << std::put_time(&utc_tm, "%Y-%m-%d");
   return ss.str();
 }
 

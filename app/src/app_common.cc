@@ -19,7 +19,9 @@
 #include <assert.h>
 #include <string.h>
 
+#include <atomic>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <map>
 #include <memory>
@@ -271,16 +273,24 @@ class LibraryRegistry {
   }
 
   void UpdateUserAgent() {
-    user_agent_.clear();
+    std::string next_user_agent;
     for (const auto& entry : library_to_version_) {
-      user_agent_ += entry.first + "/" + entry.second + " ";
+      next_user_agent += entry.first + "/" + entry.second + " ";
     }
-    if (!user_agent_.empty()) {
-      user_agent_.pop_back();
+    if (!next_user_agent.empty()) {
+      next_user_agent.pop_back();
     }
+    if (user_agent_snapshots_.empty() ||
+        user_agent_snapshots_.back() != next_user_agent) {
+      user_agent_snapshots_.push_back(std::move(next_user_agent));
+    }
+    current_user_agent_.store(user_agent_snapshots_.back().c_str(),
+                              std::memory_order_release);
   }
 
-  const char* GetUserAgent() const { return user_agent_.c_str(); }
+  const char* GetUserAgent() const {
+    return current_user_agent_.load(std::memory_order_acquire);
+  }
 
   bool is_common_library_registered() const {
     return is_common_library_registered_;
@@ -291,7 +301,7 @@ class LibraryRegistry {
 
   void Clear() {
     library_to_version_.clear();
-    user_agent_.clear();
+    current_user_agent_.store("", std::memory_order_release);
     is_common_library_registered_ = false;
   }
 
@@ -300,7 +310,11 @@ class LibraryRegistry {
  private:
   Mutex mutex_;
   std::map<std::string, std::string> library_to_version_;
-  std::string user_agent_;
+  // std::deque never invalidates pointers to existing elements on push_back,
+  // keeping every previously published GetUserAgent() C-string immutable and
+  // race-free for concurrent readers (e.g. background heartbeat threads).
+  std::deque<std::string> user_agent_snapshots_;
+  std::atomic<const char*> current_user_agent_{""};
   bool is_common_library_registered_ = false;
 };
 
@@ -452,11 +466,7 @@ void RegisterSdkUsage(void* platform_resource) {
   }
 }
 
-const char* GetUserAgent() {
-  LibraryRegistry& registry = GetLibraryRegistry();
-  MutexLock lock(registry.mutex());
-  return registry.GetUserAgent();
-}
+const char* GetUserAgent() { return GetLibraryRegistry().GetUserAgent(); }
 
 std::string GetLibraryVersion(const char* library) {
   LibraryRegistry& registry = GetLibraryRegistry();

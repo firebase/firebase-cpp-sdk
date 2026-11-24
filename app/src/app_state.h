@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_SRC_APP_STATE_H_
 #define FIREBASE_APP_SRC_APP_STATE_H_
 
+#include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
@@ -149,6 +150,16 @@ class AppState : public std::enable_shared_from_this<AppState> {
     owned_services_.push_back(
         ServiceEntry{type_tag, std::move(lookup_key.instance_key),
                      std::static_pointer_cast<Service>(std::move(created))});
+    if constexpr (std::is_base_of_v<AuthTokenProvider, T>) {
+      if (type_tag == &kAuthServiceTag && key.empty()) {
+        auth_token_provider_.store(raw, std::memory_order_release);
+      }
+    }
+    if constexpr (std::is_base_of_v<AppCheckTokenProvider, T>) {
+      if (type_tag == &kAppCheckServiceTag && key.empty()) {
+        app_check_token_provider_.store(raw, std::memory_order_release);
+      }
+    }
     return std::shared_ptr<T>(std::move(self), raw);
   }
 
@@ -191,13 +202,15 @@ class AppState : public std::enable_shared_from_this<AppState> {
   bool DetachService(const void* type_tag, std::string_view key = {},
                      const Service* expected = nullptr);
 
-  // Typed convenience accessors for cross-product token providers on this App.
+  // Typed lock-free convenience accessors for cross-product token providers on
+  // this App (avoids lock-order inversion when called from product internal
+  // mutexes such as Firestore::EnsureClientConfigured).
   AuthTokenProvider* auth_token_provider() const {
-    return FindService<AuthTokenProvider>(&kAuthServiceTag);
+    return auth_token_provider_.load(std::memory_order_acquire);
   }
 
   AppCheckTokenProvider* app_check_token_provider() const {
-    return FindService<AppCheckTokenProvider>(&kAppCheckServiceTag);
+    return app_check_token_provider_.load(std::memory_order_acquire);
   }
 
   // Static helper so internal code can extract AppState from a public App.
@@ -241,6 +254,8 @@ class AppState : public std::enable_shared_from_this<AppState> {
   mutable Mutex services_mutex_;
   std::vector<ServiceEntry> owned_services_;
   std::map<ServiceKey, Service*> index_;
+  std::atomic<AuthTokenProvider*> auth_token_provider_{nullptr};
+  std::atomic<AppCheckTokenProvider*> app_check_token_provider_{nullptr};
 };
 
 // Convenience service adapter for attaching an arbitrary teardown callback
