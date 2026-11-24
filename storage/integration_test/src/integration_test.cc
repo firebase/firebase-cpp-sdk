@@ -118,11 +118,11 @@ class FirebaseStorageTest : public FirebaseTest {
   // Create a unique working folder and return a reference to it.
   firebase::storage::StorageReference CreateFolder();
 
-  static firebase::App* shared_app_;
-  static firebase::auth::Auth* shared_auth_;
+  static firebase::App shared_app_;
+  static firebase::auth::Auth shared_auth_;
 
   bool initialized_;
-  firebase::storage::Storage* storage_;
+  firebase::storage::Storage storage_;
   // File references that we need to delete on test exit.
   std::vector<firebase::storage::StorageReference> cleanup_files_;
   std::string saved_url_;
@@ -137,17 +137,16 @@ class FirebaseStorageTest : public FirebaseTest {
 //  - Once, after all tests are finished:
 //  -   TearDownTestSuite: Sign out. Shut down Auth and App.
 
-firebase::App* FirebaseStorageTest::shared_app_;
-firebase::auth::Auth* FirebaseStorageTest::shared_auth_;
+firebase::App FirebaseStorageTest::shared_app_;
+firebase::auth::Auth FirebaseStorageTest::shared_auth_;
 
-FirebaseStorageTest::FirebaseStorageTest()
-    : initialized_(false), storage_(nullptr) {
+FirebaseStorageTest::FirebaseStorageTest() : initialized_(false) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
 FirebaseStorageTest::~FirebaseStorageTest() {
   // Must be cleaned up on exit.
-  assert(storage_ == nullptr);
+  assert(!storage_.is_valid());
 }
 
 void FirebaseStorageTest::SetUpTestSuite() { InitializeAppAndAuth(); }
@@ -164,20 +163,20 @@ void FirebaseStorageTest::InitializeAppAndAuth() {
   shared_app_ = ::firebase::App::Create();
 #endif  // defined(__ANDROID__)
 
-  ASSERT_NE(shared_app_, nullptr);
+  ASSERT_TRUE(shared_app_.is_valid());
 
   LogDebug("Initializing Auth.");
 
   // Initialize Firebase Auth.
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(shared_app_, &shared_auth_,
-                         [](::firebase::App* app, void* target) {
-                           LogDebug("Attempting to initialize Firebase Auth.");
-                           ::firebase::InitResult result;
-                           *reinterpret_cast<firebase::auth::Auth**>(target) =
-                               ::firebase::auth::Auth::GetAuth(app, &result);
-                           return result;
-                         });
+  initializer.Initialize(
+      shared_app_, &shared_auth_, [](const ::firebase::App& app, void* target) {
+        LogDebug("Attempting to initialize Firebase Auth.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::auth::Auth*>(target) =
+            ::firebase::auth::Auth::GetAuth(app, &result);
+        return result;
+      });
 
   WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 
@@ -186,7 +185,7 @@ void FirebaseStorageTest::InitializeAppAndAuth() {
 
   LogDebug("Successfully initialized Auth.");
 
-  ASSERT_NE(shared_auth_, nullptr);
+  ASSERT_TRUE(shared_auth_.is_valid());
 
   // Sign in anonymously.
   SignIn();
@@ -195,17 +194,15 @@ void FirebaseStorageTest::InitializeAppAndAuth() {
 void FirebaseStorageTest::TearDownTestSuite() { TerminateAppAndAuth(); }
 
 void FirebaseStorageTest::TerminateAppAndAuth() {
-  if (shared_auth_) {
+  if (shared_auth_.is_valid()) {
     LogDebug("Signing out.");
     SignOut();
     LogDebug("Shutdown Auth.");
-    delete shared_auth_;
-    shared_auth_ = nullptr;
+    shared_auth_ = firebase::auth::Auth();
   }
-  if (shared_app_) {
+  if (shared_app_.is_valid()) {
     LogDebug("Shutdown App.");
-    delete shared_app_;
-    shared_app_ = nullptr;
+    shared_app_ = firebase::App();
   }
 }
 
@@ -216,7 +213,8 @@ void FirebaseStorageTest::SetUp() {
 
 void FirebaseStorageTest::TearDown() {
   if (initialized_) {
-    if (!cleanup_files_.empty() && storage_ && shared_app_) {
+    if (!cleanup_files_.empty() && storage_.is_valid() &&
+        shared_app_.is_valid()) {
       LogDebug("Cleaning up files.");
       std::vector<firebase::Future<void>> cleanups;
       cleanups.reserve(cleanup_files_.size());
@@ -239,10 +237,10 @@ void FirebaseStorageTest::InitializeStorage() {
 
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(
-      shared_app_, &storage_, [](::firebase::App* app, void* target) {
+      shared_app_, &storage_, [](const ::firebase::App& app, void* target) {
         LogDebug("Attempting to initialize Firebase Storage.");
         ::firebase::InitResult result;
-        *reinterpret_cast<firebase::storage::Storage**>(target) =
+        *reinterpret_cast<firebase::storage::Storage*>(target) =
             firebase::storage::Storage::GetInstance(app, kStorageUrl, &result);
         return result;
       });
@@ -260,10 +258,9 @@ void FirebaseStorageTest::InitializeStorage() {
 void FirebaseStorageTest::TerminateStorage() {
   if (!initialized_) return;
 
-  if (storage_) {
+  if (storage_.is_valid()) {
     LogDebug("Shutdown the Storage library.");
-    delete storage_;
-    storage_ = nullptr;
+    storage_ = firebase::storage::Storage();
   }
 
   initialized_ = false;
@@ -272,13 +269,13 @@ void FirebaseStorageTest::TerminateStorage() {
 }
 
 void FirebaseStorageTest::SignIn() {
-  if (shared_auth_->current_user().is_valid()) {
+  if (shared_auth_.current_user().is_valid()) {
     // Already signed in.
     return;
   }
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::AuthResult> sign_in_future =
-      shared_auth_->SignInAnonymously();
+      shared_auth_.SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -288,29 +285,29 @@ void FirebaseStorageTest::SignIn() {
 }
 
 void FirebaseStorageTest::SignOut() {
-  if (shared_auth_ == nullptr) {
+  if (!shared_auth_.is_valid()) {
     // Auth is not set up.
     return;
   }
-  if (!shared_auth_->current_user().is_valid()) {
+  if (!shared_auth_.current_user().is_valid()) {
     // Already signed out.
     return;
   }
-  if (shared_auth_->current_user().is_anonymous()) {
+  if (shared_auth_.current_user().is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(shared_auth_->current_user().Delete(),
+    WaitForCompletion(shared_auth_.current_user().Delete(),
                       "DeleteAnonymousUser");
   } else {
     // If not signed in anonymously (e.g. if the tests were modified to sign in
     // as an actual user), just sign out normally.
-    shared_auth_->SignOut();
+    shared_auth_.SignOut();
 
     // Wait for the sign-out to finish.
-    while (shared_auth_->current_user().is_valid()) {
+    while (shared_auth_.current_user().is_valid()) {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_FALSE(shared_auth_->current_user().is_valid());
+  EXPECT_FALSE(shared_auth_.current_user().is_valid());
 }
 
 firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
@@ -321,7 +318,7 @@ firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
   snprintf(buffer, sizeof(buffer), "%lld",
            static_cast<long long>(time_in_microseconds));  // NOLINT
   saved_url_ = buffer;
-  return storage_->GetReference(kRootNodeName).Child(saved_url_);
+  return storage_.GetReference(kRootNodeName).Child(saved_url_);
 }
 
 // Test cases below.
@@ -331,7 +328,7 @@ TEST_F(FirebaseStorageTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseStorageTest, TestSignIn) {
-  EXPECT_TRUE(shared_auth_->current_user().is_valid());
+  EXPECT_TRUE(shared_auth_.current_user().is_valid());
 }
 
 TEST_F(FirebaseStorageTest, TestCreateWorkingFolder) {
@@ -347,19 +344,19 @@ TEST_F(FirebaseStorageTest, TestCreateWorkingFolder) {
   // NOLINTNEXTLINE intentional redundant string conversion
   {
     firebase::storage::StorageReference ref_from_str =
-        storage_->GetReference(std::string(kRootNodeName)).Child(saved_url_);
+        storage_.GetReference(std::string(kRootNodeName)).Child(saved_url_);
     EXPECT_EQ(ref.bucket(), ref_from_str.bucket());
     EXPECT_EQ(ref.full_path(), ref_from_str.full_path());
   }
   std::string url = "gs://" + ref.bucket() + "/" + kRootNodeName;
   LogDebug("Calling GetReferenceFromUrl(%s)", url.c_str());
   firebase::storage::StorageReference ref_from_url =
-      storage_->GetReferenceFromUrl(url.c_str()).Child(saved_url_);
+      storage_.GetReferenceFromUrl(url.c_str()).Child(saved_url_);
   EXPECT_TRUE(ref_from_url.is_valid());
   EXPECT_EQ(ref.bucket(), ref_from_url.bucket());
   EXPECT_EQ(ref.full_path(), ref_from_url.full_path());
   firebase::storage::StorageReference ref_from_url_str =
-      storage_->GetReferenceFromUrl(url).Child(saved_url_);
+      storage_.GetReferenceFromUrl(url).Child(saved_url_);
   EXPECT_TRUE(ref_from_url_str.is_valid());
   EXPECT_EQ(ref.bucket(), ref_from_url_str.bucket());
   EXPECT_EQ(ref.full_path(), ref_from_url_str.full_path());
@@ -370,26 +367,23 @@ TEST_F(FirebaseStorageTest, TestStorageUrl) {
   // Confirm that creating a storage instance with a URL returns a url(), and
   // creating a storage instance with a null URL returns a blank url().
   std::string default_url =
-      std::string("gs://") + storage_->GetReference().bucket();
+      std::string("gs://") + storage_.GetReference().bucket();
 
   // Check whether the Storage instance we already have is handled correctly.
-  EXPECT_EQ(storage_->url(), kStorageUrl ? kStorageUrl : "");
-  delete storage_;
-  storage_ = nullptr;
+  EXPECT_EQ(storage_.url(), kStorageUrl ? kStorageUrl : "");
+  storage_ = firebase::storage::Storage();
   {
-    firebase::storage::Storage* storage_explicit =
+    firebase::storage::Storage storage_explicit =
         firebase::storage::Storage::GetInstance(shared_app_,
                                                 default_url.c_str(), nullptr);
-    ASSERT_NE(storage_explicit, nullptr);
-    EXPECT_EQ(storage_explicit->url(), default_url);
-    delete storage_explicit;
+    ASSERT_TRUE(storage_explicit.is_valid());
+    EXPECT_EQ(storage_explicit.url(), default_url);
   }
   {
-    firebase::storage::Storage* storage_implicit =
+    firebase::storage::Storage storage_implicit =
         firebase::storage::Storage::GetInstance(shared_app_, nullptr, nullptr);
-    ASSERT_NE(storage_implicit, nullptr);
-    EXPECT_EQ(storage_implicit->url(), "");
-    delete storage_implicit;
+    ASSERT_TRUE(storage_implicit.is_valid());
+    EXPECT_EQ(storage_implicit.url(), "");
   }
 }
 
@@ -856,7 +850,7 @@ TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
     const size_t kBufferSize = 1024;
     char buffer[kBufferSize];
     memset(buffer, 0, sizeof(buffer));
-    storage_->set_max_download_retry_time(longer_duration_sec);
+    storage_.set_max_download_retry_time(longer_duration_sec);
     firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
     WaitForCompletion(future, "GetBytes");
     ASSERT_NE(future.result(), nullptr);
@@ -894,7 +888,7 @@ TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
     const size_t kBufferSize = 1024;
     char buffer[kBufferSize];
     LogDebug("Ensuring file does not exist.");
-    storage_->set_max_download_retry_time(shorter_duration_sec);
+    storage_.set_max_download_retry_time(shorter_duration_sec);
     firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
     WaitForCompletion(future, "GetBytes",
                       firebase::storage::kErrorObjectNotFound);
@@ -946,7 +940,7 @@ TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
       EXPECT_EQ(response_metadata->size_bytes(), kSimpleTestFile.size());
     });
     // GetMetadata with a long retry duration
-    storage_->set_max_operation_retry_time(longer_duration_sec);
+    storage_.set_max_operation_retry_time(longer_duration_sec);
     LogDebug("Read custom metadata.");
     firebase::Future<firebase::storage::Metadata> future = ref.GetMetadata();
     WaitForCompletion(future, "GetFileMetadata");
@@ -986,7 +980,7 @@ TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
     const size_t kBufferSize = 1024;
     char buffer[kBufferSize];
     LogDebug("Ensuring GetMetadata fails because file does not exist.");
-    storage_->set_max_operation_retry_time(shorter_duration_sec);
+    storage_.set_max_operation_retry_time(shorter_duration_sec);
     LogDebug("Read custom metadata.");
     firebase::Future<firebase::storage::Metadata> future = ref.GetMetadata();
     WaitForCompletion(future, "GetFileMetadata",
@@ -1044,7 +1038,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
     });
 
     // GetFile with a long retry duration.
-    storage_->set_max_download_retry_time(longer_duration_sec);
+    storage_.set_max_download_retry_time(longer_duration_sec);
     std::string path = PathForResource() + kGetFileTestFile;
     // Cloud Storage expects a URI, so add file:// in front of local
     // paths.
@@ -1101,7 +1095,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
     });
 
     // GetFile with a short retry duration.
-    storage_->set_max_download_retry_time(shorter_duration_sec);
+    storage_.set_max_download_retry_time(shorter_duration_sec);
     std::string path = PathForResource() + kGetFileTestFile;
     // Cloud Storage expects a URI, so add file:// in front of local
     // paths.
@@ -1154,7 +1148,7 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
       EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
     });
     // Call Delete with a long retry duration.
-    storage_->set_max_operation_retry_time(longer_duration_sec);
+    storage_.set_max_operation_retry_time(longer_duration_sec);
     LogDebug("Deleting file.");
     WaitForCompletion(ref.Delete(), "Delete");
 
@@ -1198,7 +1192,7 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
     });
 
     // Call Delete with a short retry duration.
-    storage_->set_max_operation_retry_time(shorter_duration_sec);
+    storage_.set_max_operation_retry_time(shorter_duration_sec);
     LogDebug("Deleting file.");
     WaitForCompletion(ref.Delete(), "Delete",
                       firebase::storage::kErrorObjectNotFound);
@@ -1249,7 +1243,7 @@ TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
     });
 
     // PutFile with a long retry duration.
-    storage_->set_max_upload_retry_time(longer_duration_sec);
+    storage_.set_max_upload_retry_time(longer_duration_sec);
     firebase::storage::Metadata new_metadata;
     std::string content_type = "text/plain";
     new_metadata.set_content_type(content_type);
@@ -1289,7 +1283,7 @@ TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
     });
 
     // PutFile with a long retry duration.
-    storage_->set_max_upload_retry_time(shorter_duration_sec);
+    storage_.set_max_upload_retry_time(shorter_duration_sec);
     firebase::storage::Metadata new_metadata;
     std::string content_type = "text/plain";
     new_metadata.set_content_type(content_type);
@@ -1678,10 +1672,12 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingStorage) {
 
   ASSERT_TRUE(ref.is_valid());
   ASSERT_TRUE(metadata.is_valid());
-  delete storage_;
-  storage_ = nullptr;
+  storage_ = firebase::storage::Storage();
+  EXPECT_TRUE(ref.is_valid());
+  TerminateAppAndAuth();
   EXPECT_FALSE(ref.is_valid());
   EXPECT_FALSE(metadata.is_valid());
+  InitializeAppAndAuth();
 }
 
 TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
@@ -1705,14 +1701,14 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
   ASSERT_TRUE(ref.is_valid());
   ASSERT_TRUE(metadata.is_valid());
 
-  delete shared_app_;
-  shared_app_ = nullptr;
+  shared_app_ = firebase::App();
+  EXPECT_TRUE(ref.is_valid());
+  storage_ = firebase::storage::Storage();
+  TerminateAppAndAuth();
 
   EXPECT_FALSE(ref.is_valid());
   EXPECT_FALSE(metadata.is_valid());
 
-  // Fully shut down App and Auth so they can be reinitialized.
-  TerminateAppAndAuth();
   // Reinitialize App and Auth.
   InitializeAppAndAuth();
 }

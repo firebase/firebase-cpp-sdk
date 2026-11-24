@@ -29,10 +29,10 @@ void DisplayResult(int result) {}
 void DisplayResult(const std::string& result) {}
 
 // [START define_functions_instance]
-firebase::functions::Functions* functions;
+firebase::functions::Functions functions;
 // [END define_functions_instance]
 
-firebase::functions::Functions* CodeSnippets(firebase::App* app) {
+firebase::functions::Functions CodeSnippets(const firebase::App& app) {
   // [START initialize_functions_instance]
   functions = firebase::functions::Functions::GetInstance(app);
   // [END initialize_functions_instance]
@@ -49,7 +49,7 @@ firebase::Future<firebase::functions::HttpsCallableResult> AddNumbers(int a,
 
   // Call the function and add a callback for the result.
   firebase::functions::HttpsCallableReference doSomething =
-      functions->GetHttpsCallable("addNumbers");
+      functions.GetHttpsCallable("addNumbers");
   return doSomething.Call(data);
 }
 // [END function_add_numbers]
@@ -64,7 +64,7 @@ firebase::Future<firebase::functions::HttpsCallableResult> AddMessage(
 
   // Call the function and add a callback for the result.
   firebase::functions::HttpsCallableReference doSomething =
-      functions->GetHttpsCallable("addMessage");
+      functions.GetHttpsCallable("addMessage");
   return doSomething.Call(data);
 }
 // [END function_add_message]

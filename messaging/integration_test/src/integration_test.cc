@@ -123,25 +123,25 @@ class FirebaseMessagingTest : public FirebaseTest {
   const std::string* shared_token() { return shared_token_; }
 
  protected:
-  static firebase::App* shared_app_;
+  static firebase::App shared_app_;
   static firebase::messaging::PollableListener* shared_listener_;
   static std::string* shared_token_;
   static bool is_desktop_stub_;
   // Used to track if the newer registration method is being used.
   static bool is_new_registration_id_;
 
-  static firebase::functions::Functions* functions_;
+  static firebase::functions::Functions functions_;
 };
 
 const char kObtainedPermissionKey[] = "messaging_got_permission";
 
 std::string* FirebaseMessagingTest::shared_token_ = nullptr;
-firebase::App* FirebaseMessagingTest::shared_app_ = nullptr;
+firebase::App FirebaseMessagingTest::shared_app_;
 firebase::messaging::PollableListener* FirebaseMessagingTest::shared_listener_ =
     nullptr;
 bool FirebaseMessagingTest::is_desktop_stub_;
 bool FirebaseMessagingTest::is_new_registration_id_ = false;
-firebase::functions::Functions* FirebaseMessagingTest::functions_ = nullptr;
+firebase::functions::Functions FirebaseMessagingTest::functions_;
 
 void FirebaseMessagingTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
@@ -158,7 +158,8 @@ void FirebaseMessagingTest::SetUpTestSuite() {
 
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(
-      shared_app_, &shared_listener_, [](::firebase::App* app, void* userdata) {
+      shared_app_, &shared_listener_,
+      [](const ::firebase::App& app, void* userdata) {
         LogDebug("Try to initialize Firebase Messaging");
         firebase::messaging::PollableListener** listener =
             reinterpret_cast<firebase::messaging::PollableListener**>(userdata);
@@ -179,7 +180,7 @@ void FirebaseMessagingTest::SetUpTestSuite() {
           options.suppress_notification_permission_prompt = true;
         }
 
-        return ::firebase::messaging::Initialize(*app, *listener, options);
+        return ::firebase::messaging::Initialize(app, *listener, options);
       });
 
   WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
@@ -189,7 +190,7 @@ void FirebaseMessagingTest::SetUpTestSuite() {
 
   LogDebug("Successfully initialized Firebase Cloud Messaging.");
   functions_ = firebase::functions::Functions::GetInstance(shared_app_);
-  if (functions_) {
+  if (functions_.is_valid()) {
     // Check if we should use the functions emulator
     std::string emulator_host;
     const char* env_emulator_host = std::getenv("FUNCTIONS_EMULATOR_HOST");
@@ -221,7 +222,7 @@ void FirebaseMessagingTest::SetUpTestSuite() {
       }
 #endif
       LogDebug("Using Functions Emulator: %s", origin.c_str());
-      functions_->UseFunctionsEmulator(origin.c_str());
+      functions_.UseFunctionsEmulator(origin.c_str());
     }
   }
   is_desktop_stub_ = false;
@@ -240,14 +241,12 @@ void FirebaseMessagingTest::TearDownTestSuite() {
 
   LogDebug("Shutdown Firebase Cloud Messaging.");
   firebase::messaging::Terminate();
-  if (functions_) {
+  if (functions_.is_valid()) {
     LogDebug("Shutdown the Functions library.");
-    delete functions_;
-    functions_ = nullptr;
+    functions_ = firebase::functions::Functions();
   }
   LogDebug("Shutdown Firebase App.");
-  delete shared_app_;
-  shared_app_ = nullptr;
+  shared_app_ = firebase::App();
 
   // On iOS/FTL, most or all of the tests are skipped, so add a delay so the app
   // doesn't finish too quickly, as this makes test results flaky.
@@ -300,7 +299,7 @@ void FirebaseMessagingTest::SendTestMessage(
   data.map()["messageFields"] = firebase::Variant(message_fields);
 
   firebase::functions::HttpsCallableReference ref =
-      functions_->GetHttpsCallable("sendMessage");
+      functions_.GetHttpsCallable("sendMessage");
 
   LogDebug("Triggering FCM message via Firebase Functions...");
   firebase::Future<firebase::functions::HttpsCallableResult> future =

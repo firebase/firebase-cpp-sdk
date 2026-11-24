@@ -57,11 +57,11 @@ TEST_F(DocumentReferenceTest, RecoverFirestore) {
 
   Firestore* db = TestFirestore();
   DocumentReference doc = Document();
-  ASSERT_EQ(db, doc.firestore());  // Sanity check
+  ASSERT_EQ(*db, doc.firestore());  // Sanity check
 
   jni::Local<jni::Object> doc_java = GetInternal(doc)->ToJava();
   result = DocumentReferenceInternal::Create(env, doc_java);
-  ASSERT_EQ(db, result.firestore());
+  ASSERT_EQ(*db, result.firestore());
 }
 
 #endif  // defined(__ANDROID__)

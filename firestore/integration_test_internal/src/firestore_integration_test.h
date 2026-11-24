@@ -49,11 +49,11 @@ const int kCheckIntervalMillis = 100;
 // The timeout of waiting for a Future or a listener.
 const int kTimeOutMillis = 15000;
 
-FirestoreInternal* CreateTestFirestoreInternal(
-    App* app, const std::string& database_id = kDefaultDatabase);
+std::shared_ptr<FirestoreInternal> CreateTestFirestoreInternal(
+    const App& app, const std::string& database_id = kDefaultDatabase);
 
-App* GetApp();
-App* GetApp(const char* name, const std::string& override_project_id);
+App GetApp();
+App GetApp(const char* name, const std::string& override_project_id);
 bool ProcessEvents(int msec);
 
 // Converts a Firestore error code to a human-friendly name. The `error_code`
@@ -243,7 +243,7 @@ class FirestoreIntegrationTest : public testing::Test {
   FirestoreIntegrationTest& operator=(FirestoreIntegrationTest&&) = delete;
 
  protected:
-  App* app() { return TestFirestore()->app(); }
+  App app() { return TestFirestore()->app(); }
 
   // Returns a Firestore instance for an app with the given name.
   // If this method is invoked again with the same `name`, then the same pointer
@@ -274,6 +274,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // previous invocation of this method, then the behavior of this method is
   // undefined.
   void DeleteFirestore(Firestore* firestore);
+  void DeleteFirestore(const Firestore& firestore);
 
   // Relinquishes ownership of the given `Firestore` instance, which must have
   // been returned by a previous invocation of `TestFirestore()`, and removes it
@@ -293,7 +294,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // earlier than that. Any `Firestore` instances that were returned from
   // `TestFirestore()` and were associated with the given `App` will be deleted
   // as if with `DeleteFirestore()`.
-  void DeleteApp(App* app);
+  void DeleteApp(const App& app);
 
   // Return a reference to the collection with auto-generated id.
   CollectionReference Collection() const;
@@ -417,7 +418,10 @@ class FirestoreIntegrationTest : public testing::Test {
   }
 
   static FirestoreInternal* GetFirestoreInternal(Firestore* firestore) {
-    return firestore->internal_;
+    return firestore ? firestore->internal_.get() : nullptr;
+  }
+  static FirestoreInternal* GetFirestoreInternal(const Firestore& firestore) {
+    return firestore.internal_.get();
   }
 
  private:
@@ -448,9 +452,9 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // The Firestore and App instance caches.
   // Note that `firestores_` is intentionally ordered *after* `apps_` so that
-  // the Firestore pointers will be deleted before the App pointers when this
+  // the Firestore handles will be released before the App handles when this
   // object is destructed.
-  mutable std::unordered_map<App*, std::unique_ptr<App>> apps_;
+  mutable std::map<std::string, App> apps_;
   mutable std::unordered_map<Firestore*, FirestoreInfo> firestores_;
 };
 

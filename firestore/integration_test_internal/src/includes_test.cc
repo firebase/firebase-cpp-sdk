@@ -16,6 +16,7 @@
 
 #include <string>
 
+#include "app/src/app_state.h"
 #include "app_framework.h"
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
@@ -27,8 +28,9 @@ namespace firestore {
 // This class is a friend of `Firestore`, necessary to access `GetTestInstance`.
 class IncludesTest : public testing::Test {
  public:
-  Firestore* CreateFirestore(App* app) {
-    return new Firestore(CreateTestFirestoreInternal(app));
+  Firestore CreateFirestore(const App& app) {
+    return Firestore(::firebase::internal::AppState::FromApp(app),
+                     CreateTestFirestoreInternal(app));
   }
 };
 
@@ -48,17 +50,17 @@ TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
   // We don't actually need to run any of the below, just compile it.
   if (0) {
 #if defined(__ANDROID__)
-    App* app =
+    App app =
         App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
 #else
-    App* app = App::Create();
+    App app = App::Create();
 #endif  // defined(__ANDROID__)
 
-    Firestore* firestore = CreateFirestore(app);
+    Firestore firestore = CreateFirestore(app);
 
     {
       // Check that Firestore isn't just forward-declared.
-      DocumentReference doc = firestore->Document("foo/bar");
+      DocumentReference doc = firestore.Document("foo/bar");
       Future<DocumentSnapshot> future = doc.Get();
       DocumentChange doc_change;
       DocumentReference doc_ref;
@@ -83,8 +85,6 @@ TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
       GeoPoint geo_point;
       Error error = Error::kErrorOk;
     }
-    delete firestore;
-    delete app;
   }
 }
 

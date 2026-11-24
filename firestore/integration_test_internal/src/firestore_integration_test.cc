@@ -28,6 +28,7 @@
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
+#include "app/src/app_state.h"
 #include "app_framework.h"
 #include "util/locate_emulator.h"
 
@@ -133,11 +134,12 @@ Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
     }
   }
 
-  App* app = GetApp(name.c_str(), project_id);
-  if (apps_.find(app) == apps_.end()) {
-    apps_[app] = std::unique_ptr<App>(app);
+  App app = GetApp(name.c_str(), project_id);
+  if (apps_.find(name) == apps_.end()) {
+    apps_[name] = app;
   }
-  Firestore* db = new Firestore(CreateTestFirestoreInternal(app, database_id));
+  Firestore* db = new Firestore(::firebase::internal::AppState::FromApp(app),
+                                CreateTestFirestoreInternal(app, database_id));
   firestores_[db] =
       FirestoreInfo(name, database_id, std::unique_ptr<Firestore>(db));
 
@@ -152,6 +154,16 @@ void FirestoreIntegrationTest::DeleteFirestore(Firestore* firestore) {
   firestores_.erase(found);
 }
 
+void FirestoreIntegrationTest::DeleteFirestore(const Firestore& firestore) {
+  for (auto it = firestores_.begin(); it != firestores_.end(); ++it) {
+    if (*(it->first) == firestore) {
+      firestores_.erase(it);
+      return;
+    }
+  }
+  FIREBASE_ASSERT_MESSAGE(false, "The given Firestore was not found.");
+}
+
 void FirestoreIntegrationTest::DisownFirestore(Firestore* firestore) {
   auto found = firestores_.find(firestore);
   FIREBASE_ASSERT_MESSAGE(found != firestores_.end(),
@@ -160,15 +172,18 @@ void FirestoreIntegrationTest::DisownFirestore(Firestore* firestore) {
   firestores_.erase(found);
 }
 
-void FirestoreIntegrationTest::DeleteApp(App* app) {
-  auto found = apps_.find(app);
-  FIREBASE_ASSERT_MESSAGE(found != apps_.end(), "The given App was not found.");
+void FirestoreIntegrationTest::DeleteApp(const App& app) {
+  std::string key;
+  for (const auto& entry : apps_) {
+    if (entry.second == app) {
+      key = entry.first;
+      break;
+    }
+  }
+  FIREBASE_ASSERT_MESSAGE(!key.empty(), "The given App was not found.");
 
-  // Remove the Firestore instances from our internal list that are owned by the
-  // given App. Deleting the App also deletes the Firestore instances created
-  // via that App; therefore, removing our references to those Firestore
-  // instances avoids double-deletion and also avoids returning deleted
-  // Firestore instances from TestFirestore().
+  // Remove the Firestore instances from our internal list that are associated
+  // with the given App so releasing the App handle actually destroys AppState.
   auto firestores_iterator = firestores_.begin();
   while (firestores_iterator != firestores_.end()) {
     if (firestores_iterator->first->app() == app) {
@@ -178,7 +193,7 @@ void FirestoreIntegrationTest::DeleteApp(App* app) {
     }
   }
 
-  apps_.erase(found);
+  apps_.erase(key);
 }
 
 CollectionReference FirestoreIntegrationTest::Collection() const {

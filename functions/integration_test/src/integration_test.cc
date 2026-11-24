@@ -93,20 +93,19 @@ class FirebaseFunctionsTest : public FirebaseTest {
                           firebase::functions::kErrorNone);
 
   bool initialized_;
-  firebase::auth::Auth* auth_;
-  firebase::functions::Functions* functions_;
+  firebase::auth::Auth auth_;
+  firebase::functions::Functions functions_;
 };
 
-FirebaseFunctionsTest::FirebaseFunctionsTest()
-    : initialized_(false), auth_(nullptr), functions_(nullptr) {
+FirebaseFunctionsTest::FirebaseFunctionsTest() : initialized_(false) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
 FirebaseFunctionsTest::~FirebaseFunctionsTest() {
   // Must be cleaned up on exit.
-  assert(app_ == nullptr);
-  assert(auth_ == nullptr);
-  assert(functions_ == nullptr);
+  assert(!app_.is_valid());
+  assert(!auth_.is_valid());
+  assert(!functions_.is_valid());
 }
 
 void FirebaseFunctionsTest::SetUp() {
@@ -143,22 +142,22 @@ void FirebaseFunctionsTest::Initialize() {
   void* initialize_targets[] = {&auth_, &functions_};
 
   const firebase::ModuleInitializer::InitializerFn initializers[] = {
-      [](::firebase::App* app, void* data) {
+      [](const ::firebase::App& app, void* data) {
         void** targets = reinterpret_cast<void**>(data);
         LogDebug("Attempting to initialize Firebase Auth.");
         ::firebase::InitResult result;
-        *reinterpret_cast<::firebase::auth::Auth**>(targets[0]) =
+        *reinterpret_cast<::firebase::auth::Auth*>(targets[0]) =
             ::firebase::auth::Auth::GetAuth(app, &result);
         return result;
       },
-      [](::firebase::App* app, void* data) {
+      [](const ::firebase::App& app, void* data) {
         void** targets = reinterpret_cast<void**>(data);
         LogDebug("Attempting to initialize Firebase Functions.");
         ::firebase::InitResult result;
-        firebase::functions::Functions* functions =
+        firebase::functions::Functions functions =
             firebase::functions::Functions::GetInstance(app, &result);
-        *reinterpret_cast<::firebase::functions::Functions**>(targets[1]) =
-            functions;
+        *reinterpret_cast<::firebase::functions::Functions*>(targets[1]) =
+            std::move(functions);
         return result;
       }};
 
@@ -204,7 +203,7 @@ void FirebaseFunctionsTest::Initialize() {
     }
 #endif
     LogDebug("Using Functions Emulator: %s", origin.c_str());
-    functions_->UseFunctionsEmulator(origin.c_str());
+    functions_.UseFunctionsEmulator(origin.c_str());
   }
 
   initialized_ = true;
@@ -213,24 +212,13 @@ void FirebaseFunctionsTest::Initialize() {
 void FirebaseFunctionsTest::Terminate() {
   if (!initialized_) return;
 
-  if (functions_) {
+  if (functions_.is_valid()) {
     LogDebug("Shutdown the Functions library.");
-    delete functions_;
-    functions_ = nullptr;
+    functions_ = firebase::functions::Functions();
   }
-  if (auth_) {
+  if (auth_.is_valid()) {
     LogDebug("Shutdown the Auth library.");
-    delete auth_;
-    auth_ = nullptr;
-  }
-
-  if (app_) {
-    ::firebase::app_check::AppCheck* app_check =
-        ::firebase::app_check::AppCheck::GetInstance(app_);
-    if (app_check) {
-      LogDebug("Shutdown App Check.");
-      delete app_check;
-    }
+    auth_ = firebase::auth::Auth();
   }
 
   firebase::app_check::AppCheck::SetAppCheckProviderFactory(nullptr);
@@ -245,7 +233,7 @@ void FirebaseFunctionsTest::Terminate() {
 void FirebaseFunctionsTest::SignIn() {
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::AuthResult> sign_in_future =
-      auth_->SignInAnonymously();
+      auth_.SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -286,7 +274,7 @@ FirebaseFunctionsTest::TestFunction(
   // Create a callable that we can run our test with.
   LogDebug("Calling %s", function_name);
   firebase::functions::HttpsCallableReference ref;
-  ref = functions_->GetHttpsCallable(function_name);
+  ref = functions_.GetHttpsCallable(function_name);
 
   return TestFunctionHelper(function_name, ref, function_data, expected_result,
                             expected_error);
@@ -300,7 +288,7 @@ FirebaseFunctionsTest::TestFunctionFromURL(
   // Create a callable that we can run our test with.
   LogDebug("Calling by URL %s", function_url);
   firebase::functions::HttpsCallableReference ref;
-  ref = functions_->GetHttpsCallableFromURL(function_url);
+  ref = functions_.GetHttpsCallableFromURL(function_url);
 
   return TestFunctionHelper(function_url, ref, function_data, expected_result,
                             expected_error);
@@ -312,7 +300,7 @@ TEST_F(FirebaseFunctionsTest, TestInitializeAndTerminate) {
 
 TEST_F(FirebaseFunctionsTest, TestSignIn) {
   SignIn();
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
 }
 
 TEST_F(FirebaseFunctionsTest, TestFunction) {
@@ -429,7 +417,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURL) {
   firebase::Variant data(firebase::Variant::EmptyMap());
   data.map()["firstNumber"] = 4;
   data.map()["secondNumber"] = 2;
-  std::string proj = app_->options().project_id();
+  std::string proj = app_.options().project_id();
   std::string url =
       "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
   firebase::Variant result =
@@ -453,7 +441,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionWithLimitedUseAppCheckToken) {
 
   LogDebug("Calling addNumbers with Limited Use App Check Token");
   firebase::functions::HttpsCallableReference ref =
-      functions_->GetHttpsCallable("addNumbers", options);
+      functions_.GetHttpsCallable("addNumbers", options);
 
   firebase::Variant result =
       TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())
@@ -471,7 +459,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
   data.map()["firstNumber"] = 4;
   data.map()["secondNumber"] = 2;
 
-  std::string proj = app_->options().project_id();
+  std::string proj = app_.options().project_id();
   // V2 functions can still be addressed via the V1 URL schema which handles
   // internal routing
   std::string url =
@@ -482,7 +470,7 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURLWithLimitedUseAppCheckToken) {
 
   LogDebug("Calling by URL %s with Limited Use App Check Token", url.c_str());
   firebase::functions::HttpsCallableReference ref =
-      functions_->GetHttpsCallableFromURL(url.c_str(), options);
+      functions_.GetHttpsCallableFromURL(url.c_str(), options);
 
   firebase::Variant result =
       TestFunctionHelper(url.c_str(), ref, &data, firebase::Variant::Null())
@@ -505,7 +493,7 @@ TEST_F(FirebaseFunctionsTest, TestV1FunctionWithLimitedUseAppCheckToken) {
 
   LogDebug("Calling addNumbers with Limited Use App Check Token");
   firebase::functions::HttpsCallableReference ref =
-      functions_->GetHttpsCallable("addNumbers", options);
+      functions_.GetHttpsCallable("addNumbers", options);
 
   firebase::Variant result =
       TestFunctionHelper("addNumbers", ref, &data, firebase::Variant::Null())

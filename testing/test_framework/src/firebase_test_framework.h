@@ -572,7 +572,7 @@ class FirebaseTest : public testing::Test {
   // possible, otherwise use the local machine's time.
   int64_t GetCurrentTimeInSecondsSinceEpoch();
 
-  firebase::App* app_;
+  firebase::App app_;
   static int argc_;
   static char** argv_;
   static bool found_config_;
@@ -623,6 +623,16 @@ namespace firebase {
 // Define an operator<< for Variant so that googletest can output its values
 // nicely.
 std::ostream& operator<<(std::ostream& os, const Variant& v);
+
+// Provide PrintTo for App so googletest does not try to convert App to Variant
+// via Variant's templated constructor when formatting matcher diagnostics.
+inline void PrintTo(const App& app, std::ostream* os) {
+  if (!app.is_valid()) {
+    *os << "App(invalid)";
+  } else {
+    *os << "App(" << app.name() << ")";
+  }
+}
 }  // namespace firebase
 
 extern "C" int common_main(int argc, char* argv[]);

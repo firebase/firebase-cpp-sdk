@@ -9,8 +9,9 @@
 
 int main() {
   // Initialize
+  firebase::App app = firebase::App::Create();
   firebase::InitResult fireperf_init_result =
-      firebase::performance::Initialize(*firebase::App::GetInstance());
+      firebase::performance::Initialize(app);
 
   if (fireperf_init_result ==
       firebase::InitResult::kInitResultFailedMissingDependency) {

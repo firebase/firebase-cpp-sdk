@@ -147,22 +147,22 @@ class FirebaseAuthTest : public FirebaseTest {
 
   void SignInAnonymously() {
     FLAKY_TEST_SECTION_BEGIN();
-    WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+    WaitForCompletion(auth_.SignInAnonymously(), "SignInAnonymously");
     FLAKY_TEST_SECTION_END();
   }
 
   bool initialized_;
-  firebase::auth::Auth* auth_;
+  firebase::auth::Auth auth_;
 };
 
-FirebaseAuthTest::FirebaseAuthTest() : initialized_(false), auth_(nullptr) {
+FirebaseAuthTest::FirebaseAuthTest() : initialized_(false) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
 FirebaseAuthTest::~FirebaseAuthTest() {
   // Must be cleaned up on exit.
-  assert(app_ == nullptr);
-  assert(auth_ == nullptr);
+  assert(!app_.is_valid());
+  assert(!auth_.is_valid());
 }
 
 void FirebaseAuthTest::SetUp() {
@@ -185,14 +185,15 @@ void FirebaseAuthTest::Initialize() {
   LogDebug("Initializing Firebase Auth.");
 
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(app_, &auth_, [](::firebase::App* app, void* target) {
-    LogDebug("Try to initialize Firebase Auth");
-    firebase::InitResult result;
-    firebase::auth::Auth** auth_ptr =
-        reinterpret_cast<firebase::auth::Auth**>(target);
-    *auth_ptr = firebase::auth::Auth::GetAuth(app, &result);
-    return result;
-  });
+  initializer.Initialize(
+      app_, &auth_, [](const ::firebase::App& app, void* target) {
+        LogDebug("Try to initialize Firebase Auth");
+        firebase::InitResult result;
+        firebase::auth::Auth* auth_ptr =
+            reinterpret_cast<firebase::auth::Auth*>(target);
+        *auth_ptr = firebase::auth::Auth::GetAuth(app, &result);
+        return result;
+      });
 
   FirebaseTest::WaitForCompletion(initializer.InitializeLastResult(),
                                   "Initialize");
@@ -208,10 +209,9 @@ void FirebaseAuthTest::Initialize() {
 void FirebaseAuthTest::Terminate() {
   if (!initialized_) return;
 
-  if (auth_) {
+  if (auth_.is_valid()) {
     LogDebug("Shutdown the Auth library.");
-    delete auth_;
-    auth_ = nullptr;
+    auth_ = firebase::auth::Auth();
   }
 
   TerminateApp();
@@ -229,7 +229,7 @@ bool FirebaseAuthTest::WaitForCompletion(
   if (succeeded) {
     if (expected_error == ::firebase::auth::kAuthErrorNone) {
       const firebase::auth::User* future_result_user = future.result();
-      const firebase::auth::User auth_user = auth_->current_user();
+      const firebase::auth::User auth_user = auth_.current_user();
       EXPECT_TRUE(auth_user.is_valid());
       EXPECT_TRUE(future_result_user->is_valid());
       EXPECT_EQ(future_result_user->uid(), auth_user.uid())
@@ -250,14 +250,14 @@ bool FirebaseAuthTest::WaitForCompletion(
     if (expected_error == ::firebase::auth::kAuthErrorNone) {
       if (future.result() != nullptr) {
         EXPECT_TRUE(future.result()->user.is_valid());
-        EXPECT_TRUE(auth_->current_user().is_valid());
-        EXPECT_EQ(future.result()->user.uid(), auth_->current_user().uid())
+        EXPECT_TRUE(auth_.current_user().is_valid());
+        EXPECT_EQ(future.result()->user.uid(), auth_.current_user().uid())
             << "User returned by Future doesn't match User in Auth";
         // Expect no crash.
         // TODO(b/281590792): Properly validate AuthResult fields case-by-case.
         (void)future.result()->credential.is_valid();
         succeeded = future.result()->user.is_valid() &&
-                    auth_->current_user().is_valid();
+                    auth_.current_user().is_valid();
       }
     }
   }
@@ -272,8 +272,8 @@ bool FirebaseAuthTest::WaitForCompletion(
     const firebase::auth::AuthResult* result_ptr = future.result();
     EXPECT_TRUE(result_ptr->user.is_valid());
     EXPECT_EQ(result_ptr->additional_user_info.provider_id, provider_id);
-    EXPECT_EQ(result_ptr->user.uid(), auth_->current_user().uid());
-    EXPECT_TRUE(auth_->current_user().is_valid());
+    EXPECT_EQ(result_ptr->user.uid(), auth_.current_user().uid());
+    EXPECT_TRUE(auth_.current_user().is_valid());
     // Expect no crash.
     // TODO(b/281590792): Properly validate AuthResult fields case-by-case.
     (void)result_ptr->credential.is_valid();
@@ -282,26 +282,26 @@ bool FirebaseAuthTest::WaitForCompletion(
 }
 
 void FirebaseAuthTest::SignOut() {
-  if (auth_ == nullptr) {
+  if (!auth_.is_valid()) {
     // Auth is not set up.
     return;
   }
-  if (!auth_->current_user().is_valid()) {
+  if (!auth_.current_user().is_valid()) {
     // Already signed out.
     return;
   }
-  auth_->SignOut();
+  auth_.SignOut();
   // Wait for the sign-out to finish.
-  while (auth_->current_user().is_valid()) {
+  while (auth_.current_user().is_valid()) {
     if (ProcessEvents(100)) break;
   }
   ProcessEvents(100);
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
 }
 
 void FirebaseAuthTest::DeleteUser() {
-  if (auth_ != nullptr && auth_->current_user().is_valid()) {
-    FirebaseTest::WaitForCompletion(auth_->current_user().Delete(),
+  if (auth_.is_valid() && auth_.current_user().is_valid()) {
+    FirebaseTest::WaitForCompletion(auth_.current_user().Delete(),
                                     "Delete User");
     ProcessEvents(100);
   } else {
@@ -311,16 +311,16 @@ void FirebaseAuthTest::DeleteUser() {
 
 TEST_F(FirebaseAuthTest, TestInitialization) {
   // Initialized in SetUp and terminated in TearDown.
-  EXPECT_NE(app_, nullptr);
-  EXPECT_NE(auth_, nullptr);
+  EXPECT_TRUE(app_.is_valid());
+  EXPECT_TRUE(auth_.is_valid());
 }
 
 TEST_F(FirebaseAuthTest, TestAnonymousSignin) {
   // Test notification on SignIn().
 
   SignInAnonymously();
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_TRUE(auth_->current_user().is_anonymous());
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_anonymous());
   DeleteUser();
 }
 
@@ -350,11 +350,11 @@ TEST_F(FirebaseAuthTest, TestCredentialCopy) {
 
 class TestAuthStateListener : public firebase::auth::AuthStateListener {
  public:
-  virtual void OnAuthStateChanged(firebase::auth::Auth* auth) {  // NOLINT
+  void OnAuthStateChanged(firebase::auth::Auth auth) override {  // NOLINT
     // Log the provider ID.
     std::string provider;
-    if (auth->current_user().is_valid()) {
-      provider = auth->current_user().provider_id();
+    if (auth.current_user().is_valid()) {
+      provider = auth.current_user().provider_id();
     }
     LogDebug("OnAuthStateChanged called, provider=%s", provider.c_str());
     if (auth_states_.empty() || auth_states_.back() != provider) {
@@ -370,12 +370,12 @@ class TestAuthStateListener : public firebase::auth::AuthStateListener {
 
 class TestIdTokenListener : public firebase::auth::IdTokenListener {
  public:
-  virtual void OnIdTokenChanged(firebase::auth::Auth* auth) {  // NOLINT
+  void OnIdTokenChanged(firebase::auth::Auth auth) override {  // NOLINT
     // Log the auth token (if available).
     std::string token = "";
-    if (auth->current_user().is_valid()) {
+    if (auth.current_user().is_valid()) {
       firebase::Future<std::string> token_future =
-          auth->current_user().GetToken(false);
+          auth.current_user().GetToken(false);
       if (token_future.status() == firebase::kFutureStatusComplete) {
         if (token_future.error() == 0) {
           token = *token_future.result();
@@ -406,17 +406,17 @@ using testing::StrCaseEq;
 TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
   TestAuthStateListener listener;
   TestIdTokenListener token_listener;
-  auth_->AddAuthStateListener(&listener);
-  auth_->AddIdTokenListener(&token_listener);
+  auth_.AddAuthStateListener(&listener);
+  auth_.AddIdTokenListener(&token_listener);
   SignInAnonymously();
   // Get an initial token.
   firebase::Future<std::string> token_future =
-      auth_->current_user().GetToken(false);
+      auth_.current_user().GetToken(false);
   WaitForCompletion(token_future, "GetToken(false)");
   std::string first_token = *token_future.result();
   // Force a token refresh.
   ProcessEvents(1000);
-  token_future = auth_->current_user().GetToken(true);
+  token_future = auth_.current_user().GetToken(true);
   WaitForCompletion(token_future, "GetToken(true)");
   EXPECT_NE(*token_future.result(), "");
   std::string second_token = *token_future.result();
@@ -424,8 +424,8 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 
   DeleteUser();
   SignOut();
-  auth_->RemoveAuthStateListener(&listener);
-  auth_->RemoveIdTokenListener(&token_listener);
+  auth_.RemoveAuthStateListener(&listener);
+  auth_.RemoveIdTokenListener(&token_listener);
   // Providers should be blank, then Firebase, then blank.
   EXPECT_THAT(listener.auth_states(),
               ElementsAre("", StrCaseEq("Firebase"), ""));
@@ -437,10 +437,10 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 
 TEST_F(FirebaseAuthTest, TestGetIdTokenResult) {
   SignInAnonymously();
-  ASSERT_TRUE(auth_->current_user().is_valid());
+  ASSERT_TRUE(auth_.current_user().is_valid());
 
   firebase::Future<firebase::auth::IdTokenResult> result_future =
-      auth_->current_user().GetIdTokenResult(false);
+      auth_.current_user().GetIdTokenResult(false);
   WaitForCompletion(result_future, "GetIdTokenResult(false)");
   ASSERT_NE(result_future.result(), nullptr);
   const firebase::auth::IdTokenResult first_result = *result_future.result();
@@ -455,10 +455,10 @@ TEST_F(FirebaseAuthTest, TestGetIdTokenResult) {
   ASSERT_TRUE(sub_it != first_result.claims.end());
   EXPECT_TRUE(sub_it->second.is_string());
   EXPECT_EQ(std::string(sub_it->second.string_value()),
-            auth_->current_user().uid());
+            auth_.current_user().uid());
 
   ProcessEvents(1000);
-  result_future = auth_->current_user().GetIdTokenResult(true);
+  result_future = auth_.current_user().GetIdTokenResult(true);
   WaitForCompletion(result_future, "GetIdTokenResult(true)");
   ASSERT_NE(result_future.result(), nullptr);
   const firebase::auth::IdTokenResult second_result = *result_future.result();
@@ -520,10 +520,10 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
   // Register a random email and password. This signs us in as that user.
   std::string password = kTestPassword;
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
   WaitForCompletion(auth_result_future, "CreateUserWithEmailAndPassword");
 
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   if (auth_result_future.result() != nullptr) {
     EXPECT_TRUE(auth_result_future.result()->user.is_valid());
   }
@@ -534,9 +534,9 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
         firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                          password.c_str());
     firebase::Future<firebase::auth::User> user_future =
-        auth_->SignInWithCredential(email_credential);
+        auth_.SignInWithCredential(email_credential);
     WaitForCompletion(user_future, "SignInWithCredential");
-    EXPECT_TRUE(auth_->current_user().is_valid());
+    EXPECT_TRUE(auth_.current_user().is_valid());
     if (user_future.result() != nullptr) {
       EXPECT_TRUE(user_future.result()->is_valid());
       EXPECT_EQ(user_future.result()->email(), email);
@@ -550,54 +550,54 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
         firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                          password.c_str());
     WaitForCompletion(
-        auth_->SignInAndRetrieveDataWithCredential(email_credential),
+        auth_.SignInAndRetrieveDataWithCredential(email_credential),
         "SignAndRetrieveDataInWithCredential");
-    EXPECT_TRUE(auth_->current_user().is_valid());
+    EXPECT_TRUE(auth_.current_user().is_valid());
   }
   SignOut();
   // Sign in with SignInWithEmailAndPassword values.
   auth_result_future =
-      auth_->SignInWithEmailAndPassword(email.c_str(), password.c_str());
+      auth_.SignInWithEmailAndPassword(email.c_str(), password.c_str());
   WaitForCompletion(auth_result_future, "SignInWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   if (auth_result_future.result() != nullptr) {
     EXPECT_TRUE(auth_result_future.result()->user.is_valid());
     EXPECT_EQ(auth_result_future.result()->user.uid(),
-              auth_->current_user().uid());
+              auth_.current_user().uid());
     EXPECT_EQ(auth_result_future.result()->user.email(), email);
   }
 
   // Then delete the account.
-  firebase::Future<void> delete_user = auth_->current_user().Delete();
+  firebase::Future<void> delete_user = auth_.current_user().Delete();
   WaitForCompletion(delete_user, "Delete");
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
   auth_result_future =
-      auth_->SignInWithEmailAndPassword(email.c_str(), password.c_str());
+      auth_.SignInWithEmailAndPassword(email.c_str(), password.c_str());
   WaitForCompletion(auth_result_future,
                     "SignInWithEmailAndPassword (invalid user)",
                     firebase::auth::kAuthErrorUserNotFound);
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
 }
 
 TEST_F(FirebaseAuthTest, TestCopyUser) {
   SignInAnonymously();
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  if (!auth_->current_user().is_valid()) return;
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  if (!auth_.current_user().is_valid()) return;
 
-  EXPECT_TRUE(auth_->current_user().is_anonymous());
-  EXPECT_NE(auth_->current_user().uid().size(), 0);
+  EXPECT_TRUE(auth_.current_user().is_anonymous());
+  EXPECT_NE(auth_.current_user().uid().size(), 0);
 
   // Copy Constructor
-  firebase::auth::User copy_of_user(auth_->current_user());
+  firebase::auth::User copy_of_user(auth_.current_user());
   EXPECT_TRUE(copy_of_user.is_valid());
   EXPECT_TRUE(copy_of_user.is_anonymous());
-  EXPECT_EQ(auth_->current_user().uid(), copy_of_user.uid());
+  EXPECT_EQ(auth_.current_user().uid(), copy_of_user.uid());
 
   // Assignment operator
   firebase::auth::User assigned_user = copy_of_user;
   EXPECT_TRUE(assigned_user.is_valid());
   EXPECT_TRUE(assigned_user.is_anonymous());
-  EXPECT_EQ(auth_->current_user().uid(), assigned_user.uid());
+  EXPECT_EQ(auth_.current_user().uid(), assigned_user.uid());
 
   DeleteUser();
 
@@ -612,12 +612,12 @@ TEST_F(FirebaseAuthTest, TestRetainedUser) {
   // Register a random email and password. This signs us in as that user.
   std::string password = kTestPassword;
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
   WaitForCompletion(auth_result_future, "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  if (!auth_->current_user().is_valid()) return;
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  if (!auth_.current_user().is_valid()) return;
 
-  firebase::auth::User retained_user = auth_->current_user();
+  firebase::auth::User retained_user = auth_.current_user();
 
   DeleteUser();
 
@@ -627,27 +627,27 @@ TEST_F(FirebaseAuthTest, TestRetainedUser) {
   // Sign in a new account.
   email = GenerateEmailAddress("RetainedUserNew");
   auth_result_future =
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
   WaitForCompletion(auth_result_future, "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
 
   EXPECT_NE(retained_user.uid(), "");
   EXPECT_NE(retained_user.email(), "");
-  EXPECT_EQ(retained_user.uid(), auth_->current_user().uid());
-  EXPECT_EQ(retained_user.email(), auth_->current_user().email());
+  EXPECT_EQ(retained_user.uid(), auth_.current_user().uid());
+  EXPECT_EQ(retained_user.email(), auth_.current_user().email());
 
   // Then delete the retained user.
   firebase::Future<void> delete_user = retained_user.Delete();
   WaitForCompletion(delete_user, "Delete retained user");
 
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
   EXPECT_FALSE(retained_user.is_valid());
 }
 
 TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
 
-  firebase::auth::User invalid_user = auth_->current_user();
+  firebase::auth::User invalid_user = auth_.current_user();
   firebase::Future<firebase::auth::AuthResult> auth_result_future;
   firebase::Future<std::string> string_future;
   firebase::Future<firebase::auth::User> user_future;
@@ -721,9 +721,9 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
 TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
   std::string email = GenerateEmailAddress("UpdateUserProfile");
   firebase::Future<firebase::auth::AuthResult> create_user =
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
 
   // Set some user profile properties.
   firebase::auth::User user = create_user.result()->user;
@@ -734,16 +734,16 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
   user_profile.photo_url = kPhotoUrl;
   firebase::Future<void> update_profile = user.UpdateUserProfile(user_profile);
   WaitForCompletion(update_profile, "UpdateUserProfile");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
 
   // Validate that the new properties are present after signing out and in.
   SignOut();
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
   DeleteUser();
@@ -752,9 +752,9 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
 TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   std::string email = GenerateEmailAddress("UpdateUserProfileNull");
   firebase::Future<firebase::auth::AuthResult> create_user =
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
 
   // Set some user profile properties.
   firebase::auth::User user = create_user.result()->user;
@@ -765,7 +765,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   user_profile.photo_url = kPhotoUrl;
   firebase::Future<void> update_profile = user.UpdateUserProfile(user_profile);
   WaitForCompletion(update_profile, "UpdateUserProfile");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
 
@@ -776,16 +776,16 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
   firebase::Future<void> update_profile_null =
       user.UpdateUserProfile(user_profile_null);
   WaitForCompletion(update_profile_null, "UpdateUserProfileNull");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
 
   // Validate that the new properties are present after signing out and in.
   SignOut();
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
   DeleteUser();
@@ -794,9 +794,9 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileNull) {
 TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
   std::string email = GenerateEmailAddress("UpdateUserProfileEmpty");
   firebase::Future<firebase::auth::AuthResult> create_user =
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
 
   // Set some user profile properties.
   firebase::auth::User user = create_user.result()->user;
@@ -807,7 +807,7 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
   user_profile.photo_url = kPhotoUrl;
   firebase::Future<void> update_profile = user.UpdateUserProfile(user_profile);
   WaitForCompletion(update_profile, "UpdateUserProfile");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), kDisplayName);
   EXPECT_EQ(user.photo_url(), kPhotoUrl);
 
@@ -818,16 +818,16 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
   firebase::Future<void> update_profile_empty =
       user.UpdateUserProfile(user_profile_empty);
   WaitForCompletion(update_profile_empty, "UpdateUserProfileEmpty");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), "");
   EXPECT_EQ(user.photo_url(), "");
 
   // Validate that the properties are cleared out after signing out and in.
   SignOut();
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
-  user = auth_->current_user();
+  user = auth_.current_user();
   EXPECT_EQ(user.display_name(), "");
   EXPECT_EQ(user.photo_url(), "");
   DeleteUser();
@@ -836,9 +836,9 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfileEmpty) {
 TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
   std::string email = GenerateEmailAddress("UpdateEmailAndPassword");
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
-  firebase::auth::User user = auth_->current_user();
+  firebase::auth::User user = auth_.current_user();
   EXPECT_TRUE(user.is_valid());
 
   // Update the user's password.
@@ -855,9 +855,9 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
 TEST_F(FirebaseAuthTest, TestVerifyBeforeUpdatingEmail) {
   std::string email = GenerateEmailAddress("VerifyBeforeUpdatingEmail");
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
-  firebase::auth::User user = auth_->current_user();
+  firebase::auth::User user = auth_.current_user();
   EXPECT_TRUE(user.is_valid());
 
   // Update the user's email and password.
@@ -872,9 +872,9 @@ TEST_F(FirebaseAuthTest, TestVerifyBeforeUpdatingEmail) {
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   FLAKY_TEST_SECTION_BEGIN();
 
-  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  WaitForCompletion(auth_.SignInAnonymously(), "SignInAnonymously");
 
-  firebase::auth::User user = auth_->current_user();
+  firebase::auth::User user = auth_.current_user();
   EXPECT_TRUE(user.is_valid());
   std::string email = GenerateEmailAddress("LinkAnonEmail");
   firebase::auth::Credential credential =
@@ -907,7 +907,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
   SignInAnonymously();
-  firebase::auth::User pre_link_user = auth_->current_user();
+  firebase::auth::User pre_link_user = auth_.current_user();
   EXPECT_TRUE(pre_link_user.is_valid());
   firebase::auth::Credential twitter_cred =
       firebase::auth::TwitterAuthProvider::GetCredential(kTestIdTokenBad,
@@ -917,124 +917,124 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
                     firebase::auth::kAuthErrorInvalidCredential);
   // Ensure that user stays the same.
   EXPECT_TRUE(pre_link_user.is_valid());
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), pre_link_user.uid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  EXPECT_EQ(auth_.current_user().uid(), pre_link_user.uid());
   DeleteUser();
 }
 
 TEST_F(FirebaseAuthTest, TestSignInWithBadPasswordFails) {
   std::string email = GenerateEmailAddress("SignInBadPassword");
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   SignOut();
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPasswordBad),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPasswordBad),
       "SignInWithEmailAndPassword", firebase::auth::kAuthErrorWrongPassword);
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
   SignOut();
   // Sign back in and delete the user.
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   DeleteUser();
 }
 
 TEST_F(FirebaseAuthTest, TestCreateUserWithExistingEmailFails) {
   std::string email = GenerateEmailAddress("CreateUserExistingEmail");
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword 1");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   SignOut();
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword 2",
       firebase::auth::kAuthErrorEmailAlreadyInUse);
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
   SignOut();
   // Try again with a different password.
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPasswordBad),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPasswordBad),
       "CreateUserWithEmailAndPassword 3",
       firebase::auth::kAuthErrorEmailAlreadyInUse);
-  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_valid());
   SignOut();
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   DeleteUser();
 }
 
 TEST_F(FirebaseAuthTest, TestSignInWithBadCredentials) {
   // Get an anonymous user first.
   SignInAnonymously();
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   // Hold on to the existing user, to make sure it is unchanged by bad signins.
-  firebase::auth::User existing_user = auth_->current_user();
+  firebase::auth::User existing_user = auth_.current_user();
   // Test signing in with a variety of bad credentials.
-  WaitForCompletion(auth_->SignInWithCredential(
+  WaitForCompletion(auth_.SignInWithCredential(
                         firebase::auth::FacebookAuthProvider::GetCredential(
                             kTestAccessTokenBad)),
                     "SignInWithCredential (Facebook)",
                     firebase::auth::kAuthErrorInvalidCredential);
   // Ensure that failing to sign in with a credential doesn't modify the user.
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
-  WaitForCompletion(auth_->SignInWithCredential(
+  EXPECT_EQ(auth_.current_user().uid(), existing_user.uid());
+  WaitForCompletion(auth_.SignInWithCredential(
                         firebase::auth::TwitterAuthProvider::GetCredential(
                             kTestIdTokenBad, kTestAccessTokenBad)),
                     "SignInWithCredential (Twitter)",
                     firebase::auth::kAuthErrorInvalidCredential);
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
-  WaitForCompletion(auth_->SignInWithCredential(
+  EXPECT_EQ(auth_.current_user().uid(), existing_user.uid());
+  WaitForCompletion(auth_.SignInWithCredential(
                         firebase::auth::GitHubAuthProvider::GetCredential(
                             kTestAccessTokenBad)),
                     "SignInWithCredential (GitHub)",
                     firebase::auth::kAuthErrorInvalidCredential);
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
-  WaitForCompletion(auth_->SignInWithCredential(
+  EXPECT_EQ(auth_.current_user().uid(), existing_user.uid());
+  WaitForCompletion(auth_.SignInWithCredential(
                         firebase::auth::GoogleAuthProvider::GetCredential(
                             kTestIdTokenBad, kTestAccessTokenBad)),
                     "SignInWithCredential (Google 1)",
                     firebase::auth::kAuthErrorInvalidCredential);
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
-  WaitForCompletion(auth_->SignInWithCredential(
+  EXPECT_EQ(auth_.current_user().uid(), existing_user.uid());
+  WaitForCompletion(auth_.SignInWithCredential(
                         firebase::auth::GoogleAuthProvider::GetCredential(
                             kTestIdTokenBad, nullptr)),
                     "SignInWithCredential (Google 2)",
                     firebase::auth::kAuthErrorInvalidCredential);
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
+  EXPECT_EQ(auth_.current_user().uid(), existing_user.uid());
   WaitForCompletion(
-      auth_->SignInWithCredential(firebase::auth::OAuthProvider::GetCredential(
+      auth_.SignInWithCredential(firebase::auth::OAuthProvider::GetCredential(
           kTestIdProviderIdBad, kTestIdTokenBad, kTestAccessTokenBad)),
       "SignInWithCredential (OAuth)", firebase::auth::kAuthErrorFailure);
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
+  EXPECT_EQ(auth_.current_user().uid(), existing_user.uid());
 
 #if defined(__ANDROID__)
   // Test Play Games sign-in on Android only.
-  WaitForCompletion(auth_->SignInWithCredential(
+  WaitForCompletion(auth_.SignInWithCredential(
                         firebase::auth::PlayGamesAuthProvider::GetCredential(
                             kTestServerAuthCodeBad)),
                     "SignInWithCredential (Play Games)",
                     firebase::auth::kAuthErrorInvalidCredential);
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   EXPECT_TRUE(existing_user.is_valid());
-  EXPECT_EQ(auth_->current_user().uid(), existing_user.uid());
+  EXPECT_EQ(auth_.current_user().uid(), existing_user.uid());
 #endif  // defined(__ANDROID__)
   DeleteUser();
 }
@@ -1055,7 +1055,7 @@ TEST_F(FirebaseAuthTest, TestGameCenterSignIn) {
 
   EXPECT_NE(credential_future.result(), nullptr);
   if (credential_future.result()) {
-    WaitForCompletion(auth_->SignInWithCredential(*credential_future.result()),
+    WaitForCompletion(auth_.SignInWithCredential(*credential_future.result()),
                       "SignInWithCredential (Game Center)");
   }
   DeleteUser();
@@ -1066,22 +1066,22 @@ TEST_F(FirebaseAuthTest, TestSendPasswordResetEmail) {
   // Test Auth::SendPasswordResetEmail().
   std::string email = GenerateEmailAddress("SendPasswordResetEmail");
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   SignOut();
   // Send to correct email.
-  WaitForCompletion(auth_->SendPasswordResetEmail(email.c_str()),
+  WaitForCompletion(auth_.SendPasswordResetEmail(email.c_str()),
                     "SendPasswordResetEmail (good)");
   // Send to incorrect email.
-  WaitForCompletion(auth_->SendPasswordResetEmail(kTestEmailBad),
+  WaitForCompletion(auth_.SendPasswordResetEmail(kTestEmailBad),
                     "SendPasswordResetEmail (bad)",
                     firebase::auth::kAuthErrorUserNotFound);
   // Delete user now that we are done with it.
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   DeleteUser();
 }
 
@@ -1095,10 +1095,10 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
     return;
   }
   firebase::Future<firebase::auth::AuthResult> auth_result =
-      auth_->SignInWithEmailAndPassword(kCustomTestEmail, kCustomTestPassword);
+      auth_.SignInWithEmailAndPassword(kCustomTestEmail, kCustomTestPassword);
   WaitForCompletion(auth_result, "SignInWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_EQ(auth_->current_user().email(), kCustomTestEmail);
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  EXPECT_EQ(auth_.current_user().email(), kCustomTestEmail);
 }
 
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
@@ -1108,14 +1108,14 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
   FLAKY_TEST_SECTION_BEGIN();
 
   SignInAnonymously();
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_TRUE(auth_->current_user().is_anonymous());
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_anonymous());
   Terminate();
   ProcessEvents(2000);
   Initialize();
-  EXPECT_NE(auth_, nullptr);
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_TRUE(auth_->current_user().is_anonymous());
+  EXPECT_TRUE(auth_.is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_anonymous());
   DeleteUser();
 
   FLAKY_TEST_SECTION_END();
@@ -1129,11 +1129,11 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
 
   std::string email = GenerateEmailAddress("AuthPersistenceEmail");
   WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_FALSE(auth_->current_user().is_anonymous());
-  firebase::auth::User user = auth_->current_user();
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_anonymous());
+  firebase::auth::User user = auth_.current_user();
   std::string prev_provider_id = user.provider_id();
   // Save the old provider ID list so we can make sure it's the same once
   // it's loaded again.
@@ -1144,12 +1144,12 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   Terminate();
   ProcessEvents(2000);
   Initialize();
-  EXPECT_NE(auth_, nullptr);
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_FALSE(auth_->current_user().is_anonymous());
+  EXPECT_TRUE(auth_.is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
+  EXPECT_FALSE(auth_.current_user().is_anonymous());
   // Make sure the provider IDs are the same as they were before.
-  EXPECT_EQ(auth_->current_user().provider_id(), prev_provider_id);
-  user = auth_->current_user();
+  EXPECT_EQ(auth_.current_user().provider_id(), prev_provider_id);
+  user = auth_.current_user();
   std::vector<std::string> loaded_provider_data_ids;
   for (int i = 0; i < user.provider_data().size(); i++) {
     loaded_provider_data_ids.push_back(user.provider_data()[i].provider_id());
@@ -1158,9 +1158,9 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
 
   // Cleanup, ensure we are signed in as the user so we can delete it.
   WaitForCompletion(
-      auth_->SignInWithEmailAndPassword(email.c_str(), kTestPassword),
+      auth_.SignInWithEmailAndPassword(email.c_str(), kTestPassword),
       "SignInWithEmailAndPassword");
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_.current_user().is_valid());
   DeleteUser();
 
   FLAKY_TEST_SECTION_END();
@@ -1279,7 +1279,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
 
   FLAKY_TEST_SECTION_BEGIN();
 
-  firebase::auth::PhoneAuthProvider& phone_provider =
+  firebase::auth::PhoneAuthProvider phone_provider =
       firebase::auth::PhoneAuthProvider::GetInstance(auth_);
   LogDebug("Creating listener.");
   PhoneListener listener;
@@ -1323,7 +1323,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
               1);
     EXPECT_EQ(listener.on_verification_complete_credential_count(), 1);
     LogDebug("Signing in with automatic verification code.");
-    WaitForCompletion(auth_->SignInWithCredential(listener.credential()),
+    WaitForCompletion(auth_.SignInWithCredential(listener.credential()),
                       "SignInWithCredential(PhoneCredential) automatic");
   } else if (listener.on_verification_failed_count() > 0) {
     FAIL() << "Automatic verification failed.";
@@ -1336,7 +1336,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
         phone_provider.GetCredential(listener.verification_id().c_str(),
                                      kPhoneAuthTestVerificationCode);
 
-    WaitForCompletion(auth_->SignInWithCredential(phone_credential),
+    WaitForCompletion(auth_.SignInWithCredential(phone_credential),
                       "SignInWithCredential(PhoneCredential)");
   }
 
@@ -1358,7 +1358,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulSignInFederatedProviderNoScopes) {
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   WaitForCompletion(auth_result_future, "SignInWithProvider", provider_id);
   DeleteUser();
 }
@@ -1374,7 +1374,7 @@ TEST_F(FirebaseAuthTest,
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   WaitForCompletion(auth_result_future, "SignInWithProvider", provider_id);
   DeleteUser();
 }
@@ -1391,7 +1391,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulSignInFederatedProvider) {
       /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   WaitForCompletion(auth_result_future, "SignInWithProvider", provider_id);
   DeleteUser();
 }
@@ -1406,7 +1406,7 @@ TEST_F(FirebaseAuthTest, TestSignInFederatedProviderBadProviderIdFails) {
       /*custom_parameters=*/{{"req_id", "5321"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   WaitForCompletion(auth_result_future, "SignInWithProvider",
                     firebase::auth::kAuthErrorInvalidProviderId);
 }
@@ -1424,7 +1424,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulReauthenticateWithProvider) {
       /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   if (WaitForCompletion(auth_result_future, "SignInWithProvider",
                         provider_id)) {
     WaitForCompletion(
@@ -1444,7 +1444,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulReauthenticateWithProviderNoScopes) {
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   if (WaitForCompletion(auth_result_future, "SignInWithProvider",
                         provider_id)) {
     WaitForCompletion(
@@ -1465,7 +1465,7 @@ TEST_F(FirebaseAuthTest,
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   if (WaitForCompletion(auth_result_future, "SignInWithProvider",
                         provider_id)) {
     WaitForCompletion(
@@ -1484,13 +1484,13 @@ TEST_F(FirebaseAuthTest, TestReauthenticateWithProviderBadProviderIdFails) {
   firebase::auth::FederatedOAuthProviderData provider_data(provider_id);
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->SignInWithProvider(&provider);
+      auth_.SignInWithProvider(&provider);
   if (WaitForCompletion(auth_result_future, "SignInWithProvider",
                         provider_id)) {
     provider_data.provider_id = "MadeUpProvider";
     firebase::auth::FederatedOAuthProvider provider(provider_data);
     firebase::Future<firebase::auth::AuthResult> reauth_future =
-        auth_->current_user().ReauthenticateWithProvider(&provider);
+        auth_.current_user().ReauthenticateWithProvider(&provider);
     WaitForCompletion(reauth_future, "ReauthenticateWithProvider",
                       firebase::auth::kAuthErrorInvalidProviderId);
   }
@@ -1502,14 +1502,14 @@ TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProviderNoScopes) {
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
   SignInAnonymously();
-  ASSERT_TRUE(auth_->current_user().is_valid());
+  ASSERT_TRUE(auth_.current_user().is_valid());
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
   firebase::auth::FederatedOAuthProviderData provider_data(
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->current_user().LinkWithProvider(&provider);
+      auth_.current_user().LinkWithProvider(&provider);
   WaitForCompletion(auth_result_future, "LinkWithProvider", provider_id);
   DeleteUser();
 }
@@ -1520,14 +1520,14 @@ TEST_F(FirebaseAuthTest,
   TEST_REQUIRES_USER_INTERACTION;
 
   SignInAnonymously();
-  ASSERT_TRUE(auth_->current_user().is_valid());
+  ASSERT_TRUE(auth_.current_user().is_valid());
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
   firebase::auth::FederatedOAuthProviderData provider_data(
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->current_user().LinkWithProvider(&provider);
+      auth_.current_user().LinkWithProvider(&provider);
   WaitForCompletion(auth_result_future, "LinkWithProvider", provider_id);
   DeleteUser();
 }
@@ -1537,7 +1537,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProvider) {
   TEST_REQUIRES_USER_INTERACTION;
 
   SignInAnonymously();
-  ASSERT_TRUE(auth_->current_user().is_valid());
+  ASSERT_TRUE(auth_.current_user().is_valid());
   const std::string provider_id =
       firebase::auth::GoogleAuthProvider::kProviderId;
   firebase::auth::FederatedOAuthProviderData provider_data(
@@ -1546,7 +1546,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProvider) {
       /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->current_user().LinkWithProvider(&provider);
+      auth_.current_user().LinkWithProvider(&provider);
   WaitForCompletion(auth_result_future, "LinkWithProvider", provider_id);
   DeleteUser();
 }
@@ -1556,14 +1556,14 @@ TEST_F(FirebaseAuthTest, TestLinkFederatedProviderBadProviderIdFails) {
   TEST_REQUIRES_USER_INTERACTION;
 
   SignInAnonymously();
-  ASSERT_TRUE(auth_->current_user().is_valid());
+  ASSERT_TRUE(auth_.current_user().is_valid());
   firebase::auth::FederatedOAuthProviderData provider_data(
       /*provider=*/"MadeUpProvider",
       /*scopes=*/{"https://www.googleapis.com/auth/fitness.activity.read"},
       /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::AuthResult> auth_result_future =
-      auth_->current_user().LinkWithProvider(&provider);
+      auth_.current_user().LinkWithProvider(&provider);
   WaitForCompletion(auth_result_future, "LinkWithProvider",
                     firebase::auth::kAuthErrorInvalidProviderId);
   DeleteUser();

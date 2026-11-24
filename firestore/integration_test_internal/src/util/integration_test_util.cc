@@ -18,6 +18,7 @@
 #include <memory>
 #include <thread>  // NOLINT(build/c++11)
 
+#include "app/src/app_state.h"
 #include "app_framework.h"
 #include "firebase/app.h"
 #include "firebase/firestore.h"
@@ -33,35 +34,41 @@
 namespace firebase {
 namespace firestore {
 
-struct TestFriend {
-  static FirestoreInternal* CreateTestFirestoreInternal(
-      App* app, const std::string& database_id) {
+class TestFriend {
+ public:
+  static std::shared_ptr<FirestoreInternal> CreateTestFirestoreInternal(
+      const App& app, const std::string& database_id) {
+    auto state = ::firebase::internal::AppState::FromApp(app);
+    SIMPLE_HARD_ASSERT(state != nullptr, "App must be valid");
 #if !defined(__ANDROID__)
-    return new FirestoreInternal(
-        app, database_id,
+    return std::shared_ptr<FirestoreInternal>(new FirestoreInternal(
+        *state, database_id,
         std::make_shared<credentials::EmptyAuthCredentialsProvider>(),
-        std::make_shared<credentials::EmptyAppCheckCredentialsProvider>());
+        std::make_shared<credentials::EmptyAppCheckCredentialsProvider>()));
 #else
-    return new FirestoreInternal(app, database_id);
+    return std::make_shared<FirestoreInternal>(*state, database_id);
 #endif  // !defined(__ANDROID__)
   }
 };
 
-App* GetApp(const char* name, const std::string& override_project_id) {
+App GetApp(const char* name, const std::string& override_project_id) {
   // TODO(varconst): try to avoid using a real project ID when possible. iOS
   // unit tests achieve this by using fake options:
   // https://github.com/firebase/firebase-ios-sdk/blob/9a5afbffc17bb63b7bb7f51b9ea9a6a9e1c88a94/Firestore/core/test/firebase/firestore/testutil/app_testing.mm#L29
 
   if (name == nullptr || std::string(name) == kDefaultAppName) {
+    if (auto existing = App::GetInstance()) {
+      return *existing;
+    }
 #if defined(__ANDROID__)
-    return App::Create(app_framework::GetJniEnv(),
-                       app_framework::GetActivity());
+    return App::CreateRegistered(app_framework::GetJniEnv(),
+                                 app_framework::GetActivity());
 #else
-    return App::Create();
+    return App::CreateRegistered();
 #endif  // defined(__ANDROID__)
   } else {
-    App* default_app = App::GetInstance();
-    SIMPLE_HARD_ASSERT(default_app,
+    auto default_app = App::GetInstance();
+    SIMPLE_HARD_ASSERT(default_app.has_value(),
                        "Cannot create a named app before the default app");
 
     AppOptions options = default_app->options();
@@ -78,10 +85,10 @@ App* GetApp(const char* name, const std::string& override_project_id) {
   }
 }
 
-App* GetApp() { return GetApp(/*name=*/nullptr, /*project_id=*/""); }
+App GetApp() { return GetApp(/*name=*/nullptr, /*project_id=*/""); }
 
-FirestoreInternal* CreateTestFirestoreInternal(App* app,
-                                               const std::string& database_id) {
+std::shared_ptr<FirestoreInternal> CreateTestFirestoreInternal(
+    const App& app, const std::string& database_id) {
   return TestFriend::CreateTestFirestoreInternal(app, database_id);
 }
 

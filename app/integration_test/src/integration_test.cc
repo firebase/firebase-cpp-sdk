@@ -53,46 +53,43 @@ FirebaseAppTest::FirebaseAppTest() {
 #if defined(__ANDROID__)
 #define APP_CREATE_PARAMS \
   app_framework::GetJniEnv(), app_framework::GetActivity()
+#define APP_CREATE_EXTRA_PARAMS , APP_CREATE_PARAMS
 #else
 #define APP_CREATE_PARAMS
+#define APP_CREATE_EXTRA_PARAMS
 #endif  // defined(__ANDROID__)
 
 TEST_F(FirebaseAppTest, TestDefaultAppWithDefaultOptions) {
-  firebase::App* default_app;
-  default_app = firebase::App::Create(APP_CREATE_PARAMS);
-  EXPECT_NE(default_app, nullptr);
-
-  delete default_app;
-  default_app = nullptr;
+  firebase::App default_app = firebase::App::Create(APP_CREATE_PARAMS);
+  EXPECT_TRUE(default_app.is_valid());
+  EXPECT_TRUE(firebase::App::GetApps().empty());
 }
 
 TEST_F(FirebaseAppTest, TestGetAll) {
   EXPECT_EQ(firebase::App::GetApps().size(), 0);
 
-  firebase::App* default_app = firebase::App::Create(APP_CREATE_PARAMS);
+  firebase::App default_app =
+      firebase::App::CreateRegistered(APP_CREATE_PARAMS);
   EXPECT_THAT(firebase::App::GetApps(), UnorderedElementsAre(default_app));
 
-  firebase::App* second_app =
-      firebase::App::Create(firebase::AppOptions(), "2ndApp");
+  firebase::App second_app = firebase::App::CreateRegistered(
+      firebase::AppOptions(), "2ndApp" APP_CREATE_EXTRA_PARAMS);
   EXPECT_THAT(firebase::App::GetApps(),
               UnorderedElementsAre(default_app, second_app));
 
-  firebase::App* third_app =
-      firebase::App::Create(firebase::AppOptions(), "3rdApp");
+  firebase::App third_app = firebase::App::CreateRegistered(
+      firebase::AppOptions(), "3rdApp" APP_CREATE_EXTRA_PARAMS);
   EXPECT_THAT(firebase::App::GetApps(),
               UnorderedElementsAre(default_app, second_app, third_app));
 
-  delete third_app;
-  third_app = nullptr;
+  third_app = firebase::App();
   EXPECT_THAT(firebase::App::GetApps(),
               UnorderedElementsAre(default_app, second_app));
 
-  delete default_app;
-  default_app = nullptr;
+  default_app = firebase::App();
   EXPECT_THAT(firebase::App::GetApps(), UnorderedElementsAre(second_app));
 
-  delete second_app;
-  second_app = nullptr;
+  second_app = firebase::App();
   EXPECT_EQ(firebase::App::GetApps().size(), 0);
 }
 

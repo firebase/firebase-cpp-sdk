@@ -56,7 +56,7 @@ Constructor<Throwable> kExceptionConstructor("(Ljava/lang/String;)V");
 }  // namespace
 
 FirestoreAndroidIntegrationTest::FirestoreAndroidIntegrationTest()
-    : loader_(app()) {}
+    : loader_(app().GetJNIEnv(), app().activity()) {}
 
 void FirestoreAndroidIntegrationTest::SetUp() {
   FirestoreIntegrationTest::SetUp();

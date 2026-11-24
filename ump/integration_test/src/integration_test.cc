@@ -71,7 +71,7 @@ using testing::Property;
 
 class FirebaseUmpTest : public FirebaseTest {
  public:
-  FirebaseUmpTest() : consent_info_(nullptr) {}
+  FirebaseUmpTest() {}
 
   // Whether to call ConsentInfo::Reset() upon initialization, which
   // resets UMP's consent state to as if the app was first installed.
@@ -87,11 +87,11 @@ class FirebaseUmpTest : public FirebaseTest {
   void TearDown() override;
 
  protected:
-  static firebase::App* shared_app_;
-  firebase::ump::ConsentInfo* consent_info_;
+  static firebase::App shared_app_;
+  firebase::ump::ConsentInfo consent_info_;
 };
 
-firebase::App* FirebaseUmpTest::shared_app_ = nullptr;
+firebase::App FirebaseUmpTest::shared_app_;
 
 void FirebaseUmpTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
@@ -108,36 +108,34 @@ void FirebaseUmpTest::SetUpTestSuite() {
 
 void FirebaseUmpTest::TearDownTestSuite() {
   LogDebug("Shutdown Firebase App.");
-  delete shared_app_;
-  shared_app_ = nullptr;
+  shared_app_ = firebase::App();
 }
 
 void FirebaseUmpTest::InitializeUmp(ResetOption reset) {
   using firebase::ump::ConsentInfo;
   firebase::InitResult result;
-  consent_info_ = ConsentInfo::GetInstance(*shared_app_, &result);
+  consent_info_ = ConsentInfo::GetInstance(shared_app_, &result);
 
-  EXPECT_NE(consent_info_, nullptr);
+  EXPECT_TRUE(consent_info_.is_valid());
   EXPECT_EQ(result, firebase::kInitResultSuccess);
 
-  if (consent_info_ != nullptr && reset == kReset) {
-    consent_info_->Reset();
+  if (consent_info_.is_valid() && reset == kReset) {
+    consent_info_.Reset();
   }
 }
 
 void FirebaseUmpTest::TerminateUmp(ResetOption reset) {
-  if (consent_info_) {
+  if (consent_info_.is_valid()) {
     if (reset == kReset) {
-      consent_info_->Reset();
+      consent_info_.Reset();
     }
-    delete consent_info_;
-    consent_info_ = nullptr;
+    consent_info_ = firebase::ump::ConsentInfo();
   }
 }
 
 void FirebaseUmpTest::SetUp() {
   InitializeUmp();
-  ASSERT_NE(consent_info_, nullptr);
+  ASSERT_TRUE(consent_info_.is_valid());
 }
 
 void FirebaseUmpTest::TearDown() { TerminateUmp(); }
@@ -145,47 +143,45 @@ void FirebaseUmpTest::TearDown() { TerminateUmp(); }
 // Tests for User Messaging Platform
 TEST_F(FirebaseUmpTest, TestUmpInitialization) {
   // Initialize handled automatically in test setup.
-  EXPECT_NE(consent_info_, nullptr);
+  EXPECT_TRUE(consent_info_.is_valid());
   // Terminate handled automatically in test teardown.
 }
 
 // Tests for User Messaging Platform
 TEST_F(FirebaseUmpTest, TestUmpDefaultsToUnknownStatus) {
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusUnknown);
-  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+  EXPECT_EQ(consent_info_.GetConsentFormStatus(),
             firebase::ump::kConsentFormStatusUnknown);
-  EXPECT_EQ(consent_info_->GetPrivacyOptionsRequirementStatus(),
+  EXPECT_EQ(consent_info_.GetPrivacyOptionsRequirementStatus(),
             firebase::ump::kPrivacyOptionsRequirementStatusUnknown);
-  EXPECT_FALSE(consent_info_->CanRequestAds());
+  EXPECT_FALSE(consent_info_.CanRequestAds());
 }
 
 // Tests for User Messaging Platform
 TEST_F(FirebaseUmpTest, TestUmpGetInstanceIsAlwaysEqual) {
   using firebase::ump::ConsentInfo;
 
-  EXPECT_NE(consent_info_, nullptr);
+  EXPECT_TRUE(consent_info_.is_valid());
 
   // Ensure that GetInstance() with any options is always equal.
   EXPECT_EQ(consent_info_, ConsentInfo::GetInstance());
-  EXPECT_EQ(consent_info_, ConsentInfo::GetInstance(*shared_app_));
+  EXPECT_EQ(consent_info_, ConsentInfo::GetInstance(shared_app_));
 
 #if defined(ANDROID)
   EXPECT_EQ(consent_info_,
             ConsentInfo::GetInstance(app_framework::GetJniEnv(),
                                      app_framework::GetActivity()));
 
-  firebase::App* second_app = firebase::App::Create(
+  firebase::App second_app = firebase::App::Create(
       firebase::AppOptions(), "2ndApp", app_framework::GetJniEnv(),
       app_framework::GetActivity());
 #else
-  firebase::App* second_app =
+  firebase::App second_app =
       firebase::App::Create(firebase::AppOptions(), "2ndApp");
 #endif  // defined(ANDROID)
 
-  EXPECT_EQ(consent_info_, ConsentInfo::GetInstance(*second_app));
-
-  delete second_app;
+  EXPECT_EQ(consent_info_, ConsentInfo::GetInstance(second_app));
 }
 
 TEST_F(FirebaseUmpTest, TestUmpRequestConsentInfoUpdate) {
@@ -198,9 +194,9 @@ TEST_F(FirebaseUmpTest, TestUmpRequestConsentInfoUpdate) {
   params.tag_for_under_age_of_consent = false;
 
   firebase::Future<void> future =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
 
-  EXPECT_TRUE(future == consent_info_->RequestConsentInfoUpdateLastResult());
+  EXPECT_TRUE(future == consent_info_.RequestConsentInfoUpdateLastResult());
 
   WaitForCompletion(future, "RequestConsentInfoUpdate",
                     {firebase::ump::kConsentRequestSuccess,
@@ -210,11 +206,11 @@ TEST_F(FirebaseUmpTest, TestUmpRequestConsentInfoUpdate) {
 
   FLAKY_TEST_SECTION_END();
 
-  EXPECT_NE(consent_info_->GetConsentStatus(),
+  EXPECT_NE(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusUnknown);
-  EXPECT_NE(consent_info_->GetConsentFormStatus(),
+  EXPECT_NE(consent_info_.GetConsentFormStatus(),
             firebase::ump::kConsentFormStatusUnknown);
-  EXPECT_NE(consent_info_->GetPrivacyOptionsRequirementStatus(),
+  EXPECT_NE(consent_info_.GetPrivacyOptionsRequirementStatus(),
             firebase::ump::kPrivacyOptionsRequirementStatusUnknown);
 }
 
@@ -233,7 +229,7 @@ TEST_F(FirebaseUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
 
   WaitForCompletion(future, "RequestConsentInfoUpdate",
                     {firebase::ump::kConsentRequestSuccess,
@@ -243,7 +239,7 @@ TEST_F(FirebaseUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
 
   FLAKY_TEST_SECTION_END();
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusRequired);
 }
 
@@ -262,7 +258,7 @@ TEST_F(FirebaseUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
 
   WaitForCompletion(future, "RequestConsentInfoUpdate",
                     {firebase::ump::kConsentRequestSuccess,
@@ -272,7 +268,7 @@ TEST_F(FirebaseUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
 
   FLAKY_TEST_SECTION_END();
 
-  EXPECT_THAT(consent_info_->GetConsentStatus(),
+  EXPECT_THAT(consent_info_.GetConsentStatus(),
               AnyOf(Eq(firebase::ump::kConsentStatusNotRequired),
                     Eq(firebase::ump::kConsentStatusRequired)));
 }
@@ -290,25 +286,25 @@ TEST_F(FirebaseUmpTest, TestUmpLoadForm) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+  WaitForCompletion(consent_info_.RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusRequired);
 
-  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+  EXPECT_EQ(consent_info_.GetConsentFormStatus(),
             firebase::ump::kConsentFormStatusAvailable);
 
   // Load the form. Run this step with retry in case of network timeout.
   WaitForCompletion(
-      RunWithRetry([&]() { return consent_info_->LoadConsentForm(); }),
+      RunWithRetry([&]() { return consent_info_.LoadConsentForm(); }),
       "LoadConsentForm",
       {firebase::ump::kConsentFormSuccess,
        firebase::ump::kConsentFormErrorTimeout});
 
-  firebase::Future<void> future = consent_info_->LoadConsentFormLastResult();
+  firebase::Future<void> future = consent_info_.LoadConsentFormLastResult();
 
-  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+  EXPECT_EQ(consent_info_.GetConsentFormStatus(),
             firebase::ump::kConsentFormStatusAvailable);
 
   if (future.error() == firebase::ump::kConsentFormErrorTimeout) {
@@ -331,28 +327,28 @@ TEST_F(FirebaseUmpTest, TestUmpShowForm) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+  WaitForCompletion(consent_info_.RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusRequired);
 
-  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+  EXPECT_EQ(consent_info_.GetConsentFormStatus(),
             firebase::ump::kConsentFormStatusAvailable);
 
-  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm");
+  WaitForCompletion(consent_info_.LoadConsentForm(), "LoadConsentForm");
 
-  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+  EXPECT_EQ(consent_info_.GetConsentFormStatus(),
             firebase::ump::kConsentFormStatusAvailable);
 
   firebase::Future<void> future =
-      consent_info_->ShowConsentForm(app_framework::GetWindowController());
+      consent_info_.ShowConsentForm(app_framework::GetWindowController());
 
-  EXPECT_TRUE(future == consent_info_->ShowConsentFormLastResult());
+  EXPECT_TRUE(future == consent_info_.ShowConsentFormLastResult());
 
   WaitForCompletion(future, "ShowConsentForm");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusObtained);
 }
 
@@ -374,7 +370,7 @@ TEST_F(FirebaseUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
 
   WaitForCompletion(future, "RequestConsentInfoUpdate",
                     {firebase::ump::kConsentRequestSuccess,
@@ -384,7 +380,7 @@ TEST_F(FirebaseUmpTest, TestUmpLoadFormUnderAgeOfConsent) {
 
   FLAKY_TEST_SECTION_END();
 
-  firebase::Future<void> load_future = consent_info_->LoadConsentForm();
+  firebase::Future<void> load_future = consent_info_.LoadConsentForm();
   WaitForCompletion(load_future, "LoadConsentForm",
                     {firebase::ump::kConsentFormErrorUnavailable,
                      firebase::ump::kConsentFormErrorTimeout,
@@ -407,7 +403,7 @@ TEST_F(FirebaseUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
 
   WaitForCompletion(future, "RequestConsentInfoUpdate",
                     {firebase::ump::kConsentRequestSuccess,
@@ -417,9 +413,9 @@ TEST_F(FirebaseUmpTest, TestUmpLoadFormUnavailableDebugNonEEA) {
 
   FLAKY_TEST_SECTION_END();
 
-  if (consent_info_->GetConsentStatus() !=
+  if (consent_info_.GetConsentStatus() !=
       firebase::ump::kConsentStatusRequired) {
-    WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
+    WaitForCompletion(consent_info_.LoadConsentForm(), "LoadConsentForm",
                       firebase::ump::kConsentFormErrorUnavailable);
   }
 }
@@ -439,7 +435,7 @@ TEST_F(FirebaseUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
 
   WaitForCompletion(future, "RequestConsentInfoUpdate",
                     {firebase::ump::kConsentRequestSuccess,
@@ -449,22 +445,22 @@ TEST_F(FirebaseUmpTest, TestUmpLoadAndShowIfRequiredDebugNonEEA) {
 
   FLAKY_TEST_SECTION_END();
 
-  EXPECT_THAT(consent_info_->GetConsentStatus(),
+  EXPECT_THAT(consent_info_.GetConsentStatus(),
               AnyOf(Eq(firebase::ump::kConsentStatusNotRequired),
                     Eq(firebase::ump::kConsentStatusRequired)));
 
-  if (consent_info_->GetConsentStatus() ==
+  if (consent_info_.GetConsentStatus() ==
           firebase::ump::kConsentStatusNotRequired ||
       ShouldRunUITests()) {
     // If ConsentStatus is Required, we only want to do this next part if UI
     // interaction is allowed, as it will show a consent form which won't work
     // in automated testing.
     firebase::Future<void> future =
-        consent_info_->LoadAndShowConsentFormIfRequired(
+        consent_info_.LoadAndShowConsentFormIfRequired(
             app_framework::GetWindowController());
 
     EXPECT_TRUE(future ==
-                consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
+                consent_info_.LoadAndShowConsentFormIfRequiredLastResult());
 
     WaitForCompletion(future, "LoadAndShowConsentFormIfRequired");
   }
@@ -484,22 +480,22 @@ TEST_F(FirebaseUmpTest, TestUmpLoadAndShowIfRequiredDebugEEA) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+  WaitForCompletion(consent_info_.RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusRequired);
 
   firebase::Future<void> future =
-      consent_info_->LoadAndShowConsentFormIfRequired(
+      consent_info_.LoadAndShowConsentFormIfRequired(
           app_framework::GetWindowController());
 
   EXPECT_TRUE(future ==
-              consent_info_->LoadAndShowConsentFormIfRequiredLastResult());
+              consent_info_.LoadAndShowConsentFormIfRequiredLastResult());
 
   WaitForCompletion(future, "LoadAndShowConsentFormIfRequired");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusObtained);
 }
 
@@ -518,22 +514,22 @@ TEST_F(FirebaseUmpTest, TestUmpPrivacyOptions) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+  WaitForCompletion(consent_info_.RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusRequired);
 
-  EXPECT_FALSE(consent_info_->CanRequestAds());
+  EXPECT_FALSE(consent_info_.CanRequestAds());
 
-  WaitForCompletion(consent_info_->LoadAndShowConsentFormIfRequired(
+  WaitForCompletion(consent_info_.LoadAndShowConsentFormIfRequired(
                         app_framework::GetWindowController()),
                     "LoadAndShowConsentFormIfRequired");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusObtained);
 
-  EXPECT_TRUE(consent_info_->CanRequestAds()) << "After consent obtained";
+  EXPECT_TRUE(consent_info_.CanRequestAds()) << "After consent obtained";
 
   LogInfo(
       "******** On the Privacy Options screen that is about to appear, please "
@@ -541,13 +537,13 @@ TEST_F(FirebaseUmpTest, TestUmpPrivacyOptions) {
 
   ProcessEvents(5000);
 
-  EXPECT_EQ(consent_info_->GetPrivacyOptionsRequirementStatus(),
+  EXPECT_EQ(consent_info_.GetPrivacyOptionsRequirementStatus(),
             firebase::ump::kPrivacyOptionsRequirementStatusRequired);
 
-  firebase::Future<void> future = consent_info_->ShowPrivacyOptionsForm(
+  firebase::Future<void> future = consent_info_.ShowPrivacyOptionsForm(
       app_framework::GetWindowController());
 
-  EXPECT_TRUE(future == consent_info_->ShowPrivacyOptionsFormLastResult());
+  EXPECT_TRUE(future == consent_info_.ShowPrivacyOptionsFormLastResult());
 
   WaitForCompletion(future, "ShowPrivacyOptionsForm");
 }
@@ -564,16 +560,16 @@ TEST_F(FirebaseUmpTest, TestCanRequestAdsNonEEA) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+  WaitForCompletion(consent_info_.RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_THAT(consent_info_->GetConsentStatus(),
+  EXPECT_THAT(consent_info_.GetConsentStatus(),
               AnyOf(Eq(firebase::ump::kConsentStatusNotRequired),
                     Eq(firebase::ump::kConsentStatusRequired)));
 
-  if (consent_info_->GetConsentStatus() ==
+  if (consent_info_.GetConsentStatus() ==
       firebase::ump::kConsentStatusNotRequired) {
-    EXPECT_TRUE(consent_info_->CanRequestAds());
+    EXPECT_TRUE(consent_info_.CanRequestAds());
   }
 }
 
@@ -589,13 +585,13 @@ TEST_F(FirebaseUmpTest, TestCanRequestAdsEEA) {
   params.debug_settings.debug_device_ids = kTestDeviceIDs;
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+  WaitForCompletion(consent_info_.RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
+  EXPECT_EQ(consent_info_.GetConsentStatus(),
             firebase::ump::kConsentStatusRequired);
 
-  EXPECT_FALSE(consent_info_->CanRequestAds());
+  EXPECT_FALSE(consent_info_.CanRequestAds());
 }
 
 TEST_F(FirebaseUmpTest, TestUmpCleanupWithDelay) {
@@ -613,14 +609,14 @@ TEST_F(FirebaseUmpTest, TestUmpCleanupWithDelay) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future_request =
-      consent_info_->RequestConsentInfoUpdate(params);
-  firebase::Future<void> future_load = consent_info_->LoadConsentForm();
+      consent_info_.RequestConsentInfoUpdate(params);
+  firebase::Future<void> future_load = consent_info_.LoadConsentForm();
   firebase::Future<void> future_show =
-      consent_info_->ShowConsentForm(app_framework::GetWindowController());
+      consent_info_.ShowConsentForm(app_framework::GetWindowController());
   firebase::Future<void> future_load_and_show =
-      consent_info_->LoadAndShowConsentFormIfRequired(
+      consent_info_.LoadAndShowConsentFormIfRequired(
           app_framework::GetWindowController());
-  firebase::Future<void> future_privacy = consent_info_->ShowPrivacyOptionsForm(
+  firebase::Future<void> future_privacy = consent_info_.ShowPrivacyOptionsForm(
       app_framework::GetWindowController());
 
   ProcessEvents(5000);
@@ -650,14 +646,14 @@ TEST_F(FirebaseUmpTest, TestUmpCleanupRaceCondition) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future_request =
-      consent_info_->RequestConsentInfoUpdate(params);
-  firebase::Future<void> future_load = consent_info_->LoadConsentForm();
+      consent_info_.RequestConsentInfoUpdate(params);
+  firebase::Future<void> future_load = consent_info_.LoadConsentForm();
   firebase::Future<void> future_show =
-      consent_info_->ShowConsentForm(app_framework::GetWindowController());
+      consent_info_.ShowConsentForm(app_framework::GetWindowController());
   firebase::Future<void> future_load_and_show =
-      consent_info_->LoadAndShowConsentFormIfRequired(
+      consent_info_.LoadAndShowConsentFormIfRequired(
           app_framework::GetWindowController());
-  firebase::Future<void> future_privacy = consent_info_->ShowPrivacyOptionsForm(
+  firebase::Future<void> future_privacy = consent_info_.ShowPrivacyOptionsForm(
       app_framework::GetWindowController());
 
   TerminateUmp(kNoReset);
@@ -686,29 +682,29 @@ TEST_F(FirebaseUmpTest, TestUmpCallbacksOnWrongInstance) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   LogDebug("RequestConsentInfoUpdate");
-  consent_info_->RequestConsentInfoUpdate(params).OnCompletion(
+  consent_info_.RequestConsentInfoUpdate(params).OnCompletion(
       [](const firebase::Future<void>&) {
         LogDebug("RequestConsentInfoUpdate done");
       });
   LogDebug("LoadConsentForm");
-  consent_info_->LoadConsentForm().OnCompletion(
+  consent_info_.LoadConsentForm().OnCompletion(
       [](const firebase::Future<void>&) { LogDebug("LoadConsentForm done"); });
   // In automated tests, only check RequestConsentInfoUpdate and LoadConsentForm
   // as the rest may show UI.
   if (ShouldRunUITests()) {
     LogDebug("ShowConsentForm");
-    consent_info_->ShowConsentForm(app_framework::GetWindowController())
+    consent_info_.ShowConsentForm(app_framework::GetWindowController())
         .OnCompletion([](const firebase::Future<void>&) {
           LogDebug("ShowConsentForm done");
         });
     LogDebug("LoadAndShowConsentFormIfRequired");
     consent_info_
-        ->LoadAndShowConsentFormIfRequired(app_framework::GetWindowController())
+        .LoadAndShowConsentFormIfRequired(app_framework::GetWindowController())
         .OnCompletion([](const firebase::Future<void>&) {
           LogDebug("LoadAndShowConsentFormIfRequired done");
         });
     LogDebug("ShowPrivacyOptionsForm");
-    consent_info_->ShowPrivacyOptionsForm(app_framework::GetWindowController())
+    consent_info_.ShowPrivacyOptionsForm(app_framework::GetWindowController())
         .OnCompletion([](const firebase::Future<void>&) {
           LogDebug("ShowPrivacyOptionsForm done");
         });
@@ -750,16 +746,16 @@ TEST_F(FirebaseUmpTest, TestUmpMethodsReturnOperationInProgress) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future_request_1 =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
   firebase::Future<void> future_request_2 =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
   WaitForCompletion(future_request_2, "RequestConsentInfoUpdate second",
                     firebase::ump::kConsentRequestErrorOperationInProgress);
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first",
                     {firebase::ump::kConsentRequestSuccess,
                      firebase::ump::kConsentRequestErrorNetwork});
 
-  consent_info_->Reset();
+  consent_info_.Reset();
 
   FLAKY_TEST_SECTION_END();
 }
@@ -784,47 +780,47 @@ TEST_F(FirebaseUmpTest, TestUmpMethodsReturnOperationInProgressWithUI) {
   params.debug_settings.debug_device_ids.push_back(GetDebugDeviceId());
 
   firebase::Future<void> future_request_1 =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
   firebase::Future<void> future_request_2 =
-      consent_info_->RequestConsentInfoUpdate(params);
+      consent_info_.RequestConsentInfoUpdate(params);
   WaitForCompletion(future_request_2, "RequestConsentInfoUpdate second",
                     firebase::ump::kConsentRequestErrorOperationInProgress);
   WaitForCompletion(future_request_1, "RequestConsentInfoUpdate first");
 
-  firebase::Future<void> future_load_1 = consent_info_->LoadConsentForm();
-  firebase::Future<void> future_load_2 = consent_info_->LoadConsentForm();
+  firebase::Future<void> future_load_1 = consent_info_.LoadConsentForm();
+  firebase::Future<void> future_load_2 = consent_info_.LoadConsentForm();
   WaitForCompletion(future_load_2, "LoadConsentForm second",
                     firebase::ump::kConsentFormErrorOperationInProgress);
   WaitForCompletion(future_load_1, "LoadConsentForm first");
 
   firebase::Future<void> future_show_1 =
-      consent_info_->ShowConsentForm(app_framework::GetWindowController());
+      consent_info_.ShowConsentForm(app_framework::GetWindowController());
   firebase::Future<void> future_show_2 =
-      consent_info_->ShowConsentForm(app_framework::GetWindowController());
+      consent_info_.ShowConsentForm(app_framework::GetWindowController());
   WaitForCompletion(future_show_2, "ShowConsentForm second",
                     firebase::ump::kConsentFormErrorOperationInProgress);
   WaitForCompletion(future_show_1, "ShowConsentForm first");
 
   firebase::Future<void> future_privacy_1 =
-      consent_info_->ShowPrivacyOptionsForm(
+      consent_info_.ShowPrivacyOptionsForm(
           app_framework::GetWindowController());
   firebase::Future<void> future_privacy_2 =
-      consent_info_->ShowPrivacyOptionsForm(
+      consent_info_.ShowPrivacyOptionsForm(
           app_framework::GetWindowController());
   WaitForCompletion(future_privacy_2, "ShowPrivacyOptionsForm second",
                     firebase::ump::kConsentFormErrorOperationInProgress);
   WaitForCompletion(future_privacy_1, "ShowPrivacyOptionsForm first");
 
-  consent_info_->Reset();
+  consent_info_.Reset();
   // Request again so we can test LoadAndShowConsentFormIfRequired.
-  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+  WaitForCompletion(consent_info_.RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
 
   firebase::Future<void> future_load_and_show_1 =
-      consent_info_->LoadAndShowConsentFormIfRequired(
+      consent_info_.LoadAndShowConsentFormIfRequired(
           app_framework::GetWindowController());
   firebase::Future<void> future_load_and_show_2 =
-      consent_info_->LoadAndShowConsentFormIfRequired(
+      consent_info_.LoadAndShowConsentFormIfRequired(
           app_framework::GetWindowController());
   WaitForCompletion(future_load_and_show_2,
                     "LoadAndShowConsentFormIfRequired second",

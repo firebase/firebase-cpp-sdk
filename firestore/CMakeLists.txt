@@ -386,7 +386,7 @@ add_custom_target(
 )
 
 # This is needed due to Firestore's dependence on some firebase::app APIs that
-# are guarded by this flag, such as GetUserAgent and function_registry.
+# are guarded by this flag, such as GetUserAgent.
 set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
 
 if (MSVC AND NOT ANDROID AND NOT IOS)

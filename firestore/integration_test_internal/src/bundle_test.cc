@@ -76,7 +76,7 @@ void VerifyErrorProgress(LoadBundleTaskProgress progress) {
 }
 
 std::string CreateTestBundle(Firestore* db) {
-  return CreateBundle(db->app()->options().project_id());
+  return CreateBundle(db->app().options().project_id());
 }
 
 void SetPromiseValueWhenUpdateIsFinal(

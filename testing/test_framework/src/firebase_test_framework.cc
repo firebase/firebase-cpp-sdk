@@ -41,9 +41,9 @@ int FirebaseTest::argc_ = 0;
 char** FirebaseTest::argv_ = nullptr;
 bool FirebaseTest::found_config_ = false;
 
-FirebaseTest::FirebaseTest() : app_(nullptr) {}
+FirebaseTest::FirebaseTest() {}
 
-FirebaseTest::~FirebaseTest() { assert(app_ == nullptr); }
+FirebaseTest::~FirebaseTest() { assert(!app_.is_valid()); }
 
 void FirebaseTest::SetUp() {}
 
@@ -85,7 +85,7 @@ void FirebaseTest::FindFirebaseConfig(const char* try_directory) {
 }
 
 void FirebaseTest::InitializeApp() {
-  if (app_) return;  // Already initialized.
+  if (app_.is_valid()) return;  // Already initialized.
 
   app_framework::LogDebug("Initialize Firebase App.");
 
@@ -98,11 +98,10 @@ void FirebaseTest::InitializeApp() {
 }
 
 void FirebaseTest::TerminateApp() {
-  if (!app_) return;  // Already terminated.
+  if (!app_.is_valid()) return;  // Already terminated.
 
   app_framework::LogDebug("Shutdown Firebase App.");
-  delete app_;
-  app_ = nullptr;
+  app_ = ::firebase::App();
 }
 
 bool FirebaseTest::RunFlakyBlockBase(bool (*flaky_block)(void* context),

@@ -26,12 +26,12 @@ namespace {
 void ExpectAllMethodsAreNoOps(Query* ptr);
 
 // Checks that methods accessing the associated Firestore instance don't crash
-// and return null.
+// and return an invalid handle.
 template <typename T>
 void ExpectNullFirestore(T* ptr) {
-  EXPECT_EQ(ptr->firestore(), nullptr);
+  EXPECT_FALSE(ptr->firestore().is_valid());
   // Make sure to check both const and non-const overloads.
-  EXPECT_EQ(static_cast<const T*>(ptr)->firestore(), nullptr);
+  EXPECT_FALSE(static_cast<const T*>(ptr)->firestore().is_valid());
 }
 
 // Checks that the given object can be copied from, and the resulting copy can

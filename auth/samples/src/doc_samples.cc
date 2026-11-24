@@ -60,21 +60,21 @@ const char* token = nullptr;
 const char* secret = nullptr;
 MyProgramContext my_program_context;
 
-firebase::App* AppCreate() {
+firebase::App AppCreate() {
 // [START app_create]
 #if defined(__ANDROID__)
-  firebase::App* app =
+  firebase::App app =
       firebase::App::Create(firebase::AppOptions(), my_jni_env, my_activity);
 #else
-  firebase::App* app = firebase::App::Create(firebase::AppOptions());
+  firebase::App app = firebase::App::Create(firebase::AppOptions());
 #endif  // defined(__ANDROID__)
   // [END app_create]
   return app;
 }
 
-firebase::auth::Auth* AuthFromApp(firebase::App* app) {
+firebase::auth::Auth AuthFromApp(const firebase::App& app) {
   // [START auth_from_app]
-  firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app);
+  firebase::auth::Auth auth = firebase::auth::Auth::GetAuth(app);
   // [END auth_from_app]
   return auth;
 }
@@ -288,8 +288,8 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
 // [START user_state_change]
 class MyAuthStateListener : public firebase::auth::AuthStateListener {
  public:
-  void OnAuthStateChanged(firebase::auth::Auth* auth) override {
-    firebase::auth::User user = auth->current_user();
+  void OnAuthStateChanged(firebase::auth::Auth auth) override {
+    firebase::auth::User user = auth.current_user();
     if (user.is_valid()) {
       // User is signed in
       printf("OnAuthStateChanged: signed_in %s\n", user.uid().c_str());
@@ -672,14 +672,14 @@ void GetIdTokenClaims(firebase::auth::Auth* auth) {
   // [END get_id_token_claims]
 }
 
-firebase::auth::Auth* AuthOverview(firebase::App* app) {
+firebase::auth::Auth AuthOverview(const firebase::App& app) {
   /// [Auth overview]
   // Get the Auth class for your App.
-  firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app);
+  firebase::auth::Auth auth = firebase::auth::Auth::GetAuth(app);
 
   // Request anonymous sign-in and wait until asynchronous call completes.
   firebase::Future<firebase::auth::AuthResult> sign_in_future =
-      auth->SignInAnonymously();
+      auth.SignInAnonymously();
   while (sign_in_future.status() == firebase::kFutureStatusPending) {
     Wait(100);
     printf("Signing in...\n");

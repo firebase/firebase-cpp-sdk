@@ -150,13 +150,13 @@ class FirebaseDatabaseTest : public FirebaseTest {
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
 
-  static firebase::App* shared_app_;
-  static firebase::auth::Auth* shared_auth_;
+  static firebase::App shared_app_;
+  static firebase::auth::Auth shared_auth_;
 
   static bool first_time_;
 
   bool initialized_;
-  firebase::database::Database* database_;
+  firebase::database::Database database_;
 
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
 };
@@ -171,8 +171,8 @@ class FirebaseDatabaseTest : public FirebaseTest {
 //  - Once, after all tests are finished:
 //  -   TearDownTestSuite: Sign out. Shut down Auth and App.
 
-firebase::App* FirebaseDatabaseTest::shared_app_;
-firebase::auth::Auth* FirebaseDatabaseTest::shared_auth_;
+firebase::App FirebaseDatabaseTest::shared_app_;
+firebase::auth::Auth FirebaseDatabaseTest::shared_auth_;
 
 bool FirebaseDatabaseTest::first_time_ = true;
 
@@ -190,20 +190,20 @@ void FirebaseDatabaseTest::InitializeAppAndAuth() {
   shared_app_ = ::firebase::App::Create();
 #endif  // defined(__ANDROID__)
 
-  ASSERT_NE(shared_app_, nullptr);
+  ASSERT_TRUE(shared_app_.is_valid());
 
   LogDebug("Initializing Auth.");
 
   // Initialize Firebase Auth.
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(shared_app_, &shared_auth_,
-                         [](::firebase::App* app, void* target) {
-                           LogDebug("Attempting to initialize Firebase Auth.");
-                           ::firebase::InitResult result;
-                           *reinterpret_cast<firebase::auth::Auth**>(target) =
-                               ::firebase::auth::Auth::GetAuth(app, &result);
-                           return result;
-                         });
+  initializer.Initialize(
+      shared_app_, &shared_auth_, [](const ::firebase::App& app, void* target) {
+        LogDebug("Attempting to initialize Firebase Auth.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::auth::Auth*>(target) =
+            ::firebase::auth::Auth::GetAuth(app, &result);
+        return result;
+      });
 
   WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 
@@ -212,7 +212,7 @@ void FirebaseDatabaseTest::InitializeAppAndAuth() {
 
   LogDebug("Successfully initialized Auth.");
 
-  ASSERT_NE(shared_auth_, nullptr);
+  ASSERT_TRUE(shared_auth_.is_valid());
 
   // Sign in anonymously.
   SignIn();
@@ -221,28 +221,25 @@ void FirebaseDatabaseTest::InitializeAppAndAuth() {
 void FirebaseDatabaseTest::TearDownTestSuite() { TerminateAppAndAuth(); }
 
 void FirebaseDatabaseTest::TerminateAppAndAuth() {
-  if (shared_auth_) {
+  if (shared_auth_.is_valid()) {
     LogDebug("Signing out.");
     SignOut();
     LogDebug("Shutdown Auth.");
-    delete shared_auth_;
-    shared_auth_ = nullptr;
+    shared_auth_ = firebase::auth::Auth();
   }
-  if (shared_app_) {
+  if (shared_app_.is_valid()) {
     LogDebug("Shutdown App.");
-    delete shared_app_;
-    shared_app_ = nullptr;
+    shared_app_ = firebase::App();
   }
 }
 
-FirebaseDatabaseTest::FirebaseDatabaseTest()
-    : initialized_(false), database_(nullptr) {
+FirebaseDatabaseTest::FirebaseDatabaseTest() : initialized_(false) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
 FirebaseDatabaseTest::~FirebaseDatabaseTest() {
   // Must be cleaned up on exit.
-  assert(database_ == nullptr);
+  assert(!database_.is_valid());
 }
 
 void FirebaseDatabaseTest::SetUp() {
@@ -253,7 +250,8 @@ void FirebaseDatabaseTest::SetUp() {
 void FirebaseDatabaseTest::TearDown() {
   // Delete the shared path, if there is one.
   if (initialized_) {
-    if (!cleanup_paths_.empty() && database_ && shared_app_) {
+    if (!cleanup_paths_.empty() && database_.is_valid() &&
+        shared_app_.is_valid()) {
       LogDebug("Cleaning up...");
       std::vector<firebase::Future<void>> cleanups;
       cleanups.reserve(cleanup_paths_.size());
@@ -276,10 +274,10 @@ void FirebaseDatabaseTest::InitializeDatabase() {
 
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(
-      shared_app_, &database_, [](::firebase::App* app, void* target) {
+      shared_app_, &database_, [](const ::firebase::App& app, void* target) {
         LogDebug("Attempting to initialize Firebase Database.");
         ::firebase::InitResult result;
-        *reinterpret_cast<firebase::database::Database**>(target) =
+        *reinterpret_cast<firebase::database::Database*>(target) =
             firebase::database::Database::GetInstance(app, &result);
         return result;
       });
@@ -295,7 +293,7 @@ void FirebaseDatabaseTest::InitializeDatabase() {
   // We need to do this here because on iOS you can only enable persistence
   // before ANY FIRDatabase instances are used.
   if (first_time_) {
-    database_->set_persistence_enabled(true);
+    database_.set_persistence_enabled(true);
     first_time_ = false;
   }
 
@@ -305,10 +303,9 @@ void FirebaseDatabaseTest::InitializeDatabase() {
 void FirebaseDatabaseTest::TerminateDatabase() {
   if (!initialized_) return;
 
-  if (database_) {
+  if (database_.is_valid()) {
     LogDebug("Shutdown the Database library.");
-    delete database_;
-    database_ = nullptr;
+    database_ = firebase::database::Database();
   }
   initialized_ = false;
 
@@ -316,13 +313,13 @@ void FirebaseDatabaseTest::TerminateDatabase() {
 }
 
 void FirebaseDatabaseTest::SignIn() {
-  if (shared_auth_->current_user().is_valid()) {
+  if (shared_auth_.current_user().is_valid()) {
     // Already signed in.
     return;
   }
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::AuthResult> sign_in_future =
-      shared_auth_->SignInAnonymously();
+      shared_auth_.SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -332,34 +329,34 @@ void FirebaseDatabaseTest::SignIn() {
 }
 
 void FirebaseDatabaseTest::SignOut() {
-  if (shared_auth_ == nullptr) {
+  if (!shared_auth_.is_valid()) {
     // Auth is not set up.
     return;
   }
-  if (!shared_auth_->current_user().is_valid()) {
+  if (!shared_auth_.current_user().is_valid()) {
     // Already signed out.
     return;
   }
-  if (shared_auth_->current_user().is_anonymous()) {
+  if (shared_auth_.current_user().is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(shared_auth_->current_user().Delete(),
+    WaitForCompletion(shared_auth_.current_user().Delete(),
                       "DeleteAnonymousUser");
   } else {
     // If not signed in anonymously (e.g. if the tests were modified to sign in
     // as an actual user), just sign out normally.
-    shared_auth_->SignOut();
+    shared_auth_.SignOut();
 
     // Wait for the sign-out to finish.
-    while (shared_auth_->current_user().is_valid()) {
+    while (shared_auth_.current_user().is_valid()) {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_FALSE(shared_auth_->current_user().is_valid());
+  EXPECT_FALSE(shared_auth_.current_user().is_valid());
 }
 
 firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
     bool suppress_cleanup) {
-  auto ref = database_->GetReference(kIntegrationTestRootPath).PushChild();
+  auto ref = database_.GetReference(kIntegrationTestRootPath).PushChild();
   if (!suppress_cleanup) {
     cleanup_paths_.push_back(ref);
   }
@@ -372,7 +369,7 @@ TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseDatabaseTest, TestSignIn) {
-  EXPECT_TRUE(shared_auth_->current_user().is_valid());
+  EXPECT_TRUE(shared_auth_.current_user().is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestCreateWorkingPath) {
@@ -384,9 +381,9 @@ TEST_F(FirebaseDatabaseTest, TestCreateWorkingPath) {
   LogInfo("Database URL: %s", working_path.url().c_str());
   EXPECT_TRUE(working_path.is_valid());
   EXPECT_FALSE(working_path.url().empty());
-  EXPECT_EQ(working_path.url().find(database_->GetReference().url()), 0)
+  EXPECT_EQ(working_path.url().find(database_.GetReference().url()), 0)
       << "Working path URL (" << working_path.url()
-      << ") does not begin with root URL (" << database_->GetReference().url()
+      << ") does not begin with root URL (" << database_.GetReference().url()
       << ")";
 }
 
@@ -552,7 +549,7 @@ TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
   const char* test_name = test_info_->name();
 
   SignIn();
-  // database_->set_persistence_enabled(true); // Already set in Initialize().
+  // database_.set_persistence_enabled(true); // Already set in Initialize().
 
   firebase::database::DatabaseReference ref = CreateWorkingPath(true);
   std::string working_url = ref.url();
@@ -562,15 +559,15 @@ TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
   WaitForCompletion(ref.Child(test_name).SetValue(kPersistenceString),
                     "SetValue (online)");
 
-  // Shut down the realtime database and restart it, to make sure that
-  // persistence persists across database object instances.
-  delete database_;
+  // Re-obtain a Database handle on the same App and go offline to verify
+  // persistence.
+  database_ = firebase::database::Database();
   database_ = ::firebase::database::Database::GetInstance(shared_app_);
 
   // Offline mode.  If persistence works, we should still be able to fetch
   // our value even though we're offline.
-  database_->GoOffline();
-  ref = database_->GetReferenceFromUrl(working_url.c_str());
+  database_.GoOffline();
+  ref = database_.GetReferenceFromUrl(working_url.c_str());
 
   {
     // Check that we can get the offline value via ValueListener.
@@ -587,7 +584,7 @@ TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
   EXPECT_EQ(offline_value.result()->value(), kPersistenceString);
 
   // Go back online.
-  database_->GoOnline();
+  database_.GoOnline();
   SignIn();
 
   // Check the online value via GetValue().
@@ -1171,7 +1168,7 @@ TEST_F(FirebaseDatabaseTest, TestOnDisconnect) {
   ExpectValueListener* listener = new ExpectValueListener(1);
   ref.Child(test_name).Child("SetValueTo1").AddValueListener(listener);
   LogDebug("Disconnecting...");
-  database_->GoOffline();
+  database_.GoOffline();
 
   listener->WaitForExpectedValue();
   ref.Child(test_name).Child("SetValueTo1").RemoveValueListener(listener);
@@ -1183,11 +1180,11 @@ TEST_F(FirebaseDatabaseTest, TestOnDisconnect) {
   listener = nullptr;
 
   LogDebug("Reconnecting...");
-  database_->GoOnline();
+  database_.GoOnline();
 
   /// Check that the DisconnectionHandler actions were performed.
   /// Get a brand new reference to the location to be sure.
-  ref = database_->GetReferenceFromUrl(saved_url.c_str());
+  ref = database_.GetReferenceFromUrl(saved_url.c_str());
   firebase::Future<firebase::database::DataSnapshot> future =
       ref.Child(test_name).GetValue();
   WaitForCompletion(future, "GetValue (OnDisconnectChanges)");
@@ -1232,8 +1229,12 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingDatabase) {
   EXPECT_NE(get_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_NE(delete_future.status(), firebase::kFutureStatusInvalid);
 
-  delete database_;
-  database_ = nullptr;
+  // Releasing only the Database handle while App/Auth handles remain alive
+  // keeps AppState alive. Releasing all handles tears down Database and
+  // invalidates derived references and Futures.
+  database_ = firebase::database::Database();
+  EXPECT_TRUE(ref.is_valid());
+  TerminateAppAndAuth();
 
   EXPECT_FALSE(ref.is_valid());
   EXPECT_FALSE(query.is_valid());
@@ -1241,6 +1242,8 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingDatabase) {
   EXPECT_EQ(set_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_EQ(get_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_EQ(delete_future.status(), firebase::kFutureStatusInvalid);
+
+  InitializeAppAndAuth();
 }
 
 TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
@@ -1268,10 +1271,13 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
   EXPECT_NE(get_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_NE(delete_future.status(), firebase::kFutureStatusInvalid);
 
-  // Deleting App should invalidate all the objects and Futures, same as
-  // deleting Database.
-  delete shared_app_;
-  shared_app_ = nullptr;
+  // Releasing App while Database/Auth handles remain alive keeps AppState
+  // alive; releasing all handles tears down AppState and invalidates objects
+  // and Futures.
+  shared_app_ = firebase::App();
+  EXPECT_TRUE(ref.is_valid());
+  database_ = firebase::database::Database();
+  TerminateAppAndAuth();
 
   EXPECT_FALSE(ref.is_valid());
   EXPECT_FALSE(query.is_valid());
@@ -1280,8 +1286,6 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
   EXPECT_EQ(get_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_EQ(delete_future.status(), firebase::kFutureStatusInvalid);
 
-  // Fully shut down App and Auth so they can be reinitialized.
-  TerminateAppAndAuth();
   // Reinitialize App and Auth.
   InitializeAppAndAuth();
 }
@@ -1300,14 +1304,14 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
   WaitForCompletion(ref.GetValue(), "GetValue 1 [ignored]");
 
   firebase::database::DatabaseReference info =
-      database_->GetReference(".info").Child("connected");
+      database_.GetReference(".info").Child("connected");
   {
     auto connected = info.GetValue();
     WaitForCompletion(connected, "GetValue 2");
     EXPECT_EQ(connected.result()->value(), true);
   }
   LogDebug("Disconnecting...");
-  database_->GoOffline();
+  database_.GoOffline();
   // Pause a moment to give the SDK time to realize we are disconnected.
   ProcessEvents(2000);
   {
@@ -1316,7 +1320,7 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
     EXPECT_EQ(disconnected.result()->value(), false);
   }
   LogDebug("Reconnecting...");
-  database_->GoOnline();
+  database_.GoOnline();
   // Pause a moment to give the SDK time to realize we are reconnected.
   ProcessEvents(5000);
   // Force getting a value so that we reconnect to the database.
@@ -1343,22 +1347,22 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
 }
 
 TEST_F(FirebaseDatabaseTest, TestGetReferenceWillNullArgument) {
-  EXPECT_FALSE(database_->GetReference(nullptr).is_valid());
+  EXPECT_FALSE(database_.GetReference(nullptr).is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestGetReferenceFromUrlWithNullArgument) {
-  EXPECT_FALSE(database_->GetReferenceFromUrl(nullptr).is_valid());
+  EXPECT_FALSE(database_.GetReferenceFromUrl(nullptr).is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestDatabaseReferenceChildWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   EXPECT_FALSE(ref.Child(nullptr).is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestDataSnapshotChildWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   firebase::Future<firebase::database::DataSnapshot> future = ref.GetValue();
   WaitForCompletion(future, "ref.GetValue()");
   const firebase::database::DataSnapshot* snapshot = future.result();
@@ -1367,7 +1371,7 @@ TEST_F(FirebaseDatabaseTest, TestDataSnapshotChildWithNullArgument) {
 
 TEST_F(FirebaseDatabaseTest, TestDataSnapshotHasChildWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   firebase::Future<firebase::database::DataSnapshot> future = ref.GetValue();
   WaitForCompletion(future, "ref.GetValue()");
   const firebase::database::DataSnapshot* snapshot = future.result();
@@ -1376,7 +1380,7 @@ TEST_F(FirebaseDatabaseTest, TestDataSnapshotHasChildWithNullArgument) {
 
 TEST_F(FirebaseDatabaseTest, TestMutableDataChildWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   firebase::Future<firebase::database::DataSnapshot> transaction_future;
   transaction_future = ref.RunTransaction(
       [](firebase::database::MutableData* data, void*) {
@@ -1391,7 +1395,7 @@ TEST_F(FirebaseDatabaseTest, TestMutableDataChildWithNullArgument) {
 
 TEST_F(FirebaseDatabaseTest, TestMutableDataHasChildWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   firebase::Future<firebase::database::DataSnapshot> transaction_future;
   transaction_future = ref.RunTransaction(
       [](firebase::database::MutableData* data, void*) {
@@ -1404,39 +1408,39 @@ TEST_F(FirebaseDatabaseTest, TestMutableDataHasChildWithNullArgument) {
 
 TEST_F(FirebaseDatabaseTest, TestQueryOrderByChildWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   EXPECT_FALSE(ref.OrderByChild(nullptr).is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestQueryStartAtWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   EXPECT_FALSE(
       ref.StartAt(firebase::Variant("SomeString"), nullptr).is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestQueryEndAtWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   EXPECT_FALSE(ref.EndAt(firebase::Variant("SomeString"), nullptr).is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestQueryEqualToWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   EXPECT_FALSE(
       ref.EqualTo(firebase::Variant("SomeString"), nullptr).is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestValueListenerWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   ref.AddValueListener(nullptr);
 }
 
 TEST_F(FirebaseDatabaseTest, TestChildListenerWithNullArgument) {
   firebase::database::DatabaseReference ref =
-      database_->GetReference("Nothing/will/be/uploaded/here");
+      database_.GetReference("Nothing/will/be/uploaded/here");
   ref.AddChildListener(nullptr);
 }
 

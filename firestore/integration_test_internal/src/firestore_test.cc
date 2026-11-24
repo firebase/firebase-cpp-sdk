@@ -67,50 +67,41 @@ using ::testing::HasSubstr;
 
 class FirestoreTest : public FirestoreIntegrationTest {
  protected:
+  const std::string& GetFirestoreDatabaseId(const Firestore& firestore) {
+    return GetFirestoreInternal(firestore)->database_name();
+  }
   const std::string& GetFirestoreDatabaseId(Firestore* firestore) {
-    return GetInternal(firestore)->database_name();
+    return GetFirestoreInternal(firestore)->database_name();
   }
 };
 
 TEST_F(FirestoreTest, GetInstance) {
   // Create App.
-  App* app = this->app();
-  EXPECT_NE(nullptr, app);
+  App app = this->app();
+  EXPECT_TRUE(app.is_valid());
 
   // Get an instance.
   InitResult result;
-  Firestore* instance = Firestore::GetInstance(app, &result);
+  Firestore instance = Firestore::GetInstance(app, &result);
   EXPECT_EQ(kInitResultSuccess, result);
-  EXPECT_NE(nullptr, instance);
-  EXPECT_EQ(app, instance->app());
+  EXPECT_TRUE(instance.is_valid());
+  EXPECT_EQ(app, instance.app());
 
-  Auth* auth = Auth::GetAuth(app);
-
-  // Tests normally create instances outside of those managed by
-  // Firestore::GetInstance. This means that in this case `instance` is a new
-  // one unmanaged by the test framework. If both the implicit instance and this
-  // instance were started they would try to use the same underlying database
-  // and would fail.
-  delete instance;
-
-  // Firestore calls Auth::GetAuth, which implicitly creates an auth instance.
-  // Even though app is cleaned up automatically, the Auth instance is not.
-  // TODO(mcg): Figure out why App's CleanupNotifier doesn't handle Auth.
-  delete auth;
+  Auth auth = Auth::GetAuth(app);
+  EXPECT_TRUE(auth.is_valid());
 }
 
 TEST_F(FirestoreTest, GetInstanceWithDynamicDatabaseId) {
-  App* app = this->app();
-  EXPECT_NE(nullptr, app);
+  App app = this->app();
+  EXPECT_TRUE(app.is_valid());
 
   InitResult init_result;
-  auto instance = std::unique_ptr<Firestore>(
-      Firestore::GetInstance(app, "foo", &init_result));
+  Firestore instance = Firestore::GetInstance(app, "foo", &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
 
-  EXPECT_NE(nullptr, instance);
-  EXPECT_EQ(app, instance->app());
-  EXPECT_EQ(GetFirestoreDatabaseId(instance.get()), "foo");
+  EXPECT_TRUE(instance.is_valid());
+  EXPECT_EQ(app, instance.app());
+  EXPECT_EQ(GetFirestoreDatabaseId(instance), "foo");
 }
 
 // Sanity test for stubs.
@@ -1051,28 +1042,17 @@ TEST_F(FirestoreTest, TestMetadataOnlyChangesAreNotFiredWhenNoOptionsProvided) {
 
 TEST_F(FirestoreTest, TestDocumentReferenceExposesFirestore) {
   Firestore* db = TestFirestore();
-  // EXPECT_EQ(db, db->Document("foo/bar").firestore());
-  // TODO(varconst): use the commented out check above.
-  // Currently, integration tests create their own Firestore instances that
-  // aren't registered in the main cache. Because of that, Firestore objects
-  // will lazily create a new Firestore instance upon the first access. This
-  // doesn't affect production code, only tests.
-  // Also, the logic in `util_main.h` can be modified to make sure that
-  // `TestFirestore()` doesn't create a new Firestore instance if there isn't
-  // one already.
-  EXPECT_NE(nullptr, db->Document("foo/bar").firestore());
+  EXPECT_EQ(*db, db->Document("foo/bar").firestore());
 }
 
 TEST_F(FirestoreTest, TestCollectionReferenceExposesFirestore) {
   Firestore* db = TestFirestore();
-  // EXPECT_EQ(db, db->Collection("foo").firestore());
-  EXPECT_NE(nullptr, db->Collection("foo").firestore());
+  EXPECT_EQ(*db, db->Collection("foo").firestore());
 }
 
 TEST_F(FirestoreTest, TestQueryExposesFirestore) {
   Firestore* db = TestFirestore();
-  // EXPECT_EQ(db, db->Collection("foo").Limit(5).firestore());
-  EXPECT_NE(nullptr, db->Collection("foo").Limit(5).firestore());
+  EXPECT_EQ(*db, db->Collection("foo").Limit(5).firestore());
 }
 
 TEST_F(FirestoreTest, TestDocumentReferenceEquality) {
@@ -1313,34 +1293,32 @@ TEST_F(FirestoreTest, TerminateCanBeCalledMultipleTimes) {
 #endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
 TEST_F(FirestoreTest, CanTerminateFirestoreInstance) {
-  App* app = App::GetInstance();
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
   InitResult init_result1;
-  auto db1 =
-      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result1));
+  Firestore db1 = Firestore::GetInstance(*app_opt, &init_result1);
   ASSERT_EQ(kInitResultSuccess, init_result1);
 
-  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+  EXPECT_THAT(db1.Terminate(), FutureSucceeds());
 
   InitResult init_result2;
-  auto db2 =
-      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result2));
+  Firestore db2 = Firestore::GetInstance(*app_opt, &init_result2);
   ASSERT_EQ(kInitResultSuccess, init_result2);
 
   EXPECT_NE(db1, db2);
 }
 
 TEST_F(FirestoreTest, CanTerminateNamedFirestoreInstance) {
-  App* app = App::GetInstance();
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
   InitResult init_result1;
-  auto db1 = std::unique_ptr<Firestore>(
-      Firestore::GetInstance(app, "foo", &init_result1));
+  Firestore db1 = Firestore::GetInstance(*app_opt, "foo", &init_result1);
   ASSERT_EQ(kInitResultSuccess, init_result1);
 
-  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+  EXPECT_THAT(db1.Terminate(), FutureSucceeds());
 
   InitResult init_result2;
-  auto db2 = std::unique_ptr<Firestore>(
-      Firestore::GetInstance(app, "foo", &init_result2));
+  Firestore db2 = Firestore::GetInstance(*app_opt, "foo", &init_result2);
   ASSERT_EQ(kInitResultSuccess, init_result2);
 
   EXPECT_NE(db1, db2);
@@ -1348,12 +1326,13 @@ TEST_F(FirestoreTest, CanTerminateNamedFirestoreInstance) {
 
 TEST_F(FirestoreTest, MaintainsPersistenceAfterRestarting) {
   Firestore* db = TestFirestore();
-  App* app = db->app();
+  App app = db->app();
   DocumentReference doc = db->Collection("col1").Document("doc1");
   auto path = doc.path();
   Await(doc.Set({{"foo", FieldValue::String("bar")}}));
   DeleteFirestore(db);
   DeleteApp(app);
+  app = App();
 
   DocumentReference doc_2 = TestFirestore()->Document(path);
   auto snap = Await(doc_2.Get());
@@ -1363,45 +1342,42 @@ TEST_F(FirestoreTest, MaintainsPersistenceAfterRestarting) {
 TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
   // Get App and Settings objects to use in the test.
   Firestore* db_template = TestFirestore("restart_firestore_new_instance_test");
-  App* app = db_template->app();
+  App app = db_template->app();
   Settings settings = db_template->settings();
   DeleteFirestore(db_template);
 
   // Verify that GetInstance() returns the same instance when specified the same
   // App.
   InitResult init_result;
-  Firestore* db1 = Firestore::GetInstance(app, &init_result);
+  Firestore db1 = Firestore::GetInstance(app, &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
-  Firestore* db1_copy = Firestore::GetInstance(app, &init_result);
+  Firestore db1_copy = Firestore::GetInstance(app, &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
   EXPECT_EQ(db1, db1_copy);
 
   // Create a document that we can use for verification later.
-  db1->set_settings(settings);
-  DocumentReference doc1 = db1->Collection("abc").Document();
+  db1.set_settings(settings);
+  DocumentReference doc1 = db1.Collection("abc").Document();
   const std::string doc_path = doc1.path();
   EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
 
   // Terminate `db1` so that it will be removed from the instance cache.
-  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+  EXPECT_THAT(db1.Terminate(), FutureSucceeds());
 
   // Verify that GetInstance() returns a new instance since the old instance has
   // been terminated.
-  Firestore* db2 = Firestore::GetInstance(app, &init_result);
+  Firestore db2 = Firestore::GetInstance(app, &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
   EXPECT_NE(db1, db2);
 
   // Verify that the new instance points to the same database by verifying that
   // the document created with the old instance exists in the new instance.
-  DocumentReference doc2 = db2->Document(doc_path);
+  DocumentReference doc2 = db2.Document(doc_path);
   const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
   ASSERT_NE(snapshot2, nullptr);
   EXPECT_TRUE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
-
-  delete db2;
-  delete db1;
 }
 
 TEST_F(FirestoreTest, CanCreateMultipleFirestoreInstances) {
@@ -1410,9 +1386,10 @@ TEST_F(FirestoreTest, CanCreateMultipleFirestoreInstances) {
   RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
-  App* app = App::GetInstance();
-  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
-  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
+  Firestore* db1 = TestFirestoreWithDatabaseId(app_opt->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app_opt->name(), "db2");
   EXPECT_NE(db1, db2);
 
   // Create collections with same name in different databases.
@@ -1442,9 +1419,10 @@ TEST_F(FirestoreTest, CanTerminateMultipleFirestoreInstances) {
   RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
-  App* app = App::GetInstance();
-  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
-  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
+  Firestore* db1 = TestFirestoreWithDatabaseId(app_opt->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app_opt->name(), "db2");
   EXPECT_NE(db1, db2);
 
   // A database can be terminated without affecting other databases.
@@ -1462,27 +1440,28 @@ TEST_F(FirestoreTest, CanReadDocsAfterRestartFirestoreAndCreateNewInstance) {
   // after prod supports multiDB.
   RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
-  App* app = App::GetInstance();
-  auto db1 = std::unique_ptr<Firestore>(Firestore::GetInstance(app, "test-db"));
-  firestore::LocateEmulator(db1.get());
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
+  Firestore db1 = Firestore::GetInstance(*app_opt, "test-db");
+  firestore::LocateEmulator(&db1);
 
   // Create a document that we can use for verification later.
-  DocumentReference doc1 = db1->Collection("abc").Document();
+  DocumentReference doc1 = db1.Collection("abc").Document();
   const std::string doc_path = doc1.path();
   EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
 
   // Terminate `db1` so that it will be removed from the instance cache.
-  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+  EXPECT_THAT(db1.Terminate(), FutureSucceeds());
 
   // Verify that GetInstance() returns a new instance since the old instance has
   // been terminated.
-  auto db2 = std::unique_ptr<Firestore>(Firestore::GetInstance(app, "test-db"));
-  firestore::LocateEmulator(db2.get());
+  Firestore db2 = Firestore::GetInstance(*app_opt, "test-db");
+  firestore::LocateEmulator(&db2);
   EXPECT_NE(db1, db2);
 
   // Verify that the new instance points to the same database by verifying that
   // the document created with the old instance exists in the new instance.
-  DocumentReference doc2 = db2->Document(doc_path);
+  DocumentReference doc2 = db2.Document(doc_path);
   const DocumentSnapshot* snapshot2 = Await(doc2.Get());
   ASSERT_NE(snapshot2, nullptr);
   EXPECT_TRUE(snapshot2->exists());
@@ -1496,9 +1475,10 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
   RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
-  App* app = App::GetInstance();
-  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
-  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
+  Firestore* db1 = TestFirestoreWithDatabaseId(app_opt->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app_opt->name(), "db2");
   EXPECT_NE(db1, db2);
 
   // Create a document in the first Firestore instance.
@@ -1525,9 +1505,10 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
   RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
-  App* app = App::GetInstance();
-  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
-  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
+  Firestore* db1 = TestFirestoreWithDatabaseId(app_opt->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app_opt->name(), "db2");
   EXPECT_NE(db1, db2);
 
   DisableNetwork();
@@ -1556,18 +1537,19 @@ TEST_F(FirestoreTest, ComprehensiveTestOnMultiDbCreationAndTermination) {
   RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create 2 firestore instances.
-  App* app = App::GetInstance();
-  Firestore* db1 = Firestore::GetInstance(app, "db1");
-  Firestore* db2 = Firestore::GetInstance(app, "db2");
-  firestore::LocateEmulator(db1);
-  firestore::LocateEmulator(db2);
+  auto app_opt = App::GetInstance();
+  ASSERT_TRUE(app_opt.has_value());
+  Firestore db1 = Firestore::GetInstance(*app_opt, "db1");
+  Firestore db2 = Firestore::GetInstance(*app_opt, "db2");
+  firestore::LocateEmulator(&db1);
+  firestore::LocateEmulator(&db2);
   EXPECT_NE(db1, db2);
 
   // Each firestore can store and read documents independently.
-  DocumentReference doc1 = db1->Collection("abc").Document();
+  DocumentReference doc1 = db1.Collection("abc").Document();
   EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar1")}}),
               FutureSucceeds());
-  DocumentReference doc2 = db2->Collection("abc").Document();
+  DocumentReference doc2 = db2.Collection("abc").Document();
   EXPECT_THAT(doc2.Set({{"foo", FieldValue::String("bar2")}}),
               FutureSucceeds());
   const DocumentSnapshot* snapshot1 = Await(doc1.Get());
@@ -1579,8 +1561,8 @@ TEST_F(FirestoreTest, ComprehensiveTestOnMultiDbCreationAndTermination) {
   const std::string doc_path = doc1.path();
 
   // Terminate `db1` so that it will be removed from the instance cache.
-  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
-  delete db1;
+  EXPECT_THAT(db1.Terminate(), FutureSucceeds());
+  db1 = Firestore();
 
   // Termination of one firestore instance will not affect other instances.
   const DocumentSnapshot* snapshot2 = Await(doc2.Get());
@@ -1590,20 +1572,17 @@ TEST_F(FirestoreTest, ComprehensiveTestOnMultiDbCreationAndTermination) {
 
   // GetInstance() returns a new instance since the old instance has been
   // terminated.
-  Firestore* db3 = Firestore::GetInstance(app, "db1");
-  firestore::LocateEmulator(db3);
+  Firestore db3 = Firestore::GetInstance(*app_opt, "db1");
+  firestore::LocateEmulator(&db3);
 
   // The new instance points to the same database by verifying that the document
   // created with the old instance exists in the new instance.
-  DocumentReference doc3 = db3->Document(doc_path);
+  DocumentReference doc3 = db3.Document(doc_path);
   const DocumentSnapshot* snapshot3 = Await(doc3.Get());
   ASSERT_NE(snapshot3, nullptr);
   EXPECT_TRUE(snapshot3->exists());
   EXPECT_THAT(snapshot3->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar1")}}));
-
-  delete db2;
-  delete db3;
 }
 
 TEST_F(FirestoreTest, CanStopListeningAfterTerminate) {
@@ -1666,14 +1645,15 @@ TEST_F(FirestoreTest, CanClearPersistenceTestHarnessVerification) {
   // we expect; otherwise, the tests for ClearPersistence() could yield false
   // positives.
   Firestore* db = TestFirestore();
-  App* app = db->app();
-  const std::string app_name = app->name();
+  App app = db->app();
+  const std::string app_name = app.name();
 
   DocumentReference document = db->Collection("a").Document();
   const std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
   DeleteFirestore(db);
   DeleteApp(app);
+  app = App();
 
   Firestore* db_2 = TestFirestore(app_name);
   DocumentReference document_2 = db_2->Document(path);
@@ -1686,8 +1666,8 @@ TEST_F(FirestoreTest, CanClearPersistenceTestHarnessVerification) {
 
 TEST_F(FirestoreTest, CanClearPersistenceAfterRestarting) {
   Firestore* db = TestFirestore();
-  App* app = db->app();
-  const std::string app_name = app->name();
+  App app = db->app();
+  const std::string app_name = app.name();
 
   DocumentReference document = db->Collection("a").Document("b");
   const std::string path = document.path();
@@ -1702,6 +1682,7 @@ TEST_F(FirestoreTest, CanClearPersistenceAfterRestarting) {
   // application being killed and later re-launched by the user.
   DeleteFirestore(db);
   DeleteApp(app);
+  app = App();
 
   // We restart the app with the same name and options to check that the
   // previous instance's persistent storage is actually cleared after the
@@ -1718,8 +1699,8 @@ TEST_F(FirestoreTest, CanClearPersistenceAfterRestarting) {
 
 TEST_F(FirestoreTest, CanClearPersistenceOnANewFirestoreInstance) {
   Firestore* db = TestFirestore();
-  App* app = db->app();
-  const std::string app_name = app->name();
+  App app = db->app();
+  const std::string app_name = app.name();
 
   DocumentReference document = db->Collection("a").Document("b");
   const std::string path = document.path();
@@ -1730,6 +1711,7 @@ TEST_F(FirestoreTest, CanClearPersistenceOnANewFirestoreInstance) {
   // application being killed and later re-launched by the user.
   DeleteFirestore(db);
   DeleteApp(app);
+  app = App();
 
   // We restart the app with the same name and options to check that the
   // previous instance's persistent storage is actually cleared after the
@@ -1759,18 +1741,18 @@ TEST_F(FirestoreTest, ClearPersistenceWhileRunningFails) {
 
 // Note: this test only exists in C++.
 TEST_F(FirestoreTest, DomainObjectsReferToSameFirestoreInstance) {
-  EXPECT_EQ(TestFirestore(), TestFirestore()->Document("foo/bar").firestore());
-  EXPECT_EQ(TestFirestore(), TestFirestore()->Collection("foo").firestore());
+  EXPECT_EQ(*TestFirestore(), TestFirestore()->Document("foo/bar").firestore());
+  EXPECT_EQ(*TestFirestore(), TestFirestore()->Collection("foo").firestore());
 }
 
 TEST_F(FirestoreTest, AuthWorks) {
   SKIP_TEST_ON_QUICK_CHECK;
   // This app instance is managed by the text fixture.
-  App* app = GetApp();
-  EXPECT_NE(app, nullptr);
+  App app = GetApp();
+  EXPECT_TRUE(app.is_valid());
 
   InitResult init_result;
-  auto auth = std::unique_ptr<Auth>(Auth::GetAuth(app, &init_result));
+  Auth auth = Auth::GetAuth(app, &init_result);
 #if defined(__ANDROID__)
   if (init_result != kInitResultSuccess) {
     // On Android, it's possible for the Auth library built at head to be too
@@ -1785,17 +1767,16 @@ TEST_F(FirestoreTest, AuthWorks) {
   ASSERT_EQ(init_result, kInitResultSuccess);
 #endif
 
-  auto db =
-      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result));
+  Firestore db = Firestore::GetInstance(app, &init_result);
   EXPECT_EQ(init_result, kInitResultSuccess);
 
   // Performing a write will initialize Firestore's worker and get the current
   // user and token from Auth.
-  DocumentReference doc = db->Collection(util::CreateAutoId()).Document();
+  DocumentReference doc = db.Collection(util::CreateAutoId()).Document();
   WriteDocument(doc, MapFieldValue{{"foo", FieldValue::Integer(42)}});
 
   // Signing in should trigger an AuthStateListener event.
-  auto signin = auth->SignInAnonymously();
+  auto signin = auth.SignInAnonymously();
   Stopwatch stopwatch;
   Await(signin);
   stopwatch.stop();

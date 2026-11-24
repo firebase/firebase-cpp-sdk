@@ -58,11 +58,11 @@ class FirebaseAnalyticsTest : public FirebaseTest {
   static void SetUpTestSuite();
   static void TearDownTestSuite();
 
-  static firebase::App* shared_app_;
+  static firebase::App shared_app_;
   static bool did_test_setconsent_;
 };
 
-firebase::App* FirebaseAnalyticsTest::shared_app_ = nullptr;
+firebase::App FirebaseAnalyticsTest::shared_app_;
 bool FirebaseAnalyticsTest::did_test_setconsent_ = false;
 
 void FirebaseAnalyticsTest::SetUpTestSuite() {
@@ -73,14 +73,13 @@ void FirebaseAnalyticsTest::SetUpTestSuite() {
   shared_app_ = firebase::App::Create();
 #endif  // defined(__ANDROID__)
 
-  firebase::analytics::Initialize(*shared_app_);
+  firebase::analytics::Initialize(shared_app_);
   did_test_setconsent_ = false;
 }
 
 void FirebaseAnalyticsTest::TearDownTestSuite() {
   firebase::analytics::Terminate();
-  delete shared_app_;
-  shared_app_ = nullptr;
+  shared_app_ = firebase::App();
 
   // The Analytics integration test is too fast for FTL, so pause a few seconds
   // here.
