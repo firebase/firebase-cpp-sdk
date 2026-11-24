@@ -20,6 +20,7 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
