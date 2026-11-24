@@ -199,6 +199,8 @@ bool RetryHelper::last_was_success() const {
 double RetryHelper::NextRandom() {
   if (random_generator_) {
     const double val = random_generator_();
+    // Allow a closed upper bound (<= 1.0) merely to accept buggy standard
+    // library implementations (e.g. LWG 2524) that occasionally return 1.0.
     FIREBASE_DEV_ASSERT(std::isfinite(val) && val >= 0.0 && val <= 1.0);
     return val;
   }
