@@ -16,8 +16,11 @@
 
 #include <atomic>
 #include <chrono>
+#include <cinttypes>
 #include <cmath>
 #include <cstdint>
+#include <functional>
+#include <random>
 #include <utility>
 
 #include "app/src/assert.h"
@@ -33,13 +36,15 @@ std::minstd_rand::result_type SeedRng(const void* instance_addr) {
   const uint64_t time_ticks = static_cast<uint64_t>(
       std::chrono::steady_clock::now().time_since_epoch().count());
   const uint64_t addr_bits =
-      static_cast<uint64_t>(reinterpret_cast<uintptr_t>(instance_addr));
+      static_cast<uint64_t>(reinterpret_cast<std::uintptr_t>(instance_addr));
   const uint64_t count = counter.fetch_add(1, std::memory_order_relaxed) + 1;
-  const uint64_t mixed = time_ticks ^ (addr_bits * 0x9e3779b97f4a7c15ULL) ^
-                         (count * 0xbf58476d1ce4e5b9ULL);
-  const auto seed =
-      static_cast<std::minstd_rand::result_type>(mixed ^ (mixed >> 32));
-  return seed == 0 ? 1 : seed;
+  uint64_t z = time_ticks ^ (addr_bits * 0x9e3779b97f4a7c15ULL) ^
+               (count * 0xbf58476d1ce4e5b9ULL);
+  z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+  z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+  z = z ^ (z >> 31);
+  return static_cast<std::minstd_rand::result_type>(
+      (z % (std::minstd_rand::modulus - 1)) + 1);
 }
 
 }  // namespace
@@ -57,7 +62,7 @@ RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger,
       retry_exponent_(options.retry_exponent),
       jitter_factor_(options.jitter_factor),
       random_generator_(std::move(options.random_generator)),
-      rng_(random_generator_ ? 0 : SeedRng(this)),
+      rng_(random_generator_ ? std::minstd_rand::default_seed : SeedRng(this)),
       safe_this_(this),
       scheduled_retry_id_(0),
       next_task_id_(0),
@@ -81,16 +86,6 @@ RetryHelper::~RetryHelper() {
 }
 
 void RetryHelper::Retry(std::function<void()> callback) {
-  double custom_random_value = 0.0;
-  if (random_generator_) {
-    custom_random_value = random_generator_();
-    // Allow a closed upper bound (<= 1.0) merely to accept buggy standard
-    // library implementations (e.g. LWG 2524) that occasionally return 1.0.
-    FIREBASE_DEV_ASSERT(std::isfinite(custom_random_value) &&
-                        custom_random_value >= 0.0 &&
-                        custom_random_value <= 1.0);
-  }
-
   scheduler::RequestHandle previous_retry;
   {
     ThisRefLock lock(&safe_this_);
@@ -99,8 +94,7 @@ void RetryHelper::Retry(std::function<void()> callback) {
       if (logger_) {
         logger_->LogDebug("[RetryHelper] Cancelling previous scheduled retry");
       }
-      previous_retry = scheduled_retry_;
-      scheduled_retry_ = scheduler::RequestHandle();
+      std::swap(previous_retry, scheduled_retry_);
       scheduled_retry_id_ = 0;
     }
 
@@ -113,26 +107,34 @@ void RetryHelper::Retry(std::function<void()> callback) {
       } else {
         const double new_delay_double =
             static_cast<double>(current_retry_delay_ms_) * retry_exponent_;
-        if (new_delay_double >= static_cast<double>(max_retry_delay_ms_)) {
+        if (!(new_delay_double < static_cast<double>(max_retry_delay_ms_))) {
           current_retry_delay_ms_ = max_retry_delay_ms_;
         } else {
           current_retry_delay_ms_ = static_cast<uint64_t>(new_delay_double);
         }
       }
-      const double random_value =
-          random_generator_ ? custom_random_value : NextRandom();
-      delay_ms = static_cast<uint64_t>(
-          ((1.0 - jitter_factor_) *
-           static_cast<double>(current_retry_delay_ms_)) +
-          (jitter_factor_ * static_cast<double>(current_retry_delay_ms_) *
-           random_value));
+      if (jitter_factor_ == 0.0 || current_retry_delay_ms_ == 0) {
+        delay_ms = current_retry_delay_ms_;
+      } else {
+        const double random_value = NextRandom();
+        const double base_double = static_cast<double>(current_retry_delay_ms_);
+        const double jittered = ((1.0 - jitter_factor_) * base_double) +
+                                (jitter_factor_ * base_double * random_value);
+        if (!(jittered > 0.0)) {
+          delay_ms = 0;
+        } else if (jittered >= base_double) {
+          delay_ms = current_retry_delay_ms_;
+        } else {
+          delay_ms = static_cast<uint64_t>(jittered);
+        }
+      }
     }
 
     last_was_success_ = false;
     last_scheduled_delay_ms_ = delay_ms;
     if (logger_) {
-      logger_->LogDebug("[RetryHelper] Scheduling retry in %llums",
-                        static_cast<unsigned long long>(delay_ms));
+      logger_->LogDebug("[RetryHelper] Scheduling retry in %" PRIu64 "ms",
+                        delay_ms);
     }
 
     const uint64_t task_id = ++next_task_id_;
@@ -186,8 +188,7 @@ void RetryHelper::Cancel() {
       if (logger_) {
         logger_->LogDebug("[RetryHelper] Cancelling existing retry attempt");
       }
-      to_cancel = scheduled_retry_;
-      scheduled_retry_ = scheduler::RequestHandle();
+      std::swap(to_cancel, scheduled_retry_);
       scheduled_retry_id_ = 0;
     } else if (logger_) {
       logger_->LogDebug("[RetryHelper] No existing retry attempt to cancel");
@@ -216,10 +217,21 @@ bool RetryHelper::last_was_success() const {
 }
 
 double RetryHelper::NextRandom() {
-  std::uniform_real_distribution<double> dist(0.0, 1.0);
-  double val = dist(rng_);
+  double val = 0.0;
+  if (random_generator_) {
+    val = random_generator_();
+    // Allow a closed upper bound (<= 1.0) merely to accept buggy standard
+    // library implementations (e.g. LWG 2524) that occasionally return 1.0.
+    FIREBASE_DEV_ASSERT(std::isfinite(val) && val >= 0.0 && val <= 1.0);
+  } else {
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    val = dist(rng_);
+  }
+  if (!std::isfinite(val) || val < 0.0) {
+    return 0.0;
+  }
   if (val >= 1.0) {
-    val = std::nextafter(1.0, 0.0);
+    return std::nextafter(1.0, 0.0);
   }
   return val;
 }

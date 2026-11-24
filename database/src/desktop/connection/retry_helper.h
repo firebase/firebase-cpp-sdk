@@ -33,9 +33,13 @@ namespace connection {
 // Callbacks passed to Retry() execute on the Scheduler worker thread without
 // holding RetryHelper's internal lock and must guard any external lifetimes
 // (e.g., via SafeReference or std::shared_ptr).
+// Lifetime: |scheduler| must be non-null and outlive RetryHelper. |logger| is
+// nullable and, if non-null, must also outlive RetryHelper.
 class RetryHelper {
  public:
   // Returns a uniform random double in [0.0, 1.0).
+  // Runs synchronously under RetryHelper's internal lock, so implementations
+  // must be lightweight and non-reentrant.
   using RandomGenerator = std::function<double()>;
 
   static constexpr uint64_t kDefaultMinRetryDelayAfterFailureMs = 1000;
@@ -49,9 +53,15 @@ class RetryHelper {
     uint64_t max_retry_delay_ms = kDefaultMaxRetryDelayMs;
     double retry_exponent = kDefaultRetryExponent;
     double jitter_factor = kDefaultJitterFactor;
+    // Optional deterministic/custom RNG. Executed synchronously while holding
+    // RetryHelper's internal lock; must be lightweight and non-reentrant.
     RandomGenerator random_generator = nullptr;
   };
 
+  // |scheduler| must be non-null and outlive RetryHelper. |logger| may be
+  // nullptr; if non-null, it must outlive RetryHelper. Invalid |options|
+  // (min > max, non-finite or < 1.0 exponent, or jitter outside [0.0, 1.0])
+  // fail via release-active FIREBASE_ASSERT.
   RetryHelper(scheduler::Scheduler* scheduler, Logger* logger);
   RetryHelper(scheduler::Scheduler* scheduler, Logger* logger, Options options);
   ~RetryHelper();
@@ -68,6 +78,8 @@ class RetryHelper {
   void Retry(std::function<void()> callback);
 
   // Resets backoff state after a successful connection or interrupt.
+  // Note: Matching Android's RetryHelper, this does NOT cancel an
+  // already-scheduled pending retry.
   void SignalSuccess();
 
   // Jumps the current backoff delay directly to |max_retry_delay_ms_|.
@@ -77,6 +89,8 @@ class RetryHelper {
   void SetMaxDelay();
 
   // Cancels any pending scheduled retry and resets the current retry delay.
+  // Note: This does NOT reset |last_was_success_| and does NOT wait for an
+  // already-executing callback to finish.
   void Cancel();
 
  private:
@@ -92,13 +106,13 @@ class RetryHelper {
 
   double NextRandom();
 
-  scheduler::Scheduler* scheduler_;
-  Logger* logger_;
+  scheduler::Scheduler* const scheduler_;
+  Logger* const logger_;
   const uint64_t min_retry_delay_after_failure_ms_;
   const uint64_t max_retry_delay_ms_;
   const double retry_exponent_;
   const double jitter_factor_;
-  RandomGenerator random_generator_;
+  const RandomGenerator random_generator_;
   std::minstd_rand rng_;
 
   mutable ThisRef safe_this_;
