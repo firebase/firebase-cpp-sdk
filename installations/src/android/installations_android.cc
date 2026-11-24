@@ -191,8 +191,10 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
 }
 
 InstallationsInternal::~InstallationsInternal() {
-  JNIEnv* env = app_.GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
+  if (Initialized()) {
+    JNIEnv* env = app_.GetJNIEnv();
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+  }
 }
 
 bool InstallationsInternal::Initialized() const {
