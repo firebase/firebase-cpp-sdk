@@ -130,7 +130,7 @@ void RetryHelper::Retry(std::function<void()> callback) {
         const double base_double = static_cast<double>(current_retry_delay_ms_);
         const double jittered = ((1.0 - jitter_factor_) * base_double) +
                                 (jitter_factor_ * base_double * random_value);
-        if (!(jittered > 0.0)) {
+        if (jittered <= 0.0) {
           delay_ms = 0;
         } else if (jittered >= base_double) {
           delay_ms = current_retry_delay_ms_;
