@@ -102,6 +102,7 @@ class AppCallback {
       : module_name_(module_name),
         created_(created),
         destroyed_(destroyed),
+        enabled_by_default_(enabled_by_default),
         enabled_(enabled_by_default) {
     AddCallback(this);
   }
@@ -147,7 +148,9 @@ class AppCallback {
   struct LibraryRegistration {
     LibraryRegistration(AppCallback* callback, const char* name,
                         const char* version) {
-      callback->SetLibrary(name, version);
+      if (callback != nullptr) {
+        callback->SetLibrary(name, version);
+      }
     }
   };
 
@@ -166,6 +169,11 @@ class AppCallback {
 
   // Enable / disable all callbacks.
   static void SetEnabledAll(bool enable);
+
+  // Restore every callback to its initial enabled_by_default state and
+  // re-enable library registration. Intended for tests that mutate callback
+  // state with SetEnabledByName() or SetEnabledAll().
+  static void ResetAllToDefaults();
 
  private:
   // Called by App when an instance is created.
@@ -194,6 +202,8 @@ class AppCallback {
   Created created_;
   // Called when an app is about to be destroyed.
   Destroyed destroyed_;
+  // Initial value of enabled_ passed to the constructor.
+  const bool enabled_by_default_;
   // Whether this callback is enabled.
   bool enabled_;
   // Library name and version reported in the Firebase user agent, if any.

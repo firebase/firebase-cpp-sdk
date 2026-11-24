@@ -277,7 +277,12 @@ static std::unique_ptr<App> CreateAppForLibraryTest() {
   return std::unique_ptr<App>(App::Create(options));
 }
 
+struct ScopedCallbackReset {
+  ~ScopedCallbackReset() { AppCallback::ResetAllToDefaults(); }
+};
+
 TEST(AppDesktopTest, TestModuleLibraryRegisteredWhenAppCreated) {
+  EXPECT_FALSE(AppCallback::GetEnabledByName(kLibraryTestModule));
   std::unique_ptr<App> app = CreateAppForLibraryTest();
   ASSERT_NE(app, nullptr);
 
@@ -286,21 +291,19 @@ TEST(AppDesktopTest, TestModuleLibraryRegisteredWhenAppCreated) {
 }
 
 TEST(AppDesktopTest, TestModuleLibraryNotRegisteredWhenModuleDisabled) {
+  ScopedCallbackReset reset_callbacks;
   // The Unity SDK links every module and disables the ones that an application
   // does not use. A disabled module must not be reported.
   AppCallback::SetEnabledByName(kLibraryTestModule, false);
-  {
-    std::unique_ptr<App> app = CreateAppForLibraryTest();
-    EXPECT_NE(app, nullptr);
+  std::unique_ptr<App> app = CreateAppForLibraryTest();
+  ASSERT_NE(app, nullptr);
 
-    EXPECT_THAT(std::string(App::GetUserAgent()),
-                ::testing::Not(::testing::HasSubstr(kLibraryTestUserAgent)));
-  }
-  // Restore the module for the other tests.
-  AppCallback::SetEnabledByName(kLibraryTestModule, true);
+  EXPECT_THAT(std::string(App::GetUserAgent()),
+              ::testing::Not(::testing::HasSubstr(kLibraryTestUserAgent)));
 }
 
 TEST(AppDesktopTest, TestModuleLibraryRegisteredWhenModuleReenabled) {
+  ScopedCallbackReset reset_callbacks;
   // This is the sequence the Unity SDK uses before it creates an App: disable
   // every module, then enable the ones that are in use.
   AppCallback::SetEnabledAll(false);

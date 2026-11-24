@@ -255,6 +255,15 @@ void AppCallback::SetEnabledAll(bool enable) {
   }
 }
 
+void AppCallback::ResetAllToDefaults() {
+  MutexLock lock(*callbacks_mutex_);
+  if (!callbacks_) return;
+  for (auto& entry : *callbacks_) {
+    entry.second->enabled_ = entry.second->enabled_by_default_;
+    entry.second->library_registration_enabled_ = true;
+  }
+}
+
 void AppCallback::AddCallback(AppCallback* callback) {
   if (!callbacks_) {
     callbacks_ = new std::map<std::string, AppCallback*>();
