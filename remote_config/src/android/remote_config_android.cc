@@ -736,10 +736,8 @@ RemoteConfigInternal::~RemoteConfigInternal() {
   // ConfigUpdateListenerRegistration instances to no longer point to the
   // corresponding internal objects.
   cleanup_notifier().CleanupAll();
-  if (Initialized()) {
-    JNIEnv* env = app_.GetJNIEnv();
-    util::CancelCallbacks(env, jni_task_id_.c_str());
-  }
+  JNIEnv* env = app_.GetJNIEnv();
+  util::CancelCallbacks(env, jni_task_id_.c_str());
 }
 
 bool RemoteConfigInternal::Initialized() const {
