@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/desktop/config_data.h"
@@ -31,6 +32,8 @@ class RemoteConfigFileManager {
  public:
   RemoteConfigFileManager(const std::string& file_path,
                           const firebase::App& app);
+  RemoteConfigFileManager(const std::string& file_path,
+                          const ::firebase::internal::AppState& app_state);
 
   // Load `configs` from file. Will return `true` if success.
   bool Load(LayeredConfigs* configs) const;
@@ -39,6 +42,8 @@ class RemoteConfigFileManager {
   bool Save(const LayeredConfigs& configs) const;
 
  private:
+  void Init(const std::string& filename, const char* package_name,
+            const char* app_name);
   // Path to file with data. On Windows, use a UTF-16 path string.
 #if FIREBASE_PLATFORM_WINDOWS
   std::wstring file_path_;

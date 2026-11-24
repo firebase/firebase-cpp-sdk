@@ -27,9 +27,6 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       // Nothing to do.
       return kInitResultSuccess;
     },
-    {
-        // Nothing to do.
-    },
     false);
 
 namespace firebase {

@@ -41,7 +41,13 @@ static jobject g_analytics_class_instance = nullptr;
 
 // Used to retrieve the JNI environment in order to call methods on the
 // Android Analytics class.
-static const ::firebase::App* g_app = nullptr;
+static bool g_initialized = false;
+static JavaVM* g_java_vm = nullptr;
+
+static JNIEnv* GetJNIEnv() {
+  return g_java_vm ? util::GetThreadsafeJNIEnv(g_java_vm)
+                   : util::GetJNIEnvFromApp();
+}
 
 // Used to setup the cache of Analytics class method IDs to reduce time spent
 // looking up methods by string.
@@ -114,7 +120,7 @@ METHOD_LOOKUP_DEFINITION(
 
 // Initialize the Analytics API.
 void Initialize(const ::firebase::App& app) {
-  if (g_app) {
+  if (g_initialized) {
     LogWarning("%s API already initialized", internal::kAnalyticsModuleName);
     return;
   }
@@ -144,7 +150,8 @@ void Initialize(const ::firebase::App& app) {
   }
 
   internal::FutureData::Create();
-  g_app = &app;
+  g_java_vm = app.java_vm();
+  g_initialized = true;
   // Get / create the Analytics singleton.
   jobject analytics_class_instance_local = env->CallStaticObjectMethod(
       analytics::GetClass(), analytics::GetMethodId(analytics::kGetInstance),
@@ -156,28 +163,29 @@ void Initialize(const ::firebase::App& app) {
   FIREBASE_ASSERT(g_analytics_class_instance);
 
   env->DeleteLocalRef(analytics_class_instance_local);
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnAppDestroy(app);
   LogInfo("%s API Initialized", internal::kAnalyticsModuleName);
 }
 
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() { return g_app != nullptr; }
+bool IsInitialized() { return g_initialized; }
 
 }  // namespace internal
 
 // Clean up the API.
 void Terminate() {
-  if (!g_app) {
+  if (!g_initialized) {
     LogWarning("%s API already shut down", internal::kAnalyticsModuleName);
     return;
   }
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   util::CancelCallbacks(env, internal::kAnalyticsModuleName);
-  internal::UnregisterTerminateOnDefaultAppDestroy();
+  internal::UnregisterTerminateOnAppDestroy();
   internal::FutureData::Destroy();
-  g_app = nullptr;
+  g_initialized = false;
+  g_java_vm = nullptr;
   env->DeleteGlobalRef(g_analytics_class_instance);
   g_analytics_class_instance = nullptr;
   analytics_consent_status::ReleaseClass(env);
@@ -189,7 +197,7 @@ void Terminate() {
 // Enable / disable analytics and reporting.
 void SetAnalyticsCollectionEnabled(bool enabled) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jboolean collection_enabled = enabled;
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kSetEnabled),
@@ -199,7 +207,7 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
 
   jobject consent_map =
       env->NewObject(util::hash_map::GetClass(),
@@ -465,7 +473,7 @@ jobject MapToBundle(JNIEnv* env, const std::map<Variant, Variant>& map) {
 void LogEvent(const char* name, const char* parameter_name,
               const char* parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   LogEvent(env, name, [env, parameter_name, parameter_value](jobject bundle) {
     AddToBundle(env, bundle, parameter_name, parameter_value);
   });
@@ -475,7 +483,7 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const double parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   LogEvent(env, name, [env, parameter_name, parameter_value](jobject bundle) {
     AddToBundle(env, bundle, parameter_name, parameter_value);
   });
@@ -485,7 +493,7 @@ void LogEvent(const char* name, const char* parameter_name,
 void LogEvent(const char* name, const char* parameter_name,
               const int64_t parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   LogEvent(env, name, [env, parameter_name, parameter_value](jobject bundle) {
     AddToBundle(env, bundle, parameter_name, parameter_value);
   });
@@ -530,7 +538,7 @@ Future<void> LogAppleTransactionLastResult() {
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   LogEvent(env, name, [env, parameters, number_of_parameters](jobject bundle) {
     for (size_t i = 0; i < number_of_parameters; ++i) {
       const Parameter& parameter = parameters[i];
@@ -554,7 +562,7 @@ void LogEvent(const char* name, const std::vector<Parameter>& parameters) {
 void SetDefaultEventParameters(const Parameter* parameters,
                                size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
 
   if (!parameters || number_of_parameters == 0) {
     env->CallVoidMethod(
@@ -642,7 +650,7 @@ void InitiateOnDeviceConversionMeasurementWithHashedPhoneNumber(
 // Set a user property to the given value.
 void SetUserProperty(const char* name, const char* value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jstring property_name = env->NewStringUTF(name);
   jstring property_value = value ? env->NewStringUTF(value) : nullptr;
   env->CallVoidMethod(g_analytics_class_instance,
@@ -660,7 +668,7 @@ void SetUserProperty(const char* name, const char* value) {
 // Google's Privacy Policy</a>
 void SetUserId(const char* user_id) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jstring user_id_value = user_id ? env->NewStringUTF(user_id) : nullptr;
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kSetUserId),
@@ -674,7 +682,7 @@ void SetUserId(const char* user_id) {
 // Sets the duration of inactivity that terminates the current session.
 void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(
       g_analytics_class_instance,
       analytics::GetMethodId(analytics::kSetSessionTimeoutDuration),
@@ -684,7 +692,7 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
 
 void ResetAnalyticsData() {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(g_analytics_class_instance,
                       analytics::GetMethodId(analytics::kResetAnalyticsData));
   util::CheckAndClearJniExceptions(env);
@@ -705,7 +713,7 @@ void SetDesktopDebugMode(bool) {}
 Future<std::string> GetAnalyticsInstanceId() {
   FIREBASE_ASSERT_RETURN(GetAnalyticsInstanceIdLastResult(),
                          internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   auto* api = internal::FutureData::Get()->api();
   const auto safe_future_handle =
       api->SafeAlloc<std::string>(internal::kAnalyticsFnGetAnalyticsInstanceId);
@@ -761,7 +769,7 @@ Future<int64_t> GetSessionId() {
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle =
       api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject task =
       env->CallObjectMethod(g_analytics_class_instance,
                             analytics::GetMethodId(analytics::kGetSessionId));

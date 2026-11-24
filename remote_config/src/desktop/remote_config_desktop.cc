@@ -67,35 +67,37 @@ struct RCDataHandle {
 };
 
 RemoteConfigInternal::RemoteConfigInternal(
-    const firebase::App& app, const RemoteConfigFileManager& file_manager)
-    : app_(app),
+    ::firebase::internal::AppState& app_state,
+    const RemoteConfigFileManager& file_manager)
+    : app_state_(app_state),
       file_manager_(file_manager),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
-      rest_(app.options(), configs_, kDefaultNamespace),
+      rest_(app_state.options(), configs_, kDefaultNamespace),
       initialized_(false) {
   InternalInit();
 }
 
-RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
-    : app_(app),
-      file_manager_(kFilePathSuffix, app),
+RemoteConfigInternal::RemoteConfigInternal(
+    ::firebase::internal::AppState& app_state)
+    : app_state_(app_state),
+      file_manager_(kFilePathSuffix, app_state),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
-      rest_(app.options(), configs_, kDefaultNamespace),
+      rest_(app_state.options(), configs_, kDefaultNamespace),
       initialized_(false) {
   InternalInit();
 }
 
 RemoteConfigInternal::~RemoteConfigInternal() {
+  safe_this_.ClearReference();
   save_channel_.Close();
   if (save_thread_.joinable()) {
     save_thread_.join();
   }
-
-  safe_this_.ClearReference();
+  cleanup_.CleanupAll();
 }
 
 void RemoteConfigInternal::InternalInit() {
@@ -687,7 +689,7 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
 
 void RemoteConfigInternal::FetchInternal() {
   // Fetch fresh config from server.
-  rest_.Fetch(app_, config_settings_.fetch_timeout_in_milliseconds);
+  rest_.Fetch(config_settings_.fetch_timeout_in_milliseconds);
   // Need to copy everything to `configs_.fetched`.
   configs_.fetched = rest_.fetched();
 

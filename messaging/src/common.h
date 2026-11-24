@@ -14,6 +14,7 @@
 #ifndef FIREBASE_MESSAGING_SRC_COMMON_H_
 #define FIREBASE_MESSAGING_SRC_COMMON_H_
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "messaging/src/include/firebase/messaging.h"
 
@@ -22,12 +23,12 @@ namespace messaging {
 
 namespace internal {
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy();
+// Registers a cleanup task on the given App's AppState to terminate messaging
+// when the AppState is destroyed.
+void RegisterTerminateOnAppDestroy(const App& app);
 
-// Unregisters the cleanup task for this module if auto-initialization is
-// disabled.
-void UnregisterTerminateOnDefaultAppDestroy();
+// Unregisters the cleanup task for this module.
+void UnregisterTerminateOnAppDestroy();
 
 // Returns whether the module is initialized, implemented for each platform.
 bool IsInitialized();

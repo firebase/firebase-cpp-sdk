@@ -27,6 +27,7 @@
 #endif  // defined(__APPLE__)
 
 // [START installations_includes]
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/log.h"
@@ -59,12 +60,11 @@ class InstallationsTest : public ::testing::Test {
     reporter_.reset();
 
     firebase_app_ = testing::CreateApp();
-    EXPECT_NE(firebase_app_, nullptr) << "Init app failed";
+    EXPECT_TRUE(firebase_app_.is_valid()) << "Init app failed";
   }
 
   void TearDown() override {
-    delete firebase_app_;
-    firebase_app_ = nullptr;
+    firebase_app_ = App();
 
     EXPECT_THAT(reporter_.getFakeReports(),
                 ::testing::Eq(reporter_.getExpectations()));
@@ -96,7 +96,7 @@ class InstallationsTest : public ::testing::Test {
     EXPECT_THAT(future.status(), Eq(kFutureStatusComplete));
   }
 
-  App* firebase_app_ = nullptr;
+  App firebase_app_;
   firebase::testing::cppsdk::Reporter reporter_;
   // Default time to wait for future status changes.
   static const int kFutureTimeoutMilliseconds = 1000;
@@ -104,44 +104,66 @@ class InstallationsTest : public ::testing::Test {
 
 // Check SetUp and TearDown working well.
 TEST_F(InstallationsTest, InitializeAndTerminate) {
-  auto* installations = Installations::GetInstance(firebase_app_);
-  EXPECT_THAT(installations, NotNull());
-  delete installations;
+  auto installations = Installations::GetInstance(firebase_app_);
+  EXPECT_TRUE(installations.is_valid());
+  EXPECT_EQ(installations.app(), firebase_app_);
 }
 
 TEST_F(InstallationsTest, InitializeTwice) {
-  auto* installations1 = Installations::GetInstance(firebase_app_);
-  EXPECT_THAT(installations1, NotNull());
+  auto installations1 = Installations::GetInstance(firebase_app_);
+  EXPECT_TRUE(installations1.is_valid());
 
-  auto* installations2 = Installations::GetInstance(firebase_app_);
-  EXPECT_THAT(installations2, NotNull());
+  auto installations2 = Installations::GetInstance(firebase_app_);
+  EXPECT_TRUE(installations2.is_valid());
 
   EXPECT_EQ(installations1, installations2);
-  delete installations1;
 }
 
 TEST_F(InstallationsTest, GetId) {
-  auto* installations = Installations::GetInstance(firebase_app_);
+  auto installations = Installations::GetInstance(firebase_app_);
   const std::string expected_value("FakeId");
-  CheckSuccessWithValue(installations->GetId(), expected_value);
-  CheckSuccessWithValue(installations->GetIdLastResult(), expected_value);
-  delete installations;
+  CheckSuccessWithValue(installations.GetId(), expected_value);
+  CheckSuccessWithValue(installations.GetIdLastResult(), expected_value);
 }
 
 TEST_F(InstallationsTest, GetToken) {
-  auto* installations = Installations::GetInstance(firebase_app_);
+  auto installations = Installations::GetInstance(firebase_app_);
   const std::string expected_value("FakeToken");
-  CheckSuccessWithValue(installations->GetToken(false), expected_value);
-  CheckSuccessWithValue(installations->GetTokenLastResult(), expected_value);
-  delete installations;
+  CheckSuccessWithValue(installations.GetToken(false), expected_value);
+  CheckSuccessWithValue(installations.GetTokenLastResult(), expected_value);
 }
 
 TEST_F(InstallationsTest, GetTokenForceRefresh) {
-  auto* installations = Installations::GetInstance(firebase_app_);
+  auto installations = Installations::GetInstance(firebase_app_);
   const std::string expected_value("FakeTokenForceRefresh");
-  CheckSuccessWithValue(installations->GetToken(true), expected_value);
-  CheckSuccessWithValue(installations->GetTokenLastResult(), expected_value);
-  delete installations;
+  CheckSuccessWithValue(installations.GetToken(true), expected_value);
+  CheckSuccessWithValue(installations.GetTokenLastResult(), expected_value);
+}
+
+TEST_F(InstallationsTest, HandleKeepsAppStateAliveAndCleansUp) {
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
+  {
+    Installations installations;
+    {
+      App app = testing::CreateApp(testing::MockAppOptions(),
+                                   "installations_keepalive");
+      weak_state = ::firebase::internal::AppState::FromApp(app);
+      installations = Installations::GetInstance(app);
+      ASSERT_TRUE(installations.is_valid());
+    }
+    EXPECT_FALSE(weak_state.expired());
+    EXPECT_TRUE(installations.app().is_valid());
+    CheckSuccessWithValue(installations.GetId(), std::string("FakeId"));
+  }
+  EXPECT_TRUE(weak_state.expired());
+}
+
+TEST_F(InstallationsTest, StaticDurationInstallationsSurvivesExit) {
+  static Installations static_installations;
+  App app = testing::CreateApp(testing::MockAppOptions(),
+                               "installations_static_exit");
+  static_installations = Installations::GetInstance(app);
+  ASSERT_TRUE(static_installations.is_valid());
 }
 
 }  // namespace installations

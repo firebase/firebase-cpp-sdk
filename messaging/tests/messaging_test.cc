@@ -92,15 +92,14 @@ class MessagingTest : public ::testing::Test {
 
     firebase_app_ = testing::CreateApp();
     InitializeMessagingTest();
-    EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+    EXPECT_EQ(Initialize(firebase_app_, &listener_), kInitResultSuccess);
   }
 
   void TearDown() override {
     firebase::testing::cppsdk::ConfigReset();
     Terminate();
     TerminateMessagingTest();
-    delete firebase_app_;
-    firebase_app_ = nullptr;
+    firebase_app_ = App();
     EXPECT_THAT(reporter_.getFakeReports(),
                 ::testing::Eq(reporter_.getExpectations()));
   }
@@ -116,7 +115,7 @@ class MessagingTest : public ::testing::Test {
     reporter_.addExpectation(fake, "", firebase::testing::cppsdk::kIos, args);
   }
 
-  App* firebase_app_ = nullptr;
+  App firebase_app_;
   MessagingTestListener listener_;
   firebase::testing::cppsdk::Reporter reporter_;
 };
@@ -146,7 +145,7 @@ void MessagingTestListener::OnUnregistrationReceived(
 // Tests only run on Android for now.
 TEST_F(MessagingTest, TestInitializeTwice) {
   MessagingTestListener listener;
-  EXPECT_EQ(Initialize(*firebase_app_, &listener), kInitResultSuccess);
+  EXPECT_EQ(Initialize(firebase_app_, &listener), kInitResultSuccess);
 }
 
 // The order of these matter because of the global flag
@@ -214,7 +213,7 @@ TEST_F(MessagingTest, TestTokenReceived) {
 TEST_F(MessagingTest, TestTokenReceivedBeforeInitialize) {
   Terminate();
   OnTokenReceived("my_token");
-  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+  EXPECT_EQ(Initialize(firebase_app_, &listener_), kInitResultSuccess);
   SleepMessagingTest(1);
   EXPECT_THAT(listener_.GetToken(), StrEq("my_token"));
 }
@@ -223,7 +222,7 @@ TEST_F(MessagingTest, TestTwoTokensReceivedBeforeInitialize) {
   Terminate();
   OnTokenReceived("my_token1");
   OnTokenReceived("my_token2");
-  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+  EXPECT_EQ(Initialize(firebase_app_, &listener_), kInitResultSuccess);
   SleepMessagingTest(1);
   EXPECT_THAT(listener_.GetToken(), StrEq("my_token2"));
 }
@@ -246,7 +245,7 @@ TEST_F(MessagingTest, TestTwoIdenticalTokensReceived) {
 
 TEST_F(MessagingTest, TestTokenReceivedNoListener) {
   Terminate();
-  EXPECT_EQ(Initialize(*firebase_app_, nullptr), kInitResultSuccess);
+  EXPECT_EQ(Initialize(firebase_app_, nullptr), kInitResultSuccess);
   OnTokenReceived("my_token");
   SleepMessagingTest(1);
   SetListener(&listener_);
@@ -454,7 +453,7 @@ TEST_F(MessagingTest, TestNullUnregistrationReceived) {
 TEST_F(MessagingTest, TestRegistrationReceivedBeforeInitialize) {
   Terminate();
   OnRegistrationReceived("my_installation_id");
-  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+  EXPECT_EQ(Initialize(firebase_app_, &listener_), kInitResultSuccess);
   SleepMessagingTest(1);
   EXPECT_THAT(listener_.GetRegistrationId(), StrEq("my_installation_id"));
 }
@@ -463,7 +462,7 @@ TEST_F(MessagingTest, TestTwoRegistrationsReceivedBeforeInitialize) {
   Terminate();
   OnRegistrationReceived("my_installation_id1");
   OnRegistrationReceived("my_installation_id2");
-  EXPECT_EQ(Initialize(*firebase_app_, &listener_), kInitResultSuccess);
+  EXPECT_EQ(Initialize(firebase_app_, &listener_), kInitResultSuccess);
   SleepMessagingTest(1);
   EXPECT_THAT(listener_.GetRegistrationId(), StrEq("my_installation_id2"));
 }

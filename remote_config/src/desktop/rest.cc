@@ -65,11 +65,10 @@ RemoteConfigREST::~RemoteConfigREST() {
   rest::util::Terminate();
 }
 
-void RemoteConfigREST::Fetch(const App& app,
-                             uint64_t fetch_timeout_in_milliseconds) {
-  TryGetInstallationsAndToken(app);
+void RemoteConfigREST::Fetch(uint64_t fetch_timeout_in_milliseconds) {
+  TryGetInstallationsAndToken();
 
-  SetupRestRequest(app, fetch_timeout_in_milliseconds);
+  SetupRestRequest(fetch_timeout_in_milliseconds);
   firebase::rest::CreateTransport()->Perform(rc_request_, &rc_response_);
   ParseRestResponse();
 }
@@ -97,7 +96,7 @@ static std::string GenerateFakeId() {
   return "";  // Error encoding.
 }
 
-void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
+void RemoteConfigREST::TryGetInstallationsAndToken() {
   // Instance ID no longer supported.
   // TODO: use Installations instead.
   app_instance_id_ = GenerateFakeId();
@@ -105,7 +104,7 @@ void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
 }
 
 void RemoteConfigREST::SetupRestRequest(
-    const App& app, uint64_t fetch_timeout_in_milliseconds) {
+    uint64_t fetch_timeout_in_milliseconds) {
   std::string server_url(kServerURL);
   server_url.append("/");
   server_url.append(app_project_id_);

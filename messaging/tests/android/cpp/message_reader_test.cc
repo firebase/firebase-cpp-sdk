@@ -29,7 +29,7 @@
 // we need to register a stub module initializer referenced by messaging.h
 // to satisfy the linker.
 FIREBASE_APP_REGISTER_CALLBACKS(
-    messaging, { return kInitResultSuccess; }, {}, false);
+    messaging, { return kInitResultSuccess; }, false);
 
 namespace firebase {
 namespace messaging {

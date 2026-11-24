@@ -16,88 +16,108 @@
 
 #include "firebase/ump/consent_info.h"
 
-#include <cassert>
+#include <memory>
+#include <utility>
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 #include "firebase/app.h"
 #include "firebase/internal/platform.h"
 #include "firebase/ump.h"
-#include "ump//src/common/consent_info_internal.h"
+#include "ump/src/common/consent_info_internal.h"
 
 namespace firebase {
 namespace ump {
 
-ConsentInfo* ConsentInfo::s_instance_ = nullptr;
+namespace {
 
-ConsentInfo* ConsentInfo::GetInstance(const ::firebase::App& app,
-                                      ::firebase::InitResult* init_result_out) {
-  if (s_instance_) {
-    if (init_result_out) *init_result_out = kInitResultSuccess;
-    return s_instance_;
+struct ConsentInfoRegistry {
+  Mutex mutex;
+  std::weak_ptr<internal::ConsentInfoInternal> instance;
+};
+
+ConsentInfoRegistry& GetRegistry() {
+  static ::firebase::internal::NoDestructor<ConsentInfoRegistry> registry;
+  return *registry;
+}
+
+}  // namespace
+
+ConsentInfo ConsentInfo::GetInstance(const ::firebase::App& app,
+                                     ::firebase::InitResult* init_result_out) {
+  {
+    auto& registry = GetRegistry();
+    MutexLock lock(registry.mutex);
+    if (auto existing = registry.instance.lock()) {
+      if (init_result_out) *init_result_out = kInitResultSuccess;
+      return ConsentInfo(std::move(existing));
+    }
   }
 #if FIREBASE_PLATFORM_ANDROID
+  if (!app.is_valid()) {
+    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
+    return {};
+  }
   return GetInstance(app.GetJNIEnv(), app.activity(), init_result_out);
 #else   // !FIREBASE_PLATFORM_ANDROID
+  (void)app;
   return GetInstance(init_result_out);
 #endif  // FIREBASE_PLATFORM_ANDROID
 }
 
 #if FIREBASE_PLATFORM_ANDROID
-ConsentInfo* ConsentInfo::GetInstance() { return s_instance_; }
+ConsentInfo ConsentInfo::GetInstance() {
+  auto& registry = GetRegistry();
+  MutexLock lock(registry.mutex);
+  return ConsentInfo(registry.instance.lock());
+}
 
-ConsentInfo* ConsentInfo::GetInstance(JNIEnv* jni_env, jobject activity,
-                                      ::firebase::InitResult* init_result_out) {
-#else  // !FIREBASE_PLATFORM_ANDROID
-ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
-#endif
-  if (s_instance_) {
+ConsentInfo ConsentInfo::GetInstance(JNIEnv* jni_env, jobject activity,
+                                     ::firebase::InitResult* init_result_out) {
+  auto& registry = GetRegistry();
+  MutexLock lock(registry.mutex);
+  if (auto existing = registry.instance.lock()) {
     if (init_result_out) *init_result_out = kInitResultSuccess;
-    return s_instance_;
+    return ConsentInfo(std::move(existing));
   }
 
-  ConsentInfo* consent_info = new ConsentInfo();
-#if FIREBASE_PLATFORM_ANDROID
-  InitResult result = consent_info->Initialize(jni_env, activity);
-#else
-  InitResult result = consent_info->Initialize();
-#endif
-  if (init_result_out) *init_result_out = result;
-  if (result != kInitResultSuccess) {
-    delete consent_info;
-    return nullptr;
+  std::shared_ptr<internal::ConsentInfoInternal> created(
+      internal::ConsentInfoInternal::CreateInstance(jni_env, activity));
+  if (!created) {
+    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
+    return {};
   }
-  return consent_info;
+  registry.instance = created;
+  if (init_result_out) *init_result_out = kInitResultSuccess;
+  return ConsentInfo(std::move(created));
 }
-
-ConsentInfo::ConsentInfo() {
-  internal_ = nullptr;
-#if FIREBASE_PLATFORM_ANDROID
-  java_vm_ = nullptr;
-#endif
-  s_instance_ = this;
-}
-
-ConsentInfo::~ConsentInfo() {
-  if (internal_) {
-    delete internal_;
-    internal_ = nullptr;
+#else   // !FIREBASE_PLATFORM_ANDROID
+ConsentInfo ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
+  auto& registry = GetRegistry();
+  MutexLock lock(registry.mutex);
+  if (auto existing = registry.instance.lock()) {
+    if (init_result_out) *init_result_out = kInitResultSuccess;
+    return ConsentInfo(std::move(existing));
   }
-  s_instance_ = nullptr;
-}
 
-#if FIREBASE_PLATFORM_ANDROID
-InitResult ConsentInfo::Initialize(JNIEnv* jni_env, jobject activity) {
-  FIREBASE_ASSERT(!internal_);
-  internal_ = internal::ConsentInfoInternal::CreateInstance(jni_env, activity);
-  return internal_ ? kInitResultSuccess : kInitResultFailedMissingDependency;
+  std::shared_ptr<internal::ConsentInfoInternal> created(
+      internal::ConsentInfoInternal::CreateInstance());
+  if (!created) {
+    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
+    return {};
+  }
+  registry.instance = created;
+  if (init_result_out) *init_result_out = kInitResultSuccess;
+  return ConsentInfo(std::move(created));
 }
-#else
-InitResult ConsentInfo::Initialize() {
-  FIREBASE_ASSERT(!internal_);
-  internal_ = internal::ConsentInfoInternal::CreateInstance();
-  return kInitResultSuccess;
-}
-#endif
+#endif  // FIREBASE_PLATFORM_ANDROID
+
+ConsentInfo::ConsentInfo(
+    std::shared_ptr<internal::ConsentInfoInternal> internal)
+    : internal_(std::move(internal)) {}
+
+ConsentInfo::~ConsentInfo() = default;
 
 // Below this, everything is a passthrough to ConsentInfoInternal. If there is
 // no internal_ pointer (e.g. it's been cleaned up), return default values and

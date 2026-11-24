@@ -29,10 +29,11 @@ namespace internal {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseInstallations);
 
-InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app),
-      future_impl_(kInstallationsFnCount) {
-  FIRApp *platform_app = app_.GetPlatformApp();
+InstallationsInternal::InstallationsInternal(
+    ::firebase::internal::AppState& app_state)
+    : app_state_(app_state), future_impl_(kInstallationsFnCount) {
+  App app = app_state_.MakeAppHandle();
+  FIRApp *platform_app = app.GetPlatformApp();
   impl_.reset(new FIRInstallationsPointer([FIRInstallations installationsWithApp:platform_app]));
 }
 
@@ -48,10 +49,6 @@ void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
 
 bool InstallationsInternal::Initialized() const{
   return true;
-}
-
-void InstallationsInternal::Cleanup() {
-
 }
 
 Future<std::string> InstallationsInternal::GetId() {

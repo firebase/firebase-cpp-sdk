@@ -37,7 +37,7 @@ class RemoteConfigDesktopTest : public ::testing::Test {
 
     FutureData::Create();
     file_manager_ =
-        new RemoteConfigFileManager("remote_config_data_test", *app_);
+        new RemoteConfigFileManager("remote_config_data_test", app_);
     SetUpInstance();
   }
 
@@ -46,7 +46,7 @@ class RemoteConfigDesktopTest : public ::testing::Test {
     delete configs_;
     delete file_manager_;
     FutureData::Destroy();
-    delete app_;
+    app_ = firebase::App();
   }
 
   // Remove previous instance and create the new one. New instance will load
@@ -60,7 +60,8 @@ class RemoteConfigDesktopTest : public ::testing::Test {
     delete instance_;
     SetupContent();
     EXPECT_TRUE(file_manager_->Save(*configs_));
-    instance_ = new RemoteConfigInternal(*app_, *file_manager_);
+    instance_ = new RemoteConfigInternal(
+        *::firebase::internal::AppState::FromApp(app_), *file_manager_);
   }
 
   // Remove previous content and create the new one.
@@ -95,7 +96,7 @@ class RemoteConfigDesktopTest : public ::testing::Test {
     configs_ = new LayeredConfigs(fetched, active, defaults, metadata);
   }
 
-  firebase::App* app_ = nullptr;
+  firebase::App app_;
 
   RemoteConfigInternal* instance_ = nullptr;
   LayeredConfigs* configs_ = nullptr;
@@ -105,7 +106,8 @@ class RemoteConfigDesktopTest : public ::testing::Test {
 // Can't load `configs_` from file without permissions.
 TEST_F(RemoteConfigDesktopTest, FailedLoadFromFile) {
   RemoteConfigInternal instance(
-      *app_, RemoteConfigFileManager("not_found_file", *app_));
+      *::firebase::internal::AppState::FromApp(app_),
+      RemoteConfigFileManager("not_found_file", app_));
   EXPECT_EQ(LayeredConfigs(), instance.configs_);
 }
 
@@ -588,12 +590,39 @@ TEST_F(RemoteConfigDesktopTest, SetCustomSignalsPersistence) {
 
   // Create a new instance with the same file manager and verify it loads the
   // signals
-  RemoteConfigInternal new_instance(*app_, *file_manager_);
+  RemoteConfigInternal new_instance(
+      *::firebase::internal::AppState::FromApp(app_), *file_manager_);
   const MetaCustomSignalsMap& loaded_signals =
       new_instance.configs_.metadata.custom_signals();
   EXPECT_EQ(loaded_signals.size(), 2);
   EXPECT_EQ(loaded_signals.at("persisted_key"), Variant("persisted_val"));
   EXPECT_EQ(loaded_signals.at("persisted_num"), Variant(999));
+}
+
+TEST(RemoteConfigLifecycleTest, HandleKeepsAppStateAliveAndCleansUp) {
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
+  {
+    RemoteConfig rc;
+    {
+      App app = testing::CreateApp(testing::MockAppOptions(), "rc_keepalive");
+      weak_state = ::firebase::internal::AppState::FromApp(app);
+      rc = RemoteConfig::GetInstance(app);
+      ASSERT_TRUE(rc.is_valid());
+      EXPECT_EQ(rc.app(), app);
+      EXPECT_EQ(rc, RemoteConfig::GetInstance(app));
+    }
+    EXPECT_FALSE(weak_state.expired());
+    EXPECT_TRUE(rc.app().is_valid());
+    EXPECT_STREQ(rc.app().name(), "rc_keepalive");
+  }
+  EXPECT_TRUE(weak_state.expired());
+}
+
+TEST(RemoteConfigLifecycleTest, StaticDurationRemoteConfigSurvivesExit) {
+  static RemoteConfig static_rc;
+  App app = testing::CreateApp(testing::MockAppOptions(), "rc_static_exit");
+  static_rc = RemoteConfig::GetInstance(app);
+  ASSERT_TRUE(static_rc.is_valid());
 }
 
 }  // namespace internal

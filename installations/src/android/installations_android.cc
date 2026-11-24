@@ -14,6 +14,7 @@
 
 #include "installations/src/android/installations_android.h"
 
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "installations/src/common.h"
@@ -55,7 +56,10 @@ METHOD_LOOKUP_DEFINITION(
 using firebase::internal::ReferenceCount;
 using firebase::internal::ReferenceCountLock;
 
-ReferenceCount internal::InstallationsInternal::initializer_;  // NOLINT
+ReferenceCount& InstallationsInternal::Initializer() {
+  static firebase::internal::NoDestructor<ReferenceCount> initializer;
+  return *initializer;
+}
 
 template <typename T>
 struct FISDataHandle {
@@ -133,16 +137,24 @@ void TokenResultCallback(JNIEnv* env, jobject result,
   delete data_handle;
 }
 
-InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+JNIEnv* InstallationsInternal::GetJNIEnv() const {
+  return java_vm_ ? util::GetThreadsafeJNIEnv(java_vm_)
+                  : util::GetJNIEnvFromApp();
+}
+
+InstallationsInternal::InstallationsInternal(
+    ::firebase::internal::AppState& app_state)
+    : app_state_(app_state), future_impl_(kInstallationsFnCount) {
+  ReferenceCountLock<ReferenceCount> lock(&Initializer());
   static const char* kApiIdentifier = "Installations";
   LogDebug("%s API Initializing", kApiIdentifier);
-  JNIEnv* env = app_.GetJNIEnv();
+  App app = app_state_.MakeAppHandle();
+  java_vm_ = app.java_vm();
+  JNIEnv* env = app.GetJNIEnv();
 
   if (lock.AddReference() == 0) {
     // Initialize
-    jobject activity = app_.activity();
+    jobject activity = app.activity();
     if (!util::Initialize(env, activity)) {
       lock.RemoveReference();
       return;
@@ -156,11 +168,12 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
       return;
     }
   }
+  ref_acquired_ = true;
 
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   // Create the underlying Installations java object.
-  jobject platform_app = app_.GetPlatformApp();
+  jobject platform_app = app.GetPlatformApp();
 
   jclass installations_class = installations::GetClass();
   jobject installations_instance_local = env->CallStaticObjectMethod(
@@ -174,21 +187,26 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
 }
 
 InstallationsInternal::~InstallationsInternal() {
-  JNIEnv* env = app_.GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
+  JNIEnv* env = GetJNIEnv();
+  if (!jni_task_id_.empty() && env) {
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+  }
+  if (internal_obj_ && env) {
+    env->DeleteGlobalRef(internal_obj_);
+    internal_obj_ = nullptr;
+  }
+  if (ref_acquired_) {
+    ReferenceCountLock<ReferenceCount> lock(&Initializer());
+    if (lock.RemoveReference() == 1 && env) {
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
+    ref_acquired_ = false;
+  }
 }
 
 bool InstallationsInternal::Initialized() const {
   return internal_obj_ != nullptr;
-}
-
-void InstallationsInternal::Cleanup() {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
-  if (lock.RemoveReference() == 1) {
-    JNIEnv* env = app_.GetJNIEnv();
-    ReleaseClasses(env);
-    util::Terminate(env);
-  }
 }
 
 void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
@@ -208,7 +226,7 @@ Future<std::string> InstallationsInternal::GetId() {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetId);
 
-  JNIEnv* env = app_.GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetId));
 
@@ -232,7 +250,7 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetToken);
 
-  JNIEnv* env = app_.GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetToken),
       static_cast<jboolean>(forceRefresh));
@@ -255,7 +273,7 @@ Future<std::string> InstallationsInternal::GetTokenLastResult() {
 
 Future<void> InstallationsInternal::Delete() {
   const auto handle = future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
-  JNIEnv* env = app_.GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kDelete));
 

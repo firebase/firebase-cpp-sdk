@@ -16,6 +16,7 @@
 #define FIREBASE_INSTALLATIONS_SRC_INCLUDE_FIREBASE_INSTALLATIONS_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "firebase/app.h"
@@ -53,20 +54,41 @@ class InstallationsInternal;
 /// installation.
 class Installations {
  public:
+  /// @brief Default-constructs an invalid Installations handle.
+  Installations() = default;
+  Installations(const Installations&) = default;
+  Installations& operator=(const Installations&) = default;
+  Installations(Installations&&) noexcept = default;
+  Installations& operator=(Installations&&) noexcept = default;
   ~Installations();
+
+  /// @brief Returns true if this handle refers to a live Installations
+  /// instance.
+  bool is_valid() const { return installations_internal_ != nullptr; }
+  explicit operator bool() const { return is_valid(); }
+
+  friend bool operator==(const Installations& lhs, const Installations& rhs) {
+    return lhs.installations_internal_.get() ==
+           rhs.installations_internal_.get();
+  }
+  friend bool operator!=(const Installations& lhs, const Installations& rhs) {
+    return !(lhs == rhs);
+  }
 
   /// @brief Get the App this object is connected to.
   ///
-  /// @return App this object is connected to.
-  App* app() const { return app_; }
+  /// @return App this object is connected to, or an invalid App if this handle
+  /// is invalid.
+  App app() const;
 
   /// @brief Returns the Installations object for an App creating the
   /// Installations if required.
   ///
   /// @param[in] app The App to create an Installations object from.
   ///
-  /// @return Installations object if successful, nullptr otherwise.
-  static Installations* GetInstance(App* app);
+  /// @return Installations handle if successful, or an invalid handle
+  /// otherwise.
+  static Installations GetInstance(const App& app);
 
   /// @brief Returns a stable identifier that uniquely identifies the app
   /// installation.
@@ -104,16 +126,10 @@ class Installations {
   Future<std::string> GetTokenLastResult();
 
  private:
-  explicit Installations(App* app);
+  explicit Installations(
+      std::shared_ptr<internal::InstallationsInternal> internal);
 
-  static Installations* FindInstallations(App* app);
-  // Installations internal initialize.
-  bool InitInternal();
-  // Clean up Installations instance.
-  void DeleteInternal();
-
-  App* app_;
-  internal::InstallationsInternal* installations_internal_;
+  std::shared_ptr<internal::InstallationsInternal> installations_internal_;
 };
 
 }  // namespace installations

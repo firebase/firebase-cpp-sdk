@@ -34,12 +34,6 @@ namespace remote_config {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
 
-// Global reference to the Firebase App.
-static const ::firebase::App *g_app = nullptr;
-
-// Global reference to the Remote Config instance.
-static FIRRemoteConfig *g_remote_config_instance;
-
 // Maps FIRRemoteConfigSource values to the ValueSource enumeration.
 static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
     kValueSourceRemoteValue,   // FIRRemoteConfigSourceRemote
@@ -54,9 +48,6 @@ static_assert(FIRRemoteConfigSourceStatic == 2, "FIRRemoteConfigSourceStatic is 
 // Written to match what is used internally by the Java implementation.
 static NSString *true_pattern = @"^(1|true|t|yes|y|on)$";
 static NSString *false_pattern = @"^(0|false|f|no|n|off|)$";
-
-// Saved default keys.
-static std::vector<std::string> *g_default_keys = nullptr;
 
 static id VariantToNSObject(const Variant &variant) {
   if (variant.is_int64()) {
@@ -89,10 +80,6 @@ static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info, FIRRemot
     }
   }
   return value;
-}
-
-static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info) {
-  return GetValue(key, info, g_remote_config_instance);
 }
 
 static void CheckBoolConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
@@ -204,9 +191,13 @@ static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
 }
 
 namespace internal {
-RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
-    : app_(app), future_impl_(kRemoteConfigFnCount), throttled_end_time_in_sec_(0) {
-  FIRApp *platform_app = app_.GetPlatformApp();
+RemoteConfigInternal::RemoteConfigInternal(
+    ::firebase::internal::AppState &app_state)
+    : app_state_(app_state),
+      future_impl_(kRemoteConfigFnCount),
+      throttled_end_time_in_sec_(0) {
+  App app = app_state_.MakeAppHandle();
+  FIRApp *platform_app = app.GetPlatformApp();
   impl_.reset(new FIRRemoteConfigPointer([FIRRemoteConfig remoteConfigWithApp:platform_app]));
 }
 

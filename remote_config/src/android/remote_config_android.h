@@ -20,10 +20,12 @@
 #include <string>
 #include <utility>
 
+#include "app/src/app_state.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_count.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -36,10 +38,12 @@ namespace internal {
 //
 // This class implements functions from `firebase/remote_config.h` header.
 // See `firebase/remote_config.h` for all public functions documentation.
-class RemoteConfigInternal {
+class RemoteConfigInternal : public ::firebase::internal::Service {
  public:
-  explicit RemoteConfigInternal(const firebase::App& app);
-  ~RemoteConfigInternal();
+  explicit RemoteConfigInternal(::firebase::internal::AppState& app_state);
+  ~RemoteConfigInternal() override;
+
+  firebase::App app() const { return app_state_.TryMakeAppHandle(); }
 
   Future<ConfigInfo> EnsureInitialized();
   Future<ConfigInfo> EnsureInitializedLastResult();
@@ -108,16 +112,20 @@ class RemoteConfigInternal {
   }
 
  private:
-  static firebase::internal::ReferenceCount initializer_;
-  // app
-  const firebase::App& app_;
+  static firebase::internal::ReferenceCount& Initializer();
+
+  JNIEnv* GetJNIEnv() const;
+
+  ::firebase::internal::AppState& app_state_;
+  JavaVM* java_vm_ = nullptr;
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
 
   CleanupNotifier cleanup_;
 
-  jobject internal_obj_;
+  jobject internal_obj_ = nullptr;
+  bool ref_acquired_ = false;
 
   Mutex default_key_mutex_;
   std::vector<std::string> tmp_default_keys_;

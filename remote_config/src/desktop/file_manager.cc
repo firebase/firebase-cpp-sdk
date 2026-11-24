@@ -36,7 +36,18 @@ namespace internal {
 
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
                                                  const firebase::App& app) {
-  const char* package_name = app.options().package_name();
+  Init(filename, app.options().package_name(), app.name());
+}
+
+RemoteConfigFileManager::RemoteConfigFileManager(
+    const std::string& filename,
+    const ::firebase::internal::AppState& app_state) {
+  Init(filename, app_state.options().package_name(), app_state.name().c_str());
+}
+
+void RemoteConfigFileManager::Init(const std::string& filename,
+                                   const char* package_name,
+                                   const char* app_name) {
   std::string app_data_prefix =
       (package_name && package_name[0] != '\0')
           ? std::string(package_name) + "/remote_config"
@@ -46,7 +57,7 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
       AppDataDir(app_data_prefix.c_str(), /*should_create=*/true, &error);
   std::string file_path;
   if (error.empty() && !app_dir.empty()) {
-    file_path = app_dir + "/" + app.name() + "_" + filename;
+    file_path = app_dir + "/" + (app_name ? app_name : "") + "_" + filename;
   }
 #if FIREBASE_PLATFORM_WINDOWS
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_to_wstring;

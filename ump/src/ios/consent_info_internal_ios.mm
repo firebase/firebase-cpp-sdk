@@ -18,6 +18,7 @@
 #include "ump/src/ios/consent_info_internal_ios.h"
 
 #include "app/src/assert.h"
+#include "app/src/no_destructor.h"
 #include "app/src/thread.h"
 #include "app/src/util_ios.h"
 
@@ -26,7 +27,10 @@ namespace ump {
 namespace internal {
 
 ConsentInfoInternalIos* ConsentInfoInternalIos::s_instance = nullptr;
-firebase::Mutex ConsentInfoInternalIos::s_instance_mutex;
+firebase::Mutex& ConsentInfoInternalIos::InstanceMutex() {
+  static ::firebase::internal::NoDestructor<firebase::Mutex> mutex;
+  return *mutex;
+}
 unsigned int ConsentInfoInternalIos::s_instance_tag = 0;
 
 // This explicitly implements the constructor for the outer class,
@@ -34,7 +38,7 @@ unsigned int ConsentInfoInternalIos::s_instance_tag = 0;
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance() { return new ConsentInfoInternalIos(); }
 
 ConsentInfoInternalIos::ConsentInfoInternalIos() : loaded_form_(nil) {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   FIREBASE_ASSERT(s_instance == nullptr);
   s_instance = this;
   // Increment this with each created instance, to ensure that any leftover
@@ -43,7 +47,7 @@ ConsentInfoInternalIos::ConsentInfoInternalIos() : loaded_form_(nil) {
 }
 
 ConsentInfoInternalIos::~ConsentInfoInternalIos() {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   s_instance = nullptr;
 }
 
@@ -83,7 +87,7 @@ static ConsentFormError CppFormErrorFromIosFormError(NSInteger code) {
 
 Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   if (RequestConsentInfoUpdateLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
@@ -125,7 +129,7 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    MutexLock lock(s_instance_mutex);
+    MutexLock lock(InstanceMutex());
     if (!s_instance || s_instance_tag != callback_instance_tag) {
       // Instance changed or was invalidated, don't call the iOS method any more.
       return;
@@ -133,7 +137,7 @@ Future<void> ConsentInfoInternalIos::RequestConsentInfoUpdate(
     [UMPConsentInformation.sharedInstance
         requestConsentInfoUpdateWithParameters:ios_parameters
                              completionHandler:^(NSError* _Nullable error) {
-                               MutexLock lock(s_instance_mutex);
+                               MutexLock lock(InstanceMutex());
                                if (s_instance && s_instance_tag == callback_instance_tag) {
                                  if (!error) {
                                    CompleteFuture(handle, kConsentRequestSuccess);
@@ -182,7 +186,7 @@ ConsentFormStatus ConsentInfoInternalIos::GetConsentFormStatus() {
 }
 
 Future<void> ConsentInfoInternalIos::LoadConsentForm() {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   if (LoadConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
@@ -198,14 +202,14 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    MutexLock lock(s_instance_mutex);
+    MutexLock lock(InstanceMutex());
     if (!s_instance || s_instance_tag != callback_instance_tag) {
       // Instance changed or was invalidated, don't call the iOS method any more.
       return;
     }
     [UMPConsentForm
         loadWithCompletionHandler:^(UMPConsentForm* _Nullable form, NSError* _Nullable error) {
-          MutexLock lock(s_instance_mutex);
+          MutexLock lock(InstanceMutex());
           if (s_instance && s_instance_tag == callback_instance_tag) {
             if (form) {
               SetLoadedForm(form);
@@ -223,7 +227,7 @@ Future<void> ConsentInfoInternalIos::LoadConsentForm() {
 }
 
 Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   if (ShowConsentFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
@@ -241,14 +245,14 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
     callback_instance_tag = s_instance_tag;
 
     util::DispatchAsyncSafeMainQueue(^{
-      MutexLock lock(s_instance_mutex);
+      MutexLock lock(InstanceMutex());
       if (!s_instance || s_instance_tag != callback_instance_tag) {
         // Instance changed or was invalidated, don't call the iOS method any more.
         return;
       }
       [loaded_form_ presentFromViewController:parent
                             completionHandler:^(NSError* _Nullable error) {
-                              MutexLock lock(s_instance_mutex);
+                              MutexLock lock(InstanceMutex());
                               if (s_instance && s_instance_tag == callback_instance_tag) {
                                 if (!error) {
                                   CompleteFuture(handle, kConsentRequestSuccess);
@@ -264,7 +268,7 @@ Future<void> ConsentInfoInternalIos::ShowConsentForm(FormParent parent) {
 }
 
 Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(FormParent parent) {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   if (LoadAndShowConsentFormIfRequiredLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
@@ -279,7 +283,7 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(FormParent
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    MutexLock lock(s_instance_mutex);
+    MutexLock lock(InstanceMutex());
     if (!s_instance || s_instance_tag != callback_instance_tag) {
       // Instance changed or was invalidated, don't call the iOS method any more.
       return;
@@ -287,7 +291,7 @@ Future<void> ConsentInfoInternalIos::LoadAndShowConsentFormIfRequired(FormParent
     [UMPConsentForm
         loadAndPresentIfRequiredFromViewController:parent
                                  completionHandler:^(NSError* _Nullable error) {
-                                   MutexLock lock(s_instance_mutex);
+                                   MutexLock lock(InstanceMutex());
                                    if (s_instance && s_instance_tag == callback_instance_tag) {
                                      if (!error) {
                                        CompleteFuture(handle, kConsentRequestSuccess);
@@ -320,7 +324,7 @@ PrivacyOptionsRequirementStatus ConsentInfoInternalIos::GetPrivacyOptionsRequire
 }
 
 Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
-  MutexLock lock(s_instance_mutex);
+  MutexLock lock(InstanceMutex());
   if (ShowPrivacyOptionsFormLastResult().status() == kFutureStatusPending) {
     // This operation is already in progress.
     // Return a future with an error - this will not override the Fn entry.
@@ -334,7 +338,7 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
   callback_instance_tag = s_instance_tag;
 
   util::DispatchAsyncSafeMainQueue(^{
-    MutexLock lock(s_instance_mutex);
+    MutexLock lock(InstanceMutex());
     if (!s_instance || s_instance_tag != callback_instance_tag) {
       // Instance changed or was invalidated, don't call the iOS method any more.
       return;
@@ -342,7 +346,7 @@ Future<void> ConsentInfoInternalIos::ShowPrivacyOptionsForm(FormParent parent) {
     [UMPConsentForm
         presentPrivacyOptionsFormFromViewController:parent
                                   completionHandler:^(NSError* _Nullable error) {
-                                    MutexLock lock(s_instance_mutex);
+                                    MutexLock lock(InstanceMutex());
                                     if (s_instance && s_instance_tag == callback_instance_tag) {
                                       if (!error) {
                                         CompleteFuture(handle, kConsentRequestSuccess);

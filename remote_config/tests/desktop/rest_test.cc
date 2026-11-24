@@ -52,7 +52,7 @@ class RemoteConfigRESTTest : public ::testing::Test {
     SetupContent();
   }
 
-  void TearDown() override { delete app_; }
+  void TearDown() override { app_ = firebase::App(); }
 
   void SetupContent() {
     std::map<std::string, std::string> empty_map;
@@ -112,7 +112,7 @@ class RemoteConfigRESTTest : public ::testing::Test {
         .count();
   }
 
-  firebase::App* app_ = nullptr;
+  firebase::App app_;
 
   LayeredConfigs configs_;
 
@@ -133,19 +133,19 @@ class RemoteConfigRESTTest : public ::testing::Test {
 
 // Check correctness object setup for REST request.
 TEST_F(RemoteConfigRESTTest, Setup) {
-  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
+  RemoteConfigREST rest(app_.options(), configs_, kTestNamespaces);
 
-  EXPECT_EQ(rest.app_package_name_, app_->options().package_name());
-  EXPECT_EQ(rest.app_gmp_project_id_, app_->options().app_id());
-  EXPECT_EQ(rest.app_project_id_, app_->options().project_id());
-  EXPECT_EQ(rest.api_key_, app_->options().api_key());
+  EXPECT_EQ(rest.app_package_name_, app_.options().package_name());
+  EXPECT_EQ(rest.app_gmp_project_id_, app_.options().app_id());
+  EXPECT_EQ(rest.app_project_id_, app_.options().project_id());
+  EXPECT_EQ(rest.api_key_, app_.options().api_key());
   EXPECT_EQ(rest.namespaces_, kTestNamespaces);
 }
 
 // Check correctness REST request setup.
 TEST_F(RemoteConfigRESTTest, SetupRESTRequest) {
-  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
-  rest.SetupRestRequest(*app_, kDefaultTimeoutInMilliseconds);
+  RemoteConfigREST rest(app_.options(), configs_, kTestNamespaces);
+  rest.SetupRestRequest(kDefaultTimeoutInMilliseconds);
 
   firebase::rest::RequestOptions request_options = rest.rc_request_.options();
 
@@ -175,9 +175,9 @@ TEST_F(RemoteConfigRESTTest, SetupRESTRequest) {
             App::GetUserAgent());
 
   EXPECT_EQ(rest.rc_request_.application_data_->appId,
-            app_->options().app_id());
+            app_.options().app_id());
   EXPECT_EQ(rest.rc_request_.application_data_->packageName,
-            app_->options().package_name());
+            app_.options().package_name());
   EXPECT_EQ(rest.rc_request_.application_data_->platformVersion, "2");
 
   EXPECT_EQ(rest.rc_request_.application_data_->timeZone,
@@ -199,8 +199,8 @@ TEST_F(RemoteConfigRESTTest, SetupRESTRequestWithCustomSignals) {
   LayeredConfigs configs_with_signals(configs_.fetched, configs_.active,
                                       configs_.defaults, metadata);
 
-  RemoteConfigREST rest(app_->options(), configs_with_signals, kTestNamespaces);
-  rest.SetupRestRequest(*app_, kDefaultTimeoutInMilliseconds);
+  RemoteConfigREST rest(app_.options(), configs_with_signals, kTestNamespaces);
+  rest.SetupRestRequest(kDefaultTimeoutInMilliseconds);
 
   std::string body;
   EXPECT_TRUE(rest.rc_request_.ReadBodyIntoString(&body));
@@ -229,8 +229,8 @@ TEST_F(RemoteConfigRESTTest, Fetch) {
              kServerURL, code);
     firebase::testing::cppsdk::ConfigSet(config);
 
-    RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
-    rest.Fetch(*app_, 3600);
+    RemoteConfigREST rest(app_.options(), configs_, kTestNamespaces);
+    rest.Fetch(3600);
 
     ExpectFetchFailure(rest, code);
   }
@@ -240,7 +240,7 @@ TEST_F(RemoteConfigRESTTest, ParseRestResponseProtoFailure) {
   std::string header = "HTTP/1.1 200 Ok";
   std::string body = "";
 
-  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
+  RemoteConfigREST rest(app_.options(), configs_, kTestNamespaces);
   rest.rc_response_.ProcessHeader(header.data(), header.length());
   rest.rc_response_.ProcessBody(body.data(), body.length());
   rest.rc_response_.MarkCompleted();
@@ -254,7 +254,7 @@ TEST_F(RemoteConfigRESTTest, ParseRestResponseProtoFailure) {
 TEST_F(RemoteConfigRESTTest, ParseRestResponseSuccess) {
   std::string header = "HTTP/1.1 200 Ok";
 
-  RemoteConfigREST rest(app_->options(), configs_, kTestNamespaces);
+  RemoteConfigREST rest(app_.options(), configs_, kTestNamespaces);
   rest.rc_response_.ProcessHeader(header.data(), header.length());
   rest.rc_response_.ProcessBody(response_body_.data(), response_body_.length());
   rest.rc_response_.MarkCompleted();

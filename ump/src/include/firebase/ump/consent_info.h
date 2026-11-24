@@ -17,6 +17,8 @@
 #ifndef FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_CONSENT_INFO_H_
 #define FIREBASE_UMP_SRC_INCLUDE_FIREBASE_UMP_CONSENT_INFO_H_
 
+#include <memory>
+
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/platform.h"
@@ -47,8 +49,27 @@ class ConsentInfoInternal;
 /// consent from the user.
 class ConsentInfo {
  public:
-  /// Shut down the User Messaging Platform Consent SDK.
+  /// Default-constructs an invalid ConsentInfo handle.
+  ConsentInfo() = default;
+  ConsentInfo(const ConsentInfo&) = default;
+  ConsentInfo& operator=(const ConsentInfo&) = default;
+  ConsentInfo(ConsentInfo&&) noexcept = default;
+  ConsentInfo& operator=(ConsentInfo&&) noexcept = default;
+
+  /// Releases this ConsentInfo handle. When the last handle is destroyed, the
+  /// User Messaging Platform Consent SDK shuts down.
   ~ConsentInfo();
+
+  /// Returns true if this handle refers to a live ConsentInfo instance.
+  bool is_valid() const { return internal_ != nullptr; }
+  explicit operator bool() const { return is_valid(); }
+
+  friend bool operator==(const ConsentInfo& lhs, const ConsentInfo& rhs) {
+    return lhs.internal_.get() == rhs.internal_.get();
+  }
+  friend bool operator!=(const ConsentInfo& lhs, const ConsentInfo& rhs) {
+    return !(lhs == rhs);
+  }
 
   /// Initializes the User Messaging Platform Consent SDK.
   ///
@@ -59,12 +80,11 @@ class ConsentInfo {
   /// kInitResultFailedMissingDependency on Android if there are Android
   /// dependencies missing.
   ///
-  /// @return A pointer to the ConsentInfo instance if UMP was successfully
-  /// initialized, nullptr otherwise. Each call to GetInstance() will return the
-  /// same pointer; when you are finished using the SDK, you can delete the
-  /// pointer and the UMP SDK will shut down.
-  static ConsentInfo* GetInstance(const ::firebase::App& app,
-                                  InitResult* init_result_out = nullptr);
+  /// @return A ConsentInfo handle if UMP was successfully initialized, or an
+  /// invalid handle otherwise. Each call to GetInstance() returns a handle to
+  /// the same process-wide instance while any handle remains alive.
+  static ConsentInfo GetInstance(const ::firebase::App& app,
+                                 InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// Initializes the User Messaging Platform Consent SDK without Firebase for
@@ -77,7 +97,7 @@ class ConsentInfo {
   /// consent_info = firebase::ump::ConsentInfo::GetInstance(jni_env,
   /// activity);
   /// #else
-  /// consent_info = firebase::ump::GetInstance();
+  /// consent_info = firebase::ump::ConsentInfo::GetInstance();
   /// #endif
   /// @endcode
   ///
@@ -88,19 +108,17 @@ class ConsentInfo {
   /// kInitResultFailedMissingDependency on Android if there are Android
   /// dependencies missing.
   ///
-  /// @return A pointer to the ConsentInfo instance if UMP was successfully
-  /// initialized, nullptr otherwise. Each call to GetInstance() will return the
-  /// same pointer; when you are finished using the SDK, you can delete the
-  /// pointer and the UMP SDK will shut down.
-  static ConsentInfo* GetInstance(JNIEnv* jni_env, jobject activity,
-                                  InitResult* init_result_out = nullptr);
+  /// @return A ConsentInfo handle if UMP was successfully initialized, or an
+  /// invalid handle otherwise.
+  static ConsentInfo GetInstance(JNIEnv* jni_env, jobject activity,
+                                 InitResult* init_result_out = nullptr);
 
 #if !defined(DOXYGEN)
   // On Android, this convenience function exists so you can easily get the
-  // existing ConsentInfo instance after it's first initialized. Returns nullptr
-  // if no instance has been created yet; make sure you have called
+  // existing ConsentInfo instance after it's first initialized. Returns an
+  // invalid handle if no instance is currently alive; make sure you have called
   // GetInstance(JNIEnv*, jobject) first.
-  static ConsentInfo* GetInstance();
+  static ConsentInfo GetInstance();
 #endif  // defined(DOXYGEN)
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
@@ -113,13 +131,12 @@ class ConsentInfo {
   /// this will always return kInitResultSuccess, as missing dependencies would
   /// have caused a linker error at build time.
   ///
-  /// @return A pointer to the ConsentInfo instance. Each call to GetInstance()
-  /// will return the same pointer; when you are finished using the SDK, you can
-  /// delete the pointer, and the UMP SDK will shut down.
+  /// @return A ConsentInfo handle. Each call to GetInstance() returns a handle
+  /// to the same process-wide instance while any handle remains alive.
   ///
   /// @note Once any overload of ConsentInfo::GetInstance has been called, you
   /// can use this method to obtain the same instance again.
-  static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
+  static ConsentInfo GetInstance(InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
   /// The user’s consent status. This value defaults to kConsentStatusUnknown
@@ -221,24 +238,11 @@ class ConsentInfo {
   void Reset();
 
  private:
-  ConsentInfo();
-#if FIREBASE_PLATFORM_ANDROID
-  InitResult Initialize(JNIEnv* jni_env, jobject activity);
-#else
-  InitResult Initialize();
-#endif  // FIREBASE_PLATFORM_ANDROID
-  void Terminate();
-
-  static ConsentInfo* s_instance_;
-
-#if FIREBASE_PLATFORM_ANDROID
-  JavaVM* java_vm() { return java_vm_; }
-  JavaVM* java_vm_;
-#endif
+  explicit ConsentInfo(std::shared_ptr<internal::ConsentInfoInternal> internal);
 
   // An internal, platform-specific implementation object that this class uses
   // to interact with the User Messaging Platform SDKs for iOS and Android.
-  internal::ConsentInfoInternal* internal_;
+  std::shared_ptr<internal::ConsentInfoInternal> internal_;
 };
 
 }  // namespace ump

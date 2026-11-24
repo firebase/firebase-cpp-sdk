@@ -70,8 +70,9 @@ METHOD_LOOKUP_DECLARATION(trace_jni, TRACE_METHODS)
 // created when firebase::performance::internal::Initialize() is called.
 jobject GetFirebasePerformanceClassInstance();
 
-// Returns the Firebase App default instance if initialized, nullptr otherwise.
-const ::firebase::App* GetFirebaseApp();
+// Returns a threadsafe JNIEnv for the initialized Firebase Performance
+// session.
+JNIEnv* GetJNIEnv();
 
 }  // namespace internal
 }  // namespace performance

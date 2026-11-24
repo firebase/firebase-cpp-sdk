@@ -17,8 +17,10 @@
 
 #include <string>
 
+#include "app/src/app_state.h"
 #include "app/src/reference_count.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -31,14 +33,16 @@ namespace internal {
 //
 // This class implements functions from `firebase/installations.h` header.
 // See `firebase/installations.h` for all public functions documentation.
-class InstallationsInternal {
+class InstallationsInternal : public ::firebase::internal::Service {
  public:
-  explicit InstallationsInternal(const firebase::App& app);
-  ~InstallationsInternal();
+  explicit InstallationsInternal(::firebase::internal::AppState& app_state);
+  ~InstallationsInternal() override;
 
   // Platform-specific method that causes a heartbeat to be logged.
   // See go/firebase-platform-logging-design for more information.
   static void LogHeartbeat(const firebase::App& app);
+
+  firebase::App app() const { return app_state_.TryMakeAppHandle(); }
 
   Future<std::string> GetId();
   Future<std::string> GetIdLastResult();
@@ -51,17 +55,19 @@ class InstallationsInternal {
 
   bool Initialized() const;
 
-  void Cleanup();
-
  private:
-  static firebase::internal::ReferenceCount initializer_;
+  static firebase::internal::ReferenceCount& Initializer();
 
-  const firebase::App& app_;
+  JNIEnv* GetJNIEnv() const;
+
+  ::firebase::internal::AppState& app_state_;
+  JavaVM* java_vm_ = nullptr;
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
 
-  jobject internal_obj_;
+  jobject internal_obj_ = nullptr;
+  bool ref_acquired_ = false;
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;

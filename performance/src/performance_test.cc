@@ -37,15 +37,15 @@ class PerformanceTest : public ::testing::Test {
     firebase::testing::cppsdk::ConfigSet("{}");
     reporter_.reset();
 
-    firebase_app_.reset(testing::CreateApp());
+    firebase_app_ = testing::CreateApp();
     AddExpectationAndroid("FirebasePerformance.getInstance", {});
-    performance::Initialize(*firebase_app_);
+    performance::Initialize(firebase_app_);
   }
 
   void TearDown() override {
     firebase::testing::cppsdk::ConfigReset();
     Terminate();
-    firebase_app_.reset();
+    firebase_app_ = App();
     EXPECT_THAT(reporter_.getFakeReports(),
                 ::testing::Eq(reporter_.getExpectations()));
   }
@@ -61,13 +61,13 @@ class PerformanceTest : public ::testing::Test {
     reporter_.addExpectation(fake, "", firebase::testing::cppsdk::kIos, args);
   }
 
-  std::unique_ptr<App> firebase_app_;
+  App firebase_app_;
   firebase::testing::cppsdk::Reporter reporter_;
 };
 
 TEST_F(PerformanceTest, TestDestroyDefaultApp) {
   EXPECT_TRUE(internal::IsInitialized());
-  firebase_app_.reset();
+  firebase_app_ = App();
   EXPECT_FALSE(internal::IsInitialized());
 }
 

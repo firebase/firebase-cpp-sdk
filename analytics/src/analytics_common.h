@@ -17,6 +17,7 @@
 #ifndef FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
 #define FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/reference_counted_future_impl.h"
 
 namespace firebase {
@@ -53,12 +54,12 @@ class FutureData {
 
 extern const char* kAnalyticsModuleName;
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy();
+// Registers a cleanup task on the given App's AppState to terminate analytics
+// when the AppState is destroyed.
+void RegisterTerminateOnAppDestroy(const App& app);
 
-// Unregisters the cleanup task for this module if auto-initialization is
-// disabled.
-void UnregisterTerminateOnDefaultAppDestroy();
+// Unregisters the cleanup task for this module.
+void UnregisterTerminateOnAppDestroy();
 
 // Determine whether the analytics module is initialized.
 // This is implemented per platform.

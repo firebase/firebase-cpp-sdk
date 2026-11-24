@@ -89,7 +89,7 @@ class RemoteConfigREST {
   // 2. Setup REST request;
   // 3. Make REST request;
   // 4. Parse REST response.
-  void Fetch(const App& app, uint64_t fetch_timeout_in_milliseconds);
+  void Fetch(uint64_t fetch_timeout_in_milliseconds);
 
   // After Fetch() will return updated fetched holder. Otherwise will return not
   // updated fetched holder.
@@ -100,13 +100,13 @@ class RemoteConfigREST {
   const RemoteConfigMetadata& metadata() const { return configs_.metadata; }
 
  private:
-  // Attempt to get Installations and Auth Token from app synchronously.  This
+  // Attempt to get Installations and Auth Token synchronously.  This
   // will block the current thread and wait until the futures are complete.
-  void TryGetInstallationsAndToken(const App& app);
+  void TryGetInstallationsAndToken();
 
   // Setup all values to make REST request. Call `SetupProtoRequest` to setup
   // post fields.
-  void SetupRestRequest(const App& app, uint64_t fetch_timeout_in_milliseconds);
+  void SetupRestRequest(uint64_t fetch_timeout_in_milliseconds);
 
   // Parse REST response. Check response status and body.
   void ParseRestResponse();

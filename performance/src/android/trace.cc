@@ -43,7 +43,7 @@ class TraceInternal {
     if (WarnIf(name == nullptr, "Cannot start trace. Name cannot be null."))
       return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
 
     if (active_trace_ != nullptr) {
       CancelTrace();
@@ -66,7 +66,7 @@ class TraceInternal {
   // is cancelled.
   void StartCreatedTrace() {
     if (active_trace_) {
-      JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+      JNIEnv* env = GetJNIEnv();
       env->CallVoidMethod(active_trace_,
                           trace_jni::GetMethodId(trace_jni::kStartTrace));
       util::CheckAndClearJniExceptions(env);
@@ -87,7 +87,7 @@ class TraceInternal {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     if (WarnIfNotCreated("Cannot stop Trace.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     env->CallVoidMethod(active_trace_,
                         trace_jni::GetMethodId(trace_jni::kStopTrace));
     util::CheckAndClearJniExceptions(env);
@@ -101,7 +101,7 @@ class TraceInternal {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     if (WarnIfNotCreated("Cannot cancel Trace.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     env->DeleteGlobalRef(active_trace_);
     active_trace_ = nullptr;
   }
@@ -117,7 +117,7 @@ class TraceInternal {
       return;
     if (WarnIfNotCreated("Cannot SetAttribute.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
 
     jstring attribute_name_jstring = env->NewStringUTF(attribute_name);
 
@@ -146,7 +146,7 @@ class TraceInternal {
       return "";
     if (WarnIfNotCreated("Cannot GetAttribute.")) return "";
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     jstring attribute_name_jstring =
         attribute_name ? env->NewStringUTF(attribute_name) : nullptr;
     jobject attribute_value_jstring = env->CallObjectMethod(
@@ -171,7 +171,7 @@ class TraceInternal {
       return 0;
     if (WarnIfNotCreated("Cannot GetLongMetric.")) return 0;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     jstring metric_name_jstring =
         metric_name ? env->NewStringUTF(metric_name) : nullptr;
 
@@ -194,7 +194,7 @@ class TraceInternal {
       return;
     if (WarnIfNotCreated("Cannot IncrementMetric.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
 
     jstring metric_name_jstring = env->NewStringUTF(metric_name);
 
@@ -214,7 +214,7 @@ class TraceInternal {
       return;
     if (WarnIfNotCreated("Cannot SetMetric.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
 
     jstring metric_name_jstring = env->NewStringUTF(metric_name);
 

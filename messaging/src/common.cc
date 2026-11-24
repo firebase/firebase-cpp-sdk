@@ -14,15 +14,17 @@
 
 #include "messaging/src/common.h"
 
-#include <assert.h>
-
+#include <memory>
 #include <queue>
 #include <string>
+#include <string_view>
 #include <utility>
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "messaging/src/include/firebase/messaging.h"
 
@@ -30,22 +32,20 @@
 FIREBASE_APP_REGISTER_CALLBACKS(
     messaging,
     {
-      if (app == ::firebase::App::GetInstance()) {
-        return firebase::messaging::Initialize(*app, nullptr);
+      if (std::string_view(app.name()) == kDefaultAppName) {
+        return firebase::messaging::Initialize(app, nullptr);
       }
       return kInitResultSuccess;
-    },
-    {
-      if (app == ::firebase::App::GetInstance()) {
-        firebase::messaging::Terminate();
-      }
     },
     false);
 
 namespace firebase {
 namespace messaging {
 
-static Mutex g_listener_lock;  // NOLINT
+static Mutex& GetListenerLock() {
+  static ::firebase::internal::NoDestructor<Mutex> listener_lock;
+  return *listener_lock;
+}
 static Listener* g_listener = nullptr;
 
 // Keep track of the most recent token received.
@@ -60,41 +60,79 @@ static bool g_has_pending_registration = false;
 
 namespace internal {
 
-const char kMessagingModuleName[] = "messaging";
+namespace {
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kMessagingModuleName)) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
-    cleanup_notifier->RegisterObject(
-        const_cast<char*>(kMessagingModuleName), [](void*) {
-          LogError(
-              "messaging::Terminate() should be called before default app is "
-              "destroyed.");
-          if (firebase::messaging::internal::IsInitialized()) {
-            firebase::messaging::Terminate();
-          }
-        });
-  }
+constexpr int kMessagingTeardownTag = 0;
+
+struct TeardownGuardState {
+  Mutex mutex;
+  std::weak_ptr<::firebase::internal::AppState> app_state;
+  std::weak_ptr<::firebase::internal::TeardownGuardService> guard;
+};
+
+TeardownGuardState& GetTeardownGuardState() {
+  static ::firebase::internal::NoDestructor<TeardownGuardState> state;
+  return *state;
 }
 
-// Remove the cleanup task for this module if auto-initialization is disabled.
-void UnregisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kMessagingModuleName) &&
-      firebase::messaging::internal::IsInitialized()) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
-    cleanup_notifier->UnregisterObject(const_cast<char*>(kMessagingModuleName));
+}  // namespace
+
+const char kMessagingModuleName[] = "messaging";
+
+void RegisterTerminateOnAppDestroy(const App& app) {
+  const auto& app_state = ::firebase::internal::AppState::FromApp(app);
+  if (!app_state) return;
+
+  UnregisterTerminateOnAppDestroy();
+
+  const bool auto_init = AppCallback::GetEnabledByName(kMessagingModuleName);
+  auto [owner, guard] =
+      app_state->GetOrCreateDetachableService<
+          ::firebase::internal::TeardownGuardService>(
+          &kMessagingTeardownTag, {},
+          [auto_init](::firebase::internal::AppState&) {
+            return std::make_shared<
+                ::firebase::internal::TeardownGuardService>([auto_init]() {
+              if (!auto_init) {
+                LogError(
+                    "messaging::Terminate() should be called before default "
+                    "app is destroyed.");
+              }
+              if (firebase::messaging::internal::IsInitialized()) {
+                firebase::messaging::Terminate();
+              }
+            });
+          });
+  if (!guard) return;
+
+  auto& state = GetTeardownGuardState();
+  MutexLock lock(state.mutex);
+  state.app_state = owner;
+  state.guard = guard;
+}
+
+void UnregisterTerminateOnAppDestroy() {
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
+  std::weak_ptr<::firebase::internal::TeardownGuardService> weak_guard;
+  {
+    auto& state = GetTeardownGuardState();
+    MutexLock lock(state.mutex);
+    weak_state = std::move(state.app_state);
+    weak_guard = std::move(state.guard);
+  }
+  auto guard = weak_guard.lock();
+  if (guard) {
+    guard->Cancel();
+  }
+  if (auto app_state = weak_state.lock()) {
+    app_state->DetachService(&kMessagingTeardownTag, {}, guard.get());
   }
 }
 
 }  // namespace internal
 
 Listener* SetListener(Listener* listener) {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(GetListenerLock());
   Listener* previous_listener = g_listener;
   if (listener && !g_prev_token_received) {
     g_prev_token_received = new std::string;
@@ -135,7 +173,7 @@ Listener* SetListener(Listener* listener) {
 
 // Determine whether a listener is present.
 bool HasListener() {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(GetListenerLock());
   return g_listener != nullptr;
 }
 
@@ -144,12 +182,12 @@ Listener* SetListenerIfNotNull(Listener* listener) {
 }
 
 void NotifyListenerOnMessage(const Message& message) {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(GetListenerLock());
   if (g_listener) g_listener->OnMessage(message);
 }
 
 void NotifyListenerOnTokenReceived(const char* token) {
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(GetListenerLock());
   // If we have a previous token that we've notified any listener about, check
   // to ensure no repeat.
   if (g_prev_token_received && *g_prev_token_received == token) {
@@ -172,7 +210,7 @@ void NotifyListenerOnRegistrationReceived(const char* installationId) {
   if (!installationId || installationId[0] == '\0') {
     return;
   }
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(GetListenerLock());
   if (!g_prev_registration_received)
     g_prev_registration_received = new std::string;
   *g_prev_registration_received = installationId;
@@ -188,7 +226,7 @@ void NotifyListenerOnUnregistrationReceived(const char* installationId) {
   if (!installationId || installationId[0] == '\0') {
     return;
   }
-  MutexLock lock(g_listener_lock);
+  MutexLock lock(GetListenerLock());
   // If the unregistration is for a pending registration that we haven't sent to
   // a listener yet, clear the pending state.
   if (g_prev_registration_received &&

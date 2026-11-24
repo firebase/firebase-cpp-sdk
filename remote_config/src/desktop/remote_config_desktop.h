@@ -19,11 +19,13 @@
 #include <string>
 #include <thread>  // NOLINT
 
+#include "app/src/app_state.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
+#include "app/src/service_interfaces.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "remote_config/src/desktop/config_data.h"
@@ -50,7 +52,7 @@ const char* const kFutureNoErrorMessage = "No Error Message";
 //
 // This class implements functions from `firebase/remote_config.h` header.
 // See `firebase/remote_config.h` for all public functions documentation.
-class RemoteConfigInternal {
+class RemoteConfigInternal : public ::firebase::internal::Service {
  public:
 #ifdef FIREBASE_TESTING
   friend class RemoteConfigDesktopTest;
@@ -74,12 +76,14 @@ class RemoteConfigInternal {
   FRIEND_TEST(RemoteConfigDesktopTest, SetCustomSignalsPersistence);
 #endif  // FIREBASE_TESTING
 
-  explicit RemoteConfigInternal(const firebase::App& app,
+  explicit RemoteConfigInternal(::firebase::internal::AppState& app_state,
                                 const RemoteConfigFileManager& file_manager);
 
-  explicit RemoteConfigInternal(const firebase::App& app);
+  explicit RemoteConfigInternal(::firebase::internal::AppState& app_state);
 
-  ~RemoteConfigInternal();
+  ~RemoteConfigInternal() override;
+
+  firebase::App app() const { return app_state_.TryMakeAppHandle(); }
 
   Future<ConfigInfo> EnsureInitialized();
   Future<ConfigInfo> EnsureInitializedLastResult();
@@ -192,8 +196,7 @@ class RemoteConfigInternal {
 
   const std::vector<unsigned char> kDefaultValueForData;
 
-  // app
-  const firebase::App& app_;
+  ::firebase::internal::AppState& app_state_;
 
   // Contains all config records and metadata variables.
   LayeredConfigs configs_;

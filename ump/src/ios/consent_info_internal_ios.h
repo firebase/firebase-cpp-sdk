@@ -50,7 +50,7 @@ class ConsentInfoInternalIos : public ConsentInfoInternal {
 
  private:
   static ConsentInfoInternalIos* s_instance;
-  static firebase::Mutex s_instance_mutex;
+  static firebase::Mutex& InstanceMutex();
   static unsigned int s_instance_tag;
 
   void SetLoadedForm(UMPConsentForm *form) {

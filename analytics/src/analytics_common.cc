@@ -16,10 +16,14 @@
 
 #include "analytics/src/analytics_common.h"
 
-#include <assert.h>
+#include <memory>
+#include <string_view>
 
 #include "analytics/src/include/firebase/analytics.h"
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
+#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 // Include the generated headers to force their compilation for test purposes.
 #include "analytics/src/include/firebase/analytics/event_names.h"
@@ -30,21 +34,33 @@
 FIREBASE_APP_REGISTER_CALLBACKS(
     analytics,
     {
-      if (app == ::firebase::App::GetInstance()) {
-        firebase::analytics::Initialize(*app);
+      if (std::string_view(app.name()) == kDefaultAppName) {
+        firebase::analytics::Initialize(app);
       }
       return kInitResultSuccess;
-    },
-    {
-      if (app == ::firebase::App::GetInstance()) {
-        firebase::analytics::Terminate();
-      }
     },
     false);
 
 namespace firebase {
 namespace analytics {
 namespace internal {
+
+namespace {
+
+constexpr int kAnalyticsTeardownTag = 0;
+
+struct TeardownGuardState {
+  Mutex mutex;
+  std::weak_ptr<::firebase::internal::AppState> app_state;
+  std::weak_ptr<::firebase::internal::TeardownGuardService> guard;
+};
+
+TeardownGuardState& GetTeardownGuardState() {
+  static ::firebase::internal::NoDestructor<TeardownGuardState> state;
+  return *state;
+}
+
+}  // namespace
 
 const char* kAnalyticsModuleName = "analytics";
 
@@ -65,32 +81,53 @@ void FutureData::Destroy() {
 // Get the Future data singleton.
 FutureData* FutureData::Get() { return s_future_data_; }
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kAnalyticsModuleName)) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
-    cleanup_notifier->RegisterObject(
-        const_cast<char*>(kAnalyticsModuleName), [](void*) {
-          LogError(
-              "analytics::Terminate() should be called before default app is "
-              "destroyed.");
-          if (firebase::analytics::internal::IsInitialized()) {
-            firebase::analytics::Terminate();
-          }
-        });
-  }
+void RegisterTerminateOnAppDestroy(const App& app) {
+  const auto& app_state = ::firebase::internal::AppState::FromApp(app);
+  if (!app_state) return;
+
+  UnregisterTerminateOnAppDestroy();
+
+  const bool auto_init = AppCallback::GetEnabledByName(kAnalyticsModuleName);
+  auto [owner, guard] =
+      app_state->GetOrCreateDetachableService<
+          ::firebase::internal::TeardownGuardService>(
+          &kAnalyticsTeardownTag, {},
+          [auto_init](::firebase::internal::AppState&) {
+            return std::make_shared<
+                ::firebase::internal::TeardownGuardService>([auto_init]() {
+              if (!auto_init) {
+                LogError(
+                    "analytics::Terminate() should be called before default "
+                    "app is destroyed.");
+              }
+              if (firebase::analytics::internal::IsInitialized()) {
+                firebase::analytics::Terminate();
+              }
+            });
+          });
+  if (!guard) return;
+
+  auto& state = GetTeardownGuardState();
+  MutexLock lock(state.mutex);
+  state.app_state = owner;
+  state.guard = guard;
 }
 
-// Remove the cleanup task for this module if auto-initialization is disabled.
-void UnregisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kAnalyticsModuleName) &&
-      firebase::analytics::internal::IsInitialized()) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
-    cleanup_notifier->UnregisterObject(const_cast<char*>(kAnalyticsModuleName));
+void UnregisterTerminateOnAppDestroy() {
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
+  std::weak_ptr<::firebase::internal::TeardownGuardService> weak_guard;
+  {
+    auto& state = GetTeardownGuardState();
+    MutexLock lock(state.mutex);
+    weak_state = std::move(state.app_state);
+    weak_guard = std::move(state.guard);
+  }
+  auto guard = weak_guard.lock();
+  if (guard) {
+    guard->Cancel();
+  }
+  if (auto app_state = weak_state.lock()) {
+    app_state->DetachService(&kAnalyticsTeardownTag, {}, guard.get());
   }
 }
 

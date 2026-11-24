@@ -8,6 +8,8 @@
 #ifndef FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_
 #define FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_
 
+#include "app/src/include/firebase/app.h"
+
 namespace firebase {
 namespace performance {
 namespace internal {
@@ -18,12 +20,12 @@ extern const char* kPerformanceModuleName;
 // This is implemented per platform.
 bool IsInitialized();
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy();
+// Registers a cleanup task on the given App's AppState to terminate performance
+// when the AppState is destroyed.
+void RegisterTerminateOnAppDestroy(const App& app);
 
-// Unregisters the cleanup task for this module if auto-initialization is
-// disabled.
-void UnregisterTerminateOnDefaultAppDestroy();
+// Unregisters the cleanup task for this module.
+void UnregisterTerminateOnAppDestroy();
 
 }  // namespace internal
 }  // namespace performance

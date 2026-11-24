@@ -14,15 +14,13 @@
 
 #include "remote_config/src/include/firebase/remote_config.h"
 
-#include <cassert>
 #include <cstdint>
+#include <memory>
+#include <utility>
 
-#include "app/src/cleanup_notifier.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/internal/platform.h"
-#include "app/src/semaphore.h"
 #include "app/src/time.h"
-#include "include/firebase/remote_config.h"
 #include "remote_config/src/common.h"
 
 // RemoteConfigInternal is defined in these 3 files, one implementation for each
@@ -39,153 +37,135 @@
 namespace firebase {
 namespace remote_config {
 
-std::map<App*, RemoteConfig*> g_rcs;
-Mutex g_rc_mutex;  // NOLINT
+namespace {
+constexpr int kRemoteConfigServiceTag = 0;
+}  // namespace
 
-RemoteConfig* RemoteConfig::GetInstance(App* app) {
-  MutexLock lock(g_rc_mutex);
-  // Return the RemoteConfig if it already exists.
-  RemoteConfig* existing_rc = FindRemoteConfig(app);
-  if (existing_rc) {
-    return existing_rc;
-  }
+RemoteConfig::RemoteConfig(
+    std::shared_ptr<internal::RemoteConfigInternal> internal)
+    : internal_(std::move(internal)) {}
 
-  // Create a new RemoteConfig and initialize.
-  RemoteConfig* rc = new RemoteConfig(app);
-  LogDebug("Creating RemoteConfig %p for App %s", rc, app->name());
+RemoteConfig::~RemoteConfig() = default;
 
-  if (rc->InitInternal()) {
-    // Cleanup this object if app is destroyed.
-    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
-    assert(notifier);
-    notifier->RegisterObject(rc, [](void* object) {
-      RemoteConfig* rc = reinterpret_cast<RemoteConfig*>(object);
-      LogWarning(
-          "Remote Config object 0x%08x should be deleted before the App 0x%08x "
-          "it depends upon.",
-          static_cast<int>(reinterpret_cast<intptr_t>(rc)),
-          static_cast<int>(reinterpret_cast<intptr_t>(rc->app())));
-      rc->DeleteInternal();
-    });
-
-    // Stick it in the global map so we remember it, and can delete it on
-    // shutdown.
-    g_rcs[app] = rc;
-    return rc;
-  }
-
-  return nullptr;
+App RemoteConfig::app() const {
+  return internal_ ? internal_->app() : App();
 }
 
-RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
-  MutexLock lock(g_rc_mutex);
-  // Return the RemoteConfig if it already exists.
-  std::map<App*, RemoteConfig*>::iterator it = g_rcs.find(app);
-  if (it != g_rcs.end()) {
-    return it->second;
-  }
-  return nullptr;
+RemoteConfig RemoteConfig::GetInstance(const App& app) {
+  if (!app.is_valid()) return {};
+
+  const auto& state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return {};
+
+  auto internal = state->GetOrCreateService<internal::RemoteConfigInternal>(
+      &kRemoteConfigServiceTag, {},
+      [](::firebase::internal::AppState& app_state)
+          -> std::shared_ptr<internal::RemoteConfigInternal> {
+        LogDebug("Creating RemoteConfig for App %s", app_state.name().c_str());
+        auto instance =
+            std::make_shared<internal::RemoteConfigInternal>(app_state);
+        if (!instance->Initialized()) {
+          return {};
+        }
+        return instance;
+      });
+  if (!internal) return {};
+  return RemoteConfig(std::move(internal));
 }
-
-void RemoteConfig::DeleteInternal() {
-  MutexLock lock(g_rc_mutex);
-  if (!internal_) return;
-
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app());
-  assert(notifier);
-  notifier->UnregisterObject(this);
-
-  internal_->Cleanup();
-  delete internal_;
-  internal_ = nullptr;
-
-  // Remove rc from the g_rcs map.
-  g_rcs.erase(app());
-}
-
-RemoteConfig::RemoteConfig(App* app) {
-  FIREBASE_ASSERT(app != nullptr);
-  app_ = app;
-  internal_ = new internal::RemoteConfigInternal(*app);
-}
-
-RemoteConfig::~RemoteConfig() { DeleteInternal(); }
-
-bool RemoteConfig::InitInternal() { return internal_->Initialized(); }
 
 Future<ConfigInfo> RemoteConfig::EnsureInitialized() {
+  if (!internal_) return {};
   return internal_->EnsureInitialized();
 }
 
 Future<ConfigInfo> RemoteConfig::EnsureInitializedLastResult() {
+  if (!internal_) return {};
   return internal_->EnsureInitializedLastResult();
 }
 
-Future<bool> RemoteConfig::Activate() { return internal_->Activate(); }
+Future<bool> RemoteConfig::Activate() {
+  if (!internal_) return {};
+  return internal_->Activate();
+}
 
 Future<bool> RemoteConfig::ActivateLastResult() {
+  if (!internal_) return {};
   return internal_->ActivateLastResult();
 }
 
 Future<bool> RemoteConfig::FetchAndActivate() {
+  if (!internal_) return {};
   return internal_->FetchAndActivate();
 }
 
 Future<bool> RemoteConfig::FetchAndActivateLastResult() {
+  if (!internal_) return {};
   return internal_->FetchAndActivateLastResult();
 }
 
 Future<void> RemoteConfig::Fetch() {
+  if (!internal_) return {};
   return Fetch(GetConfigSettings().minimum_fetch_interval_in_milliseconds /
                firebase::internal::kMillisecondsPerSecond);
 }
 
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
+  if (!internal_) return {};
   return internal_->Fetch(cache_expiration_in_seconds);
 }
 
 Future<void> RemoteConfig::FetchLastResult() {
+  if (!internal_) return {};
   return internal_->FetchLastResult();
 }
 
 #if defined(__ANDROID__)
 Future<void> RemoteConfig::SetDefaults(int defaults_resource_id) {
+  if (!internal_) return {};
   return internal_->SetDefaults(defaults_resource_id);
 }
 #endif  // __ANDROID__
 
 Future<void> RemoteConfig::SetDefaults(const ConfigKeyValueVariant* defaults,
                                        size_t number_of_defaults) {
+  if (!internal_) return {};
   return internal_->SetDefaults(defaults, number_of_defaults);
 }
 
 Future<void> RemoteConfig::SetDefaults(const ConfigKeyValue* defaults,
                                        size_t number_of_defaults) {
+  if (!internal_) return {};
   return internal_->SetDefaults(defaults, number_of_defaults);
 }
 
 Future<void> RemoteConfig::SetDefaultsLastResult() {
+  if (!internal_) return {};
   return internal_->SetDefaultsLastResult();
 }
 
 Future<void> RemoteConfig::SetConfigSettings(ConfigSettings settings) {
+  if (!internal_) return {};
   return internal_->SetConfigSettings(settings);
 }
 
 ConfigSettings RemoteConfig::GetConfigSettings() {
+  if (!internal_) return {};
   return internal_->GetConfigSettings();
 }
 
 Future<void> RemoteConfig::SetConfigSettingsLastResult() {
+  if (!internal_) return {};
   return internal_->SetConfigSettingsLastResult();
 }
 
 Future<void> RemoteConfig::SetCustomSignals(
     const std::map<std::string, Variant>& custom_signals) {
+  if (!internal_) return {};
   return internal_->SetCustomSignals(custom_signals);
 }
 
 Future<void> RemoteConfig::SetCustomSignalsLastResult() {
+  if (!internal_) return {};
   return internal_->SetCustomSignalsLastResult();
 }
 
@@ -194,6 +174,7 @@ bool RemoteConfig::GetBoolean(const char* key) {
 }
 
 bool RemoteConfig::GetBoolean(const char* key, ValueInfo* info) {
+  if (!internal_) return false;
   return internal_->GetBoolean(key, info);
 }
 
@@ -202,6 +183,7 @@ int64_t RemoteConfig::GetLong(const char* key) {
 }
 
 int64_t RemoteConfig::GetLong(const char* key, ValueInfo* info) {
+  if (!internal_) return 0;
   return internal_->GetLong(key, info);
 }
 
@@ -210,6 +192,7 @@ double RemoteConfig::GetDouble(const char* key) {
 }
 
 double RemoteConfig::GetDouble(const char* key, ValueInfo* info) {
+  if (!internal_) return 0.0;
   return internal_->GetDouble(key, info);
 }
 
@@ -218,6 +201,7 @@ std::string RemoteConfig::GetString(const char* key) {
 }
 
 std::string RemoteConfig::GetString(const char* key, ValueInfo* info) {
+  if (!internal_) return {};
   return internal_->GetString(key, info);
 }
 
@@ -227,27 +211,35 @@ std::vector<unsigned char> RemoteConfig::GetData(const char* key) {
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key,
                                                  ValueInfo* info) {
+  if (!internal_) return {};
   return internal_->GetData(key, info);
 }
 
 std::vector<std::string> RemoteConfig::GetKeysByPrefix(const char* prefix) {
+  if (!internal_) return {};
   return internal_->GetKeysByPrefix(prefix);
 }
 
 std::vector<std::string> RemoteConfig::GetKeys() {
+  if (!internal_) return {};
   return internal_->GetKeys();
 }
 
 std::map<std::string, Variant> RemoteConfig::GetAll() {
+  if (!internal_) return {};
   return internal_->GetAll();
 }
 
 // TODO(b/147143718): Change to a more descriptive name.
-const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
+const ConfigInfo RemoteConfig::GetInfo() {
+  if (!internal_) return {};
+  return internal_->GetInfo();
+}
 
 ConfigUpdateListenerRegistration RemoteConfig::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
+  if (!internal_) return {};
   return internal_->AddOnConfigUpdateListener(config_update_listener);
 }
 

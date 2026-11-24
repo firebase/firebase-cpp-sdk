@@ -17,7 +17,7 @@ static bool g_initialized = false;
 // Initializes the API.
 InitResult Initialize(const ::firebase::App& app) {
   g_initialized = true;
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnAppDestroy(app);
   // TODO(tdeshpande): Figure out if there are any situations where initalizing fails on iOS.
   return InitResult::kInitResultSuccess;
 }
@@ -31,7 +31,7 @@ bool IsInitialized() { return g_initialized; }
 
 // Terminates the API.
 void Terminate() {
-  internal::UnregisterTerminateOnDefaultAppDestroy();
+  internal::UnregisterTerminateOnAppDestroy();
   g_initialized = false;
 }
 

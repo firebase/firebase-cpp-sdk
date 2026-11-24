@@ -54,14 +54,13 @@ class AnalyticsTest : public ::testing::Test {
 
     firebase_app_ = testing::CreateApp();
     AddExpectationAndroid("FirebaseAnalytics.getInstance", {});
-    analytics::Initialize(*firebase_app_);
+    analytics::Initialize(firebase_app_);
   }
 
   void TearDown() override {
     firebase::testing::cppsdk::ConfigReset();
     Terminate();
-    delete firebase_app_;
-    firebase_app_ = nullptr;
+    firebase_app_ = App();
     EXPECT_THAT(reporter_.getFakeReports(),
                 ::testing::Eq(reporter_.getExpectations()));
   }
@@ -82,7 +81,7 @@ class AnalyticsTest : public ::testing::Test {
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
     Semaphore main_thread_signal(0);
     util::RunOnMainThread(
-        firebase_app_->GetJNIEnv(), firebase_app_->activity(),
+        firebase_app_.GetJNIEnv(), firebase_app_.activity(),
         [](void* data) { reinterpret_cast<Semaphore*>(data)->Post(); },
         &main_thread_signal);
     main_thread_signal.Wait();
@@ -99,15 +98,14 @@ class AnalyticsTest : public ::testing::Test {
     }
   }
 
-  App* firebase_app_ = nullptr;
+  App firebase_app_;
 
   firebase::testing::cppsdk::Reporter reporter_;
 };
 
 TEST_F(AnalyticsTest, TestDestroyDefaultApp) {
   EXPECT_TRUE(internal::IsInitialized());
-  delete firebase_app_;
-  firebase_app_ = nullptr;
+  firebase_app_ = App();
   EXPECT_FALSE(internal::IsInitialized());
 }
 

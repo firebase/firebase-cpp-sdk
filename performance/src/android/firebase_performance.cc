@@ -24,11 +24,12 @@ static jobject g_performance_class_instance = nullptr;
 
 // Used to retrieve the JNI environment in order to call methods on the
 // Android Performance class.
-static const ::firebase::App* g_app = nullptr;
+static bool g_initialized = false;
+static JavaVM* g_java_vm = nullptr;
 
 // Initialize the Performance API.
 InitResult Initialize(const ::firebase::App& app) {
-  if (g_app) {
+  if (g_initialized) {
     LogWarning("%s API already initialized", internal::kPerformanceModuleName);
     return kInitResultSuccess;
   }
@@ -58,7 +59,8 @@ InitResult Initialize(const ::firebase::App& app) {
     return kInitResultFailedMissingDependency;
   }
 
-  g_app = &app;
+  g_java_vm = app.java_vm();
+  g_initialized = true;
   // Get / create the Performance singleton.
   jobject performance_class_instance_local =
       env->CallStaticObjectMethod(internal::performance_jni::GetClass(),
@@ -71,7 +73,7 @@ InitResult Initialize(const ::firebase::App& app) {
   FIREBASE_ASSERT(g_performance_class_instance);
 
   env->DeleteLocalRef(performance_class_instance_local);
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnAppDestroy(app);
   LogInfo("%s API Initialized", internal::kPerformanceModuleName);
   return kInitResultSuccess;
 }
@@ -79,13 +81,16 @@ InitResult Initialize(const ::firebase::App& app) {
 namespace internal {
 
 // Determine whether the performance module is initialized.
-bool IsInitialized() { return g_app != nullptr; }
+bool IsInitialized() { return g_initialized; }
 
 jobject GetFirebasePerformanceClassInstance() {
   return g_performance_class_instance;
 }
 
-const ::firebase::App* GetFirebaseApp() { return g_app; }
+JNIEnv* GetJNIEnv() {
+  return g_java_vm ? util::GetThreadsafeJNIEnv(g_java_vm)
+                   : util::GetJNIEnvFromApp();
+}
 
 DEFINE_FIREBASE_VERSION_STRING(FirebasePerformance);
 
@@ -105,14 +110,15 @@ METHOD_LOOKUP_DEFINITION(trace_jni, "com/google/firebase/perf/metrics/Trace",
 
 // Clean up the API.
 void Terminate() {
-  if (!g_app) {
+  if (!g_initialized) {
     LogWarning("%s API already shut down", internal::kPerformanceModuleName);
     return;
   }
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = internal::GetJNIEnv();
   util::CancelCallbacks(env, internal::kPerformanceModuleName);
-  internal::UnregisterTerminateOnDefaultAppDestroy();
-  g_app = nullptr;
+  internal::UnregisterTerminateOnAppDestroy();
+  g_initialized = false;
+  g_java_vm = nullptr;
   env->DeleteGlobalRef(g_performance_class_instance);
   g_performance_class_instance = nullptr;
   internal::performance_jni::ReleaseClass(env);
@@ -122,7 +128,7 @@ void Terminate() {
 // Determines if performance collection is enabled.
 bool GetPerformanceCollectionEnabled() {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = internal::GetJNIEnv();
   jboolean result =
       env->CallBooleanMethod(g_performance_class_instance,
                              internal::performance_jni::GetMethodId(
@@ -134,7 +140,7 @@ bool GetPerformanceCollectionEnabled() {
 // Sets performance collection enabled or disabled.
 void SetPerformanceCollectionEnabled(bool enabled) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
+  JNIEnv* env = internal::GetJNIEnv();
   jboolean collection_enabled = enabled;
   env->CallVoidMethod(g_performance_class_instance,
                       internal::performance_jni::GetMethodId(

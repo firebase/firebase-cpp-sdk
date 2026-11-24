@@ -17,9 +17,11 @@
 
 #include <memory>
 
-#include "firebase/app.h"
+#include "app/src/app_state.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_ios.h"
+#include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
@@ -38,14 +40,16 @@ OBJ_C_PTR_WRAPPER(FIRInstallations);
 
 // This class implements functions from `firebase/installations.h` header.
 // See `firebase/installations.h` for all public functions documentation.
-class InstallationsInternal {
+class InstallationsInternal : public ::firebase::internal::Service {
  public:
-  explicit InstallationsInternal(const firebase::App& app);
-  ~InstallationsInternal();
+  explicit InstallationsInternal(::firebase::internal::AppState& app_state);
+  ~InstallationsInternal() override;
 
   // Platform-specific method that causes a heartbeat to be logged.
   // See go/firebase-platform-logging-design for more information.
   static void LogHeartbeat(const firebase::App& app);
+
+  firebase::App app() const { return app_state_.TryMakeAppHandle(); }
 
   Future<std::string> GetId();
   Future<std::string> GetIdLastResult();
@@ -58,14 +62,11 @@ class InstallationsInternal {
 
   bool Initialized() const;
 
-  void Cleanup();
-
  private:
 #ifdef __OBJC__
   FIRInstallations* _Nullable impl() const { return impl_->get(); }
 #endif
-  // app
-  const firebase::App& app_;
+  ::firebase::internal::AppState& app_state_;
 
   std::unique_ptr<FIRInstallationsPointer> impl_;
 

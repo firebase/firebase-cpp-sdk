@@ -16,6 +16,7 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -218,7 +219,25 @@ class RemoteConfigInternal;
 #endif  // SWIG
 class RemoteConfig {
  public:
+  /// @brief Default-constructs an invalid RemoteConfig handle.
+  RemoteConfig() = default;
+  RemoteConfig(const RemoteConfig&) = default;
+  RemoteConfig& operator=(const RemoteConfig&) = default;
+  RemoteConfig(RemoteConfig&&) noexcept = default;
+  RemoteConfig& operator=(RemoteConfig&&) noexcept = default;
   ~RemoteConfig();
+
+  /// @brief Returns true if this handle refers to a live RemoteConfig
+  /// instance.
+  bool is_valid() const { return internal_ != nullptr; }
+  explicit operator bool() const { return is_valid(); }
+
+  friend bool operator==(const RemoteConfig& lhs, const RemoteConfig& rhs) {
+    return lhs.internal_.get() == rhs.internal_.get();
+  }
+  friend bool operator!=(const RemoteConfig& lhs, const RemoteConfig& rhs) {
+    return !(lhs == rhs);
+  }
 
   /// @brief Returns a Future that contains ConfigInfo representing the
   /// initialization status of this Firebase Remote Config instance.
@@ -533,19 +552,13 @@ class RemoteConfig {
   const ConfigInfo GetInfo();
 
   /// Gets the App this remote config object is connected to.
-  App* app() { return app_; }
+  App app() const;
 
   /// Returns the RemoteConfig object for an App. Creates the RemoteConfig if
   /// required.
   ///
-  /// To get the RemoteConfig object for the default app, use,
-  /// GetInstance(GetDefaultFirebaseApp());
-  ///
-  /// If the library RemoteConfig fails to initialize, init_result_out will be
-  /// written with the result status (if a pointer is given).
-  ///
   /// @param[in] app The App to use for the RemoteConfig object.
-  static RemoteConfig* GetInstance(App* app);
+  static RemoteConfig GetInstance(const App& app);
 
   /// @brief Starts listening for real-time config updates from the Remote
   /// Config backend and automatically fetches updates from the RC backend when
@@ -559,21 +572,10 @@ class RemoteConfig {
           config_update_listener);
 
  private:
-  explicit RemoteConfig(App* app);
+  explicit RemoteConfig(
+      std::shared_ptr<internal::RemoteConfigInternal> internal);
 
-  // Find RemoteConfig instance using App.  Return null if the instance does not
-  // exist.
-  static RemoteConfig* FindRemoteConfig(App* app);
-
-  // Clean up RemoteConfig instance.
-  void DeleteInternal();
-
-  /// The Firebase App this remote config is connected to.
-  App* app_;
-
-  bool InitInternal();
-
-  internal::RemoteConfigInternal* internal_;
+  std::shared_ptr<internal::RemoteConfigInternal> internal_;
 };
 
 }  // namespace remote_config

@@ -32,6 +32,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util_ios.h"
 #include "messaging/src/common.h"
 
@@ -79,11 +80,14 @@ namespace messaging {
 DEFINE_FIREBASE_VERSION_STRING(FirebaseMessaging);
 
 static FIRCppDelegate *g_delegate = nil;
-static Mutex g_delegate_mutex;  // Mutex for g_delegate's properties
+static Mutex& GetDelegateMutex() {
+  static ::firebase::internal::NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 static MessagingOptions g_messaging_options;
 
 static bool MessagingIsInitialized() {
-  MutexLock lock(g_delegate_mutex);
+  MutexLock lock(GetDelegateMutex());
   return g_delegate.isListenerSet;
 }
 
@@ -115,8 +119,14 @@ static NSString *const kAlert = @"alert";
 static void HookAppDelegateMethods(Class clazz);
 static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info);
 
-// Global reference to the Firebase App.
-static const ::firebase::App *g_app = nullptr;
+// Initialization state and cached FCM sender ID from the App passed to
+// Initialize().
+static bool g_initialized = false;
+
+static std::string& GetMessagingSenderId() {
+  static ::firebase::internal::NoDestructor<std::string> sender_id;
+  return *sender_id;
+}
 
 static id<UNUserNotificationCenterDelegate> g_user_delegate = nil;
 
@@ -147,14 +157,16 @@ InitResult Initialize(
     [FIRMessaging messaging].delegate = g_delegate;
   }
 
-  if (!g_app) {
+  if (!g_initialized) {
 #if !defined(NDEBUG)
     {
-      MutexLock lock(g_delegate_mutex);
+      MutexLock lock(GetDelegateMutex());
       assert(!g_delegate.isListenerSet);
     }
 #endif  // !defined(NDEBUG)
-    g_app = &app;
+    g_initialized = true;
+    const char* sender_id = app.options().messaging_sender_id();
+    GetMessagingSenderId() = sender_id ? sender_id : "";
   } else {
     LogError("Messaging already initialized.");
     return kInitResultSuccess;
@@ -162,7 +174,7 @@ InitResult Initialize(
   FutureData::Create();
   g_messaging_options = options;
   SetListenerIfNotNull(listener);
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnAppDestroy(app);
   return kInitResultSuccess;
 }
 
@@ -171,7 +183,7 @@ void NotifyListenerSet(Listener* listener) {
   // If no listener is specified, or the API is already initialized, do nothing.
   if (!listener) return;
   {
-    MutexLock lock(g_delegate_mutex);
+    MutexLock lock(GetDelegateMutex());
     if (g_delegate.isListenerSet) return;
     g_delegate.isListenerSet = YES;
   }
@@ -196,7 +208,7 @@ Future<void> RequestPermission() {
   dispatch_async(dispatch_get_main_queue(), ^{
     LogInfo("FCM: Initialize Firebase Messaging");
 
-    NSString *senderID = @(firebase::App::GetInstance()->options().messaging_sender_id());
+    NSString *senderID = @(GetMessagingSenderId().c_str());
     LogInfo("FCM: Using FCM senderID %s", senderID.UTF8String);
     id appDelegate = [UIApplication sharedApplication];
 
@@ -265,29 +277,30 @@ namespace internal {
 // As opposed to MessagingIsInitialized() which determines whether FIRMessaging is configured, this
 // returns whether the C++ has been initialized by the developer.
 bool IsInitialized() {
-  return g_app != nullptr;
+  return g_initialized;
 }
 
 }  // namespace internal
 
 void Terminate() {
-  if (!g_app) {
+  if (!g_initialized) {
     LogError("Messaging already shut down.");
     return;
   }
   FutureData::Destroy();
-  internal::UnregisterTerminateOnDefaultAppDestroy();
+  internal::UnregisterTerminateOnAppDestroy();
   // Ensure g_delegate still exists (it cannot be unallocated in case a token is received via a
   // different Firebase library e.g. Invites while Messaging is not enabled).
   {
-    MutexLock lock(g_delegate_mutex);
+    MutexLock lock(GetDelegateMutex());
     g_delegate.isListenerSet = NO;
     g_delegate.cachedMessaging = nil;
     g_delegate.cachedFCMToken = nil;
     g_delegate.cachedRegistrationId = nil;
   }
   SetListener(nullptr);
-  g_app = nullptr;
+  GetMessagingSenderId().clear();
+  g_initialized = false;
 }
 
 // Reconnect to FCM when an app returns to the foreground.
@@ -974,30 +987,30 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 
 @implementation FIRCppDelegate
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
-  ::firebase::messaging::g_delegate_mutex.Acquire();
+  ::firebase::messaging::GetDelegateMutex().Acquire();
   if (_isListenerSet) {
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::GetDelegateMutex().Release();
     ::firebase::LogInfo("FCM: new registration token received.");
     ::firebase::messaging::RetrieveRegistrationToken();
   } else {
     _cachedMessaging = messaging;
     _cachedFCMToken = fcmToken;
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::GetDelegateMutex().Release();
     ::firebase::LogInfo(
         "FCM: registration token received, but no listener set yet - cached the token.");
   }
 }
 
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistration:(NSString *)installationId {
-  ::firebase::messaging::g_delegate_mutex.Acquire();
+  ::firebase::messaging::GetDelegateMutex().Acquire();
   if (_isListenerSet) {
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::GetDelegateMutex().Release();
     ::firebase::LogInfo("FCM: registration installation ID received.");
     ::firebase::messaging::NotifyListenerOnRegistrationReceived(installationId.UTF8String);
   } else {
     _cachedMessaging = messaging;
     _cachedRegistrationId = installationId;
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::GetDelegateMutex().Release();
     ::firebase::LogInfo(
         "FCM: registration installation ID received, but no listener set yet - cached the ID.");
   }
@@ -1013,7 +1026,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   NSString *token;
   NSString *regId;
   {
-    firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
+    firebase::MutexLock lock(::firebase::messaging::GetDelegateMutex());
     // TODO(butterfield): What if there's no cached message but there is a cached token?
     // The user may never get notified of the old token before a new one is registered.
     if (!_isListenerSet) {

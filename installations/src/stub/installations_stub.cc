@@ -21,16 +21,15 @@ namespace installations {
 
 namespace internal {
 
-InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {}
+InstallationsInternal::InstallationsInternal(
+    ::firebase::internal::AppState& app_state)
+    : app_state_(app_state), future_impl_(kInstallationsFnCount) {}
 
-InstallationsInternal::~InstallationsInternal() {}
+InstallationsInternal::~InstallationsInternal() = default;
 
 void InstallationsInternal::LogHeartbeat(const firebase::App& app) {}
 
 bool InstallationsInternal::Initialized() const { return true; }
-
-void InstallationsInternal::Cleanup() {}
 
 Future<std::string> InstallationsInternal::GetId() {
   const auto handle =

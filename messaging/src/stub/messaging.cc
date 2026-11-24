@@ -37,6 +37,7 @@
 #include <sstream>
 
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
 
 namespace firebase {
@@ -48,7 +49,10 @@ static bool g_initialized = false;
 
 #if FIREBASE_MESSAGING_TEST_ENABLED
 static pthread_t g_message_thread;
-static Mutex g_message_thread_mutex;  // NOLINT
+static Mutex& GetMessageThreadMutex() {
+  static ::firebase::internal::NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 static bool g_message_thread_run;
 static const int kMessageIntervalMilliseconds = 5000;
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
@@ -61,7 +65,7 @@ static void* MessageTestThread(void* arg) {
   int time_elapsed_milliseconds = 0;
   for (;;) {
     {
-      MutexLock lock(g_message_thread_mutex);
+      MutexLock lock(GetMessageThreadMutex());
       if (!g_message_thread_run) break;
     }
     // Wait until kMessageIntervalMilliseconds has elapsed.
@@ -96,14 +100,14 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener) {
   return Initialize(app, listener, MessagingOptions());
 }
 
-InitResult Initialize(const ::firebase::App& /*app*/, Listener* listener,
+InitResult Initialize(const ::firebase::App& app, Listener* listener,
                       const MessagingOptions& /*options*/) {
   if (internal::IsInitialized()) return kInitResultSuccess;
   SetListenerIfNotNull(listener);
   FutureData::Create();
 #if FIREBASE_MESSAGING_TEST_ENABLED
   {
-    MutexLock lock(g_message_thread_mutex);
+    MutexLock lock(GetMessageThreadMutex());
     if (g_message_thread_run) return kInitResultSuccess;
     g_message_thread_run = true;
     pthread_attr_t attr;
@@ -114,7 +118,7 @@ InitResult Initialize(const ::firebase::App& /*app*/, Listener* listener,
   }
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
   g_initialized = true;
-  internal::RegisterTerminateOnDefaultAppDestroy();
+  internal::RegisterTerminateOnAppDestroy(app);
   return kInitResultSuccess;
 }
 
@@ -126,10 +130,10 @@ bool IsInitialized() { return g_initialized; }
 
 void Terminate() {
   if (!internal::IsInitialized()) return;
-  internal::UnregisterTerminateOnDefaultAppDestroy();
+  internal::UnregisterTerminateOnAppDestroy();
 #if FIREBASE_MESSAGING_TEST_ENABLED
   {
-    MutexLock lock(g_message_thread_mutex);
+    MutexLock lock(GetMessageThreadMutex());
     if (!g_message_thread_run) return;
     g_message_thread_run = false;
   }

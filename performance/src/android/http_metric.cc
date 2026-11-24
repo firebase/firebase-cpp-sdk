@@ -62,7 +62,7 @@ class HttpMetricInternal {
                "URL cannot be nullptr. Unable to create HttpMetric."))
       return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
 
     if (active_http_metric_ != nullptr) {
       CancelHttpMetric();
@@ -86,7 +86,7 @@ class HttpMetricInternal {
 
   // Starts an already created Java HttpMetric.
   void StartCreatedHttpMetric() {
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     if (active_http_metric_) {
       env->CallVoidMethod(
           active_http_metric_,
@@ -111,7 +111,7 @@ class HttpMetricInternal {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     if (WarnIfNotCreated("Cannot cancel HttpMetric.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     env->DeleteGlobalRef(active_http_metric_);
     active_http_metric_ = nullptr;
   }
@@ -122,7 +122,7 @@ class HttpMetricInternal {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     if (WarnIfNotCreated("Cannot stop HttpMetric.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     env->CallVoidMethod(
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kStopHttpMetric));
@@ -140,7 +140,7 @@ class HttpMetricInternal {
       return;
     if (WarnIfNotCreated("Cannot SetAttribute.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
 
     jstring attribute_name_jstring = env->NewStringUTF(attribute_name);
 
@@ -170,7 +170,7 @@ class HttpMetricInternal {
       return "";
     if (WarnIfNotCreated("Cannot GetAttribute.")) return "";
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     jstring attribute_name_jstring =
         attribute_name ? env->NewStringUTF(attribute_name) : nullptr;
     jobject attribute_value_jstring = env->CallObjectMethod(
@@ -193,7 +193,7 @@ class HttpMetricInternal {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     if (WarnIfNotCreated("Cannot set_http_response_code.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     env->CallVoidMethod(
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kSetHttpResponseCode),
@@ -206,7 +206,7 @@ class HttpMetricInternal {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     if (WarnIfNotCreated("Cannot set_request_payload_size.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     env->CallVoidMethod(
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kSetRequestPayloadSize),
@@ -221,7 +221,7 @@ class HttpMetricInternal {
       return;
     if (WarnIfNotCreated("Cannot set_response_content_type.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     jstring content_type_jstring = env->NewStringUTF(content_type);
     env->CallVoidMethod(
         active_http_metric_,
@@ -236,7 +236,7 @@ class HttpMetricInternal {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     if (WarnIfNotCreated("Cannot set_response_payload_size.")) return;
 
-    JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
+    JNIEnv* env = GetJNIEnv();
     env->CallVoidMethod(
         active_http_metric_,
         http_metric_jni::GetMethodId(http_metric_jni::kSetResponsePayloadSize),
