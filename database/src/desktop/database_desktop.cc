@@ -21,6 +21,7 @@
 #include <memory>
 #include <queue>
 #include <stack>
+#include <unordered_map>
 #include <utility>
 
 #include "app/src/app_common.h"
@@ -52,7 +53,7 @@ namespace {
 struct AppPersistenceState {
   explicit AppPersistenceState(App* app) : app(app) {}
   App* app;
-  std::map<std::string, bool> by_url;
+  std::unordered_map<std::string, bool> by_url;
 };
 
 std::string NormalizeDatabaseUrl(const std::string& url) {
@@ -72,10 +73,10 @@ std::string NormalizeDatabaseUrl(const std::string& url) {
 // while holding g_persistence_enabled_mutex.
 Mutex g_persistence_enabled_mutex;  // NOLINT
 
-std::map<App*, std::unique_ptr<AppPersistenceState>>*
+std::unordered_map<App*, std::unique_ptr<AppPersistenceState>>*
 GetPersistenceEnabledMap() {
   static auto* persistence_enabled_map =
-      new std::map<App*, std::unique_ptr<AppPersistenceState>>();
+      new std::unordered_map<App*, std::unique_ptr<AppPersistenceState>>();
   return persistence_enabled_map;
 }
 
