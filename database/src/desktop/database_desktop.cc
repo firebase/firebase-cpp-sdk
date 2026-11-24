@@ -69,8 +69,9 @@ std::string NormalizeDatabaseUrl(const std::string& url) {
 }
 
 // Leaf lock guarding GetPersistenceEnabledMap(). Never acquire another lock
-// while holding g_persistence_enabled_mutex.
-Mutex g_persistence_enabled_mutex;  // NOLINT
+// while holding g_persistence_enabled_mutex. Intentionally leaked so it
+// outlives static teardown.
+Mutex* g_persistence_enabled_mutex = new Mutex();
 
 std::unordered_map<App*, std::unique_ptr<AppPersistenceState>>*
 GetPersistenceEnabledMap() {
@@ -118,7 +119,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
   assert(url);
 
   {
-    MutexLock lock(g_persistence_enabled_mutex);
+    MutexLock lock(*g_persistence_enabled_mutex);
     auto* persistence_map = GetPersistenceEnabledMap();
     auto app_it = persistence_map->find(app_);
     if (app_it != persistence_map->end()) {
@@ -239,7 +240,7 @@ void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
       return;
     }
     persistence_enabled_ = enabled;
-    MutexLock persistence_lock(g_persistence_enabled_mutex);
+    MutexLock persistence_lock(*g_persistence_enabled_mutex);
     auto* persistence_map = GetPersistenceEnabledMap();
     auto it = persistence_map->find(app_);
     if (it == persistence_map->end()) {
@@ -259,7 +260,7 @@ void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
       app_notifier->RegisterObject(state_to_register, [](void* object) {
         auto* state = static_cast<AppPersistenceState*>(object);
         App* app = state->app;
-        MutexLock lock(g_persistence_enabled_mutex);
+        MutexLock lock(*g_persistence_enabled_mutex);
         GetPersistenceEnabledMap()->erase(app);
       });
     }
