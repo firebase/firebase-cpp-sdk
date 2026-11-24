@@ -326,37 +326,33 @@ class PersistentConnection : public ConnectionEventHandler {
 
   bool ShouldReconnect() { return interrupt_reasons_.empty(); }
 
-  // Try to reconnect to RT DB server.
+  // Try to reconnect to RTDB server.
   void TryScheduleReconnect();
 
   typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
   typedef firebase::internal::SafeReferenceLock<PersistentConnection>
       ThisRefLock;
 
-  // Callback function when the Auth future to fetch token is complete.
-  static void OnAuthTokenFutureComplete(ThisRef safe_ref,
-                                        const Future<std::string>& result_data);
-  // Callback function when the App Check future to fetch token is complete.
-  static void OnAppCheckTokenFutureComplete(
-      ThisRef safe_ref, const Future<std::string>& result_data);
-  static void OnTokenFutureComplete(ThisRef safe_ref,
-                                    const Future<std::string>& result_data,
-                                    bool is_auth);
-  void HandleTokenFutures(uint64_t get_token_attempt);
-  void ClearPendingTokenFutures();
-
-  // Mutex to protect pending_token_future_
-  Mutex pending_token_future_mutex_;
   enum TokenFutureStatus {
     kInvalidTokenFuture = 0,
     kWaitingForTokenFuture,
     kCompletedTokenFuture,
   };
-  // Pending future to fetch the auth token.
-  Future<std::string> pending_auth_token_future_;
-  TokenFutureStatus auth_token_future_status_;
-  Future<std::string> pending_app_check_token_future_;
-  TokenFutureStatus app_check_token_future_status_;
+  struct PendingToken {
+    Future<std::string> future;
+    TokenFutureStatus status = kInvalidTokenFuture;
+  };
+
+  static void OnTokenFutureComplete(
+      ThisRef safe_ref, PendingToken PersistentConnection::* token_member,
+      const Future<std::string>& result_data);
+  void HandleTokenFutures(uint64_t get_token_attempt);
+  void ClearPendingTokenFutures();
+
+  // Mutex to protect pending_auth_token_ and pending_app_check_token_.
+  Mutex pending_token_future_mutex_;
+  PendingToken pending_auth_token_;
+  PendingToken pending_app_check_token_;
   uint64_t pending_get_token_attempt_;
 
   // Start to establish connection to RT DB server.

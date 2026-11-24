@@ -114,9 +114,7 @@ PersistentConnection::PersistentConnection(
     App* app, const HostInfo& info,
     PersistentConnectionEventHandler* event_handler,
     scheduler::Scheduler* scheduler, Logger* logger)
-    : auth_token_future_status_(kInvalidTokenFuture),
-      app_check_token_future_status_(kInvalidTokenFuture),
-      pending_get_token_attempt_(0),
+    : pending_get_token_attempt_(0),
       app_(app),
       safe_this_(this),
       scheduler_(scheduler),
@@ -577,19 +575,17 @@ void PersistentConnection::TryScheduleReconnect() {
         MutexLock future_lock(connection->pending_token_future_mutex_);
         connection->pending_get_token_attempt_ = attempt;
         if (auth_succeeded) {
-          connection->pending_auth_token_future_ = auth_future;
-          connection->auth_token_future_status_ = kWaitingForTokenFuture;
+          connection->pending_auth_token_.future = auth_future;
+          connection->pending_auth_token_.status = kWaitingForTokenFuture;
         } else {
-          connection->pending_auth_token_future_ = Future<std::string>();
-          connection->auth_token_future_status_ = kInvalidTokenFuture;
+          connection->pending_auth_token_ = PendingToken();
         }
 
         if (app_check_succeeded) {
-          connection->pending_app_check_token_future_ = app_check_future;
-          connection->app_check_token_future_status_ = kWaitingForTokenFuture;
+          connection->pending_app_check_token_.future = app_check_future;
+          connection->pending_app_check_token_.status = kWaitingForTokenFuture;
         } else {
-          connection->pending_app_check_token_future_ = Future<std::string>();
-          connection->app_check_token_future_status_ = kInvalidTokenFuture;
+          connection->pending_app_check_token_ = PendingToken();
         }
       }
 
@@ -598,13 +594,17 @@ void PersistentConnection::TryScheduleReconnect() {
       if (auth_succeeded) {
         auth_future.OnCompletion(
             [safe_ref](const Future<std::string>& result_data) {
-              OnAuthTokenFutureComplete(safe_ref, result_data);
+              OnTokenFutureComplete(safe_ref,
+                                    &PersistentConnection::pending_auth_token_,
+                                    result_data);
             });
       }
       if (app_check_succeeded) {
         app_check_future.OnCompletion(
             [safe_ref](const Future<std::string>& result_data) {
-              OnAppCheckTokenFutureComplete(safe_ref, result_data);
+              OnTokenFutureComplete(
+                  safe_ref, &PersistentConnection::pending_app_check_token_,
+                  result_data);
             });
       }
     } else {
@@ -617,18 +617,9 @@ void PersistentConnection::TryScheduleReconnect() {
   });
 }
 
-void PersistentConnection::OnAuthTokenFutureComplete(
-    ThisRef safe_ref, const Future<std::string>& result_data) {
-  OnTokenFutureComplete(std::move(safe_ref), result_data, /*is_auth=*/true);
-}
-
-void PersistentConnection::OnAppCheckTokenFutureComplete(
-    ThisRef safe_ref, const Future<std::string>& result_data) {
-  OnTokenFutureComplete(std::move(safe_ref), result_data, /*is_auth=*/false);
-}
-
 void PersistentConnection::OnTokenFutureComplete(
-    ThisRef safe_ref, const Future<std::string>& result_data, bool is_auth) {
+    ThisRef safe_ref, PendingToken PersistentConnection::* token_member,
+    const Future<std::string>& result_data) {
   ThisRefLock outer_lock(&safe_ref);
   auto* connection = outer_lock.GetReference();
   // If the connection is destroyed or being destroyed, do nothing.
@@ -638,22 +629,15 @@ void PersistentConnection::OnTokenFutureComplete(
   {
     // Update your own status, and check if the other token future is finished.
     MutexLock future_lock(connection->pending_token_future_mutex_);
-    const Future<std::string>& expected_future =
-        is_auth ? connection->pending_auth_token_future_
-                : connection->pending_app_check_token_future_;
-    TokenFutureStatus& self_status =
-        is_auth ? connection->auth_token_future_status_
-                : connection->app_check_token_future_status_;
-    TokenFutureStatus other_status =
-        is_auth ? connection->app_check_token_future_status_
-                : connection->auth_token_future_status_;
+    PendingToken& self = connection->*token_member;
     // If this future doesn't match the pending future, a different set is
     // underway.
-    if (expected_future != result_data) {
+    if (self.future != result_data) {
       return;
     }
-    self_status = kCompletedTokenFuture;
-    if (other_status == kWaitingForTokenFuture) {
+    self.status = kCompletedTokenFuture;
+    if (connection->pending_auth_token_.status == kWaitingForTokenFuture ||
+        connection->pending_app_check_token_.status == kWaitingForTokenFuture) {
       // Still waiting for the other token, so return and let its callback
       // finish the connection.
       return;
@@ -680,26 +664,22 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
     return;
   }
 
-  Future<std::string> auth_future;
-  TokenFutureStatus auth_status = kInvalidTokenFuture;
-  Future<std::string> app_check_future;
-  TokenFutureStatus app_check_status = kInvalidTokenFuture;
+  PendingToken auth_token;
+  PendingToken app_check_token;
   {
     MutexLock lock(pending_token_future_mutex_);
     if (pending_get_token_attempt_ != get_token_attempt) {
       return;
     }
-    auth_future = std::move(pending_auth_token_future_);
-    auth_status = auth_token_future_status_;
-    app_check_future = std::move(pending_app_check_token_future_);
-    app_check_status = app_check_token_future_status_;
-    auth_token_future_status_ = kInvalidTokenFuture;
-    app_check_token_future_status_ = kInvalidTokenFuture;
+    auth_token = std::move(pending_auth_token_);
+    app_check_token = std::move(pending_app_check_token_);
+    pending_auth_token_.status = kInvalidTokenFuture;
+    pending_app_check_token_.status = kInvalidTokenFuture;
     pending_get_token_attempt_ = 0;
   }
 
-  FIREBASE_DEV_ASSERT(auth_status != kWaitingForTokenFuture);
-  FIREBASE_DEV_ASSERT(app_check_status != kWaitingForTokenFuture);
+  FIREBASE_DEV_ASSERT(auth_token.status != kWaitingForTokenFuture);
+  FIREBASE_DEV_ASSERT(app_check_token.status != kWaitingForTokenFuture);
 
   if (connection_state_ != kGettingToken) {
     FIREBASE_DEV_ASSERT(connection_state_ == kDisconnected);
@@ -710,29 +690,31 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
     return;
   }
 
-  bool auth_error =
-      auth_status == kCompletedTokenFuture && auth_future.error() != 0;
+  bool auth_error = auth_token.status == kCompletedTokenFuture &&
+                    auth_token.future.error() != 0;
 
   if (auth_error) {
     // Only care about Auth errors, because App Check errors are handled by the
     // backend.
     connection_state_ = kDisconnected;
-    const char* error_message = auth_future.error_message();
+    const char* error_message = auth_token.future.error_message();
     logger_->LogDebug("%s Error fetching token: %s", log_id_.c_str(),
                       error_message ? error_message : "");
     TryScheduleReconnect();
   } else {
     logger_->LogDebug("%s Successfully fetched token, opening connection",
                       log_id_.c_str());
-    if (auth_status == kCompletedTokenFuture && auth_future.error() == 0 &&
-        auth_future.result() != nullptr) {
-      auth_token_ = *auth_future.result();
+    if (auth_token.status == kCompletedTokenFuture &&
+        auth_token.future.error() == 0 &&
+        auth_token.future.result() != nullptr) {
+      auth_token_ = *auth_token.future.result();
     } else {
       auth_token_.clear();
     }
-    if (app_check_status == kCompletedTokenFuture &&
-        app_check_future.error() == 0 && app_check_future.result() != nullptr) {
-      app_check_token_ = *app_check_future.result();
+    if (app_check_token.status == kCompletedTokenFuture &&
+        app_check_token.future.error() == 0 &&
+        app_check_token.future.result() != nullptr) {
+      app_check_token_ = *app_check_token.future.result();
     } else {
       app_check_token_.clear();
     }
@@ -742,10 +724,8 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
 
 void PersistentConnection::ClearPendingTokenFutures() {
   MutexLock lock(pending_token_future_mutex_);
-  pending_auth_token_future_ = Future<std::string>();
-  auth_token_future_status_ = kInvalidTokenFuture;
-  pending_app_check_token_future_ = Future<std::string>();
-  app_check_token_future_status_ = kInvalidTokenFuture;
+  pending_auth_token_ = PendingToken();
+  pending_app_check_token_ = PendingToken();
   pending_get_token_attempt_ = 0;
 }
 
