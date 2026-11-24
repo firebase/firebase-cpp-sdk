@@ -19,6 +19,13 @@
 #include <iostream>
 #include <streambuf>
 
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif  // WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif  // defined(_WIN32)
+
 #include "app/src/logger.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/persistence/flatbuffer_conversions.h"
