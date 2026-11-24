@@ -71,8 +71,7 @@ void RetryHelper::Retry(std::function<void()> callback) {
 
     if (scheduled_retry_.IsValid()) {
       if (logger_) {
-        logger_->LogDebug(
-            "[ConnectionRetryHelper] Cancelling previous scheduled retry");
+        logger_->LogDebug("[RetryHelper] Cancelling previous scheduled retry");
       }
       previous_retry = scheduled_retry_;
       scheduled_retry_ = scheduler::RequestHandle();
@@ -104,7 +103,7 @@ void RetryHelper::Retry(std::function<void()> callback) {
     last_was_success_ = false;
     last_scheduled_delay_ms_ = delay_ms;
     if (logger_) {
-      logger_->LogDebug("[ConnectionRetryHelper] Scheduling retry in %llums",
+      logger_->LogDebug("[RetryHelper] Scheduling retry in %llums",
                         static_cast<unsigned long long>(delay_ms));
     }
 
@@ -166,15 +165,13 @@ void RetryHelper::Cancel() {
     }
     if (scheduled_retry_.IsValid()) {
       if (logger_) {
-        logger_->LogDebug(
-            "[ConnectionRetryHelper] Cancelling existing retry attempt");
+        logger_->LogDebug("[RetryHelper] Cancelling existing retry attempt");
       }
       to_cancel = scheduled_retry_;
       scheduled_retry_ = scheduler::RequestHandle();
       scheduled_retry_id_ = 0;
     } else if (logger_) {
-      logger_->LogDebug(
-          "[ConnectionRetryHelper] No existing retry attempt to cancel");
+      logger_->LogDebug("[RetryHelper] No existing retry attempt to cancel");
     }
     current_retry_delay_ = 0;
   }
