@@ -613,6 +613,15 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - Database (Desktop): Fixed `Database::set_persistence_enabled()` not being
+      preserved across recreated `Database` instances for the same `App` and
+      database URL.
+    - Database (Desktop): Fixed cached objects with priorities set (via
+      `SetPriority()` or `SetValueAndPriority()`) being read back from the
+      offline persistence cache as corrupted or null values.
+
 ### 14.2.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.2.0.
