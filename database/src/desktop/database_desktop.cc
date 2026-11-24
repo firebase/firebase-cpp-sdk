@@ -15,11 +15,9 @@
 #include "database/src/desktop/database_desktop.h"
 
 #include <cassert>
-#include <map>
 #include <memory>
 #include <queue>
 #include <stack>
-#include <utility>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -44,34 +42,6 @@ namespace database {
 namespace internal {
 
 Mutex g_database_reference_constructor_mutex;  // NOLINT
-
-namespace {
-
-using PersistenceKey = std::pair<std::string, std::string>;
-
-std::string NormalizeDatabaseUrl(const std::string& url) {
-  ParseUrl parser;
-  if (parser.Parse(url) == ParseUrl::kParseOk) {
-    connection::HostInfo host_info(parser.hostname.c_str(), parser.ns.c_str(),
-                                   parser.secure);
-    return host_info.ToString();
-  }
-  return url;
-}
-
-PersistenceKey MakePersistenceKey(App* app, const std::string& url) {
-  return std::make_pair(app ? std::string(app->name()) : std::string(),
-                        NormalizeDatabaseUrl(url));
-}
-
-Mutex g_persistence_enabled_mutex;  // NOLINT
-
-std::map<PersistenceKey, bool>* GetPersistenceEnabledMap() {
-  static auto* persistence_enabled_map = new std::map<PersistenceKey, bool>();
-  return persistence_enabled_map;
-}
-
-}  // namespace
 
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
                                          const QuerySpec& query_spec,
@@ -108,15 +78,6 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
       repo_(nullptr) {
   assert(app);
   assert(url);
-
-  {
-    MutexLock lock(g_persistence_enabled_mutex);
-    auto* persistence_map = GetPersistenceEnabledMap();
-    auto it = persistence_map->find(MakePersistenceKey(app_, database_url_));
-    if (it != persistence_map->end()) {
-      persistence_enabled_ = it->second;
-    }
-  }
 
   // Spin up the token auto-update thread in Auth.
   app_->function_registry()->CallFunction(
@@ -223,9 +184,6 @@ void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
   // Only set persistence if the repo has not yet been initialized.
   if (!repo_) {
     persistence_enabled_ = enabled;
-    MutexLock persistence_lock(g_persistence_enabled_mutex);
-    (*GetPersistenceEnabledMap())[MakePersistenceKey(app_, database_url_)] =
-        enabled;
   }
 }
 

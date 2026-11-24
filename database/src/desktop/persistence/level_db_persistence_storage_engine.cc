@@ -413,7 +413,7 @@ static void VariantAddCachedValue(Variant* variant, const Path& path,
       // away the value, which at this point will be directly in the
       // variant and not in a .value field. Note that values will never be
       // stored in a .value peudofield.
-      if (IsPriorityKey(directory) && !variant->is_null()) {
+      if (IsPriorityKey(directory)) {
         *variant = std::map<Variant, Variant>{
             std::make_pair(kValueKey, std::move(*variant)),
         };
