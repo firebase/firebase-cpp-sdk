@@ -225,6 +225,10 @@ Auth Auth::GetAuth(const App& app, InitResult* init_result_out) {
     return Auth();
   }
 
+  if (created_new) {
+    StartPlatformAuth(data);
+  }
+
   Auth auth(std::move(data));
   if (!created_new) {
     // Log heartbeat data when instance getters are called on an existing
@@ -351,6 +355,30 @@ AUTH_NOTIFY_LISTENERS(NotifyAuthStateListeners, "Auth state", listeners,
 
 AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners, "ID token", id_token_listeners,
                       OnIdTokenChanged);
+
+void NotifyAllListeners(AuthData* auth_data) {
+  Auth auth_handle = auth_data->MakeAuthHandle();
+  if (!auth_handle.is_valid()) return;
+
+  MutexLock lock(auth_data->listeners_mutex);
+  auth_data->persistent_cache_load_pending = false;
+
+  auto auth_listeners = auth_data->listeners;
+  LogDebug("Auth state changed. Notifying %zu listeners.",
+           auth_listeners.size());
+  for (auto* listener : auth_listeners) {
+    if (!VectorContains(listener, auth_data->listeners)) continue;
+    listener->OnAuthStateChanged(auth_handle);
+  }
+
+  auto token_listeners = auth_data->id_token_listeners;
+  LogDebug("ID token changed. Notifying %zu listeners.",
+           token_listeners.size());
+  for (auto* listener : token_listeners) {
+    if (!VectorContains(listener, auth_data->id_token_listeners)) continue;
+    listener->OnIdTokenChanged(auth_handle);
+  }
+}
 
 AUTH_RESULT_FN(Auth, FetchProvidersForEmail, Auth::FetchProvidersResult)
 AUTH_RESULT_FN(Auth, SendPasswordResetEmail, void)

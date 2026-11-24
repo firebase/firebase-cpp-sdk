@@ -555,10 +555,9 @@ void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
   AssignLoadedData(future, cast_auth_data);
   auto scheduler_callback = NewCallback(
       [](AuthData* callback_auth_data) {
-        // Don't trigger token listeners if token get refreshed, since
-        // it will get triggered inside LoadFinishTriggerListeners anyways.
-        const GetTokenResult get_token_result =
-            EnsureFreshToken(callback_auth_data, false, false);
+        // Don't trigger token listeners if token gets refreshed, since it will
+        // get triggered inside LoadFinishTriggerListeners anyway.
+        (void)EnsureFreshToken(callback_auth_data, false, false);
         LoadFinishTriggerListeners(callback_auth_data);
       },
       cast_auth_data);

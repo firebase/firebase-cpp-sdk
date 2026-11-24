@@ -224,6 +224,8 @@ void InitPlatformAuth(AuthData *auth_data) {
   CheckEmulator(auth_data);
 }
 
+void StartPlatformAuth(const std::shared_ptr<AuthData>& /*auth_data*/) {}
+
 // Platform-specific method to destroy the wrapped Auth class.
 void DestroyPlatformAuth(AuthData *auth_data) {
   DestroyPhoneAuthProviderData(auth_data);

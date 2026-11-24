@@ -36,6 +36,10 @@ void* CreatePlatformAuth(const App& app);
 // Platform-specific method to initialize AuthData.
 void InitPlatformAuth(AuthData* auth_data);
 
+// Platform-specific post-registration startup hook invoked after AuthData is
+// stored in AppState (safe to take weak_ptr<AuthData> and call MakeAuthHandle).
+void StartPlatformAuth(const std::shared_ptr<AuthData>& auth_data);
+
 // Platform-specific method to destroy the wrapped Auth class.
 void DestroyPlatformAuth(AuthData* auth_data);
 
@@ -74,6 +78,11 @@ void NotifyAuthStateListeners(AuthData* auth_data);
 
 // Notify all the listeners of the ID token change.
 void NotifyIdTokenListeners(AuthData* auth_data);
+
+// Atomically notify both AuthStateListeners and IdTokenListeners under a single
+// listeners_mutex lock while respecting AppState::services_mutex_ ->
+// AuthData::listeners_mutex lock ordering.
+void NotifyAllListeners(AuthData* auth_data);
 
 // Synchronize the current user.
 void UpdateCurrentUser(AuthData* auth_data);

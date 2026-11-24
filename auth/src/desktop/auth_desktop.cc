@@ -253,18 +253,28 @@ void InitPlatformAuth(AuthData* const auth_data) {
   InitializeTokenRefresher(auth_data);
 }
 
+void StartPlatformAuth(const std::shared_ptr<AuthData>& auth_data) {
+  if (!auth_data) return;
+  auto* auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  if (auth_impl && auth_impl->user_data_persist) {
+    auth_impl->user_data_persist->LoadUserData(auth_data.get());
+  }
+}
+
 void DestroyPlatformAuth(AuthData* const auth_data) {
   FIREBASE_ASSERT_RETURN_VOID(auth_data);
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   if (!auth_impl) return;
+
+  // Tear down persistence first so any in-flight LoadUserData completion
+  // finishes before we shut down auth_impl->scheduler_.
+  DestroyUserDataPersist(auth_data);
 
   auth_impl->scheduler_.CancelAllAndShutdownWorkerThread();
 
   DestroyInternalAuthStateListener(auth_data);
 
   DestroyTokenRefresher(auth_data);
-
-  DestroyUserDataPersist(auth_data);
 
   UserView::ClearUser(auth_data);
 
@@ -558,29 +568,24 @@ void InitializeUserDataPersist(AuthData* auth_data) {
           .c_str());
 
   auth_data->AddInternalAuthStateListener(auth_impl->user_data_persist.get());
-  auth_impl->user_data_persist->LoadUserData(auth_data);
 }
 
 void DestroyUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_data->RemoveInternalAuthStateListener(
       auth_impl->user_data_persist.get());
+  auth_impl->user_data_persist.reset();
 }
 
 void LoadFinishTriggerListeners(AuthData* auth_data) {
-  MutexLock destructing_lock(auth_data->destructing_mutex);
-  if (auth_data->destructing) {
-    // If auth is destructing, abort.
-    return;
+  {
+    MutexLock destructing_lock(auth_data->destructing_mutex);
+    if (auth_data->destructing) {
+      // If auth is destructing, abort.
+      return;
+    }
   }
-  // Obtain Auth handle before acquiring listeners_mutex (strict lock ordering).
-  Auth auth_handle = auth_data->MakeAuthHandle();
-  if (!auth_handle.is_valid()) {
-    return;
-  }
-  MutexLock lock(auth_data->listeners_mutex);
-  NotifyAuthStateListeners(auth_data);
-  NotifyIdTokenListeners(auth_data);
+  NotifyAllListeners(auth_data);
 }
 
 void IdTokenRefreshThread::WakeThread() { wakeup_sem_.Post(); }

@@ -309,6 +309,8 @@ void InitPlatformAuth(AuthData* auth_data) {
   CheckEmulator(auth_data);
 }
 
+void StartPlatformAuth(const std::shared_ptr<AuthData>& /*auth_data*/) {}
+
 void DestroyPlatformAuth(AuthData* auth_data) {
   JNIEnv* env = Env(auth_data);
 
