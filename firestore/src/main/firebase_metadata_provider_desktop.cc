@@ -39,7 +39,10 @@ void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
   // Always send the current user agent, as the Android and iOS SDKs do. The
   // stored heartbeat is logged when the App is created, before Firestore
   // registers its library, so it cannot be used to attribute Firestore usage.
-  context.AddMetadata(kXFirebaseClientHeader, App::GetUserAgent());
+  const char* user_agent = App::GetUserAgent();
+  if (user_agent != nullptr && user_agent[0] != '\0') {
+    context.AddMetadata(kXFirebaseClientHeader, user_agent);
+  }
   if (!gmp_app_id_.empty()) {
     context.AddMetadata(kXFirebaseGmpIdHeader, gmp_app_id_);
   }
