@@ -332,6 +332,8 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
   auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthGetCurrentToken);
   auth_data->app->function_registry()->UnregisterFunction(
+      internal::FnAuthGetCurrentUserUid);
+  auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthStartTokenListener);
   auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthStopTokenListener);
