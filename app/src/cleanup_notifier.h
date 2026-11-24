@@ -29,17 +29,26 @@ namespace firebase {
 class CleanupNotifier {
  public:
   typedef void (*CleanupCallback)(void* object);
+  typedef void (*GenericFnPtr)();
+  typedef void (*TrampolineCallback)(void* object, GenericFnPtr callback);
 
   CleanupNotifier();
   ~CleanupNotifier();
 
   void RegisterObject(void* object, CleanupCallback callback);
+  void RegisterObject(void* object, TrampolineCallback trampoline,
+                      GenericFnPtr callback);
   void UnregisterObject(void* object);
   void CleanupAll();
 
  private:
+  struct CallbackEntry {
+    TrampolineCallback trampoline;
+    GenericFnPtr callback;
+  };
+
   Mutex mutex_;
-  std::map<void*, CleanupCallback> callbacks_;
+  std::map<void*, CallbackEntry> callbacks_;
   bool cleaned_up_;
 };
 
@@ -51,7 +60,8 @@ class TypedCleanupNotifier {
 
   void RegisterObject(T* object, CleanupCallback callback) {
     notifier_.RegisterObject(
-        object, reinterpret_cast<CleanupNotifier::CleanupCallback>(callback));
+        object, &InvokeTypedCallback,
+        reinterpret_cast<CleanupNotifier::GenericFnPtr>(callback));
   }
 
   void UnregisterObject(T* object) { notifier_.UnregisterObject(object); }
@@ -61,6 +71,11 @@ class TypedCleanupNotifier {
   CleanupNotifier& cleanup_notifier() { return notifier_; }
 
  private:
+  static void InvokeTypedCallback(void* object,
+                                  CleanupNotifier::GenericFnPtr callback) {
+    reinterpret_cast<CleanupCallback>(callback)(static_cast<T*>(object));
+  }
+
   CleanupNotifier notifier_;
 };
 

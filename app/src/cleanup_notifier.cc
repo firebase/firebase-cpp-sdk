@@ -20,18 +20,29 @@
 
 namespace firebase {
 
+namespace {
+
+void InvokeUntypedCallback(void* object,
+                           CleanupNotifier::GenericFnPtr callback) {
+  reinterpret_cast<CleanupNotifier::CleanupCallback>(callback)(object);
+}
+
+}  // namespace
+
 CleanupNotifier::CleanupNotifier() : cleaned_up_(false) {}
 
 CleanupNotifier::~CleanupNotifier() { CleanupAll(); }
 
 void CleanupNotifier::RegisterObject(void* object, CleanupCallback callback) {
+  RegisterObject(object, &InvokeUntypedCallback,
+                 reinterpret_cast<GenericFnPtr>(callback));
+}
+
+void CleanupNotifier::RegisterObject(void* object,
+                                     TrampolineCallback trampoline,
+                                     GenericFnPtr callback) {
   MutexLock lock(mutex_);
-  auto i = callbacks_.find(object);
-  if (i != callbacks_.end()) {
-    i->second = callback;
-  } else {
-    callbacks_.insert(std::make_pair(object, callback));
-  }
+  callbacks_[object] = CallbackEntry{trampoline, callback};
 }
 
 void CleanupNotifier::UnregisterObject(void* object) {
@@ -41,7 +52,8 @@ void CleanupNotifier::UnregisterObject(void* object) {
 
 void CleanupNotifier::CleanupAll() {
   for (;;) {
-    std::pair<void*, CleanupCallback> object_and_callback;
+    void* object = nullptr;
+    CallbackEntry entry{nullptr, nullptr};
     {
       MutexLock lock(mutex_);
       if (cleaned_up_) return;
@@ -50,13 +62,14 @@ void CleanupNotifier::CleanupAll() {
         return;
       }
       auto it = callbacks_.begin();
-      object_and_callback = *it;
+      object = it->first;
+      entry = it->second;
       callbacks_.erase(it);
     }
     // Invoke cleanup callbacks outside mutex_ so callbacks that acquire their
     // own mutex (e.g., FutureBase::Release) and call UnregisterObject cannot
     // invert lock order with mutex_.
-    object_and_callback.second(object_and_callback.first);
+    entry.trampoline(object, entry.callback);
   }
 }
 
