@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "app/rest/util.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "gmock/gmock.h"
@@ -25,6 +26,7 @@
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_path.h"
 #include "storage/src/desktop/storage_reference_desktop.h"
+#include "storage/src/include/firebase/storage.h"
 #include "testing/json_util.h"
 
 namespace {
@@ -136,10 +138,11 @@ TEST_F(StorageDesktopUtilsTests, testStoragePathChild) {
 }
 
 TEST_F(StorageDesktopUtilsTests, testUrlConverter) {
-  std::unique_ptr<App> app(firebase::testing::CreateApp());
-  StorageInternal* storage = new StorageInternal(app.get(), "gs://Bucket");
+  App app = firebase::testing::CreateApp();
+  auto app_state = firebase::internal::AppState::FromApp(app);
+  StorageInternal storage(*app_state, app, "gs://Bucket");
 
-  StoragePath test_path(storage, "gs://Bucket/path1/path2/Object");
+  StoragePath test_path(&storage, "gs://Bucket/path1/path2/Object");
 
   EXPECT_STREQ(test_path.GetBucket().c_str(), "Bucket");
   EXPECT_STREQ(test_path.GetPath().c_str(), "path1/path2/Object");
@@ -153,13 +156,15 @@ TEST_F(StorageDesktopUtilsTests, testUrlConverter) {
 }
 
 TEST_F(StorageDesktopUtilsTests, testMetadataJsonExporter) {
-  std::unique_ptr<App> app(firebase::testing::CreateApp());
-  std::unique_ptr<StorageInternal> storage(
-      new StorageInternal(app.get(), "gs://abucket"));
-  std::unique_ptr<StorageReferenceInternal> reference(
-      storage->GetReferenceFromUrl("gs://abucket/path/to/a/file.txt"));
-  MetadataInternal metadata(reference->AsStorageReference());
-  reference.reset(nullptr);
+  App app = firebase::testing::CreateApp();
+  firebase::storage::Storage storage =
+      firebase::storage::Storage::GetInstance(app, "gs://abucket");
+  ASSERT_TRUE(storage.is_valid());
+  firebase::storage::StorageReference reference =
+      storage.GetReferenceFromUrl("gs://abucket/path/to/a/file.txt");
+  ASSERT_TRUE(reference.is_valid());
+  MetadataInternal metadata(reference);
+  reference = firebase::storage::StorageReference();
 
   metadata.set_cache_control("cache_control_test");
   metadata.set_content_disposition("content_disposition_test");
@@ -189,6 +194,46 @@ TEST_F(StorageDesktopUtilsTests, testMetadataJsonExporter) {
                         "\"key3\":\"value3\"},"
                         "\"name\":\"file.txt\"}"));
   // clang-format=on
+}
+
+TEST_F(StorageDesktopUtilsTests, LifecycleKeepaliveAndWeakMetadata) {
+  firebase::storage::StorageReference ref;
+  std::weak_ptr<firebase::internal::AppState> weak_state;
+  {
+    App app = firebase::testing::CreateApp(firebase::testing::MockAppOptions(),
+                                           "storage_keepalive_app");
+    weak_state = firebase::internal::AppState::FromApp(app);
+    firebase::storage::Storage storage =
+        firebase::storage::Storage::GetInstance(app, "gs://my-bucket");
+    ASSERT_TRUE(storage.is_valid());
+    EXPECT_EQ(storage,
+              firebase::storage::Storage::GetInstance(app, "gs://my-bucket"));
+    ref = storage.GetReference("dir/file.txt");
+    ASSERT_TRUE(ref.is_valid());
+  }
+  EXPECT_FALSE(weak_state.expired());
+  EXPECT_TRUE(ref.is_valid());
+  EXPECT_TRUE(ref.storage().is_valid());
+  EXPECT_STREQ("storage_keepalive_app", ref.storage().app().name());
+
+  // Metadata holds weak_ptr<StorageInternal>: no cycle when ref drops.
+  MetadataInternal meta(ref);
+  {
+    std::unique_ptr<StorageReferenceInternal> meta_ref(meta.GetReference());
+    EXPECT_TRUE(meta_ref != nullptr);
+  }
+  ref = firebase::storage::StorageReference();
+  EXPECT_TRUE(weak_state.expired());
+  EXPECT_EQ(nullptr, meta.GetReference());
+}
+
+TEST_F(StorageDesktopUtilsTests, StaticDurationStorageSurvivesExit) {
+  static firebase::storage::Storage static_storage = []() {
+    App app = firebase::testing::CreateApp(firebase::testing::MockAppOptions(),
+                                           "storage_static_exit");
+    return firebase::storage::Storage::GetInstance(app, "gs://static-bucket");
+  }();
+  EXPECT_TRUE(static_storage.is_valid());
 }
 
 }  // namespace

@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_COMPLETION_BLOCK_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_COMPLETION_BLOCK_IOS_H_
 
+#include <memory>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 
@@ -24,8 +26,9 @@
 
 namespace firebase {
 namespace database {
-class DatabaseInternal;
 namespace internal {
+
+class DatabaseInternal;
 
 // This file contains functions and structures for creating CompletetionBlocks.
 // Nearly all transactions run the same block (the objective C version of a
@@ -39,17 +42,20 @@ namespace internal {
 
 template <typename T>
 struct FutureCallbackData {
-  FutureCallbackData(SafeFutureHandle<T> handle_, ReferenceCountedFutureImpl *_Nonnull impl_)
-      : handle(handle_), impl(impl_), database(nullptr) {}
+  FutureCallbackData(SafeFutureHandle<T> handle_,
+                     ReferenceCountedFutureImpl *_Nonnull impl_,
+                     std::weak_ptr<DatabaseInternal> database_ = {})
+      : handle(handle_), impl(impl_), database(std::move(database_)) {}
   SafeFutureHandle<T> handle;
   ReferenceCountedFutureImpl *_Nonnull impl;
-  DatabaseInternal *_Nullable database;
+  std::weak_ptr<DatabaseInternal> database;
 };
 
 typedef void (^CompletionBlock)(NSError *_Nullable, FIRDatabaseReference *_Nonnull);
 
-CompletionBlock _Nonnull CreateCompletionBlock(SafeFutureHandle<void> handle,
-                                               ReferenceCountedFutureImpl *_Nonnull future);
+CompletionBlock _Nonnull CreateCompletionBlock(
+    SafeFutureHandle<void> handle, ReferenceCountedFutureImpl *_Nonnull future,
+    std::weak_ptr<DatabaseInternal> database);
 
 }  // namespace internal
 }  // namespace database

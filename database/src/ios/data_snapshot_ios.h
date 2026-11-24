@@ -46,7 +46,7 @@ OBJ_C_PTR_WRAPPER(FIRDataSnapshot);
 // Firebase Database location.
 class DataSnapshotInternal {
  public:
-  DataSnapshotInternal(DatabaseInternal* database,
+  DataSnapshotInternal(std::weak_ptr<DatabaseInternal> database,
                        std::unique_ptr<FIRDataSnapshotPointer> impl);
 
   DataSnapshotInternal(const DataSnapshotInternal& snapshot);
@@ -95,7 +95,7 @@ class DataSnapshotInternal {
   //
   // The returned pointer should be passed to a DatabaseReference for lifetime
   // management.
-  DatabaseReferenceInternal* GetReference() const;
+  DatabaseReferenceInternal* _Nullable GetReference() const;
 
   // Does this DataSnapshot have data at a particular location?
   bool HasChild(const char* path);
@@ -103,7 +103,9 @@ class DataSnapshotInternal {
   /// Get the absolute URL of this data snapshot.
   std::string GetUrl() const;
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* _Nullable database_internal() const {
+    return database_.lock().get();
+  }
 
   // Special method to create an invalid DataSnapshot, because
   // DataSnapshot's constructor is private.
@@ -114,7 +116,7 @@ class DataSnapshotInternal {
   FIRDataSnapshot* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
-  DatabaseInternal* database_;
+  std::weak_ptr<DatabaseInternal> database_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRDataSnapshotPointer> impl_;

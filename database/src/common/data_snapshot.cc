@@ -37,62 +37,42 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
 
-#include "database/src/common/cleanup.h"
-
 namespace firebase {
 namespace database {
 
 using internal::DataSnapshotInternal;
 
-typedef CleanupFn<DataSnapshot, DataSnapshotInternal> CleanupFnDataSnapshot;
-
-template <>
-CleanupFnDataSnapshot::CreateInvalidObjectFn
-    CleanupFnDataSnapshot::create_invalid_object =
-        DataSnapshotInternal::GetInvalidDataSnapshot;
-
 DataSnapshot::DataSnapshot(DataSnapshotInternal* internal)
-    : internal_(internal) {
-  CleanupFnDataSnapshot::Register(this, internal_);
-}
+    : internal_(internal) {}
 
 DataSnapshot::DataSnapshot(const DataSnapshot& src)
     : internal_(src.internal_ ? new DataSnapshotInternal(*src.internal_)
-                              : nullptr) {
-  CleanupFnDataSnapshot::Register(this, internal_);
-}
+                              : nullptr) {}
 
 DataSnapshot& DataSnapshot::operator=(const DataSnapshot& src) {
-  CleanupFnDataSnapshot::Unregister(this, internal_);
-  if (internal_) delete internal_;
+  if (this == &src) return *this;
+  delete internal_;
   internal_ =
       src.internal_ ? new DataSnapshotInternal(*src.internal_) : nullptr;
-  CleanupFnDataSnapshot::Register(this, internal_);
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-DataSnapshot::DataSnapshot(DataSnapshot&& snapshot) {
-  CleanupFnDataSnapshot::Unregister(&snapshot, snapshot.internal_);
-  internal_ = snapshot.internal_;
+DataSnapshot::DataSnapshot(DataSnapshot&& snapshot)
+    : internal_(snapshot.internal_) {
   snapshot.internal_ = nullptr;
-  CleanupFnDataSnapshot::Register(this, internal_);
 }
 
 DataSnapshot& DataSnapshot::operator=(DataSnapshot&& snapshot) {
-  CleanupFnDataSnapshot::Unregister(this, internal_);
-  CleanupFnDataSnapshot::Unregister(&snapshot, snapshot.internal_);
-  if (internal_) delete internal_;
+  if (this == &snapshot) return *this;
+  delete internal_;
   internal_ = snapshot.internal_;
   snapshot.internal_ = nullptr;
-  CleanupFnDataSnapshot::Register(this, internal_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DataSnapshot::~DataSnapshot() {
-  CleanupFnDataSnapshot::Unregister(this, internal_);
-
   delete internal_;
   internal_ = nullptr;
 }

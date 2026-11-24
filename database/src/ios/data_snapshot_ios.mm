@@ -30,9 +30,9 @@ namespace internal {
 
 using util::IdToVariant;
 
-DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
+DataSnapshotInternal::DataSnapshotInternal(std::weak_ptr<DatabaseInternal> database,
                                            std::unique_ptr<FIRDataSnapshotPointer> impl)
-    : database_(database), impl_(std::move(impl)) {}
+    : database_(std::move(database)), impl_(std::move(impl)) {}
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& other)
     : database_(other.database_) {
@@ -93,7 +93,9 @@ Variant DataSnapshotInternal::GetValue() const { return IdToVariant(impl().value
 Variant DataSnapshotInternal::GetPriority() { return IdToVariant(impl().priority); }
 
 DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
-  return new DatabaseReferenceInternal(database_,
+  auto locked_db = database_.lock();
+  if (!locked_db) return nullptr;
+  return new DatabaseReferenceInternal(std::move(locked_db),
                                        std::make_unique<FIRDatabaseReferencePointer>(impl().ref));
 }
 

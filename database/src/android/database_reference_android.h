@@ -18,6 +18,7 @@
 #include <jni.h>
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/app.h"
@@ -37,7 +38,7 @@ class DatabaseInternal;
 
 class DatabaseReferenceInternal : public QueryInternal {
  public:
-  DatabaseReferenceInternal(DatabaseInternal* database,
+  DatabaseReferenceInternal(std::shared_ptr<DatabaseInternal> database,
                             jobject database_reference_obj);
 
   virtual ~DatabaseReferenceInternal();
@@ -53,7 +54,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   DatabaseReferenceInternal& operator=(DatabaseReferenceInternal&& reference);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-  Database* GetDatabase() const;
+  Database GetDatabase() const;
 
   // Returns the key. Cached by this instance.
   const char* GetKey();
@@ -115,8 +116,8 @@ class DatabaseReferenceInternal : public QueryInternal {
  private:
   friend class DatabaseInternal;
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
   // Get the Future for the DatabaseReferenceInternal.
   ReferenceCountedFutureImpl* ref_future();

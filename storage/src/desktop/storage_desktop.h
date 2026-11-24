@@ -15,9 +15,11 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_DESKTOP_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/desktop/storage_path.h"
@@ -30,17 +32,29 @@ namespace internal {
 
 class RestOperation;
 
-class StorageInternal {
+class StorageInternal : public ::firebase::internal::Service {
  public:
   // Build a Storage. A nullptr or empty url uses the default getInstance.
-  StorageInternal(App* app, const char* url);
-  ~StorageInternal();
+  StorageInternal(::firebase::internal::AppState& app_state, const App& app,
+                  const char* url);
+  ~StorageInternal() override;
 
-  // Get the firease::App that this Storage was created with.
-  ::firebase::App* app() { return app_; }
+  // Get the firebase::App that this Storage was created with.
+  ::firebase::App app() const { return app_state_.TryMakeAppHandle(); }
+
+  ::firebase::internal::AppState& app_state() const { return app_state_; }
+
+  // Returns an aliasing shared_ptr sharing AppState's control block, or empty
+  // if AppState is already tearing down.
+  std::shared_ptr<StorageInternal> MakeSharedHandle() const {
+    auto state = app_state_.weak_from_this().lock();
+    if (!state) return {};
+    return std::shared_ptr<StorageInternal>(std::move(state),
+                                            const_cast<StorageInternal*>(this));
+  }
 
   // Return the URL we were created with, if we were created with it explicitly.
-  std::string url() { return url_; }
+  std::string url() const { return url_; }
 
   // Get a StorageReference to the root of the database.
   StorageReferenceInternal* GetReference();
@@ -50,6 +64,11 @@ class StorageInternal {
 
   // Get a StorageReference for the provided URL.
   StorageReferenceInternal* GetReferenceFromUrl(const char* url);
+
+  // Build a child StoragePath from the bucket root.
+  StoragePath GetChildPath(const std::string& path) const {
+    return root_.GetChild(path);
+  }
 
   // Returns the maximum time (in seconds) to retry a download if a failure
   // occurs.
@@ -80,15 +99,12 @@ class StorageInternal {
   }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const { return true; }
 
-  // When this is deleted, it will clean up all StorageReferences and other
-  // objects.
   FutureManager& future_manager() { return future_manager_; }
-  CleanupNotifier& cleanup() { return cleanup_; }
 
-  // Fetches the auth token (if available) from app via the function callback
-  // registry.  If not available, it returns an empty string.
+  // Fetches the auth token (if available) from AppState's AuthTokenProvider.
+  // If not available, it returns an empty string.
   std::string GetAuthToken();
 
   // Get the user agent to send with storage requests.
@@ -117,7 +133,7 @@ class StorageInternal {
   void CleanupCompletedOperations();
 
  private:
-  App* app_;
+  ::firebase::internal::AppState& app_state_;
 
   FutureManager future_manager_;
 
@@ -128,7 +144,6 @@ class StorageInternal {
   double max_upload_retry_time_;
   StoragePath root_;
 
-  CleanupNotifier cleanup_;
   std::string user_agent_;
   Mutex operations_mutex_;
   std::vector<RestOperation*> operations_;

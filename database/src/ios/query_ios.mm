@@ -81,48 +81,74 @@ void LogException(Logger* logger, const char* name, const char* url, NSException
 }
 };
 
-QueryInternal::QueryInternal(DatabaseInternal* database, std::unique_ptr<FIRDatabaseQueryPointer> query)
-    : database_(database), impl_(std::move(query)) {
+QueryInternal::QueryInternal(std::shared_ptr<DatabaseInternal> database,
+                             std::unique_ptr<FIRDatabaseQueryPointer> query)
+    : database_(std::move(database)), impl_(std::move(query)) {
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
 }
 
-QueryInternal::QueryInternal(DatabaseInternal* database, std::unique_ptr<FIRDatabaseQueryPointer> query,
+QueryInternal::QueryInternal(std::shared_ptr<DatabaseInternal> database,
+                             std::unique_ptr<FIRDatabaseQueryPointer> query,
                              const QuerySpec& query_spec)
-    : query_spec_(query_spec), database_(database), impl_(std::move(query)) {
+    : query_spec_(query_spec), database_(std::move(database)), impl_(std::move(query)) {
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
 }
 
 QueryInternal::QueryInternal(const QueryInternal& other)
     : query_spec_(other.query_spec_), database_(other.database_) {
   impl_.reset(new FIRDatabaseQueryPointer(*other.impl_));
-  database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
+  if (database_) {
+    database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
+  }
 }
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& other) {
+  if (this == &other) return *this;
+  if (database_ != other.database_) {
+    if (database_) {
+      database_->future_manager().ReleaseFutureApi(&future_api_id_);
+    }
+    database_ = other.database_;
+    if (database_) {
+      database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
+    }
+  }
   impl_.reset(new FIRDatabaseQueryPointer(*other.impl_));
   query_spec_ = other.query_spec_;
-  database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-QueryInternal::QueryInternal(QueryInternal&& other) : database_(other.database_) {
+QueryInternal::QueryInternal(QueryInternal&& other)
+    : query_spec_(std::move(other.query_spec_)), database_(std::move(other.database_)) {
   impl_ = std::move(other.impl_);
   other.impl_ = std::make_unique<FIRDatabaseQueryPointer>(nil);
-  database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
-  query_spec_ = other.query_spec_;
+  if (database_) {
+    database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
+  }
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& other) {
+  if (this == &other) return *this;
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+  database_ = std::move(other.database_);
   impl_ = std::move(other.impl_);
   other.impl_ = std::make_unique<FIRDatabaseQueryPointer>(nil);
-  database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
-  query_spec_ = other.query_spec_;
+  if (database_) {
+    database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
+  }
+  query_spec_ = std::move(other.query_spec_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-QueryInternal::~QueryInternal() { database_->future_manager().ReleaseFutureApi(&future_api_id_); }
+QueryInternal::~QueryInternal() {
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+}
 
 SingleValueListener::SingleValueListener(
     ReferenceCountedFutureImpl* future, const SafeFutureHandle<DataSnapshot>& handle,
@@ -156,7 +182,8 @@ static void NotifyValueListener(FIRCPPDatabaseQueryCallbackState* _Nonnull callb
   if (database && listener) {
     notify(database, listener,
            DataSnapshot(new DataSnapshotInternal(
-               database, std::make_unique<FIRDataSnapshotPointer>(snapshot_impl))));
+               database->MakeWeakHandle(),
+               std::make_unique<FIRDataSnapshotPointer>(snapshot_impl))));
   }
   [callback_state.lock unlock];
 }
@@ -180,7 +207,7 @@ static void CancelValueListener(FIRCPPDatabaseQueryCallbackState* _Nonnull callb
 Future<DataSnapshot> QueryInternal::GetValue() {
   // Register a one-time ValueEventListener with the query.
   FIRCPPDatabaseQueryCallbackState* callback_state =
-      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
+      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_.get()
                                                         andQuery:impl()
                                                 andValueListener:nullptr
                                                 andChildListener:nullptr];
@@ -225,7 +252,7 @@ Future<DataSnapshot> QueryInternal::GetValueLastResult() {
 
 void QueryInternal::AddValueListener(ValueListener* value_listener) {
   FIRCPPDatabaseQueryCallbackState* callback_state =
-      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
+      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_.get()
                                                         andQuery:impl()
                                                 andValueListener:value_listener
                                                 andChildListener:nullptr];
@@ -279,7 +306,8 @@ static void NotifyChildListener(FIRCPPDatabaseQueryCallbackState* callback_state
   if (database && listener) {
     notify(listener,
            DataSnapshot(new DataSnapshotInternal(
-               database, std::make_unique<FIRDataSnapshotPointer>(snapshot_impl))),
+               database->MakeWeakHandle(),
+               std::make_unique<FIRDataSnapshotPointer>(snapshot_impl))),
            [previous_key UTF8String]);
   }
   [callback_state.lock unlock];
@@ -289,7 +317,7 @@ void QueryInternal::AddChildListener(ChildListener* child_listener) {
   typedef void (^CallbackBlock)(FIRDataSnapshot* _Nonnull, NSString* _Nullable);
   typedef void (^CancelBlock)(NSError* _Nonnull);
   FIRCPPDatabaseQueryCallbackState* callback_state =
-      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
+      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_.get()
                                                         andQuery:impl()
                                                 andValueListener:nullptr
                                                 andChildListener:child_listener];

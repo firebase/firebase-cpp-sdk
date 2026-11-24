@@ -15,12 +15,10 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_IOS_FUNCTIONS_IOS_H_
 #define FIREBASE_FUNCTIONS_SRC_IOS_FUNCTIONS_IOS_H_
 
-#include <map>
-#include <set>
+#include <memory>
 #include <string>
 
-#include <memory>
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -41,27 +39,34 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-class FunctionsInternal {
+class FunctionsInternal : public ::firebase::internal::Service {
  public:
-  FunctionsInternal(App* app, const char* region);
+  FunctionsInternal(::firebase::internal::AppState& app_state, const App& app,
+                    const char* region);
 
-  ~FunctionsInternal();
+  ~FunctionsInternal() override;
 
   // Get the firebase::App that this Functions was created with.
-  App* app() const;
+  App app() const;
+
+  ::firebase::internal::AppState& app_state() const { return app_state_; }
 
   // Return the region we were created with.
   const char* region() const;
 
   // Get a FunctionsReference for the specified path.
-  HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
   HttpsCallableReferenceInternal* GetHttpsCallable(
-      const char* name, const HttpsCallableOptions& options) const;
+      std::shared_ptr<FunctionsInternal> self, const char* name) const;
+  HttpsCallableReferenceInternal* GetHttpsCallable(
+      std::shared_ptr<FunctionsInternal> self, const char* name,
+      const HttpsCallableOptions& options) const;
 
   // Get a FunctionsReference for the specified URL.
-  HttpsCallableReferenceInternal* GetHttpsCallableFromURL(const char* url) const;
   HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
-      const char* url, const HttpsCallableOptions& options) const;
+      std::shared_ptr<FunctionsInternal> self, const char* url) const;
+  HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
+      std::shared_ptr<FunctionsInternal> self, const char* url,
+      const HttpsCallableOptions& options) const;
 
   void UseFunctionsEmulator(const char* origin);
 
@@ -70,13 +75,8 @@ class FunctionsInternal {
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return true; }
 
-  // When this is deleted, it will clean up all FunctionsReferences and other
-  // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
-
  private:
-  // The firebase::App that this Functions was created with.
-  App* app_;
+  ::firebase::internal::AppState& app_state_;
 
   // The region that this Functions was created with.
   std::string region_;
@@ -84,8 +84,6 @@ class FunctionsInternal {
   std::unique_ptr<FIRFunctionsPointer> impl_;
 
   FutureManager future_manager_;
-
-  CleanupNotifier cleanup_;
 };
 
 #pragma clang assume_nonnull end

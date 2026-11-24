@@ -82,7 +82,9 @@ class DisconnectionHandlerInternal {
   // UpdateChildren().
   Future<void> UpdateChildrenLastResult();
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* _Nullable database_internal() const {
+    return database_.get();
+  }
 
   // Special method to create an invalid DisconnectionHandlerInternal, because
   // DisconnectionHandler's constructor is private.
@@ -94,7 +96,7 @@ class DisconnectionHandlerInternal {
   friend class DatabaseReferenceInternal;
 
   explicit DisconnectionHandlerInternal(
-      DatabaseInternal* database,
+      std::shared_ptr<DatabaseInternal> database,
       std::unique_ptr<FIRDatabaseReferencePointer> impl);
 
 #ifdef __OBJC__
@@ -104,7 +106,7 @@ class DisconnectionHandlerInternal {
   // Get the Future for the DatabaseReferenceInternal.
   ReferenceCountedFutureImpl* future();
 
-  DatabaseInternal* database_;
+  std::shared_ptr<DatabaseInternal> database_;
 
   std::unique_ptr<FIRDatabaseReferencePointer> impl_;
 };

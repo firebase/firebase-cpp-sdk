@@ -15,6 +15,7 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 #define FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 
+#include <memory>
 #include <string>
 
 #include "app/rest/transport_curl.h"
@@ -54,7 +55,8 @@ class HttpsCallableRequest : public rest::Request {
 
 class HttpsCallableReferenceInternal {
  public:
-  HttpsCallableReferenceInternal(FunctionsInternal* functions, const char* url,
+  HttpsCallableReferenceInternal(std::shared_ptr<FunctionsInternal> functions,
+                                 const char* url,
                                  const HttpsCallableOptions& options);
   ~HttpsCallableReferenceInternal();
 
@@ -81,8 +83,7 @@ class HttpsCallableReferenceInternal {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   // Gets the functions to which we refer.
-  // TODO(klimt): Do we really need this method?
-  Functions* functions() const;
+  Functions functions() const;
 
   // Asynchronously calls this CallableReference.
   Future<HttpsCallableResult> Call() { return Call(Variant::Null()); }
@@ -96,7 +97,7 @@ class HttpsCallableReferenceInternal {
                             rest::Response* response);
 
   // Pointer to the FunctionsInternal instance we are a part of.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  FunctionsInternal* functions_internal() const { return functions_.get(); }
 
  private:
   // Returns the auth token for the current user, if there is a current user,
@@ -107,8 +108,9 @@ class HttpsCallableReferenceInternal {
   // Get the Future for the HttpsCallableReferenceInternal.
   ReferenceCountedFutureImpl* future();
 
-  // Keep track of the Functions object for managing Futures.
-  FunctionsInternal* functions_;
+  // Keep track of the Functions object for managing Futures and keeping
+  // AppState alive.
+  std::shared_ptr<FunctionsInternal> functions_;
 
   // The URL of the endpoint this reference points to.
   std::string url_;

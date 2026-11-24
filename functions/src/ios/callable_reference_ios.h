@@ -40,8 +40,9 @@ namespace internal {
 
 class HttpsCallableReferenceInternal {
  public:
-  explicit HttpsCallableReferenceInternal(FunctionsInternal* functions,
-                                          std::unique_ptr<FIRHTTPSCallablePointer> impl);
+  explicit HttpsCallableReferenceInternal(
+      std::shared_ptr<FunctionsInternal> functions,
+      std::unique_ptr<FIRHTTPSCallablePointer> impl);
 
   ~HttpsCallableReferenceInternal();
 
@@ -66,7 +67,7 @@ class HttpsCallableReferenceInternal {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   // Gets the functions to which we refer.
-  Functions* functions();
+  Functions functions() const;
 
   // Returns the result of the call.
   Future<HttpsCallableResult> Call();
@@ -74,7 +75,7 @@ class HttpsCallableReferenceInternal {
   Future<HttpsCallableResult> Call(const Variant& data);
 
   // FunctionsInternal instance we are associated with.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  FunctionsInternal* _Nullable functions_internal() const { return functions_.get(); }
 
  private:
 #ifdef __OBJC__
@@ -86,8 +87,9 @@ class HttpsCallableReferenceInternal {
   // Get the Future for the HttpsCallableReferenceInternal.
   ReferenceCountedFutureImpl* future();
 
-  // Keep track of the Functions object for managing Futures.
-  FunctionsInternal* functions_;
+  // Keep track of the Functions object for managing Futures and keeping
+  // AppState alive.
+  std::shared_ptr<FunctionsInternal> functions_;
 
   std::unique_ptr<FIRHTTPSCallablePointer> impl_;
 

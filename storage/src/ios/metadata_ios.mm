@@ -49,18 +49,18 @@ static int64_t NSDateToMilliseconds(NSDate *date) {
   return milliseconds_since_the_epoch;
 }
 
-MetadataInternal::MetadataInternal() : storage_(nullptr), custom_metadata_(nullptr) {
+MetadataInternal::MetadataInternal() : custom_metadata_(nullptr) {
   impl_.reset(new FIRStorageMetadataPointer([[FIRStorageMetadata alloc] init]));
 }
 
-MetadataInternal::MetadataInternal(StorageInternal* storage)
-    : storage_(storage), custom_metadata_(nullptr) {
+MetadataInternal::MetadataInternal(std::weak_ptr<StorageInternal> storage)
+    : storage_(std::move(storage)), custom_metadata_(nullptr) {
   impl_.reset(new FIRStorageMetadataPointer([[FIRStorageMetadata alloc] init]));
 }
 
-MetadataInternal::MetadataInternal(StorageInternal* storage,
+MetadataInternal::MetadataInternal(std::weak_ptr<StorageInternal> storage,
                                    std::unique_ptr<FIRStorageMetadataPointer> impl)
-    : storage_(storage), impl_(std::move(impl)), custom_metadata_(nullptr) {}
+    : storage_(std::move(storage)), impl_(std::move(impl)), custom_metadata_(nullptr) {}
 
 MetadataInternal::MetadataInternal(const MetadataInternal& metadata)
     : storage_(metadata.storage_),
@@ -71,6 +71,7 @@ MetadataInternal::MetadataInternal(const MetadataInternal& metadata)
 }
 
 MetadataInternal& MetadataInternal::operator=(const MetadataInternal& metadata) {
+  if (this == &metadata) return *this;
   storage_ = metadata.storage_;
   impl_.reset(new FIRStorageMetadataPointer(CopyObjCMetadataObject(metadata.impl())));
 
@@ -82,20 +83,21 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& metadata) 
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 MetadataInternal::MetadataInternal(MetadataInternal&& other) {
-  storage_ = other.storage_;
-  other.storage_ = nullptr;
+  storage_ = std::move(other.storage_);
   impl_ = std::move(other.impl_);
   other.impl_ = std::make_unique<FIRStorageMetadataPointer>([[FIRStorageMetadata alloc] init]);
-  custom_metadata_ = std::move(other.custom_metadata_);
+  custom_metadata_ = other.custom_metadata_;
+  other.custom_metadata_ = nullptr;
 }
 
 MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
-  storage_ = other.storage_;
-  other.storage_ = nullptr;
+  if (this == &other) return *this;
+  storage_ = std::move(other.storage_);
   impl_ = std::move(other.impl_);
   other.impl_ = std::make_unique<FIRStorageMetadataPointer>([[FIRStorageMetadata alloc] init]);
   if (custom_metadata_) delete custom_metadata_;
-  custom_metadata_ = std::move(other.custom_metadata_);
+  custom_metadata_ = other.custom_metadata_;
+  other.custom_metadata_ = nullptr;
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)

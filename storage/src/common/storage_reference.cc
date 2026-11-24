@@ -17,6 +17,7 @@
 #include <cassert>
 
 #include "app/src/assert.h"
+#include "storage/src/include/firebase/storage.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -42,88 +43,45 @@ static void AssertMetadataIsValid(const Metadata& metadata) {
                           "The specified Metadata is not valid.");
 }
 
-namespace internal {
-
-class StorageReferenceInternalCommon {
- public:
-  static void DeleteInternal(StorageReference* storage_reference) {
-    StorageReferenceInternal* internal = storage_reference->internal_;
-    // Since this can trigger a chain of events that deletes the encompassing
-    // object, remove the reference to the internal implementation *before*
-    // deleting it so that it can't be deleted twice.
-    storage_reference->internal_ = nullptr;
-    UnregisterForCleanup(storage_reference, internal);
-    delete internal;
-  }
-
-  static void CleanupStorageReference(void* storage_reference_void) {
-    DeleteInternal(reinterpret_cast<StorageReference*>(storage_reference_void));
-  }
-
-  static void RegisterForCleanup(StorageReference* obj,
-                                 StorageReferenceInternal* internal) {
-    if (internal && internal->storage_internal()) {
-      internal->storage_internal()->cleanup().RegisterObject(
-          obj, CleanupStorageReference);
-    }
-  }
-
-  static void UnregisterForCleanup(StorageReference* obj,
-                                   StorageReferenceInternal* internal) {
-    if (internal && internal->storage_internal()) {
-      internal->storage_internal()->cleanup().UnregisterObject(obj);
-    }
-  }
-};
-
-}  // namespace internal
-
 using internal::StorageReferenceInternal;
-using internal::StorageReferenceInternalCommon;
 
 StorageReference::StorageReference(StorageReferenceInternal* internal)
-    : internal_(internal) {
-  StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
-}
+    : internal_(internal) {}
 
 StorageReference::StorageReference(const StorageReference& other)
     : internal_(other.internal_ ? new StorageReferenceInternal(*other.internal_)
-                                : nullptr) {
-  StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
-}
+                                : nullptr) {}
 
 StorageReference& StorageReference::operator=(const StorageReference& other) {
-  StorageReferenceInternalCommon::DeleteInternal(this);
+  if (this == &other) return *this;
+  delete internal_;
   internal_ = other.internal_ ? new StorageReferenceInternal(*other.internal_)
                               : nullptr;
-  StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-StorageReference::StorageReference(StorageReference&& other) {
-  StorageReferenceInternalCommon::UnregisterForCleanup(&other, other.internal_);
-  internal_ = other.internal_;
+StorageReference::StorageReference(StorageReference&& other)
+    : internal_(other.internal_) {
   other.internal_ = nullptr;
-  StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
 }
 
 StorageReference& StorageReference::operator=(StorageReference&& other) {
-  StorageReferenceInternalCommon::DeleteInternal(this);
-  StorageReferenceInternalCommon::UnregisterForCleanup(&other, other.internal_);
+  if (this == &other) return *this;
+  delete internal_;
   internal_ = other.internal_;
   other.internal_ = nullptr;
-  StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 StorageReference::~StorageReference() {
-  StorageReferenceInternalCommon::DeleteInternal(this);
+  delete internal_;
+  internal_ = nullptr;
 }
 
-Storage* StorageReference::storage() {
-  return internal_ ? internal_->storage() : nullptr;
+Storage StorageReference::storage() const {
+  return internal_ ? internal_->storage() : Storage();
 }
 
 StorageReference StorageReference::Child(const char* path) const {
@@ -258,7 +216,9 @@ Future<StorageListResult> StorageReference::ListLastResult() {
   return internal_ ? internal_->ListLastResult() : Future<StorageListResult>();
 }
 
-bool StorageReference::is_valid() const { return internal_ != nullptr; }
+bool StorageReference::is_valid() const {
+  return internal_ != nullptr && internal_->is_valid();
+}
 
 }  // namespace storage
 }  // namespace firebase

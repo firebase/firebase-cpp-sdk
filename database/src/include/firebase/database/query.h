@@ -322,8 +322,6 @@ class Query {
   /// @cond FIREBASE_APP_INTERNAL
   explicit Query(internal::QueryInternal* internal);
   void SetInternal(internal::QueryInternal* internal);
-  void RegisterCleanup();
-  void UnregisterCleanup();
   /// @endcond
 
  private:

@@ -18,6 +18,8 @@
 #include <jni.h>
 #include <stdint.h>
 
+#include <memory>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_reference_android.h"
@@ -110,26 +112,26 @@ class ControllerInternal {
   // We don't assign these in the constructor because Controllers can be
   // constructed by the user of the library, and those controllers are not
   // associated with a specific operation until passed to a Read or Write call.
-  void AssignTask(StorageInternal* storage, jobject task_obj);
+  void AssignTask(std::weak_ptr<StorageInternal> storage, jobject task_obj);
 
   // Initialize JNI bindings for this class.
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
   // Instantiate a ControllerInternal from a task snapshot by calling getTask on
   // the snapshot. Returns nullptr if the type was unknown.
   static ControllerInternal* ControllerFromTaskSnapshot(
-      StorageInternal* storage, jobject task_snapshot_obj);
+      std::weak_ptr<StorageInternal> storage, jobject task_snapshot_obj);
 
   static void CppStorageListenerCallback(JNIEnv* env, jclass clazz,
                                          jlong storage_ptr, jlong listener_ptr,
                                          jobject snapshot,
                                          jboolean is_on_paused);
 
-  bool is_valid() { return storage_ != nullptr && task_obj_ != nullptr; }
+  bool is_valid() const { return !storage_.expired() && task_obj_ != nullptr; }
 
  private:
-  StorageInternal* storage_;
+  std::weak_ptr<StorageInternal> storage_;
   jobject task_obj_;
 };
 

@@ -22,6 +22,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
+#include "database/src/desktop/database_desktop.h"
 #include "database/src/desktop/database_reference_desktop.h"
 #include "database/src/desktop/query_params_comparator.h"
 #include "database/src/desktop/util_desktop.h"
@@ -30,14 +31,22 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
-                                           const Variant& data,
-                                           const QuerySpec& query_spec)
-    : database_(database), data_(data), query_spec_(query_spec) {
+DataSnapshotInternal::DataSnapshotInternal(
+    std::weak_ptr<DatabaseInternal> database, const Variant& data,
+    const QuerySpec& query_spec)
+    : database_(std::move(database)), data_(data), query_spec_(query_spec) {
   if (HasVector(data_)) {
     ConvertVectorToMap(&data_);
   }
 }
+
+DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
+                                           const Variant& data,
+                                           const QuerySpec& query_spec)
+    : DataSnapshotInternal(
+          database ? database->MakeWeakHandle()
+                   : std::weak_ptr<DatabaseInternal>(),
+          data, query_spec) {}
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& internal)
     : database_(internal.database_),
@@ -54,14 +63,14 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& internal) {
-  database_ = internal.database_;
+  database_ = std::move(internal.database_);
   data_ = std::move(internal.data_);
   query_spec_ = std::move(internal.query_spec_);
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
     DataSnapshotInternal&& internal) {
-  database_ = internal.database_;
+  database_ = std::move(internal.database_);
   data_ = std::move(internal.data_);
   query_spec_ = std::move(internal.query_spec_);
   return *this;
@@ -129,7 +138,9 @@ Variant DataSnapshotInternal::GetPriority() const {
 }
 
 DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
-  return new DatabaseReferenceInternal(database_, query_spec_.path);
+  auto locked = database_.lock();
+  if (!locked) return nullptr;
+  return new DatabaseReferenceInternal(std::move(locked), query_spec_.path);
 }
 
 bool DataSnapshotInternal::HasChild(const char* path) const {
@@ -137,8 +148,9 @@ bool DataSnapshotInternal::HasChild(const char* path) const {
 }
 
 bool DataSnapshotInternal::operator==(const DataSnapshotInternal& other) const {
-  return database_ == other.database_ && data_ == other.data_ &&
-         query_spec_ == other.query_spec_;
+  bool same_db = !database_.owner_before(other.database_) &&
+                 !other.database_.owner_before(database_);
+  return same_db && data_ == other.data_ && query_spec_ == other.query_spec_;
 }
 
 bool DataSnapshotInternal::operator!=(const DataSnapshotInternal& other) const {

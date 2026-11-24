@@ -44,7 +44,7 @@ IndexedVariant LimitedFilter::UpdateChild(
     ChildChangeAccumulator* opt_change_accumulator) const {
   const Variant& variant =
       ranged_filter_->Matches(std::make_pair(key, new_child)) ? new_child
-                                                              : kNullVariant;
+                                                              : NullVariant();
 
   const Variant* child = GetInternalVariant(&indexed_variant.variant(), key);
   if (child && (*child == variant)) {

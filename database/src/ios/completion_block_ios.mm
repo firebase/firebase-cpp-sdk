@@ -20,12 +20,17 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-CompletionBlock CreateCompletionBlock(SafeFutureHandle<void> handle, ReferenceCountedFutureImpl* future) {
-  FutureCallbackData<void>* data = new FutureCallbackData<void>(handle, future);
+CompletionBlock CreateCompletionBlock(SafeFutureHandle<void> handle,
+                                      ReferenceCountedFutureImpl* future,
+                                      std::weak_ptr<DatabaseInternal> database) {
+  FutureCallbackData<void>* data =
+      new FutureCallbackData<void>(handle, future, std::move(database));
   return ^void(NSError *_Nullable error, FIRDatabaseReference *_Nonnull /*ref*/) {
-    Error error_code = NSErrorToErrorCode(error);
-    const char* error_string = GetErrorMessage(error_code);
-    data->impl->Complete(data->handle, error_code, error_string);
+    if (auto locked_db = data->database.lock()) {
+      Error error_code = NSErrorToErrorCode(error);
+      const char* error_string = GetErrorMessage(error_code);
+      data->impl->Complete(data->handle, error_code, error_string);
+    }
     delete data;
   };
 }

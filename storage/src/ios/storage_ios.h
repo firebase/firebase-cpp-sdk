@@ -20,8 +20,9 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -53,14 +54,18 @@ namespace internal {
 // around the FIRStorage Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRStorage);
 
-class StorageInternal {
+class StorageInternal : public ::firebase::internal::Service {
  public:
-  StorageInternal(App* _Nonnull app, const char* _Nullable url);
+  StorageInternal(::firebase::internal::AppState& app_state, const App& app,
+                  const char* _Nullable url);
 
-  ~StorageInternal();
+  ~StorageInternal() override;
 
   // Get the firebase::App that this Storage was created with.
-  App* _Nonnull app() const;
+  App app() const;
+
+  // Returns an aliasing shared_ptr owning the enclosing AppState.
+  std::shared_ptr<StorageInternal> MakeSharedHandle() const;
 
   // Return the URL we were created with.
   const std::string& url() const { return url_; }
@@ -101,16 +106,12 @@ class StorageInternal {
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const;
 
-  // When this is deleted, it will clean up all StorageReferences and other
-  // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
-
  private:
 #ifdef __OBJC__
   FIRStorage* _Nullable impl() const { return impl_->get(); }
 #endif
-  // The firease::App that this Storage was created with.
-  App* _Nonnull app_;
+  // Owning AppState for this Storage service.
+  ::firebase::internal::AppState& app_state_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStoragePointer> impl_;
@@ -118,8 +119,6 @@ class StorageInternal {
   FutureManager future_manager_;
 
   std::string url_;
-
-  CleanupNotifier cleanup_;
 };
 
 }  // namespace internal

@@ -42,8 +42,12 @@ METHOD_LOOKUP_DEFINITION(storage_metadata_builder,
                          "com/google/firebase/storage/StorageMetadata$Builder",
                          STORAGE_METADATA_BUILDER_METHODS)
 
-MetadataInternal::MetadataInternal(StorageInternal* storage, jobject obj)
-    : storage_(storage), custom_metadata_(nullptr) {
+MetadataInternal::MetadataInternal()
+    : MetadataInternal(std::weak_ptr<StorageInternal>(), nullptr) {}
+
+MetadataInternal::MetadataInternal(std::weak_ptr<StorageInternal> storage,
+                                   jobject obj)
+    : storage_(std::move(storage)), custom_metadata_(nullptr) {
   cache_.resize(kCacheStringCount, nullptr);
   JNIEnv* env = GetJNIEnv();
   if (obj == nullptr) {
@@ -66,8 +70,8 @@ MetadataInternal::MetadataInternal(StorageInternal* storage, jobject obj)
   }
 }
 
-MetadataInternal::MetadataInternal(StorageInternal* storage)
-    : MetadataInternal(storage, nullptr) {}
+MetadataInternal::MetadataInternal(std::weak_ptr<StorageInternal> storage)
+    : MetadataInternal(std::move(storage), nullptr) {}
 
 // Free any assigned string pointers from the given vector, assigning them to
 // nullptr.
@@ -104,9 +108,7 @@ MetadataInternal::~MetadataInternal() {
   }
 }
 
-JNIEnv* MetadataInternal::GetJNIEnv() {
-  return storage_ ? storage_->app()->GetJNIEnv() : util::GetJNIEnvFromApp();
-}
+JNIEnv* MetadataInternal::GetJNIEnv() { return util::GetJNIEnvFromApp(); }
 
 // Creates a new copy of the map passed in (unless the map passed in is nullptr,
 // in which case this function will return nullptr).
@@ -150,7 +152,7 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& src) {
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 MetadataInternal::MetadataInternal(MetadataInternal&& src)
-    : storage_(src.storage_) {
+    : storage_(std::move(src.storage_)) {
   obj_ = src.obj_;
   custom_metadata_ = std::move(src.custom_metadata_);
   src.custom_metadata_ = nullptr;
@@ -164,6 +166,7 @@ MetadataInternal::MetadataInternal(MetadataInternal&& src)
 }
 
 MetadataInternal& MetadataInternal::operator=(MetadataInternal&& src) {
+  storage_ = std::move(src.storage_);
   obj_ = src.obj_;
   src.obj_ = nullptr;
   if (custom_metadata_ != nullptr) {
@@ -194,15 +197,14 @@ void MetadataInternal::CopyJavaMetadataObject(JNIEnv* env, jobject src_obj) {
   CommitBuilder(builder);
 }
 
-bool MetadataInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
+bool MetadataInternal::Initialize(const App& app) {
+  JNIEnv* env = app.GetJNIEnv();
+  jobject activity = app.activity();
   return storage_metadata::CacheMethodIds(env, activity) &&
          storage_metadata_builder::CacheMethodIds(env, activity);
 }
 
-void MetadataInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
+void MetadataInternal::Terminate(JNIEnv* env) {
   storage_metadata_builder::ReleaseClass(env);
   storage_metadata::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
@@ -391,7 +393,8 @@ const char* MetadataInternal::path() {
 
 StorageReferenceInternal* MetadataInternal::GetReference() {
   // If we don't have an associated Storage, we are not assigned to a reference.
-  if (storage_ == nullptr) return nullptr;
+  auto locked_storage = storage_.lock();
+  if (!locked_storage) return nullptr;
   JNIEnv* env = GetJNIEnv();
   jobject ref_obj = env->CallObjectMethod(
       obj_, storage_metadata::GetMethodId(storage_metadata::kGetReference));
@@ -401,7 +404,7 @@ StorageReferenceInternal* MetadataInternal::GetReference() {
     return nullptr;
   }
   StorageReferenceInternal* new_ref =
-      new StorageReferenceInternal(storage_, ref_obj);
+      new StorageReferenceInternal(std::move(locked_storage), ref_obj);
   env->DeleteLocalRef(ref_obj);
   return new_ref;
 }

@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
@@ -102,7 +103,8 @@ typedef std::shared_ptr<Response> ResponsePtr;
 
 class PersistentConnection : public ConnectionEventHandler {
  public:
-  explicit PersistentConnection(App* app, const HostInfo& info,
+  explicit PersistentConnection(::firebase::internal::AppState& app_state,
+                                const HostInfo& info,
                                 PersistentConnectionEventHandler* event_handler,
                                 scheduler::Scheduler* scheduler,
                                 Logger* logger);
@@ -500,8 +502,9 @@ class PersistentConnection : public ConnectionEventHandler {
   static std::atomic<uint32_t> next_log_id_;
   std::string log_id_;
 
-  // Reference to Firebase App.  Primarily used to get auth token.
-  ::firebase::App* app_;
+  // Reference to AppState. Primarily used to access auth and App Check token
+  // providers.
+  ::firebase::internal::AppState& app_state_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the std::shared_ptr never

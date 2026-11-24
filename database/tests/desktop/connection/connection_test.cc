@@ -55,12 +55,12 @@ class ConnectionTest : public ::testing::Test, public ConnectionEventHandler {
         sem_on_disconnect_(0) {}
 
   void SetUp() override {
-    testing::CreateApp();
+    app_ = testing::CreateApp();
     test_host_info_ = new HostInfo(kDatabaseHostname, kDatabaseNamespace, true);
   }
 
   void TearDown() override {
-    delete firebase::App::GetInstance();
+    app_ = firebase::App();
     delete test_host_info_;
   }
 
@@ -123,6 +123,7 @@ class ConnectionTest : public ::testing::Test, public ConnectionEventHandler {
 
   scheduler::Scheduler scheduler_;
 
+  firebase::App app_;
   HostInfo* test_host_info_;
 
   std::string last_session_id_;

@@ -29,9 +29,9 @@ namespace internal {
 using util::IdToVariant;
 using util::VariantToId;
 
-MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
+MutableDataInternal::MutableDataInternal(std::weak_ptr<DatabaseInternal> database,
                                          std::unique_ptr<FIRMutableDataPointer> impl)
-    : db_(database), impl_(std::move(impl)) {}
+    : db_(std::move(database)), impl_(std::move(impl)) {}
 
 MutableDataInternal::~MutableDataInternal() {}
 
@@ -71,7 +71,9 @@ void MutableDataInternal::SetValue(Variant value) { impl().value = VariantToId(v
 
 void MutableDataInternal::SetPriority(Variant priority) {
   if (!IsValidPriority(priority)) {
-    db_->logger()->LogError(kErrorMsgInvalidVariantForPriority);
+    if (auto locked_db = db_.lock()) {
+      locked_db->logger()->LogError(kErrorMsgInvalidVariantForPriority);
+    }
   } else {
     impl().priority = VariantToId(priority);
   }

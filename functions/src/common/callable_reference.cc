@@ -40,82 +40,46 @@ namespace functions {
 
 using internal::HttpsCallableReferenceInternal;
 
-static void CleanupCallableReference(void* functions_reference_void) {
-  auto functions_reference =
-      reinterpret_cast<HttpsCallableReference*>(functions_reference_void);
-  // Overwrite the existing reference with an invalid reference.
-  *functions_reference = HttpsCallableReference();
-}
-
-static void RegisterForCleanup(
-    HttpsCallableReference* obj,
-    internal::HttpsCallableReferenceInternal* internal) {
-  if (internal && internal->functions_internal()) {
-    internal->functions_internal()->cleanup().RegisterObject(
-        obj, CleanupCallableReference);
-  }
-}
-
-static void UnregisterForCleanup(
-    HttpsCallableReference* obj,
-    internal::HttpsCallableReferenceInternal* internal) {
-  if (internal && internal->functions_internal()) {
-    internal->functions_internal()->cleanup().UnregisterObject(obj);
-  }
-}
-
 HttpsCallableReference::HttpsCallableReference(
     HttpsCallableReferenceInternal* internal)
-    : internal_(internal) {
-  RegisterForCleanup(this, internal_);
-}
+    : internal_(internal) {}
 
 HttpsCallableReference::HttpsCallableReference(
     const HttpsCallableReference& other)
     : internal_(other.internal_
                     ? new HttpsCallableReferenceInternal(*other.internal_)
-                    : nullptr) {
-  RegisterForCleanup(this, internal_);
-}
+                    : nullptr) {}
 
 HttpsCallableReference& HttpsCallableReference::operator=(
     const HttpsCallableReference& other) {
-  UnregisterForCleanup(this, internal_);
+  if (this == &other) return *this;
   delete internal_;
   internal_ = other.internal_
                   ? new HttpsCallableReferenceInternal(*other.internal_)
                   : nullptr;
-  RegisterForCleanup(this, internal_);
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-HttpsCallableReference::HttpsCallableReference(HttpsCallableReference&& other) {
-  UnregisterForCleanup(&other, other.internal_);
-  internal_ = other.internal_;
+HttpsCallableReference::HttpsCallableReference(HttpsCallableReference&& other)
+    : internal_(other.internal_) {
   other.internal_ = nullptr;
-  RegisterForCleanup(this, internal_);
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
     HttpsCallableReference&& other) {
-  UnregisterForCleanup(this, internal_);
+  if (this == &other) return *this;
   delete internal_;
-  UnregisterForCleanup(&other, other.internal_);
   internal_ = other.internal_;
   other.internal_ = nullptr;
-  RegisterForCleanup(this, internal_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-HttpsCallableReference::~HttpsCallableReference() {
-  UnregisterForCleanup(this, internal_);
-  delete internal_;
-}
+HttpsCallableReference::~HttpsCallableReference() { delete internal_; }
 
-Functions* HttpsCallableReference::functions() {
-  return internal_ ? internal_->functions() : nullptr;
+Functions HttpsCallableReference::functions() const {
+  return internal_ ? internal_->functions() : Functions();
 }
 
 Future<HttpsCallableResult> HttpsCallableReference::Call() {

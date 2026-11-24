@@ -26,6 +26,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/no_destructor.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/view/indexed_filter.h"
 #include "database/src/desktop/view/limited_filter.h"
@@ -47,7 +48,11 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-const Variant kNullVariant = Variant::Null();  // NOLINT
+const Variant& NullVariant() {
+  static ::firebase::internal::NoDestructor<Variant> kNullVariant(
+      Variant::Null());
+  return *kNullVariant;
+}
 
 const char kValueKey[] = ".value";
 const char kPriorityKey[] = ".priority";
@@ -93,14 +98,14 @@ static const Variant& VariantGetImmediateChild(const Variant* variant,
     if (IsPriorityKey(key)) {
       return GetVariantPriority(*variant);
     } else {
-      return kNullVariant;
+      return NullVariant();
     }
   } else {
     if (IsPriorityKey(key)) {
       return GetVariantPriority(*variant);
     } else {
       const Variant* result = MapGet(&variant->map(), key);
-      return result ? *result : kNullVariant;
+      return result ? *result : NullVariant();
     }
   }
 }
@@ -112,7 +117,7 @@ const Variant& VariantGetChild(const Variant* variant, const Path& path) {
     } else if (IsPriorityKey(path.FrontDirectory().str())) {
       return GetVariantPriority(*variant);
     } else {
-      return kNullVariant;
+      return NullVariant();
     }
   } else {
     std::string front = path.FrontDirectory().str();
@@ -625,11 +630,11 @@ Variant* GetVariantValue(Variant* variant) {
 
 const Variant& GetVariantPriority(const Variant& variant) {
   if (!variant.is_map()) {
-    return kNullVariant;
+    return NullVariant();
   }
   auto iter = variant.map().find(kPriorityKey);
   if (iter == variant.map().end()) {
-    return kNullVariant;
+    return NullVariant();
   }
   return iter->second;
 }
@@ -1075,7 +1080,7 @@ std::pair<Variant, Variant> GetStartPost(const QueryParams& params) {
   if (HasStart(params)) {
     return MakePost(params, GetStartName(params), GetStartValue(params));
   } else {
-    return QueryParamsComparator::kMinNode;
+    return QueryParamsComparator::MinNode();
   }
 }
 
@@ -1083,7 +1088,7 @@ std::pair<Variant, Variant> GetEndPost(const QueryParams& params) {
   if (HasEnd(params)) {
     return MakePost(params, GetEndName(params), GetEndValue(params));
   } else {
-    return QueryParamsComparator::kMaxNode;
+    return QueryParamsComparator::MaxNode();
   }
 }
 

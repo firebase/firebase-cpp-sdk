@@ -37,12 +37,18 @@ namespace internal {
 const char kVirtualChildKeyValue[] = ".value";
 const char kVirtualChildKeyPriority[] = ".priority";
 
-DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
-                                                     const Path& path)
-    : QueryInternal(database, QuerySpec(path)) {
+DatabaseReferenceInternal::DatabaseReferenceInternal(
+    std::shared_ptr<DatabaseInternal> database, const Path& path)
+    : QueryInternal(std::move(database), QuerySpec(path)) {
   if (database_) {
     database_->future_manager().AllocFutureApi(&future_api_id_,
                                                kDatabaseReferenceFnCount);
+  }
+}
+
+DatabaseReferenceInternal::~DatabaseReferenceInternal() {
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
   }
 }
 
@@ -57,33 +63,49 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     const DatabaseReferenceInternal& internal) {
-  QueryInternal::operator=(internal);
+  if (this == &internal) return *this;
+  if (database_ != internal.database_) {
+    if (database_) {
+      database_->future_manager().ReleaseFutureApi(&future_api_id_);
+    }
+    QueryInternal::operator=(internal);
+    if (database_) {
+      database_->future_manager().AllocFutureApi(&future_api_id_,
+                                                 kDatabaseReferenceFnCount);
+    }
+  } else {
+    QueryInternal::operator=(internal);
+  }
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(
-    DatabaseReferenceInternal&& internal) {
+    DatabaseReferenceInternal&& internal)
+    : QueryInternal(std::move(internal)) {
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
                                               &future_api_id_);
   }
-  QueryInternal::operator=(std::move(internal));
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     DatabaseReferenceInternal&& internal) {
+  if (this == &internal) return *this;
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+  QueryInternal::operator=(std::move(internal));
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
                                               &future_api_id_);
   }
-  QueryInternal::operator=(std::move(internal));
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-Database* DatabaseReferenceInternal::GetDatabase() const {
-  return database_ ? Database::GetInstance(database_->GetApp()) : nullptr;
+Database DatabaseReferenceInternal::GetDatabase() const {
+  return Database(database_);
 }
 
 std::string DatabaseReferenceInternal::GetUrl() const {
@@ -125,11 +147,14 @@ Future<void> DatabaseReferenceInternal::RemoveValue() {
       ref_future()->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
 
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo* repo, Path path, ReferenceCountedFutureImpl* api,
+      [](Repo::ThisRef ref, Path path, ReferenceCountedFutureImpl* api,
          SafeFutureHandle<void> handle) {
-        repo->SetValue(path, Variant::Null(), api, handle);
+        Repo::ThisRefLock lock(&ref);
+        if (auto* repo = lock.GetReference()) {
+          repo->SetValue(path, Variant::Null(), api, handle);
+        }
       },
-      database_->repo(), query_spec_.path, ref_future(), handle));
+      database_->repo()->this_ref(), query_spec_.path, ref_future(), handle));
   return MakeFuture(ref_future(), handle);
 }
 
@@ -145,16 +170,22 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
 
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo* repo, Path path, DoTransactionWithContext transaction_function,
-         void* context, void (*delete_context)(void*),
-         bool trigger_local_events, ReferenceCountedFutureImpl* api,
+      [](Repo::ThisRef ref, Path path,
+         DoTransactionWithContext transaction_function, void* context,
+         void (*delete_context)(void*), bool trigger_local_events,
+         ReferenceCountedFutureImpl* api,
          SafeFutureHandle<DataSnapshot> handle) {
-        repo->StartTransaction(path, transaction_function, context,
-                               delete_context, trigger_local_events, api,
-                               handle);
+        Repo::ThisRefLock lock(&ref);
+        if (auto* repo = lock.GetReference()) {
+          repo->StartTransaction(path, transaction_function, context,
+                                 delete_context, trigger_local_events, api,
+                                 handle);
+        } else if (delete_context) {
+          delete_context(context);
+        }
       },
-      database_->repo(), query_spec_.path, transaction_function, context,
-      delete_context, trigger_local_events, ref_future(), handle));
+      database_->repo()->this_ref(), query_spec_.path, transaction_function,
+      context, delete_context, trigger_local_events, ref_future(), handle));
 
   return MakeFuture(ref_future(), handle);
 }
@@ -175,13 +206,16 @@ Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
                            kErrorMsgInvalidVariantForPriority);
   } else {
     Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant priority,
+        [](Repo::ThisRef ref, Path path, Variant priority,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&priority);
-          repo->SetValue(path, priority, api, handle);
+          Repo::ThisRefLock lock(&ref);
+          if (auto* repo = lock.GetReference()) {
+            ConvertVectorToMap(&priority);
+            repo->SetValue(path, priority, api, handle);
+          }
         },
-        database_->repo(), query_spec_.path.GetChild(kPriorityKey), priority,
-        ref_future(), handle));
+        database_->repo()->this_ref(), query_spec_.path.GetChild(kPriorityKey),
+        priority, ref_future(), handle));
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -199,12 +233,16 @@ Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
                            kErrorMsgConflictSetValue);
   } else {
     Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant value,
+        [](Repo::ThisRef ref, Path path, Variant value,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&value);
-          repo->SetValue(path, value, api, handle);
+          Repo::ThisRefLock lock(&ref);
+          if (auto* repo = lock.GetReference()) {
+            ConvertVectorToMap(&value);
+            repo->SetValue(path, value, api, handle);
+          }
         },
-        database_->repo(), query_spec_.path, value, ref_future(), handle));
+        database_->repo()->this_ref(), query_spec_.path, value, ref_future(),
+        handle));
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -246,13 +284,16 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(
           std::make_pair(kVirtualChildKeyPriority, priority)};
     }
     Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant value_priority,
+        [](Repo::ThisRef ref, Path path, Variant value_priority,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&value_priority);
-          repo->SetValue(path, value_priority, api, handle);
+          Repo::ThisRefLock lock(&ref);
+          if (auto* repo = lock.GetReference()) {
+            ConvertVectorToMap(&value_priority);
+            repo->SetValue(path, value_priority, api, handle);
+          }
         },
-        database_->repo(), query_spec_.path, value_priority, ref_future(),
-        handle));
+        database_->repo()->this_ref(), query_spec_.path, value_priority,
+        ref_future(), handle));
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -270,12 +311,16 @@ Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
                            kErrorMsgInvalidVariantForUpdateChildren);
   } else {
     Repo::scheduler().Schedule(NewCallback(
-        [](Repo* repo, Path path, Variant values,
+        [](Repo::ThisRef ref, Path path, Variant values,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
-          ConvertVectorToMap(&values);
-          repo->UpdateChildren(path, values, api, handle);
+          Repo::ThisRefLock lock(&ref);
+          if (auto* repo = lock.GetReference()) {
+            ConvertVectorToMap(&values);
+            repo->UpdateChildren(path, values, api, handle);
+          }
         },
-        database_->repo(), query_spec_.path, values, ref_future(), handle));
+        database_->repo()->this_ref(), query_spec_.path, values, ref_future(),
+        handle));
   }
   return MakeFuture(ref_future(), handle);
 }

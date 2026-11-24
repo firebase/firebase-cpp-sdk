@@ -64,7 +64,7 @@ class ControllerInternal {
   // constructed by the user of the library, and those controllers are not
   // associated with a specific operation until passed to a Read or Write call.
   void AssignTask(
-      StorageInternal *_Nonnull storage,
+      std::weak_ptr<StorageInternal> storage,
       FIRStorageObservableTask<FIRStorageTaskManagement> *_Nonnull task_impl);
 #endif  // __OBJC__
 
@@ -80,7 +80,7 @@ class ControllerInternal {
         task_impl_->get();
   }
 #endif  // __OBJC__
-  StorageInternal *_Nullable storage_;
+  std::weak_ptr<StorageInternal> storage_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStorageObservableTaskPointer> task_impl_;

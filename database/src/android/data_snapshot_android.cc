@@ -49,33 +49,46 @@ METHOD_LOOKUP_DEFINITION(data_snapshot,
                          "com/google/firebase/database/DataSnapshot",
                          DATA_SNAPSHOT_METHODS)
 
-DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* db, jobject obj)
-    : db_(db) {
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
+DataSnapshotInternal::DataSnapshotInternal(std::weak_ptr<DatabaseInternal> db,
+                                           jobject obj)
+    : db_(std::move(db)) {
+  obj_ = util::GetJNIEnvFromApp()->NewGlobalRef(obj);
 }
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& src)
     : db_(src.db_) {
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_);
+  obj_ = util::GetJNIEnvFromApp()->NewGlobalRef(src.obj_);
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
     const DataSnapshotInternal& src) {
+  if (this == &src) return *this;
+  JNIEnv* env = util::GetJNIEnvFromApp();
+  if (obj_ != nullptr) {
+    env->DeleteGlobalRef(obj_);
+    obj_ = nullptr;
+  }
   db_ = src.db_;  // In case we are assigning to another db's Query.
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_);
+  if (src.obj_ != nullptr) {
+    obj_ = env->NewGlobalRef(src.obj_);
+  }
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& src)
-    : db_(src.db_) {
+    : db_(std::move(src.db_)) {
   obj_ = src.obj_;
   src.obj_ = nullptr;
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
     DataSnapshotInternal&& src) {
-  db_ = src.db_;
+  if (this == &src) return *this;
+  if (obj_ != nullptr) {
+    util::GetJNIEnvFromApp()->DeleteGlobalRef(obj_);
+  }
+  db_ = std::move(src.db_);
   obj_ = src.obj_;
   src.obj_ = nullptr;
   return *this;
@@ -89,20 +102,19 @@ DataSnapshotInternal::~DataSnapshotInternal() {
   }
 }
 
-bool DataSnapshotInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
+bool DataSnapshotInternal::Initialize(const App& app) {
+  JNIEnv* env = app.GetJNIEnv();
+  jobject activity = app.activity();
   return data_snapshot::CacheMethodIds(env, activity);
 }
 
-void DataSnapshotInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
+void DataSnapshotInternal::Terminate(JNIEnv* env) {
   data_snapshot::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 }
 
 bool DataSnapshotInternal::Exists() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   jboolean result = env->CallBooleanMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kExists));
   util::CheckAndClearJniExceptions(env);
@@ -110,7 +122,7 @@ bool DataSnapshotInternal::Exists() const {
 }
 
 DataSnapshotInternal* DataSnapshotInternal::Child(const char* path) const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   jstring path_string = env->NewStringUTF(path);
   jobject child_obj = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kChild), path_string);
@@ -126,7 +138,7 @@ DataSnapshotInternal* DataSnapshotInternal::Child(const char* path) const {
 }
 
 std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   std::vector<DataSnapshot> result;
   result.reserve(GetChildrenCount());
   // iterable = snapshot.getChildren()
@@ -151,20 +163,20 @@ std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
 }
 
 size_t DataSnapshotInternal::GetChildrenCount() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   return env->CallLongMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetChildrenCount));
 }
 
 bool DataSnapshotInternal::HasChildren() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   return env->CallBooleanMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kHasChildren));
 }
 
 const char* DataSnapshotInternal::GetKey() {
   if (cached_key_.is_null()) {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
+    JNIEnv* env = util::GetJNIEnvFromApp();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, data_snapshot::GetMethodId(data_snapshot::kGetKey)));
     if (util::LogException(env, kLogLevelError,
@@ -186,7 +198,7 @@ std::string DataSnapshotInternal::GetKeyString() {
 }
 
 Variant DataSnapshotInternal::GetValue() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   jobject value_obj = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetValue));
   Variant v = internal::JavaObjectToVariant(env, value_obj);
@@ -195,7 +207,7 @@ Variant DataSnapshotInternal::GetValue() const {
 }
 
 Variant DataSnapshotInternal::GetPriority() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   jobject value_obj = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetPriority));
   Variant v = internal::JavaObjectToVariant(env, value_obj);
@@ -204,7 +216,9 @@ Variant DataSnapshotInternal::GetPriority() const {
 }
 
 DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  auto locked_db = db_.lock();
+  if (!locked_db) return nullptr;
+  JNIEnv* env = util::GetJNIEnvFromApp();
   jobject database_reference_obj = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetRef));
   if (util::LogException(env, kLogLevelWarning,
@@ -212,13 +226,14 @@ DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
     return nullptr;
   }
   DatabaseReferenceInternal* internal =
-      new DatabaseReferenceInternal(db_, database_reference_obj);
+      new DatabaseReferenceInternal(std::move(locked_db),
+                                    database_reference_obj);
   env->DeleteLocalRef(database_reference_obj);
   return internal;
 }
 
 bool DataSnapshotInternal::HasChild(const char* path) const {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = util::GetJNIEnvFromApp();
   jstring path_string = env->NewStringUTF(path);
   jboolean has_child = env->CallBooleanMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kHasChild), path_string);

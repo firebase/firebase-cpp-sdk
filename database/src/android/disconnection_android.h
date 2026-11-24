@@ -17,6 +17,8 @@
 
 #include <jni.h>
 
+#include <memory>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
@@ -77,7 +79,7 @@ class DisconnectionHandlerInternal {
   // UpdateChildren().
   Future<void> UpdateChildrenLastResult();
 
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* database_internal() const { return db_.get(); }
 
   // Special method to create an invalid DisconnectionHandlerInternal, because
   // DisconnectionHandler's constructor is private.
@@ -89,15 +91,16 @@ class DisconnectionHandlerInternal {
   friend class DatabaseInternal;
   friend class DatabaseReferenceInternal;
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
-  explicit DisconnectionHandlerInternal(DatabaseInternal* db, jobject obj);
+  explicit DisconnectionHandlerInternal(std::shared_ptr<DatabaseInternal> db,
+                                        jobject obj);
 
   ReferenceCountedFutureImpl* future();
 
-  DatabaseInternal* db_;
-  jobject obj_;
+  std::shared_ptr<DatabaseInternal> db_;
+  jobject obj_ = nullptr;
 };
 
 }  // namespace internal

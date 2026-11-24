@@ -24,8 +24,7 @@ namespace storage {
 namespace internal {
 
 ControllerInternal::ControllerInternal()
-    : storage_(nullptr),
-      task_impl_(new FIRStorageObservableTaskPointer(nil)),
+    : task_impl_(new FIRStorageObservableTaskPointer(nil)),
       pending_valid_(false),
       pending_cancel_(false),
       pending_pause_(false) {}
@@ -109,18 +108,20 @@ int64_t ControllerInternal::total_byte_count() const {
 }
 
 StorageReferenceInternal* ControllerInternal::GetReference() const {
+  auto locked_storage = storage_.lock();
+  if (!locked_storage) return nullptr;
   FIRStorageTaskSnapshot* snapshot = task_impl() ? task_impl().snapshot : nil;
   if (snapshot) {
-    return new StorageReferenceInternal(storage_,
+    return new StorageReferenceInternal(std::move(locked_storage),
                                         std::make_unique<FIRStorageReferencePointer>(snapshot.reference));
   }
   return nullptr;
 }
 
-void ControllerInternal::AssignTask(StorageInternal* storage,
+void ControllerInternal::AssignTask(std::weak_ptr<StorageInternal> storage,
                                     FIRStorageObservableTask<FIRStorageTaskManagement>* task_impl) {
   MutexLock mutex(pending_calls_mutex_);
-  storage_ = storage;
+  storage_ = std::move(storage);
   task_impl_.reset(new FIRStorageObservableTaskPointer(task_impl));
   if (pending_cancel_) {
     pending_cancel_ = false;
@@ -131,7 +132,9 @@ void ControllerInternal::AssignTask(StorageInternal* storage,
   }
 }
 
-bool ControllerInternal::is_valid() const { return (storage_ && task_impl()) || pending_valid_; }
+bool ControllerInternal::is_valid() const {
+  return (!storage_.expired() && task_impl()) || pending_valid_;
+}
 
 }  // namespace internal
 }  // namespace storage

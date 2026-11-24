@@ -61,7 +61,8 @@ void Callbacks::ChildListenerNativeOnChildAdded(JNIEnv* env, jclass clazz,
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
     listener->OnChildAdded(
-        DataSnapshot(new DataSnapshotInternal(db, data_snapshot)),
+        DataSnapshot(
+            new DataSnapshotInternal(db->MakeWeakHandle(), data_snapshot)),
         previous_child_name
             ? util::JStringToString(env, previous_child_name).c_str()
             : nullptr);
@@ -77,7 +78,8 @@ void Callbacks::ChildListenerNativeOnChildChanged(JNIEnv* env, jclass clazz,
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
     listener->OnChildChanged(
-        DataSnapshot(new DataSnapshotInternal(db, data_snapshot)),
+        DataSnapshot(
+            new DataSnapshotInternal(db->MakeWeakHandle(), data_snapshot)),
         previous_child_name
             ? util::JStringToString(env, previous_child_name).c_str()
             : nullptr);
@@ -93,7 +95,8 @@ void Callbacks::ChildListenerNativeOnChildMoved(JNIEnv* env, jclass clazz,
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
     listener->OnChildMoved(
-        DataSnapshot(new DataSnapshotInternal(db, data_snapshot)),
+        DataSnapshot(
+            new DataSnapshotInternal(db->MakeWeakHandle(), data_snapshot)),
         previous_child_name
             ? util::JStringToString(env, previous_child_name).c_str()
             : nullptr);
@@ -107,8 +110,8 @@ void Callbacks::ChildListenerNativeOnChildRemoved(JNIEnv* env, jclass clazz,
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ChildListener* listener = reinterpret_cast<ChildListener*>(listener_ptr);
-    listener->OnChildRemoved(
-        DataSnapshot(new DataSnapshotInternal(db, data_snapshot)));
+    listener->OnChildRemoved(DataSnapshot(
+        new DataSnapshotInternal(db->MakeWeakHandle(), data_snapshot)));
   }
 }
 
@@ -133,8 +136,8 @@ void Callbacks::ValueListenerNativeOnDataChange(JNIEnv* env, jclass clazz,
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     ValueListener* listener = reinterpret_cast<ValueListener*>(listener_ptr);
-    listener->OnValueChanged(
-        DataSnapshot(new DataSnapshotInternal(db, data_snapshot)));
+    listener->OnValueChanged(DataSnapshot(
+        new DataSnapshotInternal(db->MakeWeakHandle(), data_snapshot)));
   }
 }
 
@@ -148,7 +151,7 @@ jobject Callbacks::TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
         reinterpret_cast<TransactionData*>(transaction_data_ptr);
     DoTransactionWithContext user_func = data->transaction;
     MutableData mutable_data = MutableDataInternal::MakeMutableData(
-        new MutableDataInternal(db, java_mutable_data));
+        new MutableDataInternal(db->MakeWeakHandle(), java_mutable_data));
     TransactionResult result = user_func(&mutable_data, data->context);
     if (result == kTransactionResultSuccess) {
       return java_mutable_data;
@@ -166,15 +169,16 @@ void Callbacks::TransactionHandlerOnComplete(
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     TransactionData* data =
         reinterpret_cast<TransactionData*>(transaction_data_ptr);
+    std::weak_ptr<DatabaseInternal> weak_db = db->MakeWeakHandle();
     if (was_committed) {
       // Transaction success!
       jobject data_snapshot_global = env->NewGlobalRef(data_snapshot);
       data->future->Complete<DataSnapshot>(
           data->handle, kErrorNone, "",
-          [db, data_snapshot_global](DataSnapshot* result) {
+          [weak_db, data_snapshot_global](DataSnapshot* result) {
             *result = DataSnapshot(
-                new DataSnapshotInternal(db, data_snapshot_global));
-            db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+                new DataSnapshotInternal(weak_db, data_snapshot_global));
+            util::GetJNIEnvFromApp()->DeleteGlobalRef(data_snapshot_global);
           });
     } else if (database_error == nullptr) {
       jobject data_snapshot_global = env->NewGlobalRef(data_snapshot);
@@ -182,10 +186,10 @@ void Callbacks::TransactionHandlerOnComplete(
           data->handle, kErrorTransactionAbortedByUser,
           "The transaction was aborted, because the transaction function "
           "returned kTransactionResultAbort.",
-          [db, data_snapshot_global](DataSnapshot* result) {
+          [weak_db, data_snapshot_global](DataSnapshot* result) {
             *result = DataSnapshot(
-                new DataSnapshotInternal(db, data_snapshot_global));
-            db->GetApp()->GetJNIEnv()->DeleteGlobalRef(data_snapshot_global);
+                new DataSnapshotInternal(weak_db, data_snapshot_global));
+            util::GetJNIEnvFromApp()->DeleteGlobalRef(data_snapshot_global);
           });
     } else {
       // Future error.

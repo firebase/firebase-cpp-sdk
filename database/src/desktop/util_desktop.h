@@ -42,7 +42,7 @@ class VariantFilter;
 // Rather than construct a null_variant in the current scope any place where
 // this happens, it can be helpful to have a persistent one that can be used
 // from anywhere.
-extern const Variant kNullVariant;
+const Variant& NullVariant();
 
 // The virtual key for the value. This has special meaning to the database, and
 // for all intents and purposes the value at this location in the map should be

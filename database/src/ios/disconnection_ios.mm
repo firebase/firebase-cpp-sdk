@@ -38,18 +38,22 @@ enum DisconnectionHandlerFn {
 };
 
 DisconnectionHandlerInternal::DisconnectionHandlerInternal(
-    DatabaseInternal* database, std::unique_ptr<FIRDatabaseReferencePointer> impl)
-    : database_(database), impl_(std::move(impl)) {
+    std::shared_ptr<DatabaseInternal> database,
+    std::unique_ptr<FIRDatabaseReferencePointer> impl)
+    : database_(std::move(database)), impl_(std::move(impl)) {
   database_->future_manager().AllocFutureApi(this, kDisconnectionHandlerFnCount);
 }
 
 DisconnectionHandlerInternal::~DisconnectionHandlerInternal() {
-  database_->future_manager().ReleaseFutureApi(this);
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(this);
+  }
 }
 
 Future<void> DisconnectionHandlerInternal::Cancel() {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnCancel);
-  [impl() cancelDisconnectOperationsWithCompletionBlock:CreateCompletionBlock(handle, future())];
+  [impl() cancelDisconnectOperationsWithCompletionBlock:CreateCompletionBlock(
+                                                            handle, future(), database_)];
   return MakeFuture(future(), handle);
 }
 
@@ -59,7 +63,8 @@ Future<void> DisconnectionHandlerInternal::CancelLastResult() {
 
 Future<void> DisconnectionHandlerInternal::RemoveValue() {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnRemoveValue);
-  [impl() onDisconnectRemoveValueWithCompletionBlock:CreateCompletionBlock(handle, future())];
+  [impl() onDisconnectRemoveValueWithCompletionBlock:CreateCompletionBlock(
+                                                         handle, future(), database_)];
   return MakeFuture(future(), handle);
 }
 
@@ -73,7 +78,7 @@ Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
     future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
   } else {
     [impl() onDisconnectSetValue:VariantToId(value)
-             withCompletionBlock:CreateCompletionBlock(handle, future())];
+             withCompletionBlock:CreateCompletionBlock(handle, future(), database_)];
   }
   return MakeFuture(future(), handle);
 }
@@ -92,7 +97,7 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(Variant value, Va
   } else {
     [impl() onDisconnectSetValue:VariantToId(value)
                      andPriority:VariantToId(priority)
-             withCompletionBlock:CreateCompletionBlock(handle, future())];
+             withCompletionBlock:CreateCompletionBlock(handle, future(), database_)];
   }
   return MakeFuture(future(), handle);
 }
@@ -110,7 +115,7 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
     id values_id = VariantToId(values);
     NSDictionary *values_dict = (NSDictionary *)values_id;
     [impl() onDisconnectUpdateChildValues:values_dict
-                      withCompletionBlock:CreateCompletionBlock(handle, future())];
+                      withCompletionBlock:CreateCompletionBlock(handle, future(), database_)];
   }
   return MakeFuture(future(), handle);
 }

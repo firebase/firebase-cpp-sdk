@@ -21,7 +21,7 @@
 #include <memory>
 #include <string>
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -44,9 +44,6 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-// For constructing, copying or moving DatabaseReferences atomically.
-extern Mutex g_database_reference_constructor_mutex;
-
 typedef int64_t WriteId;
 
 class SingleValueListener : public ValueListener {
@@ -68,15 +65,24 @@ class SingleValueListener : public ValueListener {
 };
 
 // This is the desktop implementation of Database.
-class DatabaseInternal {
+class DatabaseInternal : public ::firebase::internal::Service {
  public:
-  explicit DatabaseInternal(App* app);
+  DatabaseInternal(::firebase::internal::AppState& app_state, const App& app);
 
-  DatabaseInternal(App* app, const char* url);
+  DatabaseInternal(::firebase::internal::AppState& app_state, const App& app,
+                   const char* url);
 
-  ~DatabaseInternal();
+  ~DatabaseInternal() override;
 
-  App* GetApp();
+  App GetApp() const;
+
+  ::firebase::internal::AppState& app_state() { return app_state_; }
+  const ::firebase::internal::AppState& app_state() const { return app_state_; }
+
+  std::shared_ptr<DatabaseInternal> MakeSharedHandle() const;
+  std::weak_ptr<DatabaseInternal> MakeWeakHandle() const {
+    return MakeSharedHandle();
+  }
 
   DatabaseReference GetReference();
 
@@ -103,11 +109,9 @@ class DatabaseInternal {
   FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const { return true; }
 
   const char* database_url() const { return database_url_.c_str(); }
-
-  CleanupNotifier& cleanup() { return cleanup_; }
 
   bool RegisterValueListener(const QuerySpec& spec, ValueListener* listener,
                              ValueListenerCleanupData cleanup_data);
@@ -149,7 +153,7 @@ class DatabaseInternal {
  private:
   void EnsureRepo();
 
-  App* app_;
+  ::firebase::internal::AppState& app_state_;
 
   ListenerCollection<ValueListener> value_listeners_by_query_;
   ListenerCollection<ChildListener> child_listeners_by_query_;
@@ -165,8 +169,6 @@ class DatabaseInternal {
   Mutex listener_mutex_;
 
   FutureManager future_manager_;
-
-  CleanupNotifier cleanup_;
 
   // Needed to generate names that are guarenteed to be unique.
   PushChildNameGenerator name_generator_;

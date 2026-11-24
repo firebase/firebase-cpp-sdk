@@ -93,11 +93,10 @@ class HttpsCallableReference {
 
   /// @brief Gets the firebase::functions::Functions instance to which we refer.
   ///
-  /// The pointer will remain valid indefinitely.
-  ///
-  /// @returns The firebase::functions::Functions instance that this
-  /// HttpsCallableReference refers to.
-  Functions* functions();
+  /// @returns The firebase::functions::Functions handle that this
+  /// HttpsCallableReference refers to, or an invalid Functions handle if this
+  /// reference is invalid.
+  Functions functions() const;
 
   /// @brief Calls the function.
   ///

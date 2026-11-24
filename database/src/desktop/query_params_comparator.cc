@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include "app/src/assert.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "database/src/desktop/util_desktop.h"
 
@@ -29,24 +30,42 @@ namespace internal {
 const char QueryParamsComparator::kMinKey[] = "[MIN_KEY]";
 const char QueryParamsComparator::kMaxKey[] = "[MAX_KEY]";
 
+namespace {
 // These values are used as sentinel values since the database will never send
 // down values with these types. These are never compared to other variants
 // directly - they should only be used with the QueryParamsComparator, which
 // uses the Variant::type() to do comparisons.
-static const Variant kMinVariant = Variant::FromStaticBlob(  // NOLINT
-    QueryParamsComparator::kMinKey, sizeof(QueryParamsComparator::kMinKey));
-static const Variant kMaxVariant = Variant::FromStaticBlob(  // NOLINT
-    QueryParamsComparator::kMaxKey, sizeof(QueryParamsComparator::kMaxKey));
+const Variant& MinVariant() {
+  static ::firebase::internal::NoDestructor<Variant> kMinVariant(
+      Variant::FromStaticBlob(QueryParamsComparator::kMinKey,
+                              sizeof(QueryParamsComparator::kMinKey)));
+  return *kMinVariant;
+}
 
-const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =  // NOLINT
-    std::make_pair(QueryParamsComparator::kMinKey, kMinVariant);
-const std::pair<Variant, Variant> QueryParamsComparator::kMaxNode =  // NOLINT
-    std::make_pair(QueryParamsComparator::kMaxKey, kMaxVariant);
+const Variant& MaxVariant() {
+  static ::firebase::internal::NoDestructor<Variant> kMaxVariant(
+      Variant::FromStaticBlob(QueryParamsComparator::kMaxKey,
+                              sizeof(QueryParamsComparator::kMaxKey)));
+  return *kMaxVariant;
+}
+}  // namespace
+
+const std::pair<Variant, Variant>& QueryParamsComparator::MinNode() {
+  static ::firebase::internal::NoDestructor<std::pair<Variant, Variant>>
+      kMinNode(QueryParamsComparator::kMinKey, MinVariant());
+  return *kMinNode;
+}
+
+const std::pair<Variant, Variant>& QueryParamsComparator::MaxNode() {
+  static ::firebase::internal::NoDestructor<std::pair<Variant, Variant>>
+      kMaxNode(QueryParamsComparator::kMaxKey, MaxVariant());
+  return *kMaxNode;
+}
 
 static int VariantIsSentinel(const Variant& key, const Variant& value) {
-  if (key == QueryParamsComparator::kMinKey && value == kMinVariant) {
+  if (key == QueryParamsComparator::kMinKey && value == MinVariant()) {
     return -1;
-  } else if (key == QueryParamsComparator::kMaxKey && value == kMaxVariant) {
+  } else if (key == QueryParamsComparator::kMaxKey && value == MaxVariant()) {
     return 1;
   } else {
     return 0;
@@ -179,14 +198,14 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
   // If we encounted a special sentinel value, figure out what we actually want
   // the precendence to be.
   if (precedence_a == kPrecedenceSentinel) {
-    assert(*value_a == kMinVariant || *value_a == kMaxVariant);
+    assert(*value_a == MinVariant() || *value_a == MaxVariant());
     precedence_a =
-        (*value_a == kMinVariant) ? kPrecedenceFirst : kPrecedenceLast;
+        (*value_a == MinVariant()) ? kPrecedenceFirst : kPrecedenceLast;
   }
   if (precedence_b == kPrecedenceSentinel) {
-    assert(*value_b == kMinVariant || *value_b == kMaxVariant);
+    assert(*value_b == MinVariant() || *value_b == MaxVariant());
     precedence_b =
-        (*value_b == kMinVariant) ? kPrecedenceFirst : kPrecedenceLast;
+        (*value_b == MinVariant()) ? kPrecedenceFirst : kPrecedenceLast;
   }
 
   // Values coming down from the server should never contain blobs or vectors.

@@ -19,7 +19,6 @@
 #include <time.h>
 
 #include <cstdint>
-#include <iostream>
 #include <sstream>
 #include <utility>
 
@@ -55,18 +54,27 @@ const char* MetadataInternal::kBucketKey = "bucket";
 const char* MetadataInternal::kNameKey = "name";
 const char* MetadataInternal::kGenerationKey = "generation";
 
+MetadataInternal::MetadataInternal()
+    : generation_(-1),
+      metadata_generation_(-1),
+      creation_time_(-1),
+      updated_time_(-1),
+      size_bytes_(-1) {}
+
 MetadataInternal::MetadataInternal(const StorageReference& storage_reference)
-    : storage_reference_(storage_reference),
-      generation_(-1),
+    : generation_(-1),
       metadata_generation_(-1),
       creation_time_(-1),
       updated_time_(-1),
       size_bytes_(-1) {
-  UpdateStorageInternal();
-  if (storage_reference_.is_valid()) {
-    bucket_ = storage_reference_.bucket();
-    path_ = storage_reference_.full_path();
-    name_ = storage_reference_.name();
+  if (storage_reference.internal_) {
+    storage_ = storage_reference.internal_->LockStorage();
+  }
+  if (storage_reference.is_valid()) {
+    StorageReference ref_copy = storage_reference;
+    bucket_ = ref_copy.bucket();
+    path_ = ref_copy.full_path();
+    name_ = ref_copy.name();
   }
 }
 
@@ -76,8 +84,7 @@ MetadataInternal::MetadataInternal(const MetadataInternal& metadata) {
 
 MetadataInternal& MetadataInternal::operator=(
     const MetadataInternal& metadata) {
-  storage_reference_ = metadata.storage_reference_;
-  UpdateStorageInternal();
+  storage_ = metadata.storage_;
   name_ = metadata.name_;
   path_ = metadata.path_;
   bucket_ = metadata.bucket_;
@@ -104,9 +111,7 @@ MetadataInternal::MetadataInternal(MetadataInternal&& other) {
 }
 
 MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
-  storage_reference_ = std::move(other.storage_reference_);
-  other.storage_internal_ = nullptr;
-  UpdateStorageInternal();
+  storage_ = std::move(other.storage_);
   name_ = std::move(other.name_);
   path_ = std::move(other.path_);
   bucket_ = std::move(other.bucket_);
@@ -133,20 +138,19 @@ const char* MetadataInternal::download_url() const {
 }
 
 std::string MetadataInternal::GetPathFromToken(const std::string& token) const {
+  auto locked = storage_.lock();
+  if (!locked) return "";
   std::string http_url =
-      StoragePath(storage_internal_, "gs://" + bucket_ + "/" + path_)
-          .AsHttpUrl();
+      StoragePath(locked.get(), "gs://" + bucket_ + "/" + path_).AsHttpUrl();
   if (!token.empty()) http_url += "&token=" + token;
   return http_url;
 }
 
-void MetadataInternal::UpdateStorageInternal() {
-  StorageReferenceInternal* internal = storage_reference_.internal_;
-  storage_internal_ = internal ? internal->storage_internal() : nullptr;
-}
-
 StorageReferenceInternal* MetadataInternal::GetReference() const {
-  return new StorageReferenceInternal(*storage_reference_.internal_);
+  auto locked = storage_.lock();
+  if (!locked || bucket_.empty()) return nullptr;
+  return new StorageReferenceInternal("gs://" + bucket_ + "/" + path_,
+                                      std::move(locked));
 }
 
 std::string MetadataInternal::LookUpString(Variant* root, const char* key,

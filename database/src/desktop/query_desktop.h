@@ -38,9 +38,10 @@ class DatabaseInternal;
 
 class QueryInternal {
  public:
-  QueryInternal() : database_(nullptr) {}
+  QueryInternal() = default;
 
-  QueryInternal(DatabaseInternal* database, const QuerySpec& query_spec);
+  QueryInternal(std::shared_ptr<DatabaseInternal> database,
+                const QuerySpec& query_spec);
 
   QueryInternal(const QueryInternal& query);
 
@@ -92,10 +93,10 @@ class QueryInternal {
 
   const QuerySpec& query_spec() const { return query_spec_; }
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* database_internal() const { return database_.get(); }
 
  protected:
-  DatabaseInternal* database_;
+  std::shared_ptr<DatabaseInternal> database_;
   internal::QuerySpec query_spec_;
 
  private:

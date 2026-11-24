@@ -58,7 +58,7 @@ class ListenerInternal {
 
 #ifdef __OBJC__
   // Attach this listener to the specified task.
-  void AttachTask(StorageInternal* _Nonnull storage,
+  void AttachTask(std::weak_ptr<StorageInternal> storage,
                   FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task);
 
   // Remove this listener from the currently attached task.
@@ -67,7 +67,6 @@ class ListenerInternal {
 
  private:
   Listener* _Nonnull listener_;
-  StorageInternal* _Nonnull storage_;
 #ifdef __OBJC__
   // Guards task_, pause_observer_handle_, progress_observer_handle_,
   // listener_handle_.

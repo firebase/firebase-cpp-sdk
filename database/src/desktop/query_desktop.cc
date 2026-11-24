@@ -22,7 +22,6 @@
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
 #include "app/src/callback.h"
-#include "app/src/function_registry.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 #include "app/src/variant_util.h"
@@ -90,9 +89,9 @@ static bool ValidateQueryEndpoints(const QueryParams& params, Logger* logger) {
   return true;
 }
 
-QueryInternal::QueryInternal(DatabaseInternal* database,
+QueryInternal::QueryInternal(std::shared_ptr<DatabaseInternal> database,
                              const QuerySpec& query_spec)
-    : database_(database), query_spec_(query_spec) {
+    : database_(std::move(database)), query_spec_(query_spec) {
   if (database_) {
     database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
   }
@@ -106,14 +105,24 @@ QueryInternal::QueryInternal(const QueryInternal& internal)
 }
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& internal) {
-  database_ = internal.database_;
+  if (this == &internal) return *this;
+  if (database_ != internal.database_) {
+    if (database_) {
+      database_->future_manager().ReleaseFutureApi(&future_api_id_);
+    }
+    database_ = internal.database_;
+    if (database_) {
+      database_->future_manager().AllocFutureApi(&future_api_id_,
+                                                 kQueryFnCount);
+    }
+  }
   query_spec_ = internal.query_spec_;
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 QueryInternal::QueryInternal(QueryInternal&& internal)
-    : database_(internal.database_),
+    : database_(std::move(internal.database_)),
       query_spec_(std::move(internal.query_spec_)) {
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
@@ -122,7 +131,11 @@ QueryInternal::QueryInternal(QueryInternal&& internal)
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& internal) {
-  database_ = internal.database_;
+  if (this == &internal) return *this;
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+  database_ = std::move(internal.database_);
   query_spec_ = std::move(internal.query_spec_);
   if (database_) {
     database_->future_manager().MoveFutureApi(&internal.future_api_id_,
@@ -132,7 +145,11 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& internal) {
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-QueryInternal::~QueryInternal() {}
+QueryInternal::~QueryInternal() {
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+}
 
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:
@@ -167,8 +184,10 @@ class SingleValueEventRegistration : public ValueEventRegistration {
     // registration to be removed and deleted from the sync tree. Because the
     // registration owns the Listener, the listener will be cleaned up safely as
     // well.
-    QueryInternal query(database_, query_spec());
-    query.RemoveValueListener(listener_.get());
+    if (auto locked = database_->MakeSharedHandle()) {
+      QueryInternal query(std::move(locked), query_spec());
+      query.RemoveValueListener(listener_.get());
+    }
   }
 
   bool active_;
@@ -180,11 +199,11 @@ Future<DataSnapshot> QueryInternal::GetValue() {
   SafeFutureHandle<DataSnapshot> handle =
       query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue,
                                               DataSnapshot(nullptr));
-  auto listener = std::make_unique<SingleValueListener>(database_, query_spec_,
-                                                        query_future(), handle);
+  auto listener = std::make_unique<SingleValueListener>(
+      database_.get(), query_spec_, query_future(), handle);
   void* listener_ptr = listener.get();
   AddEventRegistration(std::make_unique<SingleValueEventRegistration>(
-                           database_, std::move(listener), query_spec_),
+                           database_.get(), std::move(listener), query_spec_),
                        listener_ptr);
   return MakeFuture(query_future(), handle);
 }
@@ -197,7 +216,7 @@ Future<DataSnapshot> QueryInternal::GetValueLastResult() {
 void QueryInternal::AddValueListener(ValueListener* listener) {
   ValueListenerCleanupData cleanup_data(query_spec_);
   AddEventRegistration(std::make_unique<ValueEventRegistration>(
-                           database_, listener, query_spec_),
+                           database_.get(), listener, query_spec_),
                        static_cast<void*>(listener));
   database_->RegisterValueListener(query_spec_, listener,
                                    std::move(cleanup_data));
@@ -282,7 +301,7 @@ void QueryInternal::RemoveEventRegistration(ChildListener* listener,
 void QueryInternal::AddChildListener(ChildListener* listener) {
   ChildListenerCleanupData cleanup_data(query_spec_);
   AddEventRegistration(std::make_unique<ChildEventRegistration>(
-                           database_, listener, query_spec_),
+                           database_.get(), listener, query_spec_),
                        static_cast<void*>(listener));
   database_->RegisterChildListener(query_spec_, listener,
                                    std::move(cleanup_data));

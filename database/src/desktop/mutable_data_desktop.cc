@@ -33,7 +33,10 @@ namespace internal {
 
 MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
                                          const Variant& data)
-    : db_(database), path_(), holder_(std::make_shared<Variant>(data)) {
+    : db_(database ? database->MakeWeakHandle()
+                   : std::weak_ptr<DatabaseInternal>()),
+      path_(),
+      holder_(std::make_shared<Variant>(data)) {
   if (HasVector(*holder_)) {
     ConvertVectorToMap(holder_.get());
   }
@@ -109,7 +112,9 @@ void MutableDataInternal::SetValue(const Variant& value) {
 
 void MutableDataInternal::SetPriority(const Variant& priority) {
   if (!priority.is_fundamental_type()) {
-    db_->logger()->LogError(kErrorMsgInvalidVariantForPriority);
+    if (auto locked = db_.lock()) {
+      locked->logger()->LogError(kErrorMsgInvalidVariantForPriority);
+    }
     return;
   }
   VariantUpdateChild(holder_.get(), path_.GetChild(kPriorityKey), priority);

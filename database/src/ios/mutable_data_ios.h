@@ -76,19 +76,21 @@ class MutableDataInternal {
   void SetPriority(Variant priority);
 
   // Returns a pointer to the database this MutableData is from.
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* _Nullable database_internal() const {
+    return db_.lock().get();
+  }
 
  private:
   friend class DatabaseReferenceInternal;
 
-  MutableDataInternal(DatabaseInternal* database,
+  MutableDataInternal(std::weak_ptr<DatabaseInternal> database,
                       std::unique_ptr<FIRMutableDataPointer> impl);
 
 #ifdef __OBJC__
   FIRMutableData* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
-  DatabaseInternal* db_;
+  std::weak_ptr<DatabaseInternal> db_;
   std::unique_ptr<FIRMutableDataPointer> impl_;
 };
 

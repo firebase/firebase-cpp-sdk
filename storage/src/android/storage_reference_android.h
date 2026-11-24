@@ -17,6 +17,8 @@
 
 #include <jni.h>
 
+#include <memory>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -35,7 +37,11 @@ class StorageReferenceInternal {
   // StorageReferenceInternal will create its own global reference to ref_obj,
   // so you should delete the object you passed in after creating the
   // StorageReferenceInternal instance.
-  StorageReferenceInternal(StorageInternal* database, jobject ref_obj);
+  StorageReferenceInternal(std::shared_ptr<StorageInternal> storage,
+                           jobject ref_obj);
+
+  static StorageReferenceInternal* CreateWeak(
+      std::weak_ptr<StorageInternal> storage, jobject ref_obj);
 
   StorageReferenceInternal(const StorageReferenceInternal& ref);
 
@@ -49,8 +55,10 @@ class StorageReferenceInternal {
 
   ~StorageReferenceInternal();
 
+  bool is_valid() const { return obj_ != nullptr && LockStorage() != nullptr; }
+
   // Gets the storage to which we refer.
-  Storage* storage();
+  Storage storage() const;
 
   // Gets a reference to a location relative to this one.
   StorageReferenceInternal* Child(const char* path) const;
@@ -138,8 +146,8 @@ class StorageReferenceInternal {
   Future<StorageListResult> ListLastResult();
 
   // Initialize JNI bindings for this class.
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
   // Called from the Java CppByteDownloader class, this simply writes some bytes
   // into a buffer at the specified offset.
@@ -158,10 +166,18 @@ class StorageReferenceInternal {
                                        jint bytes_offset,
                                        jint num_bytes_to_read);
 
+  std::shared_ptr<StorageInternal> LockStorage() const {
+    return strong_storage_ ? strong_storage_ : weak_storage_.lock();
+  }
+
   // StorageInternal instance we are associated with.
-  StorageInternal* storage_internal() const { return storage_; }
+  StorageInternal* storage_internal() const { return LockStorage().get(); }
 
  private:
+  struct WeakTag {};
+  StorageReferenceInternal(WeakTag, std::weak_ptr<StorageInternal> storage,
+                           jobject ref_obj);
+
   static void FutureCallback(JNIEnv* env, jobject result,
                              util::FutureResult result_code,
                              const char* status_message, void* callback_data);
@@ -172,8 +188,9 @@ class StorageReferenceInternal {
 
   ReferenceCountedFutureImpl* future();
 
-  StorageInternal* storage_;
-  jobject obj_;
+  std::shared_ptr<StorageInternal> strong_storage_;
+  std::weak_ptr<StorageInternal> weak_storage_;
+  jobject obj_ = nullptr;
 };
 
 }  // namespace internal

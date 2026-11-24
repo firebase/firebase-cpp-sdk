@@ -17,11 +17,13 @@
 #include <jni.h>
 
 #include <cassert>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
@@ -136,21 +138,28 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/storage/internal/cpp/CppByteUploader",
     CPP_BYTE_UPLOADER_METHODS)
 
-Mutex StorageInternal::init_mutex_;  // NOLINT
+namespace {
+Mutex& GetInitMutex() {
+  static ::firebase::internal::NoDestructor<Mutex> mutex;
+  return *mutex;
+}
+}  // namespace
+
 int StorageInternal::initialize_count_ = 0;
 std::map<jint, Error>* StorageInternal::java_error_to_cpp_ = nullptr;
 
-StorageInternal::StorageInternal(App* app, const char* url) {
-  app_ = nullptr;
+StorageInternal::StorageInternal(::firebase::internal::AppState& app_state,
+                                 const App& app, const char* url)
+    : app_state_(app_state) {
   if (!Initialize(app)) return;
-  app_ = app;
+  initialized_ = true;
   url_ = url ? url : "";
   const char kApiIdentifier[] = "Storage";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = app.GetJNIEnv();
   jobject url_jstring = env->NewStringUTF(url_.c_str());
-  jobject platform_app = app_->GetPlatformApp();
+  jobject platform_app = app.GetPlatformApp();
   jobject storage_obj =
       url_.empty()
           ? env->CallStaticObjectMethod(
@@ -175,16 +184,19 @@ StorageInternal::StorageInternal(App* app, const char* url) {
 
 StorageInternal::~StorageInternal() {
   // If initialization failed, there is nothing to clean up.
-  if (app_ == nullptr) return;
+  if (!initialized_) return;
 
-  JNIEnv* env = app_->GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
-  env->DeleteGlobalRef(obj_);
-  obj_ = nullptr;
-  Terminate(app_);
-  app_ = nullptr;
-
-  util::CheckAndClearJniExceptions(env);
+  JNIEnv* env = GetJNIEnv();
+  if (env != nullptr) {
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+    if (obj_ != nullptr) {
+      env->DeleteGlobalRef(obj_);
+      obj_ = nullptr;
+    }
+    Terminate(env);
+    util::CheckAndClearJniExceptions(env);
+  }
+  initialized_ = false;
 }
 
 // Which StorageException Java fields correspond to which C++ Error enum values.
@@ -205,11 +217,11 @@ static const struct {
     {storage_exception::kFieldCount, kErrorNone},  // sentinel value for end
 };
 
-bool StorageInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex_);
+bool StorageInternal::Initialize(const App& app) {
+  MutexLock init_lock(GetInitMutex());
   if (initialize_count_ == 0) {
-    JNIEnv* env = app->GetJNIEnv();
-    jobject activity = app->activity();
+    JNIEnv* env = app.GetJNIEnv();
+    jobject activity = app.activity();
     if (!(firebase_storage::CacheMethodIds(env, activity) &&
           storage_exception::CacheMethodIds(env, activity) &&
           storage_exception::CacheFieldIds(env, activity) &&
@@ -239,7 +251,7 @@ bool StorageInternal::Initialize(App* app) {
   return true;
 }
 
-bool StorageInternal::InitializeEmbeddedClasses(App* app) {
+bool StorageInternal::InitializeEmbeddedClasses(const App& app) {
   static JNINativeMethod kCppStorageListener[] = {
       {"nativeCallback", "(JJLjava/lang/Object;Z)V",
        reinterpret_cast<void*>(
@@ -252,28 +264,28 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
       {"readBytes", "(JJJ[BII)I",
        reinterpret_cast<void*>(
            &StorageReferenceInternal::CppByteUploaderReadBytes)}};
-  JNIEnv* env = app->GetJNIEnv();
+  JNIEnv* env = app.GetJNIEnv();
   // Terminate() handles tearing this down.
   // Load embedded classes.
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
       util::CacheEmbeddedFiles(
-          env, app->activity(),
+          env, app.activity(),
           firebase::internal::EmbeddedFile::ToVector(
               firebase_storage_resources::storage_resources_filename,
               firebase_storage_resources::storage_resources_data,
               firebase_storage_resources::storage_resources_size));
-  if (!(cpp_byte_downloader::CacheClassFromFiles(env, app->activity(),
+  if (!(cpp_byte_downloader::CacheClassFromFiles(env, app.activity(),
                                                  &embedded_files) &&
-        cpp_storage_listener::CacheClassFromFiles(env, app->activity(),
+        cpp_storage_listener::CacheClassFromFiles(env, app.activity(),
                                                   &embedded_files) &&
         cpp_storage_listener::RegisterNatives(
             env, kCppStorageListener,
             FIREBASE_ARRAYSIZE(kCppStorageListener)) &&
-        cpp_byte_downloader::CacheMethodIds(env, app->activity()) &&
+        cpp_byte_downloader::CacheMethodIds(env, app.activity()) &&
         cpp_byte_downloader::RegisterNatives(
             env, kCppByteDownloader, FIREBASE_ARRAYSIZE(kCppByteDownloader)) &&
-        cpp_storage_listener::CacheMethodIds(env, app->activity()) &&
-        cpp_byte_uploader::CacheMethodIds(env, app->activity()) &&
+        cpp_storage_listener::CacheMethodIds(env, app.activity()) &&
+        cpp_byte_uploader::CacheMethodIds(env, app.activity()) &&
         cpp_byte_uploader::RegisterNatives(
             env, kCppByteUploader, FIREBASE_ARRAYSIZE(kCppByteUploader)))) {
     return false;
@@ -282,20 +294,19 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
   return true;
 }
 
-void StorageInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex_);
+void StorageInternal::Terminate(JNIEnv* env) {
+  MutexLock init_lock(GetInitMutex());
   FIREBASE_ASSERT_RETURN_VOID(initialize_count_ > 0);
   initialize_count_--;
-  if (initialize_count_ == 0) {
-    JNIEnv* env = app->GetJNIEnv();
+  if (initialize_count_ == 0 && env != nullptr) {
     firebase_storage::ReleaseClass(env);
     storage_exception::ReleaseClass(env);
     index_out_of_bounds_exception::ReleaseClass(env);
 
     // Call Terminate on all other Storage internal classes.
-    ControllerInternal::Terminate(app);
-    MetadataInternal::Terminate(app);
-    StorageReferenceInternal::Terminate(app);
+    ControllerInternal::Terminate(env);
+    MetadataInternal::Terminate(env);
+    StorageReferenceInternal::Terminate(env);
 
     // Release embedded classes.
     cpp_storage_listener::ReleaseClass(env);
@@ -309,7 +320,9 @@ void StorageInternal::Terminate(App* app) {
   }
 }
 
-App* StorageInternal::app() const { return app_; }
+App StorageInternal::app() const { return app_state_.TryMakeAppHandle(); }
+
+JNIEnv* StorageInternal::GetJNIEnv() const { return util::GetJNIEnvFromApp(); }
 
 Error StorageInternal::ErrorFromJavaErrorCode(jint error_code) const {
   auto found = java_error_to_cpp_->find(error_code);
@@ -323,7 +336,7 @@ Error StorageInternal::ErrorFromJavaErrorCode(jint error_code) const {
 
 Error StorageInternal::ErrorFromJavaStorageException(
     jobject java_exception, std::string* error_message) const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   Error code = kErrorNone;
   if (java_exception != nullptr) {
     code = ErrorFromJavaErrorCode(env->CallIntMethod(
@@ -365,12 +378,14 @@ Error StorageInternal::ErrorFromJavaStorageException(
 }
 
 StorageReferenceInternal* StorageInternal::GetReference() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
+  JNIEnv* env = GetJNIEnv();
   jobject storage_reference_obj = env->CallObjectMethod(
       obj_, firebase_storage::GetMethodId(firebase_storage::kGetRootReference));
   FIREBASE_ASSERT(storage_reference_obj != nullptr);
-  StorageReferenceInternal* internal = new StorageReferenceInternal(
-      const_cast<StorageInternal*>(this), storage_reference_obj);
+  StorageReferenceInternal* internal =
+      new StorageReferenceInternal(std::move(self), storage_reference_obj);
   env->DeleteLocalRef(storage_reference_obj);
   util::CheckAndClearJniExceptions(env);
   return internal;
@@ -379,7 +394,9 @@ StorageReferenceInternal* StorageInternal::GetReference() const {
 StorageReferenceInternal* StorageInternal::GetReference(
     const char* path) const {
   FIREBASE_ASSERT_RETURN(nullptr, path != nullptr);
-  JNIEnv* env = app_->GetJNIEnv();
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
+  JNIEnv* env = GetJNIEnv();
   jobject path_string = env->NewStringUTF(path);
   jobject storage_reference_obj = env->CallObjectMethod(
       obj_,
@@ -391,8 +408,8 @@ StorageReferenceInternal* StorageInternal::GetReference(
     util::CheckAndClearJniExceptions(env);
     return nullptr;
   }
-  StorageReferenceInternal* internal = new StorageReferenceInternal(
-      const_cast<StorageInternal*>(this), storage_reference_obj);
+  StorageReferenceInternal* internal =
+      new StorageReferenceInternal(std::move(self), storage_reference_obj);
   env->DeleteLocalRef(storage_reference_obj);
   return internal;
 }
@@ -400,7 +417,9 @@ StorageReferenceInternal* StorageInternal::GetReference(
 StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
     const char* url) const {
   FIREBASE_ASSERT_RETURN(nullptr, url != nullptr);
-  JNIEnv* env = app_->GetJNIEnv();
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
+  JNIEnv* env = GetJNIEnv();
   jobject url_string = env->NewStringUTF(url);
   jobject storage_reference_obj = env->CallObjectMethod(
       obj_,
@@ -415,14 +434,14 @@ StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
     util::CheckAndClearJniExceptions(env);
     return nullptr;
   }
-  StorageReferenceInternal* internal = new StorageReferenceInternal(
-      const_cast<StorageInternal*>(this), storage_reference_obj);
+  StorageReferenceInternal* internal =
+      new StorageReferenceInternal(std::move(self), storage_reference_obj);
   env->DeleteLocalRef(storage_reference_obj);
   return internal;
 }
 
 double StorageInternal::max_download_retry_time() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxDownloadRetryTimeMillis));
@@ -431,7 +450,7 @@ double StorageInternal::max_download_retry_time() const {
 
 void StorageInternal::set_max_download_retry_time(
     double maxTransferRetrySeconds) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jlong millis = static_cast<jlong>(maxTransferRetrySeconds * 1000.0);
   env->CallVoidMethod(obj_,
                       firebase_storage::GetMethodId(
@@ -440,7 +459,7 @@ void StorageInternal::set_max_download_retry_time(
 }
 
 double StorageInternal::max_upload_retry_time() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxUploadRetryTimeMillis));
@@ -449,7 +468,7 @@ double StorageInternal::max_upload_retry_time() const {
 
 void StorageInternal::set_max_upload_retry_time(
     double maxTransferRetrySeconds) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jlong millis = static_cast<jlong>(maxTransferRetrySeconds * 1000.0);
   env->CallVoidMethod(obj_,
                       firebase_storage::GetMethodId(
@@ -458,7 +477,7 @@ void StorageInternal::set_max_upload_retry_time(
 }
 
 double StorageInternal::max_operation_retry_time() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jlong millis = env->CallLongMethod(
       obj_, firebase_storage::GetMethodId(
                 firebase_storage::kGetMaxOperationRetryTimeMillis));
@@ -467,7 +486,7 @@ double StorageInternal::max_operation_retry_time() const {
 
 void StorageInternal::set_max_operation_retry_time(
     double maxTransferRetrySeconds) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jlong millis = static_cast<jlong>(maxTransferRetrySeconds * 1000.0);
   env->CallVoidMethod(obj_,
                       firebase_storage::GetMethodId(
@@ -476,7 +495,7 @@ void StorageInternal::set_max_operation_retry_time(
 }
 
 void StorageInternal::UseEmulator(const char* host, int port) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID((host != nullptr && host[0] != '\0'),
                                       "Emulator host cannot be null or empty.")
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(

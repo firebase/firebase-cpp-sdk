@@ -29,11 +29,11 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-StorageInternal::StorageInternal(App* app, const char* url)
-    : app_(app),
-      impl_(new FIRStoragePointer(nil)) {
+StorageInternal::StorageInternal(::firebase::internal::AppState& app_state,
+                                 const App& app, const char* url)
+    : app_state_(app_state), impl_(new FIRStoragePointer(nil)) {
   url_ = url ? url : "";
-  FIRApp* platform_app = app->GetPlatformApp();
+  FIRApp* platform_app = app.GetPlatformApp();
   if (url_.empty()) {
     impl_.reset(new FIRStoragePointer([FIRStorage storageForApp:platform_app]));
   } else {
@@ -52,22 +52,35 @@ StorageInternal::~StorageInternal() {
   // Destructor is necessary for ARC garbage collection.
 }
 
-::firebase::App* StorageInternal::app() const {
-  return app_;
+::firebase::App StorageInternal::app() const {
+  return app_state_.TryMakeAppHandle();
+}
+
+std::shared_ptr<StorageInternal> StorageInternal::MakeSharedHandle() const {
+  auto state = app_state_.weak_from_this().lock();
+  if (!state) return {};
+  return std::shared_ptr<StorageInternal>(std::move(state),
+                                          const_cast<StorageInternal*>(this));
 }
 
 StorageReferenceInternal* StorageInternal::GetReference() const {
-  return new StorageReferenceInternal(const_cast<StorageInternal*>(this),
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
+  return new StorageReferenceInternal(std::move(self),
                                       std::make_unique<FIRStorageReferencePointer>(impl().reference));
 }
 
 StorageReferenceInternal* StorageInternal::GetReference(const char* path) const {
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
   return new StorageReferenceInternal(
-      const_cast<StorageInternal*>(this),
+      std::move(self),
       std::make_unique<FIRStorageReferencePointer>([impl() referenceWithPath:@(path)]));
 }
 
 StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(const char* url) const {
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
   FIRStorageReference* reference = nil;
   std::string url_string = url ? url : "";
   @try {
@@ -77,7 +90,7 @@ StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(const char* url) 
                exception.reason.UTF8String);
     return nullptr;
   }
-  return new StorageReferenceInternal(const_cast<StorageInternal*>(this),
+  return new StorageReferenceInternal(std::move(self),
                                       std::make_unique<FIRStorageReferencePointer>(reference));
 }
 

@@ -86,11 +86,9 @@ class StorageReference {
 
   /// @brief Gets the firebase::storage::Storage instance to which we refer.
   ///
-  /// The pointer will remain valid indefinitely.
-  ///
-  /// @returns The firebase::storage::Storage instance that this
-  /// StorageReference refers to.
-  Storage* storage();
+  /// @returns The firebase::storage::Storage handle that this StorageReference
+  /// refers to, or an invalid Storage handle if this reference is invalid.
+  Storage storage() const;
 
   /// @brief Gets a reference to a location relative to this one.
   ///

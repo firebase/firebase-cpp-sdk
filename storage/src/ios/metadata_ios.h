@@ -43,9 +43,9 @@ class MetadataInternal {
   MetadataInternal();
 
   // Construct a MetadataInternal with an empty FIRStorageMetadata.
-  explicit MetadataInternal(StorageInternal* _Nullable storage);
+  explicit MetadataInternal(std::weak_ptr<StorageInternal> storage);
 
-  MetadataInternal(StorageInternal* storage,
+  MetadataInternal(std::weak_ptr<StorageInternal> storage,
                    std::unique_ptr<FIRStorageMetadataPointer> impl);
 
   MetadataInternal(const MetadataInternal& metadata);
@@ -117,7 +117,7 @@ class MetadataInternal {
   const char* path();
 
   // Return the associated StorageReference for which this metadata belongs to.
-  StorageReferenceInternal* GetReference();
+  StorageReferenceInternal* _Nullable GetReference();
 
   // Return the stored Size in bytes of the StorageReference object.
   int64_t size_bytes();
@@ -127,9 +127,6 @@ class MetadataInternal {
 
   // MD5 hash of the data; encoded using base64.
   const char* md5_hash();
-
-  // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
 
   // Special method to create an invalid Metadata, because Metadata's default
   // constructor now gives us a valid one.
@@ -142,7 +139,7 @@ class MetadataInternal {
 
   friend class StorageReferenceInternal;
 
-  StorageInternal* storage_;
+  std::weak_ptr<StorageInternal> storage_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStorageMetadataPointer> impl_;

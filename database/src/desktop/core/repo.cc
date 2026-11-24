@@ -21,10 +21,11 @@
 
 #include "app/src/callback.h"
 #include "app/src/filesystem.h"
-#include "app/src/function_registry.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/scheduler.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/constants.h"
@@ -53,7 +54,13 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
-static Mutex g_scheduler_mutex;  // NOLINT
+namespace {
+Mutex& SchedulerMutex() {
+  static ::firebase::internal::NoDestructor<Mutex> mutex;
+  return *mutex;
+}
+}  // namespace
+
 static int g_scheduler_ref_count = 0;
 scheduler::Scheduler* Repo::s_scheduler_;
 
@@ -85,8 +92,9 @@ class TransactionResponse : public connection::Response {
   std::vector<TransactionDataPtr> queue_;
 };
 
-Repo::Repo(App* app, DatabaseInternal* database, const char* url,
-           Logger* logger, bool persistence_enabled)
+Repo::Repo(::firebase::internal::AppState& app_state,
+           DatabaseInternal* database, const char* url, Logger* logger,
+           bool persistence_enabled)
     : database_(database),
       host_info_(),
       persistence_enabled_(persistence_enabled),
@@ -106,13 +114,13 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url,
   url_ = host_info_.ToString();
 
   {
-    MutexLock lock(g_scheduler_mutex);
+    MutexLock lock(SchedulerMutex());
     g_scheduler_ref_count++;
     if (s_scheduler_ == nullptr) s_scheduler_ = new scheduler::Scheduler();
   }
 
   connection_.reset(new connection::PersistentConnection(
-      app, host_info_, this, s_scheduler_, logger_));
+      app_state, host_info_, this, s_scheduler_, logger_));
   // Kick off any expensive additional initialization
   s_scheduler_->Schedule(NewCallback(
       [](ThisRef ref) {
@@ -128,24 +136,24 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url,
 }
 
 Repo::~Repo() {
+  // Remove the App Check token listener before tearing down safe_this_ and
+  // connection_, so no concurrent App Check callback can touch this Repo.
+  if (auto* app_check = database_->app_state().app_check_token_provider()) {
+    app_check->RemoveTokenListener(OnAppCheckTokenChanged, this);
+  }
+
   // Terminate the connection immediately to prevent messages from arriving
   // while the SyncTree is being torn down.
   safe_this_.ClearReference();
   connection_.reset(nullptr);
   {
-    MutexLock lock(g_scheduler_mutex);
+    MutexLock lock(SchedulerMutex());
     if (g_scheduler_ref_count) g_scheduler_ref_count--;
     if (g_scheduler_ref_count == 0) {
       delete s_scheduler_;
       s_scheduler_ = nullptr;
     }
   }
-
-  // Remove the App Check token listener
-  auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
-  database_->GetApp()->function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckRemoveListener, database_->GetApp(),
-      callback, this);
 }
 
 void Repo::AddEventCallback(
@@ -465,11 +473,8 @@ static std::unique_ptr<PersistenceManagerInterface> CreatePersistenceManager(
 // Defers any initialization that is potentially expensive (e.g. disk access).
 void Repo::DeferredInitialization() {
   // Add App Check state listener
-  {
-    auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
-    database_->GetApp()->function_registry()->CallFunction(
-        ::firebase::internal::FnAppCheckAddListener, database_->GetApp(),
-        callback, this);
+  if (auto* app_check = database_->app_state().app_check_token_provider()) {
+    app_check->AddTokenListener(OnAppCheckTokenChanged, this);
   }
 
   // Set up server sync tree.
@@ -478,7 +483,7 @@ void Repo::DeferredInitialization() {
     // per-application data directory.
     std::string database_path;
 
-    const char* package_name = database_->GetApp()->options().package_name();
+    const char* package_name = database_->app_state().options().package_name();
     if (!package_name) {
       logger_->LogError("Could not initialize persistence: No package_name.");
       return;
@@ -667,7 +672,7 @@ void Repo::StartTransaction(const Path& path,
   // to be done in this block.  This is ok, this block is guaranteed to be our
   // own event loop
   DatabaseReferenceInternal* ref_impl =
-      new DatabaseReferenceInternal(database_, path);
+      new DatabaseReferenceInternal(database_->MakeSharedHandle(), path);
   DatabaseReference watch_ref(ref_impl);
   std::unique_ptr<NoopListener> listener = std::make_unique<NoopListener>();
   NoopListener* listener_ptr = listener.get();
@@ -1105,7 +1110,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
     if (abort_transaction) {
       transaction->status = TransactionData::kStatusComplete;
       DatabaseReferenceInternal* database_ref_impl =
-          new DatabaseReferenceInternal(database_, path);
+          new DatabaseReferenceInternal(database_->MakeSharedHandle(), path);
       DatabaseReference ref(database_ref_impl);
 
       futures_to_complete.push_back(FutureToComplete(

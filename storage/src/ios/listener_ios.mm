@@ -35,7 +35,7 @@ namespace storage {
 namespace internal {
 
 ListenerInternal::ListenerInternal(Listener* _Nonnull listener)
-    : listener_(listener), storage_(nullptr), previous_progress_count_(-1) {
+    : listener_(listener), previous_progress_count_(-1) {
   task_.reset(new FIRStorageObservableTaskPointer(nil));
   pause_observer_handle_.reset(new FIRStorageHandlePointer(nil));
   progress_observer_handle_.reset(new FIRStorageHandlePointer(nil));
@@ -49,7 +49,7 @@ ListenerInternal::~ListenerInternal() {
 
 // Attach this listener to the specified task.
 void ListenerInternal::AttachTask(
-    StorageInternal* _Nonnull storage,
+    std::weak_ptr<StorageInternal> storage,
     FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task) {
   DetachTask();
   FIRCPPStorageListenerHandle* listener_handle = [[FIRCPPStorageListenerHandle alloc] init];
@@ -63,12 +63,14 @@ void ListenerInternal::AttachTask(
   task_.reset(new FIRStorageObservableTaskPointer(task));
   previous_progress_count_ = -1;
 
+  std::weak_ptr<StorageInternal> weak_storage = std::move(storage);
+
   FIRStorageVoidSnapshot pause_handler = ^(FIRStorageTaskSnapshot* snapshot) {
     [my_listener_handle_lock lock];
     ListenerInternal* listener_internal = listener_handle.listenerInternal;
     if (listener_internal) {
       Controller controller;
-      controller.internal_->AssignTask(storage, listener_internal->task());
+      controller.internal_->AssignTask(weak_storage, listener_internal->task());
       listener_internal->listener_->OnPaused(&controller);
     }
     [my_listener_handle_lock unlock];
@@ -85,7 +87,7 @@ void ListenerInternal::AttachTask(
           listener_internal->previous_progress_count_ != progress.completedUnitCount) {
         listener_internal->previous_progress_count_ = progress.completedUnitCount;
         Controller controller;
-        controller.internal_->AssignTask(storage, listener_internal->task());
+        controller.internal_->AssignTask(weak_storage, listener_internal->task());
         listener_internal->listener_->OnProgress(&controller);
       }
     }

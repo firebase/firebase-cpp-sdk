@@ -20,6 +20,7 @@
 #include <memory>
 #include <vector>
 
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -47,8 +48,8 @@ class Repo : public connection::PersistentConnectionEventHandler {
   typedef firebase::internal::SafeReference<Repo> ThisRef;
   typedef firebase::internal::SafeReferenceLock<Repo> ThisRefLock;
 
-  Repo(App* app, DatabaseInternal* database, const char* url, Logger* logger,
-       bool persistence_enabled);
+  Repo(::firebase::internal::AppState& app_state, DatabaseInternal* database,
+       const char* url, Logger* logger, bool persistence_enabled);
 
   ~Repo() override;
 

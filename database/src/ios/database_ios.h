@@ -19,7 +19,7 @@
 #include <set>
 
 #include <memory>
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -38,9 +38,6 @@ class ReferenceCountedFutureImpl;
 namespace database {
 namespace internal {
 
-// For constructing, copying or moving DatabaseReferences atomically.
-extern Mutex g_database_reference_constructor_mutex;
-
 // This defines the class FIRDatabasePointer, which is a C++-compatible wrapper
 // around the FIRDatabase Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRDatabase);
@@ -52,16 +49,22 @@ OBJ_C_PTR_WRAPPER(NSRecursiveLock);
 #pragma clang assume_nonnull begin
 
 // This is the iOS implementation of Database.
-class DatabaseInternal {
+class DatabaseInternal : public ::firebase::internal::Service {
  public:
-  explicit DatabaseInternal(App* app);
+  DatabaseInternal(::firebase::internal::AppState& app_state, const App& app);
 
-  DatabaseInternal(App* app, const char* url);
+  DatabaseInternal(::firebase::internal::AppState& app_state, const App& app,
+                   const char* url);
 
-  ~DatabaseInternal();
+  ~DatabaseInternal() override;
 
   // Get the firebase::App that this Database was created with.
-  App* GetApp();
+  App GetApp() const;
+
+  std::shared_ptr<DatabaseInternal> MakeSharedHandle() const;
+  std::weak_ptr<DatabaseInternal> MakeWeakHandle() const {
+    return MakeSharedHandle();
+  }
 
   // Get a DatabaseReference to the root of the database.
   DatabaseReference GetReference() const;
@@ -140,10 +143,6 @@ class DatabaseInternal {
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const;
 
-  // When this is deleted, it will clean up all DatabaseReferences,
-  // DataSnapshots, and other such objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
-
   // The url that was passed to the constructor.
   const std::string& constructor_url() const { return constructor_url_; }
 
@@ -160,8 +159,8 @@ class DatabaseInternal {
   FIRDatabase* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
-  // The firebase::App that this Database was created with.
-  App* app_;
+  // Owning AppState for this Database service.
+  ::firebase::internal::AppState& app_state_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRDatabasePointer> impl_;
@@ -184,8 +183,6 @@ class DatabaseInternal {
   std::set<ValueListener*> single_value_listeners_;
 
   FutureManager future_manager_;
-
-  CleanupNotifier cleanup_;
 
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.

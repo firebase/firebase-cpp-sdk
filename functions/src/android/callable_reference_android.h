@@ -17,6 +17,8 @@
 
 #include <jni.h>
 
+#include <memory>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -36,7 +38,8 @@ class HttpsCallableReferenceInternal {
   // CallableReferenceInternal will create its own global reference to ref_obj,
   // so you should delete the object you passed in after creating the
   // CallableReferenceInternal instance.
-  HttpsCallableReferenceInternal(FunctionsInternal* functions, jobject ref_obj);
+  HttpsCallableReferenceInternal(std::shared_ptr<FunctionsInternal> functions,
+                                 jobject ref_obj);
 
   HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& ref);
 
@@ -53,7 +56,7 @@ class HttpsCallableReferenceInternal {
   ~HttpsCallableReferenceInternal();
 
   // Gets the functions to which we refer.
-  Functions* functions();
+  Functions functions() const;
 
   // Asynchronously calls this CallableReferenceInternal.
   Future<HttpsCallableResult> Call();
@@ -61,11 +64,11 @@ class HttpsCallableReferenceInternal {
   Future<HttpsCallableResult> Call(const Variant& data);
 
   // Initialize JNI bindings for this class.
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
   // FunctionsInternal instance we are associated with.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  FunctionsInternal* functions_internal() const { return functions_.get(); }
 
  private:
   static void FutureCallback(JNIEnv* env, jobject result,
@@ -74,8 +77,8 @@ class HttpsCallableReferenceInternal {
 
   ReferenceCountedFutureImpl* future();
 
-  FunctionsInternal* functions_;
-  jobject obj_;
+  std::shared_ptr<FunctionsInternal> functions_;
+  jobject obj_ = nullptr;
 };
 
 }  // namespace internal

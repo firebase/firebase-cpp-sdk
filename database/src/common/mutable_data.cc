@@ -35,8 +35,6 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
 
-#include "database/src/common/cleanup.h"
-
 namespace firebase {
 namespace database {
 
@@ -44,37 +42,25 @@ using internal::MutableDataInternal;
 
 MutableData GetInvalidMutableData() { return MutableData(nullptr); }
 
-typedef CleanupFn<MutableData, MutableDataInternal> CleanupFnMutableData;
-
-template <>
-CleanupFnMutableData::CreateInvalidObjectFn
-    CleanupFnMutableData::create_invalid_object = GetInvalidMutableData;
-
-MutableData::MutableData(MutableDataInternal* internal) : internal_(internal) {
-  CleanupFnMutableData::Register(this, internal_);
-}
+MutableData::MutableData(MutableDataInternal* internal) : internal_(internal) {}
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
 MutableData::MutableData(MutableData&& rhs) : internal_(rhs.internal_) {
   rhs.internal_ = nullptr;
-  CleanupFnMutableData::Unregister(&rhs, internal_);
-  CleanupFnMutableData::Register(this, internal_);
 }
 
 MutableData& MutableData::operator=(MutableData&& rhs) {
-  CleanupFnMutableData::Unregister(this, internal_);
-  if (internal_) delete internal_;
+  if (this == &rhs) return *this;
+  delete internal_;
   internal_ = rhs.internal_;
   rhs.internal_ = nullptr;
-  CleanupFnMutableData::Unregister(&rhs, internal_);
-  CleanupFnMutableData::Register(this, internal_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 MutableData::~MutableData() {
-  CleanupFnMutableData::Unregister(this, internal_);
-  if (internal_) delete internal_;
+  delete internal_;
+  internal_ = nullptr;
 }
 
 MutableData MutableData::Child(const char* path) {

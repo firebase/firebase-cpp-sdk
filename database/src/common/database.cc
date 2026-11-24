@@ -17,15 +17,16 @@
 #include <assert.h>
 
 #include <cstdint>
-#include <map>
+#include <memory>
 #include <string>
+#include <utility>
 
-#include "app/src/app_common.h"
+#include "app/src/app_state.h"
 #include "app/src/assert.h"
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/log.h"
 #include "app/src/util.h"
 
 // DatabaseInternal is defined in these 3 files, one implementation for each OS.
@@ -42,11 +43,7 @@
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
-    database, { return ::firebase::kInitResultSuccess; },
-    {
-        // Nothing to tear down.
-    },
-    false);
+    database, { return ::firebase::kInitResultSuccess; }, false);
 
 namespace firebase {
 namespace database {
@@ -55,118 +52,55 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseDatabase);
 
 using internal::DatabaseInternal;
 
-using DatabaseMap = std::map<std::pair<std::string, std::string>, Database*>;
-Mutex g_databases_lock;  // NOLINT
-static DatabaseMap* g_databases = nullptr;
-
 namespace {
-DatabaseMap::key_type MakeKey(App* app, const std::string& url) {
-  return std::make_pair(std::string(app->name()), url);
-}
+constexpr int kDatabaseServiceTag = 0;
 }  // namespace
 
-Database* Database::GetInstance(App* app, const char* url,
-                                InitResult* init_result_out) {
-  if (!app) {
-    LogError("Database::GetInstance(): The app must not be null.");
-    return nullptr;
-  }
-  MutexLock lock(g_databases_lock);
-  if (!g_databases) {
-    g_databases = new DatabaseMap();
+Database::Database(std::shared_ptr<internal::DatabaseInternal> internal)
+    : internal_(std::move(internal)) {}
+
+Database Database::GetInstance(const App& app, const char* url,
+                               InitResult* init_result_out) {
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) {
+    LogError("Database::GetInstance(): The app must be valid.");
+    if (init_result_out != nullptr) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Database();
   }
 
-  DatabaseMap::key_type key = MakeKey(app, std::string(url ? url : ""));
-  DatabaseMap::iterator it = g_databases->find(key);
-  if (it != g_databases->end()) {
-    if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
-    return it->second;
+  std::string url_key = url ? url : "";
+  auto internal = state->GetOrCreateService<DatabaseInternal>(
+      &kDatabaseServiceTag, url_key,
+      [&app, url](::firebase::internal::AppState& app_state)
+          -> std::shared_ptr<DatabaseInternal> {
+        auto inst = url ? std::make_shared<DatabaseInternal>(app_state, app, url)
+                        : std::make_shared<DatabaseInternal>(app_state, app);
+        if (!inst->initialized()) {
+          return nullptr;
+        }
+        return inst;
+      });
+
+  if (!internal) {
+    if (init_result_out != nullptr) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Database();
   }
 
-  Database* database = url ? new Database(app, new DatabaseInternal(app, url))
-                           : new Database(app, new DatabaseInternal(app));
-  if (!database->internal_->initialized()) {
-    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
-    delete database;
-    return nullptr;
+  if (init_result_out != nullptr) {
+    *init_result_out = kInitResultSuccess;
   }
-  g_databases->insert(std::make_pair(key, database));
-  if (init_result_out) *init_result_out = kInitResultSuccess;
-  return database;
+  return Database(std::move(internal));
 }
 
-Database* Database::GetInstance(App* app, InitResult* init_result_out) {
+Database Database::GetInstance(const App& app, InitResult* init_result_out) {
   return GetInstance(app, nullptr, init_result_out);
 }
 
-Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
-    : internal_(internal) {
-  if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app);
-    assert(app_notifier);
-    app_notifier->RegisterObject(this, [](void* object) {
-      Database* database = reinterpret_cast<Database*>(object);
-      Logger* logger = app_common::FindAppLoggerByName(database->app()->name());
-      logger->LogWarning(
-          "Database object 0x%08x should be deleted before the App 0x%08x it "
-          "depends upon.",
-          static_cast<int>(reinterpret_cast<intptr_t>(database)),
-          static_cast<int>(reinterpret_cast<intptr_t>(database->app())));
-      database->DeleteInternal();
-    });
-  }
-}
-
-void Database::DeleteInternal() {
-  MutexLock lock(g_databases_lock);
-
-  if (!internal_) return;
-
-  // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to g_databases, and app() may be null.
-  if (!internal_->initialized()) {
-    delete internal_;
-    internal_ = nullptr;
-    return;
-  }
-
-  App* my_app = app();
-  std::string url = internal_->constructor_url();
-
-  CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
-  assert(app_notifier);
-  app_notifier->UnregisterObject(this);
-
-  {
-    MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
-    // Force cleanup to happen first.
-    internal_->cleanup().CleanupAll();
-  }
-  delete internal_;
-  internal_ = nullptr;
-  // If a Database is explicitly deleted, remove it from our cache.
-  g_databases->erase(MakeKey(my_app, url));
-  // If it's the last one, delete the map.
-  if (g_databases->empty()) {
-    delete g_databases;
-    g_databases = nullptr;
-  }
-}
-
-Database::~Database() { DeleteInternal(); }
-
-Database::Database(const Database& src) {
-  FIREBASE_ASSERT_MESSAGE(false,
-                          "Can't copy a firebase::database::Database object.");
-}
-
-Database& Database::operator=(const Database& src) {
-  FIREBASE_ASSERT_MESSAGE(false,
-                          "Can't copy a firebase::database::Database object.");
-  return *this;
-}
-
-App* Database::app() const { return internal_ ? internal_->GetApp() : nullptr; }
+App Database::app() const { return internal_ ? internal_->GetApp() : App(); }
 
 const char* Database::url() const {
   return internal_ ? internal_->constructor_url().c_str() : "";

@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_DISCONNECTION_DESKTOP_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_DISCONNECTION_DESKTOP_H_
 
+#include <memory>
+
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
@@ -31,8 +33,8 @@ class DatabaseInternal;
 // register server-side actions to occur when the client disconnects.
 class DisconnectionHandlerInternal {
  public:
-  explicit DisconnectionHandlerInternal(DatabaseInternal* database,
-                                        const Path& path);
+  explicit DisconnectionHandlerInternal(
+      std::shared_ptr<DatabaseInternal> database, const Path& path);
 
   ~DisconnectionHandlerInternal();
 
@@ -77,7 +79,7 @@ class DisconnectionHandlerInternal {
   // UpdateChildren().
   Future<void> UpdateChildrenLastResult();
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* database_internal() const { return database_.get(); }
 
   // Special method to create an invalid DisconnectionHandlerInternal, because
   // DisconnectionHandler's constructor is private.
@@ -86,7 +88,7 @@ class DisconnectionHandlerInternal {
  private:
   ReferenceCountedFutureImpl* future();
 
-  DatabaseInternal* database_;
+  std::shared_ptr<DatabaseInternal> database_;
 
   Path path_;
 };

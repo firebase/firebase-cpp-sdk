@@ -48,7 +48,7 @@ OBJ_C_PTR_WRAPPER(FIRDatabaseReference);
 class DatabaseReferenceInternal : public QueryInternal {
  public:
   explicit DatabaseReferenceInternal(
-      DatabaseInternal* database,
+      std::shared_ptr<DatabaseInternal> database,
       std::unique_ptr<FIRDatabaseReferencePointer> impl);
 
   virtual ~DatabaseReferenceInternal();
@@ -65,7 +65,7 @@ class DatabaseReferenceInternal : public QueryInternal {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   // Gets the database to which we refer.
-  Database* GetDatabase() const;
+  Database GetDatabase() const;
 
   // Gets the string key of this database location.
   const char* GetKey() const;

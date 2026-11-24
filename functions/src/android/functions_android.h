@@ -17,17 +17,15 @@
 
 #include <jni.h>
 
-#include <map>
-#include <set>
+#include <memory>
 #include <string>
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
-#include "functions/src/android/functions_android.h"
 #include "functions/src/include/firebase/functions/callable_reference.h"
 #include "functions/src/include/firebase/functions/common.h"
 
@@ -35,29 +33,37 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-class FunctionsInternal {
+class FunctionsInternal : public ::firebase::internal::Service {
  public:
   // Build a Functions.
-  FunctionsInternal(App* app, const char* region);
-  ~FunctionsInternal();
+  FunctionsInternal(::firebase::internal::AppState& app_state, const App& app,
+                    const char* region);
+  ~FunctionsInternal() override;
 
   // Return the App we were created with.
-  App* app() const;
+  App app() const;
+
+  ::firebase::internal::AppState& app_state() const { return app_state_; }
+
+  JNIEnv* GetJNIEnv() const;
 
   // Return the region we were created with.
   const char* region() const;
 
-  HttpsCallableReferenceInternal* GetHttpsCallable(const char* name) const;
+  HttpsCallableReferenceInternal* GetHttpsCallable(
+      std::shared_ptr<FunctionsInternal> self, const char* name) const;
 
   HttpsCallableReferenceInternal* GetHttpsCallable(
-      const char* name, const HttpsCallableOptions& options) const;
+      std::shared_ptr<FunctionsInternal> self, const char* name,
+      const HttpsCallableOptions& options) const;
 
   // Get a FunctionsReference for the specified URL.
   HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
-      const char* url) const;
+      std::shared_ptr<FunctionsInternal> self, const char* url) const;
 
   HttpsCallableReferenceInternal* GetHttpsCallableFromURL(
-      const char* url, const HttpsCallableOptions& options) const;
+      std::shared_ptr<FunctionsInternal> self, const char* url,
+      const HttpsCallableOptions& options) const;
 
   void UseFunctionsEmulator(const char* origin);
 
@@ -65,7 +71,7 @@ class FunctionsInternal {
   // Error enum.
   Error ErrorFromJavaErrorCode(jint java_error_code) const;
 
-  // Convert a Java FunctionsExcetion instance into a C++ Error enum.
+  // Convert a Java FunctionsException instance into a C++ Error enum.
   // If error_message is not null, it will be set to the error message string
   // from the exception.
   Error ErrorFromJavaFunctionsException(jobject java_error,
@@ -74,11 +80,7 @@ class FunctionsInternal {
   FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
-
-  // When this is deleted, it will clean up all FunctionsReferences and other
-  // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  bool initialized() const { return initialized_; }
 
   // Used for registering global callbacks. See
   // firebase::util::RegisterCallbackOnTask for context.
@@ -86,24 +88,18 @@ class FunctionsInternal {
 
  private:
   // Initialize JNI for all classes.
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
-  // Initialize classes loaded from embedded files.
-  static bool InitializeEmbeddedClasses(App* app);
-
-  static Mutex init_mutex_;
   static int initialize_count_;
-  static std::map<jint, Error> java_error_to_cpp_;
 
-  App* app_;
+  ::firebase::internal::AppState& app_state_;
+  bool initialized_ = false;
   std::string region_;
   // Java FirebaseFunctions global ref.
-  jobject obj_;
+  jobject obj_ = nullptr;
 
   FutureManager future_manager_;
-
-  CleanupNotifier cleanup_;
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;

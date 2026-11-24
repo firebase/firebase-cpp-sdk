@@ -17,6 +17,7 @@
 
 #include <jni.h>
 
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/app.h"
@@ -72,7 +73,7 @@ class MutableDataInternal {
   void SetPriority(Variant priority);
 
   // Returns a pointer to the database this MutableData is from.
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* database_internal() const { return db_.lock().get(); }
 
  private:
   friend class DatabaseInternal;
@@ -82,16 +83,17 @@ class MutableDataInternal {
     return MutableData(ptr);
   }
 
-  MutableDataInternal(DatabaseInternal* database, jobject mutable_data_obj);
+  MutableDataInternal(std::weak_ptr<DatabaseInternal> database,
+                      jobject mutable_data_obj);
 
   MutableDataInternal& operator=(const MutableDataInternal&);
   MutableDataInternal(MutableDataInternal&);
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
-  DatabaseInternal* db_;
-  jobject obj_;
+  std::weak_ptr<DatabaseInternal> db_;
+  jobject obj_ = nullptr;
   Variant cached_key_;
 };
 

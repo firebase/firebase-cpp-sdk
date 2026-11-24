@@ -95,69 +95,101 @@ METHOD_LOOKUP_DEFINITION(query,
                          "com/google/firebase/database/Query",
                          QUERY_METHODS)
 
-QueryInternal::QueryInternal(DatabaseInternal* db, jobject obj) : db_(db) {
+QueryInternal::QueryInternal(std::shared_ptr<DatabaseInternal> db, jobject obj)
+    : db_(std::move(db)) {
   db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
+  obj_ = db_->GetJNIEnv()->NewGlobalRef(obj);
 }
 
-QueryInternal::QueryInternal(DatabaseInternal* db, jobject obj,
+QueryInternal::QueryInternal(std::shared_ptr<DatabaseInternal> db, jobject obj,
                              const internal::QuerySpec& query_spec)
-    : db_(db), query_spec_(query_spec) {
+    : db_(std::move(db)), query_spec_(query_spec) {
   db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
+  obj_ = db_->GetJNIEnv()->NewGlobalRef(obj);
 }
 
 QueryInternal::QueryInternal(const QueryInternal& src)
     : db_(src.db_), query_spec_(src.query_spec_) {
   db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_);
+  obj_ = db_->GetJNIEnv()->NewGlobalRef(src.obj_);
 }
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& src) {
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(src.obj_);
+  if (this == &src) return *this;
+  JNIEnv* env = util::GetJNIEnvFromApp();
+  if (obj_ != nullptr) {
+    env->DeleteGlobalRef(obj_);
+    obj_ = nullptr;
+  }
+  if (db_ != src.db_) {
+    if (db_) {
+      db_->future_manager().ReleaseFutureApi(&future_api_id_);
+    }
+    db_ = src.db_;
+    if (db_) {
+      db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
+    }
+  }
+  if (src.obj_ != nullptr) {
+    obj_ = env->NewGlobalRef(src.obj_);
+  }
   query_spec_ = src.query_spec_;
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-QueryInternal::QueryInternal(QueryInternal&& src) : db_(src.db_) {
+QueryInternal::QueryInternal(QueryInternal&& src) : db_(std::move(src.db_)) {
   obj_ = src.obj_;
   src.obj_ = nullptr;
-  db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
-  query_spec_ = src.query_spec_;
+  if (db_) {
+    db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
+  }
+  query_spec_ = std::move(src.query_spec_);
 }
 
 QueryInternal& QueryInternal::operator=(QueryInternal&& src) {
+  if (this == &src) return *this;
+  if (obj_ != nullptr) {
+    util::GetJNIEnvFromApp()->DeleteGlobalRef(obj_);
+    obj_ = nullptr;
+  }
+  if (db_) {
+    db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
+  db_ = std::move(src.db_);
   obj_ = src.obj_;
   src.obj_ = nullptr;
-  db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
-  query_spec_ = src.query_spec_;
+  if (db_) {
+    db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
+  }
+  query_spec_ = std::move(src.query_spec_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 QueryInternal::~QueryInternal() {
   if (obj_ != nullptr) {
-    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
+    util::GetJNIEnvFromApp()->DeleteGlobalRef(obj_);
     obj_ = nullptr;
   }
-  db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  if (db_) {
+    db_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
 }
 
-bool QueryInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
+bool QueryInternal::Initialize(const App& app) {
+  JNIEnv* env = app.GetJNIEnv();
+  jobject activity = app.activity();
   return query::CacheMethodIds(env, activity);
 }
 
-void QueryInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
+void QueryInternal::Terminate(JNIEnv* env) {
   query::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 }
 
 DatabaseReferenceInternal* QueryInternal::GetReference() {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject database_reference_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kGetRef));
   if (util::LogException(env, kLogLevelWarning,
@@ -171,7 +203,7 @@ DatabaseReferenceInternal* QueryInternal::GetReference() {
 }
 
 void QueryInternal::SetKeepSynchronized(bool keep_sync) {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   env->CallVoidMethod(obj_, query::GetMethodId(query::kKeepSynced), keep_sync);
   util::CheckAndClearJniExceptions(env);
 }
@@ -180,7 +212,7 @@ QueryInternal* QueryInternal::OrderByChild(const char* path) {
   internal::QuerySpec spec = query_spec_;
   spec.params.order_by = internal::QueryParams::kOrderByChild;
   spec.params.order_by_child = path;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject path_string = env->NewStringUTF(path);
   jobject query_obj = env->CallObjectMethod(
       obj_, query::GetMethodId(query::kOrderByChild), path_string);
@@ -197,7 +229,7 @@ QueryInternal* QueryInternal::OrderByChild(const char* path) {
 QueryInternal* QueryInternal::OrderByKey() {
   internal::QuerySpec spec = query_spec_;
   spec.params.order_by = internal::QueryParams::kOrderByKey;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByKey));
   if (util::LogException(env, kLogLevelError, "Query::OrderByKey (URL = %s)",
@@ -212,7 +244,7 @@ QueryInternal* QueryInternal::OrderByKey() {
 QueryInternal* QueryInternal::OrderByPriority() {
   internal::QuerySpec spec = query_spec_;
   spec.params.order_by = internal::QueryParams::kOrderByPriority;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByPriority));
   if (util::LogException(env, kLogLevelError,
@@ -228,7 +260,7 @@ QueryInternal* QueryInternal::OrderByPriority() {
 QueryInternal* QueryInternal::OrderByValue() {
   internal::QuerySpec spec = query_spec_;
   spec.params.order_by = internal::QueryParams::kOrderByValue;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj =
       env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderByValue));
   if (util::LogException(env, kLogLevelError, "Query::OrderByValue (URL = %s)",
@@ -243,7 +275,7 @@ QueryInternal* QueryInternal::OrderByValue() {
 QueryInternal* QueryInternal::LimitToFirst(size_t limit) {
   internal::QuerySpec spec = query_spec_;
   spec.params.limit_first = limit;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj = env->CallObjectMethod(
       obj_, query::GetMethodId(query::kLimitToFirst), limit);
   if (util::LogException(env, kLogLevelError, "Query::LimitToFirst (URL = %s)",
@@ -258,7 +290,7 @@ QueryInternal* QueryInternal::LimitToFirst(size_t limit) {
 QueryInternal* QueryInternal::LimitToLast(size_t limit) {
   internal::QuerySpec spec = query_spec_;
   spec.params.limit_last = limit;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj = env->CallObjectMethod(
       obj_, query::GetMethodId(query::kLimitToLast), limit);
   if (util::LogException(env, kLogLevelError, "Query::LimitToLast (URL = %s)",
@@ -281,7 +313,7 @@ QueryInternal* QueryInternal::StartAt(Variant value) {
   }
   internal::QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj = nullptr;
   if (value.is_bool()) {
     query_obj = env->CallObjectMethod(
@@ -318,7 +350,7 @@ QueryInternal* QueryInternal::StartAt(Variant value, const char* key) {
   internal::QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
   spec.params.start_at_child_key = key;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jstring key_string = env->NewStringUTF(key);
   jobject query_obj = nullptr;
   if (value.is_bool()) {
@@ -357,7 +389,7 @@ QueryInternal* QueryInternal::EndAt(Variant value) {
   }
   internal::QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj = nullptr;
   if (value.is_bool()) {
     query_obj = env->CallObjectMethod(
@@ -394,7 +426,7 @@ QueryInternal* QueryInternal::EndAt(Variant value, const char* key) {
   internal::QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
   spec.params.end_at_child_key = key;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jstring key_string = env->NewStringUTF(key);
   jobject query_obj = nullptr;
   if (value.is_bool()) {
@@ -433,7 +465,7 @@ QueryInternal* QueryInternal::EqualTo(Variant value) {
   }
   internal::QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject query_obj = nullptr;
   if (value.is_bool()) {
     query_obj = env->CallObjectMethod(
@@ -470,7 +502,7 @@ QueryInternal* QueryInternal::EqualTo(Variant value, const char* key) {
   internal::QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
   spec.params.equal_to_child_key = key;
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jstring key_string = env->NewStringUTF(key);
   jobject query_obj = nullptr;
   if (value.is_bool()) {
@@ -516,7 +548,7 @@ void SingleValueListener::SetJavaListener(jobject obj) {
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
   db_->ClearJavaEventListener(java_listener_);
-  db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
+  db_->GetJNIEnv()->DeleteGlobalRef(java_listener_);
   future_->Complete<DataSnapshot>(
       handle_, kErrorNone, "",
       [&snapshot](DataSnapshot* data) { *data = snapshot; });
@@ -526,19 +558,19 @@ void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
 void SingleValueListener::OnCancelled(const Error& error_code,
                                       const char* error_message) {
   db_->ClearJavaEventListener(java_listener_);
-  db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(java_listener_);
+  db_->GetJNIEnv()->DeleteGlobalRef(java_listener_);
   future_->Complete(handle_, error_code, error_message);
   delete this;
 }
 
 Future<DataSnapshot> QueryInternal::GetValue() {
   // Register a one-time ValueEventListener with the query.
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   SafeFutureHandle<DataSnapshot> handle =
       query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue,
                                               DataSnapshot(nullptr));
   SingleValueListener* single_listener =
-      new SingleValueListener(db_, query_future(), handle);
+      new SingleValueListener(db_.get(), query_future(), handle);
   // The SingleValueListener newed above is deleted in one of several places:
   // - In the LogException block below, if an exception was thrown adding the
   //   listener.
@@ -569,7 +601,7 @@ Future<DataSnapshot> QueryInternal::GetValueLastResult() {
 }
 
 void QueryInternal::AddValueListener(ValueListener* value_listener) {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject listener =
       db_->RegisterValueEventListener(query_spec_, value_listener);
   if (listener != nullptr) {
@@ -590,7 +622,7 @@ void QueryInternal::AddValueListener(ValueListener* value_listener) {
 }
 
 void QueryInternal::RemoveValueListener(ValueListener* value_listener) {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject listener =
       db_->UnregisterValueEventListener(query_spec_, value_listener);
   if (listener != nullptr) {
@@ -606,7 +638,7 @@ void QueryInternal::RemoveValueListener(ValueListener* value_listener) {
 }
 
 void QueryInternal::RemoveAllValueListeners() {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   std::vector<jobject> listeners =
       db_->UnregisterAllValueEventListeners(query_spec_);
   for (int i = 0; i < listeners.size(); i++) {
@@ -618,7 +650,7 @@ void QueryInternal::RemoveAllValueListeners() {
 }
 
 void QueryInternal::AddChildListener(ChildListener* child_listener) {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject listener =
       db_->RegisterChildEventListener(query_spec_, child_listener);
   if (listener != nullptr) {
@@ -639,7 +671,7 @@ void QueryInternal::AddChildListener(ChildListener* child_listener) {
 }
 
 void QueryInternal::RemoveChildListener(ChildListener* child_listener) {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject listener =
       db_->UnregisterChildEventListener(query_spec_, child_listener);
   if (listener != nullptr) {
@@ -659,7 +691,7 @@ ReferenceCountedFutureImpl* QueryInternal::query_future() {
 }
 
 void QueryInternal::RemoveAllChildListeners() {
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   std::vector<jobject> listeners =
       db_->UnregisterAllChildEventListeners(query_spec_);
   for (int i = 0; i < listeners.size(); i++) {

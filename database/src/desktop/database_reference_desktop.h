@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_DATABASE_REFERENCE_DESKTOP_H_
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/future.h"
@@ -31,9 +32,10 @@ namespace internal {
 
 class DatabaseReferenceInternal : public QueryInternal {
  public:
-  DatabaseReferenceInternal(DatabaseInternal* database, const Path& path);
+  DatabaseReferenceInternal(std::shared_ptr<DatabaseInternal> database,
+                            const Path& path);
 
-  ~DatabaseReferenceInternal() override {}
+  ~DatabaseReferenceInternal() override;
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
 
@@ -46,7 +48,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   DatabaseReferenceInternal& operator=(DatabaseReferenceInternal&& reference);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-  Database* GetDatabase() const;
+  Database GetDatabase() const;
 
   const char* GetKey() const { return query_spec_.path.GetBaseName(); }
 

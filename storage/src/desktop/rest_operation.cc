@@ -80,9 +80,6 @@ RestOperation::RestOperation(StorageInternal* storage_internal,
   // rest::TransportCurl owns the rest::Controller pointer so as long as this
   // object is alive and rest::Controller is valid.
   controller_.internal_->Initialize(storage_reference, this);
-  storage_internal_->cleanup().RegisterObject(this, [](void* operation) {
-    delete reinterpret_cast<RestOperation*>(operation);
-  });
   storage_internal->AddOperation(this);
   if (controller_out) *controller_out = controller_;
 }
@@ -95,7 +92,6 @@ RestOperation::~RestOperation() {
   request_notifier_->set_update_callback(nullptr, nullptr);
   rest_controller_->Cancel();
   cleanup().CleanupAll();
-  storage_internal_->cleanup().UnregisterObject(this);
   storage_internal_->RemoveOperation(this);
   set_listener(nullptr);
 }

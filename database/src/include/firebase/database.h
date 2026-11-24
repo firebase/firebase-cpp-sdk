@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_H_
 #define FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_H_
 
+#include <memory>
+
 #include "firebase/app.h"
 #include "firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
@@ -49,13 +51,41 @@ class DatabaseReference;
 #endif  // SWIG
 class Database {
  public:
+  /// @brief Default constructor. Creates an invalid (empty) Database handle.
+  Database() = default;
+
+  Database(const Database&) = default;
+  Database& operator=(const Database&) = default;
+  Database(Database&&) noexcept = default;
+  Database& operator=(Database&&) noexcept = default;
+
+  /// @brief Destructor for the Database handle.
+  ///
+  /// Releases this handle's reference to the underlying Database service and
+  /// App state. The underlying service stays alive while any Database,
+  /// DatabaseReference, Query, or App handle remains alive.
+  ~Database() = default;
+
+  /// @brief Returns true if this handle refers to a valid Database instance.
+  bool is_valid() const { return internal_ != nullptr; }
+
+  /// @brief Returns true if this handle refers to a valid Database instance.
+  explicit operator bool() const { return is_valid(); }
+
+  bool operator==(const Database& other) const {
+    return internal_ == other.internal_;
+  }
+  bool operator!=(const Database& other) const {
+    return internal_ != other.internal_;
+  }
+
   /// @brief Get an instance of Database corresponding to the given App.
   ///
   /// Firebase Realtime Database uses firebase::App to communicate with Firebase
   /// Authentication to authenticate users to the Database server backend.
   ///
   /// If you call GetInstance() multiple times with the same App, you will get
-  /// the same instance of Database.
+  /// handles to the same underlying Database service.
   ///
   /// @param[in] app Your instance of firebase::App. Firebase Realtime Database
   /// will use this to communicate with Firebase Authentication.
@@ -64,14 +94,15 @@ class Database {
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
   ///
-  /// @returns An instance of Database corresponding to the given App.
-  static Database* GetInstance(::firebase::App* app,
-                               InitResult* init_result_out = nullptr);
+  /// @returns A Database handle corresponding to the given App, or an invalid
+  /// handle if initialization failed.
+  static Database GetInstance(const ::firebase::App& app,
+                              InitResult* init_result_out = nullptr);
 
   /// @brief Gets an instance of FirebaseDatabase for the specified URL.
   ///
   /// If you call GetInstance() multiple times with the same App and URL, you
-  /// will get the same instance of Database.
+  /// will get handles to the same underlying Database service.
   ///
   /// @param[in] app Your instance of firebase::App. Firebase Realtime Database
   /// will use this to communicate with Firebase Authentication.
@@ -82,21 +113,16 @@ class Database {
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
   ///
-  /// @returns An instance of Database corresponding to the given App and URL.
-  static Database* GetInstance(::firebase::App* app, const char* url,
-                               InitResult* init_result_out = nullptr);
-
-  /// @brief Destructor for the Database object.
-  ///
-  /// When deleted, this instance will be removed from the cache of Database
-  /// objects. If you call GetInstance() in the future with the same App, a new
-  /// Database instance will be created.
-  ~Database();
+  /// @returns A Database handle corresponding to the given App and URL, or an
+  /// invalid handle if initialization failed.
+  static Database GetInstance(const ::firebase::App& app, const char* url,
+                              InitResult* init_result_out = nullptr);
 
   /// @brief Get the firebase::App that this Database was created with.
   ///
-  /// @returns The firebase::App this Database was created with.
-  App* app() const;
+  /// @returns The firebase::App this Database was created with, or an invalid
+  /// App if this Database handle is invalid.
+  App app() const;
 
   /// @brief Get the URL that this Database was created with.
   ///
@@ -181,18 +207,12 @@ class Database {
   LogLevel log_level() const;
 
  private:
-#ifndef SWIG
-  friend Database* GetDatabaseInstance(::firebase::App* app, const char* url,
-                                       InitResult* init_result_out);
-#endif  // not SWIG
-  Database(::firebase::App* app, internal::DatabaseInternal* internal);
-  Database(const Database& src);
-  Database& operator=(const Database& src);
+  friend class internal::DatabaseInternal;
+  friend class internal::DatabaseReferenceInternal;
 
-  // Delete the internal_ data.
-  void DeleteInternal();
+  explicit Database(std::shared_ptr<internal::DatabaseInternal> internal);
 
-  internal::DatabaseInternal* internal_;
+  std::shared_ptr<internal::DatabaseInternal> internal_;
 };
 
 }  // namespace database

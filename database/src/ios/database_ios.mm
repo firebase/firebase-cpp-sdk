@@ -14,10 +14,10 @@
 
 #include "database/src/ios/database_ios.h"
 
-#include "app/src/app_common.h"
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "database/src/include/firebase/database/database_reference.h"
@@ -27,12 +27,11 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-Mutex g_database_reference_constructor_mutex;  // NOLINT
-
-DatabaseInternal::DatabaseInternal(App* app)
-    : app_(app), logger_(app_common::FindAppLoggerByName(app->name())) {
+DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
+                                   const App& app)
+    : app_state_(app_state), logger_(&app_state.logger()) {
   @try {
-    impl_.reset(new FIRDatabasePointer([FIRDatabase databaseForApp:app->GetPlatformApp()]));
+    impl_.reset(new FIRDatabasePointer([FIRDatabase databaseForApp:app.GetPlatformApp()]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   } @catch (NSException* exception) {
     logger_.LogError(
@@ -41,10 +40,11 @@ DatabaseInternal::DatabaseInternal(App* app)
   }
 }
 
-DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : app_(app), constructor_url_(url), logger_(app_common::FindAppLoggerByName(app->name())) {
+DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
+                                   const App& app, const char* url)
+    : app_state_(app_state), constructor_url_(url), logger_(&app_state.logger()) {
   @try {
-    impl_.reset(new FIRDatabasePointer([FIRDatabase databaseForApp:app->GetPlatformApp()
+    impl_.reset(new FIRDatabasePointer([FIRDatabase databaseForApp:app.GetPlatformApp()
                                                                URL:@(url)]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   } @catch (NSException* exception) {
@@ -55,10 +55,17 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
 }
 
 DatabaseInternal::~DatabaseInternal() {
-  cleanup_.CleanupAll();
-  // If there are any pending listeners, delete their pointers.
+  // Detach all registered observers and delete pending transient listeners.
   {
     MutexLock lock(listener_mutex_);
+    for (auto& entry : cleanup_value_listener_lookup_) {
+      [entry.second.get() removeAllObservers];
+    }
+    cleanup_value_listener_lookup_.clear();
+    for (auto& entry : cleanup_child_listener_lookup_) {
+      [entry.second.get() removeAllObservers];
+    }
+    cleanup_child_listener_lookup_.clear();
     while (single_value_listeners_.begin() != single_value_listeners_.end()) {
       auto it = single_value_listeners_.begin();
       auto* listener = *it;
@@ -69,23 +76,35 @@ DatabaseInternal::~DatabaseInternal() {
   impl_ = std::make_unique<FIRDatabasePointer>(nil);
 }
 
-App* DatabaseInternal::GetApp() { return app_; }
+App DatabaseInternal::GetApp() const { return app_state_.TryMakeAppHandle(); }
+
+std::shared_ptr<DatabaseInternal> DatabaseInternal::MakeSharedHandle() const {
+  auto state = app_state_.weak_from_this().lock();
+  if (!state) return {};
+  return std::shared_ptr<DatabaseInternal>(std::move(state),
+                                           const_cast<DatabaseInternal*>(this));
+}
 
 DatabaseReference DatabaseInternal::GetReference() const {
-  return DatabaseReference(
-      new DatabaseReferenceInternal(const_cast<DatabaseInternal*>(this),
-                                    std::make_unique<FIRDatabaseReferencePointer>([impl() reference])));
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
+  return DatabaseReference(new DatabaseReferenceInternal(
+      std::move(self), std::make_unique<FIRDatabaseReferencePointer>([impl() reference])));
 }
 
 DatabaseReference DatabaseInternal::GetReference(const char* path) const {
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
   return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this),
+      std::move(self),
       std::make_unique<FIRDatabaseReferencePointer>([impl() referenceWithPath:@(path)])));
 }
 
 DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
   return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this),
+      std::move(self),
       std::make_unique<FIRDatabaseReferencePointer>([impl() referenceFromURL:@(url)])));
 }
 
@@ -95,12 +114,10 @@ void DatabaseInternal::GoOnline() { [impl() goOnline]; }
 
 void DatabaseInternal::PurgeOutstandingWrites() { [impl() purgeOutstandingWrites]; }
 
-static std::string* g_sdk_version = nullptr;
 const char* DatabaseInternal::GetSdkVersion() {
-  if (g_sdk_version == nullptr) {
-    g_sdk_version = new std::string([[FIRDatabase sdkVersion] UTF8String]);
-  }
-  return g_sdk_version->c_str();
+  static ::firebase::internal::NoDestructor<std::string> sdk_version(
+      [[FIRDatabase sdkVersion] UTF8String]);
+  return sdk_version->c_str();
 }
 
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) {

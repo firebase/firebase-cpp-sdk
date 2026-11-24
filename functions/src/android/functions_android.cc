@@ -17,8 +17,10 @@
 #include <jni.h>
 
 #include <cassert>
+#include <utility>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "functions/src/android/callable_reference_android.h"
@@ -102,19 +104,25 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/functions/FirebaseFunctionsException$Code",
     FUNCTIONS_EXCEPTION_CODE_METHODS)
 
-Mutex FunctionsInternal::init_mutex_;  // NOLINT
+namespace {
+Mutex& GetInitMutex() {
+  static ::firebase::internal::NoDestructor<Mutex> mutex;
+  return *mutex;
+}
+}  // namespace
+
 int FunctionsInternal::initialize_count_ = 0;
 
-FunctionsInternal::FunctionsInternal(App* app, const char* region)
-    : region_(region) {
-  app_ = nullptr;
+FunctionsInternal::FunctionsInternal(::firebase::internal::AppState& app_state,
+                                     const App& app, const char* region)
+    : app_state_(app_state), region_(region) {
   if (!Initialize(app)) return;
-  app_ = app;
+  initialized_ = true;
   const char kApiIdentifier[] = "Functions";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = app.GetJNIEnv();
   jstring region_str = env->NewStringUTF(region);
-  jobject platform_app = app_->GetPlatformApp();
+  jobject platform_app = app.GetPlatformApp();
   jobject functions_obj = env->CallStaticObjectMethod(
       firebase_functions::GetClass(),
       firebase_functions::GetMethodId(firebase_functions::kGetInstance),
@@ -129,23 +137,26 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
 
 FunctionsInternal::~FunctionsInternal() {
   // If initialization failed, there is nothing to clean up.
-  if (app_ == nullptr) return;
+  if (!initialized_) return;
 
-  JNIEnv* env = app_->GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
-  env->DeleteGlobalRef(obj_);
-  obj_ = nullptr;
-  Terminate(app_);
-  app_ = nullptr;
-
-  util::CheckAndClearJniExceptions(env);
+  JNIEnv* env = GetJNIEnv();
+  if (env != nullptr) {
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+    if (obj_ != nullptr) {
+      env->DeleteGlobalRef(obj_);
+      obj_ = nullptr;
+    }
+    Terminate(env);
+    util::CheckAndClearJniExceptions(env);
+  }
+  initialized_ = false;
 }
 
-bool FunctionsInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex_);
+bool FunctionsInternal::Initialize(const App& app) {
+  MutexLock init_lock(GetInitMutex());
   if (initialize_count_ == 0) {
-    JNIEnv* env = app->GetJNIEnv();
-    jobject activity = app->activity();
+    JNIEnv* env = app.GetJNIEnv();
+    jobject activity = app.activity();
     if (!(firebase_functions::CacheMethodIds(env, activity) &&
           functions_exception::CacheMethodIds(env, activity) &&
           functions_exception_code::CacheMethodIds(env, activity) &&
@@ -161,30 +172,34 @@ bool FunctionsInternal::Initialize(App* app) {
   return true;
 }
 
-void FunctionsInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex_);
+void FunctionsInternal::Terminate(JNIEnv* env) {
+  MutexLock init_lock(GetInitMutex());
   assert(initialize_count_ > 0);
   initialize_count_--;
-  if (initialize_count_ == 0) {
-    JNIEnv* env = app->GetJNIEnv();
+  if (initialize_count_ == 0 && env != nullptr) {
     firebase_functions::ReleaseClass(env);
     functions_exception::ReleaseClass(env);
     functions_exception_code::ReleaseClass(env);
     callable_options_builder::ReleaseClass(env);
 
     // Call Terminate on all other Functions internal classes.
-    HttpsCallableReferenceInternal::Terminate(app);
+    HttpsCallableReferenceInternal::Terminate(env);
 
     util::CheckAndClearJniExceptions(env);
   }
 }
 
-App* FunctionsInternal::app() const { return app_; }
+App FunctionsInternal::app() const { return app_state_.TryMakeAppHandle(); }
+
+JNIEnv* FunctionsInternal::GetJNIEnv() const {
+  return util::GetJNIEnvFromApp();
+}
+
 const char* FunctionsInternal::region() const { return region_.c_str(); }
 
 Error FunctionsInternal::ErrorFromJavaFunctionsException(
     jobject java_exception, std::string* error_message) const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   Error error = kErrorNone;
   if (java_exception != nullptr) {
     // Guarantee that it is a functions exception before getting the code.
@@ -212,14 +227,15 @@ Error FunctionsInternal::ErrorFromJavaFunctionsException(
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
-    const char* name) const {
-  return GetHttpsCallable(name, HttpsCallableOptions());
+    std::shared_ptr<FunctionsInternal> self, const char* name) const {
+  return GetHttpsCallable(std::move(self), name, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
-    const char* name, const HttpsCallableOptions& options) const {
+    std::shared_ptr<FunctionsInternal> self, const char* name,
+    const HttpsCallableOptions& options) const {
   FIREBASE_ASSERT_RETURN(nullptr, name != nullptr);
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
 
   // Create HttpsCallableOptions
   jobject empty_builder =
@@ -251,22 +267,24 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
                          name)) {
     return nullptr;
   }
-  HttpsCallableReferenceInternal* internal = new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), callable_reference_obj);
+  HttpsCallableReferenceInternal* internal =
+      new HttpsCallableReferenceInternal(std::move(self),
+                                         callable_reference_obj);
   env->DeleteLocalRef(callable_reference_obj);
   util::CheckAndClearJniExceptions(env);
   return internal;
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
-    const char* url) const {
-  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+    std::shared_ptr<FunctionsInternal> self, const char* url) const {
+  return GetHttpsCallableFromURL(std::move(self), url, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
-    const char* url, const HttpsCallableOptions& options) const {
+    std::shared_ptr<FunctionsInternal> self, const char* url,
+    const HttpsCallableOptions& options) const {
   FIREBASE_ASSERT_RETURN(nullptr, url != nullptr);
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
 
   // Create HttpsCallableOptions
   jobject empty_builder =
@@ -298,8 +316,9 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
           "Functions::GetHttpsCallableFromURL() (url = %s) failed", url)) {
     return nullptr;
   }
-  HttpsCallableReferenceInternal* internal = new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), callable_reference_obj);
+  HttpsCallableReferenceInternal* internal =
+      new HttpsCallableReferenceInternal(std::move(self),
+                                         callable_reference_obj);
   env->DeleteLocalRef(callable_reference_obj);
   util::CheckAndClearJniExceptions(env);
   return internal;
@@ -307,7 +326,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   FIREBASE_ASSERT(origin != nullptr);
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject origin_string = env->NewStringUTF(origin);
   env->CallVoidMethod(obj_,
                       firebase_functions::GetMethodId(

@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
 
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/app.h"
@@ -56,15 +57,23 @@ class Notifier;
 class StorageReferenceInternal {
  public:
   StorageReferenceInternal(const std::string& storageUri,
-                           StorageInternal* storage);
+                           std::shared_ptr<StorageInternal> storage);
   StorageReferenceInternal(const StoragePath& storageUri,
-                           StorageInternal* storage);
+                           std::shared_ptr<StorageInternal> storage);
   StorageReferenceInternal(const StorageReferenceInternal& other);
 
   ~StorageReferenceInternal();
 
+  // Creates a non-owning reference holding weak_ptr<StorageInternal> so
+  // internal objects owned by StorageInternal (RestOperation/Controller,
+  // StorageListResult stored in FutureManager) do not create reference cycles.
+  static StorageReferenceInternal* CreateWeak(
+      const StoragePath& storageUri, std::weak_ptr<StorageInternal> storage);
+
+  bool is_valid() const { return LockStorage() != nullptr; }
+
   // Gets the storage to which we refer.
-  Storage* storage() const;
+  Storage storage() const;
 
   // Gets a reference to a location relative to this one.
   StorageReferenceInternal* Child(const char* path) const;
@@ -154,14 +163,34 @@ class StorageReferenceInternal {
   // Returns the result of the most recent call to List();
   Future<StorageListResult> ListLastResult();
 
-  // Pointer to the StorageInternal instance we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
+  // Returns a strong shared_ptr to the owning StorageInternal if still alive.
+  std::shared_ptr<StorageInternal> LockStorage() const {
+    return strong_storage_ ? strong_storage_ : weak_storage_.lock();
+  }
+
+  // Non-owning raw pointer for internal callers that already hold a lock.
+  StorageInternal* storage_internal() const { return LockStorage().get(); }
 
   // Wrap this in a StorageReference.
   // Exposed for testing.
   StorageReference AsStorageReference() const;
 
+  // Wrap this in a non-owning StorageReference (for RestOperation/Controller).
+  StorageReference AsWeakStorageReference() const;
+
+  // Create a non-owning StorageReference directly (e.g. for StorageListResult).
+  static StorageReference CreateWeakReference(
+      const StoragePath& storageUri, std::weak_ptr<StorageInternal> storage);
+
+  // Creates a strong (owning) copy of this StorageReferenceInternal, or
+  // nullptr if the underlying StorageInternal has expired.
+  StorageReferenceInternal* CloneStrong() const;
+
  private:
+  struct WeakTag {};
+  StorageReferenceInternal(WeakTag, const StoragePath& storageUri,
+                           std::weak_ptr<StorageInternal> storage);
+
   // Function type that sends a Rest Request and returns the BlockingResponse.
   typedef std::function<BlockingResponse*()> SendRequestFunct;
 
@@ -209,7 +238,8 @@ class StorageReferenceInternal {
   // more state in them than is absolutely necessary, as it will be multiplied
   // over many allocations/copies.
 
-  StorageInternal* storage_;
+  std::shared_ptr<StorageInternal> strong_storage_;
+  std::weak_ptr<StorageInternal> weak_storage_;
   StoragePath storageUri_;
 };
 

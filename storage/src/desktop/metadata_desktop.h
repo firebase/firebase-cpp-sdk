@@ -19,6 +19,7 @@
 
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/app.h"
@@ -53,7 +54,8 @@ class MetadataInternal {
   static const char* kNameKey;
   static const char* kGenerationKey;
 
-  MetadataInternal(const StorageReference& storage_reference);
+  MetadataInternal();
+  explicit MetadataInternal(const StorageReference& storage_reference);
 
   MetadataInternal(const MetadataInternal& metadata);
 
@@ -147,8 +149,8 @@ class MetadataInternal {
   // Return the time the StorageReference was last updated.
   int64_t updated_time() const { return updated_time_; }
 
-  // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_internal_; }
+  // Gets the StorageInternal we are a part of (or nullptr if expired).
+  StorageInternal* storage_internal() const { return storage_.lock().get(); }
 
   const char* md5_hash() { return md5_hash_.c_str(); }
 
@@ -160,10 +162,6 @@ class MetadataInternal {
   bool ImportFromJson(const char* json);
   std::string ExportAsJson();
 
- private:
-  // Cached the StorageInternal from the wrapped StorageReference object.
-  void UpdateStorageInternal();
-
  public:
   // Converts a metadata internal pointer into a metadata object.
   static Metadata AsMetadata(MetadataInternal* metadata_internal) {
@@ -171,13 +169,10 @@ class MetadataInternal {
   }
 
  private:
-  // The storage reference this metadata belongs to.
-  StorageReference storage_reference_;
-  // Cached storage_internal_ this metadata belongs to.
-  // If storage_reference is invalidated before this object is invalidated this
-  // is required to remove the Metadata object from the Storage object's cleanup
-  // notifier.
-  StorageInternal* storage_internal_;
+  // Weak reference to the StorageInternal this metadata belongs to.
+  // Kept weak so Future<Metadata> cached in StorageInternal::future_manager()
+  // never creates a reference cycle with StorageInternal / AppState.
+  std::weak_ptr<StorageInternal> storage_;
 
   std::string path_;
   std::string name_;

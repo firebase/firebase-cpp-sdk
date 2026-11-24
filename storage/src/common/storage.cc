@@ -14,22 +14,21 @@
 
 #include "storage/src/include/firebase/storage.h"
 
-#include <assert.h>
-#include <string.h>
-
-#include <cstdint>
-#include <map>
+#include <cstring>
+#include <memory>
 #include <string>
+#include <utility>
 
+#include "app/src/app_state.h"
 #include "app/src/assert.h"
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/log.h"
 #include "app/src/util.h"
 #include "storage/src/common/storage_uri_parser.h"
 
-// QueryInternal is defined in these 3 files, one implementation for each OS.
+// StorageInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/android/storage_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
@@ -41,39 +40,44 @@
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
-    storage, { return ::firebase::kInitResultSuccess; },
-    {
-        // Nothing to tear down.
-    },
-    false);
+    storage, { return ::firebase::kInitResultSuccess; }, false);
 
 namespace firebase {
 namespace storage {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseStorage);
 
-Mutex g_storages_lock;  // NOLINT
-static std::map<std::pair<App*, std::string>, Storage*>* g_storages = nullptr;
+namespace {
+constexpr int kStorageServiceTag = 0;
+}  // namespace
 
-Storage* Storage::GetInstance(::firebase::App* app,
-                              InitResult* init_result_out) {
+Storage::Storage(std::shared_ptr<internal::StorageInternal> internal)
+    : internal_(std::move(internal)) {}
+
+Storage Storage::GetInstance(const ::firebase::App& app,
+                             InitResult* init_result_out) {
   return GetInstance(app, nullptr, init_result_out);
 }
 
-Storage* Storage::GetInstance(::firebase::App* app, const char* url,
-                              InitResult* init_result_out) {
-  MutexLock lock(g_storages_lock);
-  if (!g_storages) {
-    g_storages = new std::map<std::pair<App*, std::string>, Storage*>();
+Storage Storage::GetInstance(const ::firebase::App& app, const char* url,
+                             InitResult* init_result_out) {
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) {
+    if (init_result_out != nullptr) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Storage();
   }
-  // URL we use for our global index of Storage instances.
-  // If a null URL is given, we look up the App's default storage bucket.
+
+  // URL we use as the per-App service key.
+  // If a null/empty URL is given, we look up the App's default storage bucket.
   std::string url_idx;
   if (url != nullptr && strlen(url) > 0) {
     url_idx = url;
   } else {
+    const char* bucket = app.options().storage_bucket();
     url_idx = std::string(internal::kCloudStorageScheme) +
-              app->options().storage_bucket();
+              (bucket ? bucket : "");
   }
 
   // Validate storage URL.
@@ -83,7 +87,7 @@ Storage* Storage::GetInstance(::firebase::App* app, const char* url,
     if (init_result_out != nullptr) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
-    return nullptr;
+    return Storage();
   }
   if (!path.empty()) {
     LogError(
@@ -93,85 +97,39 @@ Storage* Storage::GetInstance(::firebase::App* app, const char* url,
     if (init_result_out != nullptr) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
-    return nullptr;
+    return Storage();
   }
 
-  std::map<std::pair<App*, std::string>, Storage*>::iterator it =
-      g_storages->find(std::make_pair(app, url_idx));
-  if (it != g_storages->end()) {
-    if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
-    return it->second;
+  auto internal = state->GetOrCreateService<internal::StorageInternal>(
+      &kStorageServiceTag, url_idx,
+      [&app, url](::firebase::internal::AppState& app_state)
+          -> std::shared_ptr<internal::StorageInternal> {
+        auto inst =
+            std::make_shared<internal::StorageInternal>(app_state, app, url);
+        if (!inst->initialized()) {
+          return nullptr;
+        }
+        return inst;
+      });
+
+  if (!internal) {
+    if (init_result_out != nullptr) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Storage();
   }
 
-  Storage* storage = new Storage(app, url);
-  if (!storage->internal_->initialized()) {
-    if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;
-    delete storage;
-    return nullptr;
+  if (init_result_out != nullptr) {
+    *init_result_out = kInitResultSuccess;
   }
-  g_storages->insert(std::make_pair(std::make_pair(app, url_idx), storage));
-  if (init_result_out) *init_result_out = kInitResultSuccess;
-  return storage;
+  return Storage(std::move(internal));
 }
 
-Storage::Storage(::firebase::App* app, const char* url) {
-  internal_ = new internal::StorageInternal(app, url);
-
-  if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app);
-    assert(app_notifier);
-    app_notifier->RegisterObject(this, [](void* object) {
-      Storage* storage = reinterpret_cast<Storage*>(object);
-      LogWarning(
-          "Storage object 0x%08x should be deleted before the App 0x%08x "
-          "it depends upon.",
-          static_cast<int>(reinterpret_cast<intptr_t>(storage)),
-          static_cast<int>(reinterpret_cast<intptr_t>(storage->app())));
-      storage->DeleteInternal();
-    });
-  }
+::firebase::App Storage::app() const {
+  return internal_ ? internal_->app() : ::firebase::App();
 }
 
-void Storage::DeleteInternal() {
-  MutexLock lock(g_storages_lock);
-  if (!internal_) return;
-
-  // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to g_storages, and app() may be null.
-  if (!internal_->initialized()) {
-    delete internal_;
-    internal_ = nullptr;
-    return;
-  }
-
-  CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
-  assert(app_notifier);
-  app_notifier->UnregisterObject(this);
-
-  // Force cleanup to happen first.
-  internal_->cleanup().CleanupAll();
-  // If a Storage is explicitly deleted, remove it from our cache.
-  std::string url_idx = url().empty()
-                            ? std::string(internal::kCloudStorageScheme) +
-                                  app()->options().storage_bucket()
-                            : url();
-  g_storages->erase(std::make_pair(app(), url_idx));
-  delete internal_;
-  internal_ = nullptr;
-  // If it's the last one, delete the map.
-  if (g_storages->empty()) {
-    delete g_storages;
-    g_storages = nullptr;
-  }
-}
-
-Storage::~Storage() { DeleteInternal(); }
-
-::firebase::App* Storage::app() {
-  return internal_ ? internal_->app() : nullptr;
-}
-
-std::string Storage::url() {
+std::string Storage::url() const {
   return internal_ ? internal_->url() : std::string();
 }
 
@@ -186,11 +144,11 @@ StorageReference Storage::GetReference(const char* path) const {
 }
 
 StorageReference Storage::GetReferenceFromUrl(const char* url) const {
-  if (!internal_) return StorageReference(nullptr);
+  if (!internal_ || url == nullptr) return StorageReference(nullptr);
 
   static const char kObjectName[] = "StorageReference";
   // Extract components from this storage object's URL.
-  std::string this_bucket = const_cast<Storage*>(this)->GetReference().bucket();
+  std::string this_bucket = GetReference().bucket();
   // Make sure the specified URL is valid.
   std::string bucket;
   bool valid = internal::UriToComponents(std::string(url), kObjectName, &bucket,

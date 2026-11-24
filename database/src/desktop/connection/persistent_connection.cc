@@ -20,11 +20,10 @@
 #include <sstream>
 #include <utility>
 
-#include "app/src/app_common.h"
 #include "app/src/assert.h"
-#include "app/src/function_registry.h"
 #include "app/src/log.h"
 #include "app/src/path.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/time.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/core/constants.h"
@@ -103,10 +102,10 @@ std::string GetDebugQuerySpecString(const QuerySpec& query_spec) {
 }
 
 PersistentConnection::PersistentConnection(
-    App* app, const HostInfo& info,
+    ::firebase::internal::AppState& app_state, const HostInfo& info,
     PersistentConnectionEventHandler* event_handler,
     scheduler::Scheduler* scheduler, Logger* logger)
-    : app_(app),
+    : app_state_(app_state),
       safe_this_(this),
       scheduler_(scheduler),
       host_info_(info),
@@ -120,7 +119,6 @@ PersistentConnection::PersistentConnection(
       next_listen_id_(0),
       next_write_id_(0),
       logger_(logger) {
-  FIREBASE_DEV_ASSERT(app);
   FIREBASE_DEV_ASSERT(scheduler);
   FIREBASE_DEV_ASSERT(event_handler_);
 
@@ -533,20 +531,19 @@ void PersistentConnection::TryScheduleReconnect() {
 
         // Get Token Asynchronously to make sure the token is not expired.
         Future<std::string> auth_future;
-        bool auth_succeeded =
-            connection->app_->function_registry()->CallFunction(
-                ::firebase::internal::FnAuthGetTokenAsync, connection->app_,
-                &force_refresh, &auth_future);
+        bool auth_succeeded = false;
+        if (auto* auth = connection->app_state_.auth_token_provider()) {
+          auth_future = auth->GetTokenAsync(force_refresh);
+          auth_succeeded = auth_future.status() != kFutureStatusInvalid;
+        }
         Future<std::string> app_check_future;
-        bool app_check_succeeded =
-            connection->app_->function_registry()->CallFunction(
-                ::firebase::internal::FnAppCheckGetTokenAsync, connection->app_,
-                nullptr, &app_check_future);
-
-        // Check that the futures are actually valid (assuming they were made)
-        auth_succeeded &= auth_future.status() != kFutureStatusInvalid;
-        app_check_succeeded &=
-            app_check_future.status() != kFutureStatusInvalid;
+        bool app_check_succeeded = false;
+        if (auto* app_check =
+                connection->app_state_.app_check_token_provider()) {
+          app_check_future = app_check->GetTokenAsync();
+          app_check_succeeded =
+              app_check_future.status() != kFutureStatusInvalid;
+        }
 
         if (auth_succeeded || app_check_succeeded) {
           // If either succeeded, we need to wait for the successful one(s) to
@@ -1069,8 +1066,11 @@ void PersistentConnection::RestoreOutstandingRequests() {
 
 void PersistentConnection::GetAuthToken(std::string* out) {
   FIREBASE_DEV_ASSERT(out);
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetCurrentToken, app_, nullptr, out);
+  if (auto* auth = app_state_.auth_token_provider()) {
+    *out = auth->GetCurrentToken();
+  } else {
+    out->clear();
+  }
 }
 
 void PersistentConnection::CheckAuthTokenAndSendOnChange() {

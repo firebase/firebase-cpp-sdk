@@ -14,6 +14,8 @@
 
 #include "functions/src/desktop/functions_desktop.h"
 
+#include <utility>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -23,39 +25,43 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-FunctionsInternal::FunctionsInternal(App* app, const char* region)
-    : app_(app), region_(region) {}
+FunctionsInternal::FunctionsInternal(::firebase::internal::AppState& app_state,
+                                     const App& /*app*/, const char* region)
+    : app_state_(app_state), region_(region) {}
 
-FunctionsInternal::~FunctionsInternal() {}
+FunctionsInternal::~FunctionsInternal() = default;
 
-::firebase::App* FunctionsInternal::app() const { return app_; }
+::firebase::App FunctionsInternal::app() const {
+  return app_state_.TryMakeAppHandle();
+}
 
 const char* FunctionsInternal::region() const { return region_.c_str(); }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
-    const char* name) const {
-  return GetHttpsCallable(name, HttpsCallableOptions());
+    std::shared_ptr<FunctionsInternal> self, const char* name) const {
+  return GetHttpsCallable(std::move(self), name, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
-    const char* name, const HttpsCallableOptions& options) const {
-  return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), GetUrl(name).c_str(), options);
+    std::shared_ptr<FunctionsInternal> self, const char* name,
+    const HttpsCallableOptions& options) const {
+  return new HttpsCallableReferenceInternal(std::move(self),
+                                            GetUrl(name).c_str(), options);
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
-    const char* url) const {
-  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+    std::shared_ptr<FunctionsInternal> self, const char* url) const {
+  return GetHttpsCallableFromURL(std::move(self), url, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
-    const char* url, const HttpsCallableOptions& options) const {
-  return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this), url, options);
+    std::shared_ptr<FunctionsInternal> self, const char* url,
+    const HttpsCallableOptions& options) const {
+  return new HttpsCallableReferenceInternal(std::move(self), url, options);
 }
 
 std::string FunctionsInternal::GetUrl(const std::string& name) const {
-  std::string proj = app_->options().project_id();
+  std::string proj = app_state_.options().project_id();
   std::string url =
       emulator_origin_.empty()
           ? "https://" + region_ + "-" + proj + ".cloudfunctions.net/" + name
@@ -64,7 +70,7 @@ std::string FunctionsInternal::GetUrl(const std::string& name) const {
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
-  emulator_origin_ = origin;
+  emulator_origin_ = origin ? origin : "";
 }
 
 }  // namespace internal

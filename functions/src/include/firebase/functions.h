@@ -15,6 +15,7 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_H_
 #define FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_H_
 
+#include <memory>
 #include <string>
 
 #include "firebase/app.h"
@@ -30,6 +31,7 @@ namespace functions {
 /// @cond FIREBASE_APP_INTERNAL
 namespace internal {
 class FunctionsInternal;
+class HttpsCallableReferenceInternal;
 }  // namespace internal
 /// @endcond
 
@@ -42,12 +44,46 @@ class FunctionsReference;
 /// obtain an instance of Functions, then use GetHttpsCallable() to obtain
 /// references to callable functions. From there you can call them with
 /// CallableReference::Call().
+///
+/// Functions is a lightweight copyable and movable value handle sharing
+/// ownership of the underlying per-App Functions service.
 #endif  // SWIG
 class Functions {
  public:
-  /// @brief Destructor. You may delete an instance of Functions when
-  /// you are finished using it, to shut down the Functions library.
-  ~Functions();
+  /// @brief Default constructor. Creates an invalid Functions handle.
+  Functions() = default;
+
+  /// @brief Copy constructor.
+  Functions(const Functions& other) = default;
+
+  /// @brief Copy assignment operator.
+  Functions& operator=(const Functions& other) = default;
+
+  /// @brief Move constructor.
+  Functions(Functions&& other) noexcept = default;
+
+  /// @brief Move assignment operator.
+  Functions& operator=(Functions&& other) noexcept = default;
+
+  /// @brief Destructor.
+  ~Functions() = default;
+
+  /// @brief Returns true if this Functions handle is valid.
+  bool is_valid() const { return internal_ != nullptr; }
+
+  /// @brief Returns true if this Functions handle is valid.
+  explicit operator bool() const { return is_valid(); }
+
+  /// @brief Equality comparison (checks whether two handles refer to the same
+  /// underlying Functions instance).
+  bool operator==(const Functions& other) const {
+    return internal_ == other.internal_;
+  }
+
+  /// @brief Inequality comparison.
+  bool operator!=(const Functions& other) const {
+    return internal_ != other.internal_;
+  }
 
   /// @brief Get an instance of Functions corresponding to the given App.
   ///
@@ -61,9 +97,10 @@ class Functions {
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
   ///
-  /// @returns An instance of Functions corresponding to the given App.
-  static Functions* GetInstance(::firebase::App* app,
-                                InitResult* init_result_out = nullptr);
+  /// @returns A Functions handle corresponding to the given App, or an invalid
+  /// handle if initialization failed.
+  static Functions GetInstance(const ::firebase::App& app,
+                               InitResult* init_result_out = nullptr);
 
   /// @brief Get an instance of Functions corresponding to the given App.
   ///
@@ -78,14 +115,16 @@ class Functions {
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
   ///
-  /// @returns An instance of Functions corresponding to the given App.
-  static Functions* GetInstance(::firebase::App* app, const char* region,
-                                InitResult* init_result_out = nullptr);
+  /// @returns A Functions handle corresponding to the given App, or an invalid
+  /// handle if initialization failed.
+  static Functions GetInstance(const ::firebase::App& app, const char* region,
+                               InitResult* init_result_out = nullptr);
 
   /// @brief Get the firebase::App that this Functions was created with.
   ///
-  /// @returns The firebase::App this Functions was created with.
-  ::firebase::App* app();
+  /// @returns The firebase::App this Functions was created with, or an invalid
+  /// App if this handle is invalid.
+  ::firebase::App app() const;
 
   /// @brief Get a FunctionsReference for the specified path.
   HttpsCallableReference GetHttpsCallable(const char* name) const;
@@ -108,14 +147,11 @@ class Functions {
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
-  Functions(::firebase::App* app, const char* region);
-  Functions(const Functions& src);
-  Functions& operator=(const Functions& src);
+  friend class internal::HttpsCallableReferenceInternal;
 
-  // Delete the internal_ data.
-  void DeleteInternal();
+  explicit Functions(std::shared_ptr<internal::FunctionsInternal> internal);
 
-  internal::FunctionsInternal* internal_;
+  std::shared_ptr<internal::FunctionsInternal> internal_;
   /// @endcond
 };
 

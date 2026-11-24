@@ -18,16 +18,15 @@
 #include <jni.h>
 
 #include <map>
-#include <set>
+#include <memory>
 #include <string>
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
-#include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
@@ -56,14 +55,26 @@ METHOD_LOOKUP_DECLARATION(cpp_byte_downloader, CPP_BYTE_DOWNLOADER_METHODS)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(cpp_byte_uploader, CPP_BYTE_UPLOADER_METHODS)
 
-class StorageInternal {
+class StorageInternal : public ::firebase::internal::Service {
  public:
   // Build a Storage. A nullptr or empty url uses the default getInstance.
-  StorageInternal(App* app, const char* url);
-  ~StorageInternal();
+  StorageInternal(::firebase::internal::AppState& app_state, const App& app,
+                  const char* url);
+  ~StorageInternal() override;
 
   // Return the App we were created with.
-  App* app() const;
+  App app() const;
+
+  ::firebase::internal::AppState& app_state() const { return app_state_; }
+
+  JNIEnv* GetJNIEnv() const;
+
+  std::shared_ptr<StorageInternal> MakeSharedHandle() const {
+    auto state = app_state_.weak_from_this().lock();
+    if (!state) return {};
+    return std::shared_ptr<StorageInternal>(std::move(state),
+                                            const_cast<StorageInternal*>(this));
+  }
 
   // Return the URL we were created with.
   const std::string& url() const { return url_; }
@@ -100,7 +111,7 @@ class StorageInternal {
   // Error enum.
   Error ErrorFromJavaErrorCode(jint java_error_code) const;
 
-  // Convert a Java StorageExcetion instance into a C++ Error enum.
+  // Convert a Java StorageException instance into a C++ Error enum.
   // If error_message is not null, it will be set to the error message string
   // from the exception.
   Error ErrorFromJavaStorageException(jobject java_error,
@@ -109,11 +120,7 @@ class StorageInternal {
   FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
-
-  // When this is deleted, it will clean up all StorageReferences and other
-  // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  bool initialized() const { return initialized_; }
 
   // Used for registering global callbacks. See
   // firebase::util::RegisterCallbackOnTask for context.
@@ -121,25 +128,23 @@ class StorageInternal {
 
  private:
   // Initialize JNI for all classes.
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
   // Initialize classes loaded from embedded files.
-  static bool InitializeEmbeddedClasses(App* app);
+  static bool InitializeEmbeddedClasses(const App& app);
 
-  static Mutex init_mutex_;
   static int initialize_count_;
   static std::map<jint, Error>* java_error_to_cpp_;
 
-  App* app_;
+  ::firebase::internal::AppState& app_state_;
+  bool initialized_ = false;
   // Java FirebaseStorage global ref.
-  jobject obj_;
+  jobject obj_ = nullptr;
 
   FutureManager future_manager_;
 
   std::string url_;
-
-  CleanupNotifier cleanup_;
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;

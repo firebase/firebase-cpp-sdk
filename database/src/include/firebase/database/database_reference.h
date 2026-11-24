@@ -87,10 +87,8 @@ class DatabaseReference : public Query {
 
   /// @brief Gets the database to which we refer.
   ///
-  /// The pointer will remain valid indefinitely.
-  ///
-  /// @returns Firebase Database instance that this DatabaseReference refers to.
-  Database* database() const;
+  /// @returns Firebase Database handle that this DatabaseReference refers to.
+  Database database() const;
 
   /// @brief Gets the string key of this database location.
   ///
@@ -407,18 +405,6 @@ class DatabaseReference : public Query {
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
-
-  // Remove the "Query" cleanup registration (which the base class constructor
-  // already registered) and replace it with a "DatabaseReference" registration.
-  //
-  // This is necessary so that if the instance needs to be cleaned up, the
-  // correct pointer type will be used to access it.
-  void SwitchCleanupRegistrationToDatabaseReference();
-
-  // Remove the "DatabaseReference" cleanup registration and replace it with a
-  // "Query" one. ~Query() will unregister that one.
-  void SwitchCleanupRegistrationBackToQuery();
-
   friend class DataSnapshot;
   friend class Query;
   friend class internal::DatabaseInternal;

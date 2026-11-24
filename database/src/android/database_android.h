@@ -18,11 +18,12 @@
 #include <jni.h>
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -40,19 +41,24 @@ class ReferenceCountedFutureImpl;
 namespace database {
 namespace internal {
 
-// For constructing, copying or moving DatabaseReferences atomically.
-extern Mutex g_database_reference_constructor_mutex;
-
 // This is the Android implementation of Database.
-class DatabaseInternal {
+class DatabaseInternal : public ::firebase::internal::Service {
  public:
-  explicit DatabaseInternal(App* app);
+  DatabaseInternal(::firebase::internal::AppState& app_state, const App& app);
 
-  DatabaseInternal(App* app, const char* url);
+  DatabaseInternal(::firebase::internal::AppState& app_state, const App& app,
+                   const char* url);
 
-  ~DatabaseInternal();
+  ~DatabaseInternal() override;
 
-  App* GetApp() const;
+  App GetApp() const;
+
+  JNIEnv* GetJNIEnv() const { return util::GetJNIEnvFromApp(); }
+
+  std::shared_ptr<DatabaseInternal> MakeSharedHandle() const;
+  std::weak_ptr<DatabaseInternal> MakeWeakHandle() const {
+    return MakeSharedHandle();
+  }
 
   DatabaseReference GetReference() const;
 
@@ -169,11 +175,7 @@ class DatabaseInternal {
   FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
-
-  // When this is deleted, it will clean up all DatabaseReferences,
-  // DataSnapshots, and other such objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  bool initialized() const { return initialized_; }
 
   // The url that was passed to the constructor.
   const std::string& constructor_url() const { return constructor_url_; }
@@ -185,19 +187,20 @@ class DatabaseInternal {
   const char* jni_task_id() { return jni_task_id_.c_str(); }
 
  private:
-  static bool Initialize(App* app);
-  static void ReleaseClasses(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void ReleaseClasses(JNIEnv* env);
+  static void Terminate(JNIEnv* env);
 
   // Initialize classes loaded from embedded files.
-  static bool InitializeEmbeddedClasses(App* app);
+  static bool InitializeEmbeddedClasses(const App& app);
 
-  static Mutex init_mutex_;
+  static Mutex& InitMutex();
   static int initialize_count_;
   static std::map<jint, Error>* java_error_to_cpp_;
-  App* app_;
+  ::firebase::internal::AppState& app_state_;
+  bool initialized_ = false;
   // Java database global ref.
-  jobject obj_;
+  jobject obj_ = nullptr;
 
   // For registering listeners.
   Mutex listener_mutex_;
@@ -215,8 +218,6 @@ class DatabaseInternal {
   std::set<jobject> java_transaction_handlers_;
 
   FutureManager future_manager_;
-
-  CleanupNotifier cleanup_;
 
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.

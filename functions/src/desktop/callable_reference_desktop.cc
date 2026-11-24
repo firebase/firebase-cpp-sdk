@@ -15,10 +15,11 @@
 #include "functions/src/desktop/callable_reference_desktop.h"
 
 #include <string>
+#include <utility>
 
 #include "app/rest/request.h"
 #include "app/rest/util.h"
-#include "app/src/function_registry.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/variant_util.h"
 #include "functions/src/desktop/functions_desktop.h"
 #include "functions/src/desktop/serialization.h"
@@ -34,30 +35,45 @@ enum CallableReferenceFn {
 };
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    FunctionsInternal* functions, const char* url,
+    std::shared_ptr<FunctionsInternal> functions, const char* url,
     const HttpsCallableOptions& options)
-    : functions_(functions), url_(url), options_(options) {
+    : functions_(std::move(functions)), url_(url), options_(options) {
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
   rest::InitTransportCurl();
   transport_.set_is_async(true);
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
-  functions_->future_manager().ReleaseFutureApi(this);
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
   rest::CleanupTransportCurl();
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
     : functions_(other.functions_), url_(other.url_), options_(other.options_) {
-  functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
+  if (functions_) {
+    functions_->future_manager().AllocFutureApi(this,
+                                                kCallableReferenceFnCount);
+  }
   rest::InitTransportCurl();
   transport_.set_is_async(true);
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& other) {
-  functions_ = other.functions_;
+  if (this == &other) return *this;
+  if (functions_ != other.functions_) {
+    if (functions_) {
+      functions_->future_manager().ReleaseFutureApi(this);
+    }
+    functions_ = other.functions_;
+    if (functions_) {
+      functions_->future_manager().AllocFutureApi(this,
+                                                  kCallableReferenceFnCount);
+    }
+  }
   url_ = other.url_;
   options_ = other.options_;
   return *this;
@@ -66,36 +82,42 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other)
-    : functions_(other.functions_),
+    : functions_(std::move(other.functions_)),
       url_(std::move(other.url_)),
       options_(other.options_) {
-  other.functions_ = nullptr;
-  functions_->future_manager().MoveFutureApi(&other, this);
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&other, this);
+  }
   rest::InitTransportCurl();
   transport_.set_is_async(true);
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     HttpsCallableReferenceInternal&& other) {
-  functions_ = other.functions_;
-  other.functions_ = nullptr;
+  if (this == &other) return *this;
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
+  functions_ = std::move(other.functions_);
   url_ = std::move(other.url_);
   options_ = other.options_;
-  functions_->future_manager().MoveFutureApi(&other, this);
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&other, this);
+  }
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-Functions* HttpsCallableReferenceInternal::functions() const {
-  return Functions::GetInstance(functions_->app());
+Functions HttpsCallableReferenceInternal::functions() const {
+  return Functions(functions_);
 }
 
 std::string HttpsCallableReferenceInternal::GetAuthToken() const {
-  std::string result;
-  App* app = functions_->app();
-  app->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetCurrentToken, app, nullptr, &result);
-  return result;
+  if (!functions_) return std::string();
+  if (auto* auth = functions_->app_state().auth_token_provider()) {
+    return auth->GetCurrentToken();
+  }
+  return std::string();
 }
 
 void HttpsCallableRequest::MarkCompleted() {
@@ -336,15 +358,14 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   request_.set_future_handle(handle);
   request_.set_response(&response_);
 
-  // Check for App Check token function
+  // Check for App Check token provider on AppState.
   Future<std::string> app_check_future;
-  ::firebase::internal::FunctionId token_function_id =
-      options_.limited_use_app_check_token
-          ? ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync
-          : ::firebase::internal::FnAppCheckGetTokenAsync;
-  bool succeeded = functions_->app()->function_registry()->CallFunction(
-      token_function_id, functions_->app(), nullptr, &app_check_future);
-  if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
+  if (auto* app_check = functions_->app_state().app_check_token_provider()) {
+    app_check_future = options_.limited_use_app_check_token
+                           ? app_check->GetLimitedUseTokenAsync()
+                           : app_check->GetTokenAsync();
+  }
+  if (app_check_future.status() != kFutureStatusInvalid) {
     // Perform the transform request on a completion
     app_check_future.OnCompletion([&](const Future<std::string>& future_token) {
       if (future_token.result()) {

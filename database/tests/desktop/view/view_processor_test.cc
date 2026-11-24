@@ -57,7 +57,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithEmptyPath) {
 
   // Create a user-initiated overwrite with an empty path to change a value.
   Operation operation =
-      Operation::Overwrite(OperationSource::kUser, Path(), Variant("apples"));
+      Operation::Overwrite(OperationSource::User(), Path(), Variant("apples"));
 
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());
@@ -94,7 +94,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithPriorityPath) {
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create a user-initiated overwrite with an empty path to change a value.
-  Operation operation = Operation::Overwrite(OperationSource::kUser,
+  Operation operation = Operation::Overwrite(OperationSource::User(),
                                              Path(".priority"), Variant(100));
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());
@@ -133,7 +133,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithRegularPath) {
 
   // Create a user-initiated overwrite with a non-empty path to change a value.
   Operation operation = Operation::Overwrite(
-      OperationSource::kUser, Path("aaa/bbb"), Variant("apples"));
+      OperationSource::User(), Path("aaa/bbb"), Variant("apples"));
 
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path("aaa/bbb"));
@@ -187,7 +187,7 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_WithEmptyPath) {
 
   // Create a server-initiated overwrite with an empty path to change a value.
   Operation operation =
-      Operation::Overwrite(OperationSource::kServer, Path(), Variant("apples"));
+      Operation::Overwrite(OperationSource::Server(), Path(), Variant("apples"));
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());
   Variant complete_cache;
@@ -223,7 +223,7 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_RegularPath) {
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   Operation operation =
-      Operation::Overwrite(OperationSource::kServer, Path("aaa"),
+      Operation::Overwrite(OperationSource::Server(), Path("aaa"),
                            Variant(std::map<Variant, Variant>{
                                std::make_pair("bbb", "apples"),
                            }));
@@ -285,7 +285,7 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_DistantDescendantChange) {
 
   // Make sure the data being updated is deeply nested in the variant.
   Operation operation = Operation::Overwrite(
-      OperationSource::kServer, Path("aaa/bbb/ccc"), Variant(-9999));
+      OperationSource::Server(), Path("aaa/bbb/ccc"), Variant(-9999));
 
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());
@@ -355,7 +355,7 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
           .AddWrite(Path("aaa/bbb/ccc"), Variant("apples"))
           .AddWrite(Path("aaa/ddd"), Variant("bananas"))
           .AddWrite(Path("aaa/eee/fff"), Variant("vegetables"));
-  Operation operation = Operation::Merge(OperationSource::kUser, Path(), write);
+  Operation operation = Operation::Merge(OperationSource::User(), Path(), write);
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());
   Variant complete_cache;
@@ -450,7 +450,7 @@ TEST(ViewProcessor, ApplyOperationServerMerge) {
           .AddWrite(Path("bbb/ddd"), Variant("bananas"))
           .AddWrite(Path("bbb/eee/fff"), Variant("vegetables"));
   Operation operation =
-      Operation::Merge(OperationSource::kServer, Path("aaa"), write);
+      Operation::Merge(OperationSource::Server(), Path("aaa"), write);
 
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path("aaa"));
@@ -696,7 +696,7 @@ TEST(ViewProcessor, ApplyOperationListenComplete) {
   // Create a server-initiated listen complete with an empty path to change a
   // value.
   Operation operation =
-      Operation::ListenComplete(OperationSource::kServer, Path());
+      Operation::ListenComplete(OperationSource::Server(), Path());
 
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());

@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_H_
 #define FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_H_
 
+#include <memory>
 #include <string>
 
 #include "firebase/app.h"
@@ -38,6 +39,7 @@ namespace storage {
 
 namespace internal {
 class StorageInternal;
+class StorageReferenceInternal;
 class MetadataInternal;
 }  // namespace internal
 
@@ -50,12 +52,46 @@ class StorageReference;
 /// obtain an instance of Storage, then use GetReference() to obtain references
 /// to child blobs. From there you can upload data with
 /// StorageReference::PutStream(), get data via StorageReference::GetStream().
+///
+/// Storage is a lightweight copyable and movable value handle sharing
+/// ownership of the underlying per-App Storage service.
 #endif  // SWIG
 class Storage {
  public:
-  /// @brief Destructor. You may delete an instance of Storage when
-  /// you are finished using it, to shut down the Storage library.
-  ~Storage();
+  /// @brief Default constructor. Creates an invalid Storage handle.
+  Storage() = default;
+
+  /// @brief Copy constructor.
+  Storage(const Storage& other) = default;
+
+  /// @brief Copy assignment operator.
+  Storage& operator=(const Storage& other) = default;
+
+  /// @brief Move constructor.
+  Storage(Storage&& other) noexcept = default;
+
+  /// @brief Move assignment operator.
+  Storage& operator=(Storage&& other) noexcept = default;
+
+  /// @brief Destructor.
+  ~Storage() = default;
+
+  /// @brief Returns true if this Storage handle is valid.
+  bool is_valid() const { return internal_ != nullptr; }
+
+  /// @brief Returns true if this Storage handle is valid.
+  explicit operator bool() const { return is_valid(); }
+
+  /// @brief Equality comparison (checks whether two handles refer to the same
+  /// underlying Storage instance).
+  bool operator==(const Storage& other) const {
+    return internal_ == other.internal_;
+  }
+
+  /// @brief Inequality comparison.
+  bool operator!=(const Storage& other) const {
+    return internal_ != other.internal_;
+  }
 
   /// @brief Get an instance of Storage corresponding to the given App.
   ///
@@ -69,9 +105,10 @@ class Storage {
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
   ///
-  /// @returns An instance of Storage corresponding to the given App.
-  static Storage* GetInstance(::firebase::App* app,
-                              InitResult* init_result_out = nullptr);
+  /// @returns A Storage handle corresponding to the given App, or an invalid
+  /// handle if initialization failed.
+  static Storage GetInstance(const ::firebase::App& app,
+                             InitResult* init_result_out = nullptr);
 
   /// @brief Get an instance of Storage corresponding to the given App,
   /// with the given Cloud Storage URL.
@@ -87,20 +124,22 @@ class Storage {
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
   ///
-  /// @returns An instance of Storage corresponding to the given App.
-  static Storage* GetInstance(::firebase::App* app, const char* url,
-                              InitResult* init_result_out = nullptr);
+  /// @returns A Storage handle corresponding to the given App, or an invalid
+  /// handle if initialization failed.
+  static Storage GetInstance(const ::firebase::App& app, const char* url,
+                             InitResult* init_result_out = nullptr);
 
-  /// @brief Get the firease::App that this Storage was created with.
+  /// @brief Get the firebase::App that this Storage was created with.
   ///
-  /// @returns The firebase::App this Storage was created with.
-  ::firebase::App* app();
+  /// @returns The firebase::App this Storage was created with, or an invalid
+  /// App if this handle is invalid.
+  ::firebase::App app() const;
 
   /// @brief Get the URL that this Storage was created with.
   ///
   /// @returns The URL this Storage was created with, or an empty
   /// string if this Storage was created with default parameters.
-  std::string url();
+  std::string url() const;
 
   /// @brief Get a StorageReference to the root of the database.
   StorageReference GetReference() const;
@@ -154,15 +193,11 @@ class Storage {
   /// @cond FIREBASE_APP_INTERNAL
   friend class Metadata;
   friend class internal::MetadataInternal;
+  friend class internal::StorageReferenceInternal;
 
-  Storage(::firebase::App* app, const char* url);
-  Storage(const Storage& src);
-  Storage& operator=(const Storage& src);
+  explicit Storage(std::shared_ptr<internal::StorageInternal> internal);
 
-  // Destroy the internal_ object.
-  void DeleteInternal();
-
-  internal::StorageInternal* internal_;
+  std::shared_ptr<internal::StorageInternal> internal_;
   /// @endcond
 };
 

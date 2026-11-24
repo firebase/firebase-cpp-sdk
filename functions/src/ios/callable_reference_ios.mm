@@ -58,26 +58,40 @@ enum CallableReferenceFn {
 };
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    FunctionsInternal* functions, std::unique_ptr<FIRHTTPSCallablePointer> impl)
-    : functions_(functions), impl_(std::move(impl)) {
+    std::shared_ptr<FunctionsInternal> functions,
+    std::unique_ptr<FIRHTTPSCallablePointer> impl)
+    : functions_(std::move(functions)), impl_(std::move(impl)) {
   // impl_ was newed by the caller, this class will take ownership and delete it in the destructor.
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
 }
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
-  functions_->future_manager().ReleaseFutureApi(this);
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
 }
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
     : functions_(other.functions_) {
   impl_.reset(new FIRHTTPSCallablePointer(*other.impl_));
-  functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
+  if (functions_) {
+    functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
+  }
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& other) {
-  functions_ = other.functions_;
+  if (this == &other) return *this;
+  if (functions_ != other.functions_) {
+    if (functions_) {
+      functions_->future_manager().ReleaseFutureApi(this);
+    }
+    functions_ = other.functions_;
+    if (functions_) {
+      functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
+    }
+  }
   impl_.reset(new FIRHTTPSCallablePointer(*other.impl_));
   return *this;
 }
@@ -85,25 +99,31 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other)
-    : functions_(other.functions_), impl_(std::move(other.impl_)) {
-  other.functions_ = nullptr;
+    : functions_(std::move(other.functions_)), impl_(std::move(other.impl_)) {
   other.impl_.reset(new FIRHTTPSCallablePointer(nil));
-  functions_->future_manager().MoveFutureApi(&other, this);
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&other, this);
+  }
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     HttpsCallableReferenceInternal&& other) {
-  functions_ = other.functions_;
+  if (this == &other) return *this;
+  if (functions_) {
+    functions_->future_manager().ReleaseFutureApi(this);
+  }
+  functions_ = std::move(other.functions_);
   impl_ = std::move(other.impl_);
-  other.functions_ = nullptr;
   other.impl_.reset(new FIRHTTPSCallablePointer(nil));
-  functions_->future_manager().MoveFutureApi(&other, this);
+  if (functions_) {
+    functions_->future_manager().MoveFutureApi(&other, this);
+  }
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-Functions* HttpsCallableReferenceInternal::functions() {
-  return Functions::GetInstance(functions_->app());
+Functions HttpsCallableReferenceInternal::functions() const {
+  return Functions(functions_);
 }
 
 /* static */
@@ -130,8 +150,11 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
   HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
+  std::weak_ptr<FunctionsInternal> weak_functions = functions_;
   void (^completion)(FIRHTTPSCallableResult* _Nullable, NSError* _Nullable) =
       ^(FIRHTTPSCallableResult* _Nullable result, NSError* error) {
+        auto locked = weak_functions.lock();
+        if (!locked) return;
         CompleteFuture(future_impl, handle, result, error);
       };
 
@@ -146,8 +169,11 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(const Variant& 
   HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
+  std::weak_ptr<FunctionsInternal> weak_functions = functions_;
   void (^completion)(FIRHTTPSCallableResult* _Nullable, NSError* _Nullable) =
       ^(FIRHTTPSCallableResult* _Nullable result, NSError* error) {
+        auto locked = weak_functions.lock();
+        if (!locked) return;
         CompleteFuture(future_impl, handle, result, error);
       };
 

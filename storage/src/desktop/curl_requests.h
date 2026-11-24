@@ -16,6 +16,7 @@
 #define FIREBASE_STORAGE_SRC_DESKTOP_CURL_REQUESTS_H_
 
 #include <fstream>
+#include <memory>
 
 #include "app/rest/request_binary.h"
 #include "app/rest/request_file.h"
@@ -254,13 +255,13 @@ class ReturnedListResponse : public BlockingResponse {
  public:
   ReturnedListResponse(SafeFutureHandle<StorageListResult> handle,
                        ReferenceCountedFutureImpl* ref_future,
-                       StorageInternal* storage);
+                       std::weak_ptr<StorageInternal> storage);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
 
  private:
   std::string buffer_;
-  StorageInternal* storage_;
+  std::weak_ptr<StorageInternal> storage_;
 };
 
 // Utility class for parsing a Storage REST error response (in JSON form) and

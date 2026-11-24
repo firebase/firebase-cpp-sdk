@@ -17,6 +17,8 @@
 
 #include <jni.h>
 
+#include <memory>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -34,9 +36,9 @@ class QueryInternal {
   // QueryInternal will create its own global reference to query_obj,
   // so you should delete the object you passed in after creating the
   // QueryInternal instance.
-  QueryInternal(DatabaseInternal* database, jobject query_obj);
+  QueryInternal(std::shared_ptr<DatabaseInternal> database, jobject query_obj);
 
-  QueryInternal(DatabaseInternal* database, jobject query_obj,
+  QueryInternal(std::shared_ptr<DatabaseInternal> database, jobject query_obj,
                 const internal::QuerySpec& query_spec);
 
   QueryInternal(const QueryInternal& query);
@@ -91,14 +93,14 @@ class QueryInternal {
 
   const internal::QuerySpec& query_spec() const { return query_spec_; }
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* database_internal() const { return db_.get(); }
 
  protected:
-  DatabaseInternal* db_;
-  jobject obj_;
+  std::shared_ptr<DatabaseInternal> db_;
+  jobject obj_ = nullptr;
   internal::QuerySpec query_spec_;
 
  private:

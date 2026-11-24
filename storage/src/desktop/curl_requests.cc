@@ -288,8 +288,10 @@ void ReturnedMetadataResponse::MarkCompleted() {
 
 ReturnedListResponse::ReturnedListResponse(
     SafeFutureHandle<StorageListResult> handle,
-    ReferenceCountedFutureImpl* ref_future, StorageInternal* storage)
-    : BlockingResponse(handle.get(), ref_future), storage_(storage) {}
+    ReferenceCountedFutureImpl* ref_future,
+    std::weak_ptr<StorageInternal> storage)
+    : BlockingResponse(handle.get(), ref_future),
+      storage_(std::move(storage)) {}
 
 bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
   buffer_ += std::string(buffer, length);
@@ -300,7 +302,8 @@ bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
 void ReturnedListResponse::MarkCompleted() {
   BlockingResponse::MarkCompleted();
   SafeFutureHandle<StorageListResult> handle(handle_);
-  if (status() == rest::util::HttpSuccess) {
+  auto locked_storage = storage_.lock();
+  if (status() == rest::util::HttpSuccess && locked_storage) {
     Variant response_variant = util::JsonToVariant(buffer_.c_str());
     if (response_variant.is_map()) {
       auto& map = response_variant.map();
@@ -318,8 +321,8 @@ void ReturnedListResponse::MarkCompleted() {
             if (!prefix_str.empty() && prefix_str.back() == '/') {
               prefix_str.pop_back();
             }
-            prefixes.push_back(storage_->GetReference(prefix_str.c_str())
-                                   ->AsStorageReference());
+            prefixes.push_back(StorageReferenceInternal::CreateWeakReference(
+                locked_storage->GetChildPath(prefix_str), storage_));
           }
         }
       }
@@ -331,11 +334,10 @@ void ReturnedListResponse::MarkCompleted() {
             auto& item_map = item_variant.map();
             if (item_map.find(Variant("name")) != item_map.end() &&
                 item_map.at(Variant("name")).is_string()) {
-              items.push_back(
-                  storage_
-                      ->GetReference(
-                          item_map.at(Variant("name")).string_value())
-                      ->AsStorageReference());
+              items.push_back(StorageReferenceInternal::CreateWeakReference(
+                  locked_storage->GetChildPath(
+                      item_map.at(Variant("name")).string_value()),
+                  storage_));
             }
           }
         }

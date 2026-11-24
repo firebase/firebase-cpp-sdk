@@ -17,12 +17,12 @@
 #include <assert.h>
 #include <jni.h>
 
-#include "app/src/app_common.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
@@ -38,8 +38,6 @@
 namespace firebase {
 namespace database {
 namespace internal {
-
-Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 const char kApiIdentifier[] = "Database";
 
@@ -164,19 +162,21 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/database/internal/cpp/CppChildEventListener",
     CPP_CHILD_EVENT_LISTENER_METHODS)
 
-Mutex DatabaseInternal::init_mutex_;  // NOLINT
+Mutex& DatabaseInternal::InitMutex() {
+  static ::firebase::internal::NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 int DatabaseInternal::initialize_count_ = 0;
 std::map<jint, Error>* DatabaseInternal::java_error_to_cpp_ = nullptr;
 
-DatabaseInternal::DatabaseInternal(App* app)
-    : logger_(app_common::FindAppLoggerByName(app->name())) {
-  app_ = nullptr;
+DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
+                                   const App& app)
+    : app_state_(app_state), logger_(&app_state.logger()) {
   if (!Initialize(app)) return;
-  app_ = app;
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
-  JNIEnv* env = app_->GetJNIEnv();
-  jobject platform_app = app->GetPlatformApp();
+  JNIEnv* env = app.GetJNIEnv();
+  jobject platform_app = app.GetPlatformApp();
   jobject database_obj = env->CallStaticObjectMethod(
       firebase_database::GetClass(),
       firebase_database::GetMethodId(firebase_database::kGetInstance),
@@ -186,25 +186,25 @@ DatabaseInternal::DatabaseInternal(App* app)
     logger_.LogWarning("Could not create default Database");
     util::CheckAndClearJniExceptions(env);
     // Something went wrong -> uninitialize the database
-    Terminate(app_);
-    app_ = nullptr;
+    Terminate(env);
   } else {
     obj_ = env->NewGlobalRef(database_obj);
     env->DeleteLocalRef(database_obj);
+    initialized_ = true;
   }
 }
 
-DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : constructor_url_(url),
-      logger_(app_common::FindAppLoggerByName(app->name())) {
-  app_ = nullptr;
+DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
+                                   const App& app, const char* url)
+    : app_state_(app_state),
+      constructor_url_(url),
+      logger_(&app_state.logger()) {
   if (!Initialize(app)) return;
-  app_ = app;
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = app.GetJNIEnv();
   jobject url_string = env->NewStringUTF(url);
-  jobject platform_app = app->GetPlatformApp();
+  jobject platform_app = app.GetPlatformApp();
   jobject database_obj = env->CallStaticObjectMethod(
       firebase_database::GetClass(),
       firebase_database::GetMethodId(firebase_database::kGetInstanceFromUrl),
@@ -214,11 +214,11 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
     logger_.LogWarning("Could not create Database with URL '%s' .", url);
     util::CheckAndClearJniExceptions(env);
     // Something went wrong -> uninitialize the database
-    Terminate(app_);
-    app_ = nullptr;
+    Terminate(env);
   } else {
     obj_ = env->NewGlobalRef(database_obj);
     env->DeleteLocalRef(database_obj);
+    initialized_ = true;
   }
   env->DeleteLocalRef(url_string);
 }
@@ -252,11 +252,11 @@ const char* kCppLogLevelToLoggerLevelName[] = {
     "NONE",   // kLogLevelAssert --> Logger.Level.NONE
 };
 
-bool DatabaseInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex_);
+bool DatabaseInternal::Initialize(const App& app) {
+  MutexLock init_lock(InitMutex());
   if (initialize_count_ == 0) {
-    JNIEnv* env = app->GetJNIEnv();
-    jobject activity = app->activity();
+    JNIEnv* env = app.GetJNIEnv();
+    jobject activity = app.activity();
     if (!(firebase_database::CacheMethodIds(env, activity) &&
           logger_level::CacheMethodIds(env, activity) &&
           database_error::CacheMethodIds(env, activity) &&
@@ -268,7 +268,7 @@ bool DatabaseInternal::Initialize(App* app) {
           MutableDataInternal::Initialize(app) &&
           DisconnectionHandlerInternal::Initialize(app) &&
           InitializeEmbeddedClasses(app))) {
-      ReleaseClasses(app);
+      ReleaseClasses(env);
       return false;
     }
 
@@ -289,7 +289,7 @@ bool DatabaseInternal::Initialize(App* app) {
   return true;
 }
 
-bool DatabaseInternal::InitializeEmbeddedClasses(App* app) {
+bool DatabaseInternal::InitializeEmbeddedClasses(const App& app) {
   static const JNINativeMethod kCppTransactionHandler[] = {
       {"nativeDoTransaction",
        "(JJLcom/google/firebase/database/MutableData;)"
@@ -330,34 +330,34 @@ bool DatabaseInternal::InitializeEmbeddedClasses(App* app) {
            &internal::Callbacks::ChildListenerNativeOnChildRemoved)},
   };
 
-  JNIEnv* env = app->GetJNIEnv();
+  JNIEnv* env = app.GetJNIEnv();
   // Terminate() handles tearing this down.
   // Load embedded classes.
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
       util::CacheEmbeddedFiles(
-          env, app->activity(),
+          env, app.activity(),
           firebase::internal::EmbeddedFile::ToVector(
               firebase_database_resources::database_resources_filename,
               firebase_database_resources::database_resources_data,
               firebase_database_resources::database_resources_size));
-  if (!(cpp_transaction_handler::CacheClassFromFiles(env, app->activity(),
+  if (!(cpp_transaction_handler::CacheClassFromFiles(env, app.activity(),
                                                      &embedded_files) &&
-        cpp_event_listener::CacheClassFromFiles(env, app->activity(),
+        cpp_event_listener::CacheClassFromFiles(env, app.activity(),
                                                 &embedded_files) &&
-        cpp_value_event_listener::CacheClassFromFiles(env, app->activity(),
+        cpp_value_event_listener::CacheClassFromFiles(env, app.activity(),
                                                       &embedded_files) &&
-        cpp_child_event_listener::CacheClassFromFiles(env, app->activity(),
+        cpp_child_event_listener::CacheClassFromFiles(env, app.activity(),
                                                       &embedded_files) &&
-        cpp_transaction_handler::CacheMethodIds(env, app->activity()) &&
+        cpp_transaction_handler::CacheMethodIds(env, app.activity()) &&
         cpp_transaction_handler::RegisterNatives(
             env, kCppTransactionHandler,
             FIREBASE_ARRAYSIZE(kCppTransactionHandler)) &&
-        cpp_event_listener::CacheMethodIds(env, app->activity()) &&
-        cpp_value_event_listener::CacheMethodIds(env, app->activity()) &&
+        cpp_event_listener::CacheMethodIds(env, app.activity()) &&
+        cpp_value_event_listener::CacheMethodIds(env, app.activity()) &&
         cpp_value_event_listener::RegisterNatives(
             env, kCppValueEventListenerNatives,
             FIREBASE_ARRAYSIZE(kCppValueEventListenerNatives)) &&
-        cpp_child_event_listener::CacheMethodIds(env, app->activity()) &&
+        cpp_child_event_listener::CacheMethodIds(env, app.activity()) &&
         cpp_child_event_listener::RegisterNatives(
             env, kCppChildEventListenerNatives,
             FIREBASE_ARRAYSIZE(kCppChildEventListenerNatives)))) {
@@ -366,30 +366,29 @@ bool DatabaseInternal::InitializeEmbeddedClasses(App* app) {
   return true;
 }
 
-void DatabaseInternal::ReleaseClasses(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
+void DatabaseInternal::ReleaseClasses(JNIEnv* env) {
   firebase_database::ReleaseClass(env);
   logger_level::ReleaseClass(env);
   database_error::ReleaseClass(env);
 
   // Call Terminate on all other RTDB internal classes.
-  DatabaseReferenceInternal::Terminate(app);
-  QueryInternal::Terminate(app);
-  DataSnapshotInternal::Terminate(app);
-  MutableDataInternal::Terminate(app);
-  DisconnectionHandlerInternal::Terminate(app);
+  DatabaseReferenceInternal::Terminate(env);
+  QueryInternal::Terminate(env);
+  DataSnapshotInternal::Terminate(env);
+  MutableDataInternal::Terminate(env);
+  DisconnectionHandlerInternal::Terminate(env);
   cpp_value_event_listener::ReleaseClass(env);
   cpp_child_event_listener::ReleaseClass(env);
   cpp_event_listener::ReleaseClass(env);
   cpp_transaction_handler::ReleaseClass(env);
 }
 
-void DatabaseInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex_);
+void DatabaseInternal::Terminate(JNIEnv* env) {
+  MutexLock init_lock(InitMutex());
   assert(initialize_count_ > 0);
   initialize_count_--;
   if (initialize_count_ == 0) {
-    ReleaseClasses(app);
+    ReleaseClasses(env);
     delete java_error_to_cpp_;
     java_error_to_cpp_ = nullptr;
   }
@@ -397,11 +396,9 @@ void DatabaseInternal::Terminate(App* app) {
 
 DatabaseInternal::~DatabaseInternal() {
   // If initialization failed, there is nothing to clean up.
-  if (app_ == nullptr) return;
+  if (!initialized_) return;
 
-  cleanup_.CleanupAll();
-
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   util::CancelCallbacks(env, jni_task_id_.c_str());
   {
     // If there are any pending listeners, delete their pointers.
@@ -433,27 +430,36 @@ DatabaseInternal::~DatabaseInternal() {
       delete data;
       env->DeleteGlobalRef(*i);
     }
-    java_single_value_listeners_.clear();
+    java_transaction_handlers_.clear();
   }
 
   env->DeleteGlobalRef(obj_);
   obj_ = nullptr;
-  Terminate(app_);
-  app_ = nullptr;
+  Terminate(env);
+  initialized_ = false;
 
   util::CheckAndClearJniExceptions(env);
 }
 
-App* DatabaseInternal::GetApp() const { return app_; }
+App DatabaseInternal::GetApp() const { return app_state_.TryMakeAppHandle(); }
+
+std::shared_ptr<DatabaseInternal> DatabaseInternal::MakeSharedHandle() const {
+  auto state = app_state_.weak_from_this().lock();
+  if (!state) return {};
+  return std::shared_ptr<DatabaseInternal>(
+      std::move(state), const_cast<DatabaseInternal*>(this));
+}
 
 DatabaseReference DatabaseInternal::GetReference() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
+  JNIEnv* env = GetJNIEnv();
   jobject database_reference_obj = env->CallObjectMethod(
       obj_,
       firebase_database::GetMethodId(firebase_database::kGetRootReference));
   FIREBASE_ASSERT(database_reference_obj != nullptr);
-  DatabaseReferenceInternal* internal = new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), database_reference_obj);
+  DatabaseReferenceInternal* internal =
+      new DatabaseReferenceInternal(std::move(self), database_reference_obj);
   env->DeleteLocalRef(database_reference_obj);
   util::CheckAndClearJniExceptions(env);
   return DatabaseReference(internal);
@@ -461,7 +467,9 @@ DatabaseReference DatabaseInternal::GetReference() const {
 
 DatabaseReference DatabaseInternal::GetReference(const char* path) const {
   FIREBASE_ASSERT_RETURN(DatabaseReference(nullptr), path != nullptr);
-  JNIEnv* env = app_->GetJNIEnv();
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
+  JNIEnv* env = GetJNIEnv();
   jobject path_string = env->NewStringUTF(path);
   jobject database_reference_obj = env->CallObjectMethod(
       obj_,
@@ -474,15 +482,17 @@ DatabaseReference DatabaseInternal::GetReference(const char* path) const {
     util::CheckAndClearJniExceptions(env);
     return DatabaseReference(nullptr);
   }
-  DatabaseReferenceInternal* internal = new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), database_reference_obj);
+  DatabaseReferenceInternal* internal =
+      new DatabaseReferenceInternal(std::move(self), database_reference_obj);
   env->DeleteLocalRef(database_reference_obj);
   return DatabaseReference(internal);
 }
 
 DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
   FIREBASE_ASSERT_RETURN(DatabaseReference(nullptr), url != nullptr);
-  JNIEnv* env = app_->GetJNIEnv();
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
+  JNIEnv* env = GetJNIEnv();
   jobject url_string = env->NewStringUTF(url);
   jobject database_reference_obj = env->CallObjectMethod(
       obj_,
@@ -497,35 +507,35 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
     util::CheckAndClearJniExceptions(env);
     return DatabaseReference(nullptr);
   }
-  DatabaseReferenceInternal* internal = new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), database_reference_obj);
+  DatabaseReferenceInternal* internal =
+      new DatabaseReferenceInternal(std::move(self), database_reference_obj);
   env->DeleteLocalRef(database_reference_obj);
   return DatabaseReference(internal);
 }
 
 void DatabaseInternal::GoOffline() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(
       obj_, firebase_database::GetMethodId(firebase_database::kGoOffline));
   util::CheckAndClearJniExceptions(env);
 }
 
 void DatabaseInternal::GoOnline() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(
       obj_, firebase_database::GetMethodId(firebase_database::kGoOnline));
   util::CheckAndClearJniExceptions(env);
 }
 
 void DatabaseInternal::PurgeOutstandingWrites() const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(obj_, firebase_database::GetMethodId(
                                 firebase_database::kPurgeOutstandingWrites));
   util::CheckAndClearJniExceptions(env);
 }
 
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(
       obj_,
       firebase_database::GetMethodId(firebase_database::kSetPersistenceEnabled),
@@ -537,7 +547,7 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
   FIREBASE_ASSERT_RETURN_VOID(log_level <
                               (sizeof(kCppLogLevelToLoggerLevelName) /
                                sizeof(kCppLogLevelToLoggerLevelName[0])));
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jstring enum_name =
       env->NewStringUTF(kCppLogLevelToLoggerLevelName[log_level]);
   if (!util::CheckAndClearJniExceptions(env)) {
@@ -583,7 +593,7 @@ Error DatabaseInternal::ErrorFromJavaErrorCode(jint error_code) const {
 
 Error DatabaseInternal::ErrorFromJavaDatabaseError(
     jobject error, std::string* error_message) const {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
 
   if (error_message != nullptr) {
     jobject message = env->CallObjectMethod(
@@ -598,7 +608,7 @@ Error DatabaseInternal::ErrorFromJavaDatabaseError(
 }
 
 jobject DatabaseInternal::CreateJavaEventListener(ValueListener* listener) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject java_listener = env->NewObject(
       cpp_value_event_listener::GetClass(),
       cpp_value_event_listener::GetMethodId(
@@ -610,7 +620,7 @@ jobject DatabaseInternal::CreateJavaEventListener(ValueListener* listener) {
 }
 
 void DatabaseInternal::ClearJavaEventListener(jobject java_listener) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   env->CallVoidMethod(java_listener, cpp_event_listener::GetMethodId(
                                          cpp_event_listener::kDiscardPointers));
 }
@@ -638,7 +648,7 @@ jobject DatabaseInternal::UnregisterValueEventListener(
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = java_value_listener_lookup_.find(listener);
     if (found != java_value_listener_lookup_.end()) {
-      JNIEnv* env = app_->GetJNIEnv();
+      JNIEnv* env = GetJNIEnv();
       jobject java_listener_global = found->second;
       jobject java_listener = env->NewLocalRef(java_listener_global);
 
@@ -669,7 +679,7 @@ std::vector<jobject> DatabaseInternal::UnregisterAllValueEventListeners(
 }
 
 jobject DatabaseInternal::CreateJavaEventListener(ChildListener* listener) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject java_listener = env->NewObject(
       cpp_child_event_listener::GetClass(),
       cpp_child_event_listener::GetMethodId(
@@ -703,7 +713,7 @@ jobject DatabaseInternal::UnregisterChildEventListener(
   if (child_listeners_by_query_.Unregister(spec, listener)) {
     auto found = java_child_listener_lookup_.find(listener);
     if (found != java_child_listener_lookup_.end()) {
-      JNIEnv* env = app_->GetJNIEnv();
+      JNIEnv* env = GetJNIEnv();
       jobject java_listener_global = found->second;
       jobject java_listener = env->NewLocalRef(java_listener_global);
 
@@ -736,7 +746,7 @@ std::vector<jobject> DatabaseInternal::UnregisterAllChildEventListeners(
 jobject DatabaseInternal::CreateJavaTransactionHandler(
     TransactionData* transaction_fn) {
   MutexLock lock(transaction_mutex_);
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   jobject java_handler = env->NewObject(
       cpp_transaction_handler::GetClass(),
       cpp_transaction_handler::GetMethodId(
@@ -755,7 +765,7 @@ jobject DatabaseInternal::CreateJavaTransactionHandler(
 void DatabaseInternal::DeleteJavaTransactionHandler(
     jobject java_handler_global) {
   MutexLock lock(transaction_mutex_);
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = GetJNIEnv();
   auto found = java_transaction_handlers_.find(java_handler_global);
   if (found != java_transaction_handlers_.end()) {
     java_transaction_handlers_.erase(found);

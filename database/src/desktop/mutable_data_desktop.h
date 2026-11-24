@@ -79,13 +79,13 @@ class MutableDataInternal {
   const Variant& GetHolder() const { return *holder_; }
 
   // Returns a pointer to the database this MutableData is from.
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* database_internal() const { return db_.lock().get(); }
 
  private:
   explicit MutableDataInternal(const MutableDataInternal& other,
                                const Path& path);
 
-  DatabaseInternal* db_;
+  std::weak_ptr<DatabaseInternal> db_;
 
   // Path relative to the root of holder_
   Path path_;

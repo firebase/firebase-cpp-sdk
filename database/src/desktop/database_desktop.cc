@@ -19,12 +19,11 @@
 #include <queue>
 #include <stack>
 
-#include "app/src/app_common.h"
 #include "app/src/assert.h"
-#include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/data_snapshot_desktop.h"
@@ -40,8 +39,6 @@ using callback::NewCallback;
 
 namespace database {
 namespace internal {
-
-Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
                                          const QuerySpec& query_spec,
@@ -63,60 +60,72 @@ void SingleValueListener::OnCancelled(const Error& error_code,
   future_->Complete(handle_, error_code, error_message);
 }
 
-DatabaseInternal::DatabaseInternal(App* app)
-    : DatabaseInternal(app, app ? app->options().database_url() : "") {
+DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
+                                   const App& app)
+    : DatabaseInternal(
+          app_state, app,
+          app.options().database_url() ? app.options().database_url() : "") {
   constructor_url_ = std::string();
 }
 
-DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : app_(app),
+DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
+                                   const App& app, const char* url)
+    : app_state_(app_state),
       future_manager_(),
-      cleanup_(),
-      database_url_(url),
-      constructor_url_(url),
-      logger_(app_common::FindAppLoggerByName(app->name())),
+      database_url_(url ? url : ""),
+      constructor_url_(url ? url : ""),
+      logger_(&app_state.logger()),
       repo_(nullptr) {
-  assert(app);
-  assert(url);
-
-  // Spin up the token auto-update thread in Auth.
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthStartTokenListener, app_, nullptr, nullptr);
+  (void)app;
+  // Spin up the token auto-update thread in Auth if Auth is active.
+  if (auto* auth = app_state_.auth_token_provider()) {
+    auth->StartTokenListener();
+  }
 }
 
 DatabaseInternal::~DatabaseInternal() {
-  cleanup_.CleanupAll();
+  // Destroy Repo first so its scheduler/connection stop before token listeners
+  // and future_manager_ are torn down.
+  repo_.reset();
 
-  // If initialization failed, there is nothing to clean up.
-  if (app_ == nullptr) return;
-
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
+  if (auto* auth = app_state_.auth_token_provider()) {
+    auth->StopTokenListener();
+  }
 }
 
-App* DatabaseInternal::GetApp() { return app_; }
+App DatabaseInternal::GetApp() const { return app_state_.TryMakeAppHandle(); }
+
+std::shared_ptr<DatabaseInternal> DatabaseInternal::MakeSharedHandle() const {
+  auto state = app_state_.weak_from_this().lock();
+  if (!state) return {};
+  return std::shared_ptr<DatabaseInternal>(
+      std::move(state), const_cast<DatabaseInternal*>(this));
+}
 
 DatabaseReference DatabaseInternal::GetReference() {
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
   EnsureRepo();
-  return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), Path()));
+  return DatabaseReference(
+      new DatabaseReferenceInternal(std::move(self), Path()));
 }
 
 DatabaseReference DatabaseInternal::GetReference(const char* path) {
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
   EnsureRepo();
-  return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), Path(path)));
+  return DatabaseReference(
+      new DatabaseReferenceInternal(std::move(self), Path(path)));
 }
 
 DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
+  auto self = MakeSharedHandle();
+  if (!self) return DatabaseReference();
   EnsureRepo();
   ParseUrl parser;
   auto result = parser.Parse(url);
-  if (parser.Parse(url) != ParseUrl::kParseOk) {
-    logger_.LogError("Url is not valid: %s", url);
-  }
-
   if (result != ParseUrl::kParseOk) {
+    logger_.LogError("Url is not valid: %s", url);
     return DatabaseReference();
   }
 
@@ -131,8 +140,8 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
     return DatabaseReference();
   }
 
-  return DatabaseReference(new DatabaseReferenceInternal(
-      const_cast<DatabaseInternal*>(this), Path(parser.path)));
+  return DatabaseReference(
+      new DatabaseReferenceInternal(std::move(self), Path(parser.path)));
 }
 
 void DatabaseInternal::GoOffline() {
@@ -171,12 +180,8 @@ void DatabaseInternal::PurgeOutstandingWrites() {
       repo_->this_ref()));
 }
 
-static std::string* g_sdk_version = nullptr;
 const char* DatabaseInternal::GetSdkVersion() {
-  if (g_sdk_version == nullptr) {
-    g_sdk_version = new std::string("Firebase Realtime Database 0.0.1");
-  }
-  return g_sdk_version->c_str();
+  return "Firebase Realtime Database 0.0.1";
 }
 
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
@@ -305,8 +310,8 @@ EventRegistration* DatabaseInternal::ActiveEventRegistration(
 void DatabaseInternal::EnsureRepo() {
   MutexLock lock(repo_mutex_);
   if (!repo_) {
-    repo_ = std::make_unique<Repo>(app_, this, database_url_.c_str(), &logger_,
-                                   persistence_enabled_);
+    repo_ = std::make_unique<Repo>(app_state_, this, database_url_.c_str(),
+                                   &logger_, persistence_enabled_);
   }
 }
 

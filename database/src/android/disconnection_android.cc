@@ -58,29 +58,30 @@ enum DisconnectionHandlerFn {
   kDisconnectionHandlerFnCount,
 };
 
-DisconnectionHandlerInternal::DisconnectionHandlerInternal(DatabaseInternal* db,
-                                                           jobject obj)
-    : db_(db) {
-  obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
+DisconnectionHandlerInternal::DisconnectionHandlerInternal(
+    std::shared_ptr<DatabaseInternal> db, jobject obj)
+    : db_(std::move(db)) {
+  obj_ = db_->GetJNIEnv()->NewGlobalRef(obj);
   db_->future_manager().AllocFutureApi(this, kDisconnectionHandlerFnCount);
 }
 
 DisconnectionHandlerInternal::~DisconnectionHandlerInternal() {
   if (obj_ != nullptr) {
-    db_->GetApp()->GetJNIEnv()->DeleteGlobalRef(obj_);
+    util::GetJNIEnvFromApp()->DeleteGlobalRef(obj_);
     obj_ = nullptr;
   }
-  db_->future_manager().ReleaseFutureApi(this);
+  if (db_) {
+    db_->future_manager().ReleaseFutureApi(this);
+  }
 }
 
-bool DisconnectionHandlerInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
+bool DisconnectionHandlerInternal::Initialize(const App& app) {
+  JNIEnv* env = app.GetJNIEnv();
+  jobject activity = app.activity();
   return on_disconnect::CacheMethodIds(env, activity);
 }
 
-void DisconnectionHandlerInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
+void DisconnectionHandlerInternal::Terminate(JNIEnv* env) {
   on_disconnect::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 }
@@ -88,11 +89,12 @@ void DisconnectionHandlerInternal::Terminate(App* app) {
 namespace {
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<void> handle_,
-                     ReferenceCountedFutureImpl* impl_, DatabaseInternal* db_)
-      : handle(handle_), impl(impl_), db(db_) {}
+                     ReferenceCountedFutureImpl* impl_,
+                     std::weak_ptr<DatabaseInternal> db_)
+      : handle(handle_), impl(impl_), db(std::move(db_)) {}
   SafeFutureHandle<void> handle;
   ReferenceCountedFutureImpl* impl;
-  DatabaseInternal* db;
+  std::weak_ptr<DatabaseInternal> db;
 };
 
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
@@ -101,10 +103,12 @@ void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
   FutureCallbackData* data =
       reinterpret_cast<FutureCallbackData*>(callback_data);
   if (data != nullptr) {
-    data->impl->Complete(
-        data->handle,
-        data->db->ErrorFromResultAndErrorCode(result_code, status),
-        status_message);
+    if (auto locked_db = data->db.lock()) {
+      data->impl->Complete(
+          data->handle,
+          locked_db->ErrorFromResultAndErrorCode(result_code, status),
+          status_message);
+    }
     delete data;
   }
 }
@@ -113,7 +117,7 @@ void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
 Future<void> DisconnectionHandlerInternal::Cancel() {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnCancel);
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, on_disconnect::GetMethodId(on_disconnect::kCancel));
   util::RegisterCallbackOnTask(
@@ -134,7 +138,7 @@ Future<void> DisconnectionHandlerInternal::CancelLastResult() {
 Future<void> DisconnectionHandlerInternal::RemoveValue() {
   SafeFutureHandle<void> handle =
       future()->SafeAlloc<void>(kDisconnectionHandlerFnRemoveValue);
-  JNIEnv* env = db_->GetApp()->GetJNIEnv();
+  JNIEnv* env = db_->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, on_disconnect::GetMethodId(on_disconnect::kRemoveValue));
   util::RegisterCallbackOnTask(
@@ -158,7 +162,7 @@ Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
     future()->Complete(handle, kErrorConflictingOperationInProgress,
                        kErrorMsgConflictSetValue);
   } else {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
+    JNIEnv* env = db_->GetJNIEnv();
     jobject value_obj = internal::VariantToJavaObject(env, value);
     jobject task = env->CallObjectMethod(
         obj_, on_disconnect::GetMethodId(on_disconnect::kSetValue), value_obj);
@@ -190,7 +194,7 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(
     future()->Complete(handle, kErrorInvalidVariantType,
                        kErrorMsgInvalidVariantForPriority);
   } else {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
+    JNIEnv* env = db_->GetJNIEnv();
     jobject value_obj = internal::VariantToJavaObject(env, value);
     jobject task;
     if (priority.is_string()) {
@@ -230,7 +234,7 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
     future()->Complete(handle, kErrorInvalidVariantType,
                        kErrorMsgInvalidVariantForUpdateChildren);
   } else {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
+    JNIEnv* env = db_->GetJNIEnv();
     jobject values_obj = internal::VariantToJavaObject(env, values);
     jobject task = env->CallObjectMethod(
         obj_, on_disconnect::GetMethodId(on_disconnect::kUpdateChildren),

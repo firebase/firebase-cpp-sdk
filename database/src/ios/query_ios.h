@@ -82,10 +82,10 @@ OBJ_C_PTR_WRAPPER(FIRCPPDatabaseQueryCallbackState);
 /// The iOS implementation of the Query class, used for reading data.
 class QueryInternal {
  public:
-  QueryInternal(DatabaseInternal* database,
+  QueryInternal(std::shared_ptr<DatabaseInternal> database,
                 std::unique_ptr<FIRDatabaseQueryPointer> query);
 
-  QueryInternal(DatabaseInternal* database,
+  QueryInternal(std::shared_ptr<DatabaseInternal> database,
                 std::unique_ptr<FIRDatabaseQueryPointer> query,
                 const internal::QuerySpec& query_spec);
 
@@ -199,7 +199,9 @@ class QueryInternal {
 
   const internal::QuerySpec& query_spec() const { return query_spec_; }
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* _Nullable database_internal() const {
+    return database_.get();
+  }
 
  protected:
 #ifdef __OBJC__
@@ -208,7 +210,7 @@ class QueryInternal {
 
   internal::QuerySpec query_spec_;
 
-  DatabaseInternal* database_;
+  std::shared_ptr<DatabaseInternal> database_;
 
  private:
   // Get the Future for the QueryInternal.

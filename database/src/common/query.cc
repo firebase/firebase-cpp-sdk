@@ -37,60 +37,35 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
 
-#include "database/src/common/cleanup.h"
-
 namespace firebase {
 namespace database {
 
 using internal::QueryInternal;
 
-static Query GetInvalidQuery() { return Query(); }
-
-typedef CleanupFn<Query, QueryInternal> CleanupFnQuery;
-
-template <>
-CleanupFnQuery::CreateInvalidObjectFn CleanupFnQuery::create_invalid_object =
-    GetInvalidQuery;
-
-Query::Query(QueryInternal* internal) : internal_(internal) {
-  RegisterCleanup();
-}
+Query::Query(QueryInternal* internal) : internal_(internal) {}
 
 void Query::SetInternal(QueryInternal* internal) {
-  UnregisterCleanup();
-  if (internal_) delete internal_;
+  delete internal_;
   internal_ = internal;
-  RegisterCleanup();
-}
-
-void Query::RegisterCleanup() {
-  if (internal_) CleanupFnQuery::Register(this, internal_);
-}
-
-void Query::UnregisterCleanup() {
-  if (internal_) CleanupFnQuery::Unregister(this, internal_);
 }
 
 Query::Query(const Query& src)
-    : internal_(src.internal_ ? new QueryInternal(*src.internal_) : nullptr) {
-  RegisterCleanup();
-}
+    : internal_(src.internal_ ? new QueryInternal(*src.internal_) : nullptr) {}
 
 Query& Query::operator=(const Query& src) {
+  if (this == &src) return *this;
   SetInternal(src.internal_ ? new QueryInternal(*src.internal_) : nullptr);
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 Query::Query(Query&& query) : internal_(query.internal_) {
-  query.UnregisterCleanup();
   query.internal_ = nullptr;
-  RegisterCleanup();
 }
 
 Query& Query::operator=(Query&& query) {
+  if (this == &query) return *this;
   QueryInternal* internal = query.internal_;
-  query.UnregisterCleanup();
   query.internal_ = nullptr;
   SetInternal(internal);
   return *this;
@@ -104,8 +79,8 @@ bool operator==(const Query& lhs, const Query& rhs) {
 }
 
 Query::~Query() {
-  UnregisterCleanup();
-  if (internal_) delete internal_;
+  delete internal_;
+  internal_ = nullptr;
 }
 
 Future<DataSnapshot> Query::GetValue() {

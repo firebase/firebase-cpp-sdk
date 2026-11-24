@@ -18,6 +18,7 @@
 #include <jni.h>
 #include <stddef.h>
 
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/app.h"
@@ -91,7 +92,7 @@ class DataSnapshotInternal {
   // Does this DataSnapshot have data at a particular location?
   bool HasChild(const char* path) const;
 
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* database_internal() const { return db_.lock().get(); }
 
   // Special method to create an invalid DataSnapshot, because
   // DataSnapshot's constructor is private.
@@ -108,13 +109,14 @@ class DataSnapshotInternal {
 
   // Creates a new global reference on the jobject, so you can delete your
   // reference after calling this.
-  DataSnapshotInternal(DatabaseInternal* database, jobject data_snapshot_obj);
+  DataSnapshotInternal(std::weak_ptr<DatabaseInternal> database,
+                       jobject data_snapshot_obj);
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
-  DatabaseInternal* db_;
-  jobject obj_;
+  std::weak_ptr<DatabaseInternal> db_;
+  jobject obj_ = nullptr;
   Variant cached_key_;
 };
 

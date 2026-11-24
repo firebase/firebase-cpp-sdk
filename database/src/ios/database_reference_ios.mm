@@ -31,9 +31,11 @@ namespace internal {
 
 using util::VariantToId;
 
-DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
-                                                     std::unique_ptr<FIRDatabaseReferencePointer> impl)
-    : QueryInternal(database, std::make_unique<FIRDatabaseQueryPointer>(impl->get())),
+DatabaseReferenceInternal::DatabaseReferenceInternal(
+    std::shared_ptr<DatabaseInternal> database,
+    std::unique_ptr<FIRDatabaseReferencePointer> impl)
+    : QueryInternal(std::move(database),
+                    std::make_unique<FIRDatabaseQueryPointer>(impl->get())),
       cached_disconnection_handler_(nullptr) {
   impl_ = std::move(impl);
   database_->future_manager().AllocFutureApi(&future_api_id_, kDatabaseReferenceFnCount);
@@ -46,40 +48,65 @@ DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
 
 DatabaseReferenceInternal::~DatabaseReferenceInternal() {
   if (cached_disconnection_handler_) delete cached_disconnection_handler_;
-  database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
 }
 
 DatabaseReferenceInternal::DatabaseReferenceInternal(const DatabaseReferenceInternal& other)
     : QueryInternal(other), cached_disconnection_handler_(nullptr) {
   impl_.reset(new FIRDatabaseReferencePointer(*other.impl_));
-  database_->future_manager().AllocFutureApi(&future_api_id_, kDatabaseReferenceFnCount);
+  if (database_) {
+    database_->future_manager().AllocFutureApi(&future_api_id_, kDatabaseReferenceFnCount);
+  }
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     const DatabaseReferenceInternal& other) {
-  QueryInternal::operator=(other);
+  if (this == &other) return *this;
+  if (database_ != other.database_) {
+    if (database_) {
+      database_->future_manager().ReleaseFutureApi(&future_api_id_);
+    }
+    QueryInternal::operator=(other);
+    if (database_) {
+      database_->future_manager().AllocFutureApi(&future_api_id_, kDatabaseReferenceFnCount);
+    }
+  } else {
+    QueryInternal::operator=(other);
+  }
   impl_.reset(new FIRDatabaseReferencePointer(*other.impl_));
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseReferenceInternal&& other)
-    : QueryInternal(std::move(other)), impl_(std::move(other.impl_)) {
+    : QueryInternal(std::move(other)),
+      impl_(std::move(other.impl_)),
+      cached_disconnection_handler_(nullptr) {
   other.impl_ = std::make_unique<FIRDatabaseReferencePointer>(nil);
-  database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
+  if (database_) {
+    database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
+  }
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(DatabaseReferenceInternal&& other) {
+  if (this == &other) return *this;
+  if (database_) {
+    database_->future_manager().ReleaseFutureApi(&future_api_id_);
+  }
   QueryInternal::operator=(std::move(other));
   impl_ = std::move(other.impl_);
   other.impl_ = std::make_unique<FIRDatabaseReferencePointer>(nil);
-  database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
+  if (database_) {
+    database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
+  }
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-Database* DatabaseReferenceInternal::GetDatabase() const {
-  return Database::GetInstance(database_->GetApp());
+Database DatabaseReferenceInternal::GetDatabase() const {
+  return Database(database_);
 }
 
 const char* DatabaseReferenceInternal::GetKey() const { return [[impl() key] UTF8String]; }
@@ -118,7 +145,7 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() {
 
 Future<void> DatabaseReferenceInternal::RemoveValue() {
   SafeFutureHandle<void> handle = ref_future()->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
-  [impl() removeValueWithCompletionBlock:CreateCompletionBlock(handle, ref_future())];
+  [impl() removeValueWithCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
   return MakeFuture(ref_future(), handle);
 }
 
@@ -130,12 +157,11 @@ Future<void> DatabaseReferenceInternal::RemoveValueLastResult() {
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
     DoTransactionWithContext transaction_function, void* context, void (*delete_context)(void*),
     bool trigger_local_events) {
-  // Copy the database_ pointer to a local variable to be captured and used in the following block
-  DatabaseInternal* database = database_;
+  std::weak_ptr<DatabaseInternal> weak_database = database_;
   FIRTransactionResult* _Nonnull (^transaction_block)(FIRMutableData* _Nonnull) =
       ^(FIRMutableData* mutable_data_impl) {
         MutableData mutable_data(new MutableDataInternal(
-            database, std::make_unique<FIRMutableDataPointer>(mutable_data_impl)));
+            weak_database, std::make_unique<FIRMutableDataPointer>(mutable_data_impl)));
         TransactionResult result = transaction_function(&mutable_data, context);
         if (result == kTransactionResultSuccess) {
           return [FIRTransactionResult successWithValue:mutable_data_impl];
@@ -146,30 +172,31 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
   SafeFutureHandle<DataSnapshot> handle = ref_future()->SafeAlloc<DataSnapshot>(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
   FutureCallbackData<DataSnapshot>* data =
-      new FutureCallbackData<DataSnapshot>(handle, ref_future());
-  data->database = database_;
+      new FutureCallbackData<DataSnapshot>(handle, ref_future(), weak_database);
   void (^completion_block)(NSError *_Nullable, BOOL, FIRDataSnapshot *_Nullable) =
       ^(NSError *error, BOOL was_committed, FIRDataSnapshot *snapshot) {
-        Error error_code = NSErrorToErrorCode(error);
-        const char* error_string = GetErrorMessage(error_code);
-        if (error == nil) {
-          if (was_committed) {
-            // Succeeded.
-            data->impl->CompleteWithResult(
-                data->handle, error_code, error_string,
-                DataSnapshot(new DataSnapshotInternal(
-                    data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
+        if (auto locked_db = data->database.lock()) {
+          Error error_code = NSErrorToErrorCode(error);
+          const char* error_string = GetErrorMessage(error_code);
+          if (error == nil) {
+            if (was_committed) {
+              // Succeeded.
+              data->impl->CompleteWithResult(
+                  data->handle, error_code, error_string,
+                  DataSnapshot(new DataSnapshotInternal(
+                      data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
+            } else {
+              // Aborted.
+              data->impl->CompleteWithResult(
+                  data->handle, kErrorTransactionAbortedByUser,
+                  GetErrorMessage(kErrorTransactionAbortedByUser),
+                  DataSnapshot(new DataSnapshotInternal(
+                      data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
+            }
           } else {
-            // Aborted.
-            data->impl->CompleteWithResult(
-                data->handle, kErrorTransactionAbortedByUser,
-                GetErrorMessage(kErrorTransactionAbortedByUser),
-                DataSnapshot(new DataSnapshotInternal(
-                    data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
+            // Error occurred.
+            data->impl->Complete(data->handle, error_code, error_string);
           }
-        } else {
-          // Error occurred.
-          data->impl->Complete(data->handle, error_code, error_string);
         }
         if (delete_context) {
           delete_context(context);
@@ -194,7 +221,7 @@ Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
     ref_future()->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForPriority);
   } else {
     [impl() setPriority:VariantToId(priority)
-        withCompletionBlock:CreateCompletionBlock(handle, ref_future())];
+        withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -210,7 +237,7 @@ Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
     ref_future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
   } else {
     [impl() setValue:VariantToId(value)
-        withCompletionBlock:CreateCompletionBlock(handle, ref_future())];
+        withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -233,7 +260,7 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(const Variant& value
   } else {
     [impl() setValue:VariantToId(value)
                 andPriority:VariantToId(priority)
-        withCompletionBlock:CreateCompletionBlock(handle, ref_future())];
+        withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -253,7 +280,7 @@ Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
     id values_id = VariantToId(values);
     NSDictionary *values_dict = (NSDictionary *)values_id;
     [impl() updateChildValues:values_dict
-          withCompletionBlock:CreateCompletionBlock(handle, ref_future())];
+          withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }

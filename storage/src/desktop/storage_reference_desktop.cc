@@ -26,8 +26,8 @@
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
 #include "app/src/app_common.h"
-#include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/thread.h"
 #include "app/src/variant_util.h"
 #include "storage/src/common/common_internal.h"
@@ -50,30 +50,62 @@ namespace internal {
  */
 
 StorageReferenceInternal::StorageReferenceInternal(
-    const std::string& storageUri, StorageInternal* storage)
-    : storage_(storage), storageUri_(storage, storageUri) {
-  storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+    const std::string& storageUri, std::shared_ptr<StorageInternal> storage)
+    : strong_storage_(std::move(storage)),
+      weak_storage_(strong_storage_),
+      storageUri_(strong_storage_.get(), storageUri) {
+  if (strong_storage_) {
+    strong_storage_->future_manager().AllocFutureApi(this,
+                                                     kStorageReferenceFnCount);
+  }
 }
 
 StorageReferenceInternal::StorageReferenceInternal(
-    const StoragePath& storageUri, StorageInternal* storage)
-    : storage_(storage), storageUri_(storageUri) {
-  storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+    const StoragePath& storageUri, std::shared_ptr<StorageInternal> storage)
+    : strong_storage_(std::move(storage)),
+      weak_storage_(strong_storage_),
+      storageUri_(storageUri) {
+  if (strong_storage_) {
+    strong_storage_->future_manager().AllocFutureApi(this,
+                                                     kStorageReferenceFnCount);
+  }
+}
+
+StorageReferenceInternal::StorageReferenceInternal(
+    WeakTag, const StoragePath& storageUri,
+    std::weak_ptr<StorageInternal> storage)
+    : weak_storage_(std::move(storage)), storageUri_(storageUri) {
+  if (auto locked = weak_storage_.lock()) {
+    locked->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+  }
+}
+
+// static
+StorageReferenceInternal* StorageReferenceInternal::CreateWeak(
+    const StoragePath& storageUri, std::weak_ptr<StorageInternal> storage) {
+  return new StorageReferenceInternal(WeakTag{}, storageUri,
+                                      std::move(storage));
 }
 
 StorageReferenceInternal::StorageReferenceInternal(
     const StorageReferenceInternal& other)
-    : storage_(other.storage_), storageUri_(other.storageUri_) {
-  storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+    : strong_storage_(other.strong_storage_),
+      weak_storage_(other.weak_storage_),
+      storageUri_(other.storageUri_) {
+  if (auto locked = LockStorage()) {
+    locked->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+  }
 }
 
 StorageReferenceInternal::~StorageReferenceInternal() {
-  storage_->future_manager().ReleaseFutureApi(this);
+  if (auto locked = LockStorage()) {
+    locked->future_manager().ReleaseFutureApi(this);
+  }
 }
 
 // Gets the storage to which we refer.
-Storage* StorageReferenceInternal::storage() const {
-  return Storage::GetInstance(storage_->app());
+Storage StorageReferenceInternal::storage() const {
+  return Storage(LockStorage());
 }
 
 // Return the Google Cloud Storage bucket that holds this object.
@@ -90,11 +122,27 @@ std::string StorageReferenceInternal::full_path() const {
 StorageReferenceInternal* StorageReferenceInternal::Child(
     const char* path) const {
   if (path == nullptr) return nullptr;
-  return new StorageReferenceInternal(storageUri_.GetChild(path), storage_);
+  auto locked = LockStorage();
+  if (!locked) return nullptr;
+  return new StorageReferenceInternal(storageUri_.GetChild(path),
+                                      std::move(locked));
 }
 
 StorageReference StorageReferenceInternal::AsStorageReference() const {
-  return StorageReference(new StorageReferenceInternal(*this));
+  auto locked = LockStorage();
+  if (!locked) return StorageReference();
+  return StorageReference(
+      new StorageReferenceInternal(storageUri_, std::move(locked)));
+}
+
+StorageReference StorageReferenceInternal::AsWeakStorageReference() const {
+  return StorageReference(CreateWeak(storageUri_, weak_storage_));
+}
+
+StorageReferenceInternal* StorageReferenceInternal::CloneStrong() const {
+  auto locked = LockStorage();
+  if (!locked) return nullptr;
+  return new StorageReferenceInternal(storageUri_, std::move(locked));
 }
 
 // Handy utility function.  Takes ownership of request/response controllers
@@ -106,7 +154,9 @@ void StorageReferenceInternal::RestCall(rest::Request* request,
                                         BlockingResponse* response,
                                         FutureHandle handle, Listener* listener,
                                         Controller* controller_out) {
-  RestOperation::Start(storage_, AsStorageReference(), request,
+  auto locked = LockStorage();
+  if (!locked) return;
+  RestOperation::Start(locked.get(), AsWeakStorageReference(), request,
                        request_notifier, response, listener, handle,
                        controller_out);
 }
@@ -205,6 +255,8 @@ void StorageReferenceInternal::SetupMetadataChain(
 
 // Deletes the object at the current path.
 Future<void> StorageReferenceInternal::Delete() {
+  auto locked = LockStorage();
+  if (!locked) return Future<void>();
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<void>(kStorageReferenceFnDelete);
 
@@ -221,13 +273,15 @@ Future<void> StorageReferenceInternal::Delete() {
     return response;
   }};
   SendRequestWithRetry(kStorageReferenceFnDeleteInternal, send_request_funct,
-                       handle, storage_->max_operation_retry_time());
+                       handle, locked->max_operation_retry_time());
   return DeleteLastResult();
 }
 
 Future<void> StorageReferenceInternal::DeleteLastResult() {
-  return static_cast<const Future<void>&>(
-      future()->LastResult(kStorageReferenceFnDelete));
+  auto* future_api = future();
+  return future_api ? static_cast<const Future<void>&>(
+                          future_api->LastResult(kStorageReferenceFnDelete))
+                    : Future<void>();
 }
 
 // The timeout time to wait for the App Check token.
@@ -238,6 +292,8 @@ const int kAppCheckTokenTimeoutMs = 10000;
 void StorageReferenceInternal::PrepareRequestBlocking(
     rest::Request* request, const char* url, const char* method,
     const char* content_type) {
+  auto locked = LockStorage();
+  if (!locked) return;
   request->set_url(url);
   request->set_method(method);
 
@@ -245,7 +301,7 @@ void StorageReferenceInternal::PrepareRequestBlocking(
   request->options().timeout_ms = 0;
 
   // Fetch auth token and apply it, if there is one:
-  std::string token = storage_->GetAuthToken();
+  std::string token = locked->GetAuthToken();
   if (token.length() > 0) {
     std::string auth_header = "Bearer " + token;
     request->add_header("Authorization", auth_header.c_str());
@@ -260,17 +316,17 @@ void StorageReferenceInternal::PrepareRequestBlocking(
   // b/74440917 tracks the issue.
   // Add the Firebase library version to the request.
   request->add_header("X-Firebase-Storage-Version",
-                      storage_->user_agent().c_str());
+                      locked->user_agent().c_str());
 
-  // Use the function registry to get the App Check token.
-  Future<std::string> app_check_future;
-  bool succeeded = storage_->app()->function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckGetTokenAsync, storage_->app(), nullptr,
-      &app_check_future);
-  if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-    const std::string* token = app_check_future.Await(kAppCheckTokenTimeoutMs);
-    if (token) {
-      request->add_header("X-Firebase-AppCheck", token->c_str());
+  // Fetch App Check token via AppState's typed provider if present.
+  if (auto* app_check = locked->app_state().app_check_token_provider()) {
+    Future<std::string> app_check_future = app_check->GetTokenAsync();
+    if (app_check_future.status() != kFutureStatusInvalid) {
+      const std::string* ac_token =
+          app_check_future.Await(kAppCheckTokenTimeoutMs);
+      if (ac_token) {
+        request->add_header("X-Firebase-AppCheck", ac_token->c_str());
+      }
     }
   }
 }
@@ -279,6 +335,8 @@ void StorageReferenceInternal::PrepareRequestBlocking(
 Future<size_t> StorageReferenceInternal::GetFile(const char* path,
                                                  Listener* listener,
                                                  Controller* controller_out) {
+  auto locked = LockStorage();
+  if (!locked) return Future<size_t>();
   auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
   std::string final_path = StripProtocol(path);
   auto send_request_funct{
@@ -296,14 +354,16 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
         return response;
       }};
   SendRequestWithRetry(kStorageReferenceFnGetFileInternal, send_request_funct,
-                       handle, storage_->max_download_retry_time());
+                       handle, locked->max_download_retry_time());
 
   return GetFileLastResult();
 }
 
 Future<size_t> StorageReferenceInternal::GetFileLastResult() {
-  return static_cast<const Future<size_t>&>(
-      future()->LastResult(kStorageReferenceFnGetFile));
+  auto* future_api = future();
+  return future_api ? static_cast<const Future<size_t>&>(
+                          future_api->LastResult(kStorageReferenceFnGetFile))
+                    : Future<size_t>();
 }
 
 // Asynchronously downloads the object from this StorageReference.
@@ -311,6 +371,8 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
                                                   size_t buffer_size,
                                                   Listener* listener,
                                                   Controller* controller_out) {
+  auto locked = LockStorage();
+  if (!locked) return Future<size_t>();
   auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
   auto send_request_funct{[&, buffer, buffer_size, listener,
                            controller_out]() -> BlockingResponse* {
@@ -327,7 +389,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
     return response;
   }};
   SendRequestWithRetry(kStorageReferenceFnGetBytesInternal, send_request_funct,
-                       handle, storage_->max_download_retry_time());
+                       handle, locked->max_download_retry_time());
   return GetBytesLastResult();
 }
 
@@ -418,8 +480,10 @@ bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
 
 // Returns the result of the most recent call to GetBytes();
 Future<size_t> StorageReferenceInternal::GetBytesLastResult() {
-  return static_cast<const Future<size_t>&>(
-      future()->LastResult(kStorageReferenceFnGetBytes));
+  auto* future_api = future();
+  return future_api ? static_cast<const Future<size_t>&>(
+                          future_api->LastResult(kStorageReferenceFnGetBytes))
+                    : Future<size_t>();
 }
 
 // Asynchronously uploads data to the currently specified StorageReference,
@@ -433,6 +497,8 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
 Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     const void* buffer, size_t buffer_size, Listener* listener,
     Controller* controller_out, const char* content_type) {
+  auto locked = LockStorage();
+  if (!locked) return Future<Metadata>();
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
 
@@ -448,14 +514,14 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
                                              buffer_size);
     PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(),
                            rest::util::kPost, content_type_str.c_str());
-    ReturnedMetadataResponse* response =
-        new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
+    ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
+        handle, future_api, AsWeakStorageReference());
     RestCall(request, request->notifier(), response, handle.get(), listener,
              controller_out);
     return response;
   }};
   SendRequestWithRetry(kStorageReferenceFnPutBytesInternal, send_request_funct,
-                       handle, storage_->max_upload_retry_time());
+                       handle, locked->max_upload_retry_time());
   return PutBytesLastResult();
 }
 
@@ -466,6 +532,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
     Listener* listener, Controller* controller_out) {
   // This is the handle for the actual future returned to the user.
   auto* future_api = future();
+  if (!future_api) return Future<Metadata>();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
   MetadataChainData* data =
       new MetadataChainData(handle, metadata, AsStorageReference(), future_api);
@@ -483,8 +550,10 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
 }
 
 Future<Metadata> StorageReferenceInternal::PutBytesLastResult() {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnPutBytes));
+  auto* future_api = future();
+  return future_api ? static_cast<const Future<Metadata>&>(
+                          future_api->LastResult(kStorageReferenceFnPutBytes))
+                    : Future<Metadata>();
 }
 
 // Asynchronously uploads data to the currently specified StorageReference,
@@ -500,6 +569,8 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
 Future<Metadata> StorageReferenceInternal::PutFileInternal(
     const char* path, Listener* listener, Controller* controller_out,
     const char* content_type) {
+  auto locked = LockStorage();
+  if (!locked) return Future<Metadata>();
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
 
@@ -521,7 +592,7 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
     } else {
       // Everything is good.  Fire off the request.
       ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
-          handle, future_api, AsStorageReference());
+          handle, future_api, AsWeakStorageReference());
 
       PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(),
                              rest::util::kPost, content_type_str.c_str());
@@ -531,7 +602,7 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
     }
   }};
   SendRequestWithRetry(kStorageReferenceFnPutFileInternal, send_request_funct,
-                       handle, storage_->max_upload_retry_time());
+                       handle, locked->max_upload_retry_time());
   return PutFileLastResult();
 }
 
@@ -543,6 +614,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
                                                    Controller* controller_out) {
   // This is the handle for the actual future returned to the user.
   auto* future_api = future();
+  if (!future_api) return Future<Metadata>();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
   MetadataChainData* data =
       new MetadataChainData(handle, metadata, AsStorageReference(), future_api);
@@ -561,12 +633,16 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
 
 // Returns the result of the most recent call to PutFile();
 Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnPutFile));
+  auto* future_api = future();
+  return future_api ? static_cast<const Future<Metadata>&>(
+                          future_api->LastResult(kStorageReferenceFnPutFile))
+                    : Future<Metadata>();
 }
 
 // Retrieves metadata associated with an object at this StorageReference.
 Future<Metadata> StorageReferenceInternal::GetMetadata() {
+  auto locked = LockStorage();
+  if (!locked) return Future<Metadata>();
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadata);
 
@@ -574,8 +650,8 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
     auto* future_api = future();
     auto handle =
         future_api->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadataInternal);
-    ReturnedMetadataResponse* response =
-        new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
+    ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
+        handle, future_api, AsWeakStorageReference());
 
     storage::internal::Request* request = new storage::internal::Request();
     PrepareRequestBlocking(request, storageUri_.AsHttpMetadataUrl().c_str(),
@@ -588,19 +664,24 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
   }};
   SendRequestWithRetry(kStorageReferenceFnGetMetadataInternal,
                        send_request_funct, handle,
-                       storage_->max_operation_retry_time());
+                       locked->max_operation_retry_time());
   return GetMetadataLastResult();
 }
 
 // Returns the result of the most recent call to GetMetadata();
 Future<Metadata> StorageReferenceInternal::GetMetadataLastResult() {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnGetMetadata));
+  auto* future_api = future();
+  return future_api
+             ? static_cast<const Future<Metadata>&>(
+                   future_api->LastResult(kStorageReferenceFnGetMetadata))
+             : Future<Metadata>();
 }
 
 // Updates the metadata associated with this StorageReference.
 Future<Metadata> StorageReferenceInternal::UpdateMetadata(
     const Metadata* metadata) {
+  auto locked = LockStorage();
+  if (!locked) return Future<Metadata>();
   auto* future_api = future();
   auto handle =
       future_api->SafeAlloc<Metadata>(kStorageReferenceFnUpdateMetadata);
@@ -610,8 +691,8 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
     auto handle = future_api->SafeAlloc<Metadata>(
         kStorageReferenceFnUpdateMetadataInternal);
 
-    ReturnedMetadataResponse* response =
-        new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
+    ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
+        handle, future_api, AsWeakStorageReference());
 
     storage::internal::Request* request = new storage::internal::Request();
     PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), "PATCH",
@@ -627,19 +708,24 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
 
   SendRequestWithRetry(kStorageReferenceFnUpdateMetadataInternal,
                        send_request_funct, handle,
-                       storage_->max_operation_retry_time());
+                       locked->max_operation_retry_time());
   return UpdateMetadataLastResult();
 }
 
 // Returns the result of the most recent call to UpdateMetadata();
 Future<Metadata> StorageReferenceInternal::UpdateMetadataLastResult() {
-  return static_cast<const Future<Metadata>&>(
-      future()->LastResult(kStorageReferenceFnUpdateMetadata));
+  auto* future_api = future();
+  return future_api
+             ? static_cast<const Future<Metadata>&>(
+                   future_api->LastResult(kStorageReferenceFnUpdateMetadata))
+             : Future<Metadata>();
 }
 
 // List items (files) and prefixes (folders) under this StorageReference.
 Future<StorageListResult> StorageReferenceInternal::List(
     int max_results_per_page, const char* page_token) {
+  auto locked = LockStorage();
+  if (!locked) return Future<StorageListResult>();
   auto* future_api = future();
   auto handle =
       future_api->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
@@ -647,12 +733,14 @@ Future<StorageListResult> StorageReferenceInternal::List(
   std::string page_token_str = page_token ? page_token : "";
   auto send_request_funct{
       [&, max_results_per_page, page_token_str]() -> BlockingResponse* {
+        auto storage = LockStorage();
+        if (!storage) return nullptr;
         auto* future_api = future();
         auto handle = future_api->SafeAlloc<StorageListResult>(
             kStorageReferenceFnListInternal);
 
         ReturnedListResponse* response =
-            new ReturnedListResponse(handle, future_api, storage_);
+            new ReturnedListResponse(handle, future_api, weak_storage_);
 
         storage::internal::Request* request = new storage::internal::Request();
 
@@ -660,11 +748,11 @@ Future<StorageListResult> StorageReferenceInternal::List(
         // [scheme]://[host]/v0/b/[bucket]/o We cannot use
         // storageUri_.AsHttpMetadataUrl() directly because it appends the
         // encoded path
-        std::string url = storage_->get_scheme();
+        std::string url = storage->get_scheme();
         url += "://";
-        url += storage_->get_host();
+        url += storage->get_host();
         url += ":";
-        url += std::to_string(storage_->get_port());
+        url += std::to_string(storage->get_port());
         url += "/v0/b/";
         url += bucket();
         url += "/o";
@@ -697,21 +785,24 @@ Future<StorageListResult> StorageReferenceInternal::List(
       }};
 
   SendRequestWithRetry(kStorageReferenceFnListInternal, send_request_funct,
-                       handle, storage_->max_operation_retry_time());
+                       handle, locked->max_operation_retry_time());
   return ListLastResult();
 }
 
 // Returns the result of the most recent call to List();
 Future<StorageListResult> StorageReferenceInternal::ListLastResult() {
-  return static_cast<const Future<StorageListResult>&>(
-      future()->LastResult(kStorageReferenceFnList));
+  auto* future_api = future();
+  return future_api ? static_cast<const Future<StorageListResult>&>(
+                          future_api->LastResult(kStorageReferenceFnList))
+                    : Future<StorageListResult>();
 }
 
 // Asynchronously retrieves a long lived download URL with a revokable token.
 Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
+  auto* future_api = future();
+  if (!future_api) return Future<std::string>();
   // TODO(b/78908154): Re-implement this function without use of GetMetadata()
   Future<Metadata> metadata_future = GetMetadata();
-  auto* future_api = future();
   auto handle =
       future_api->SafeAlloc<std::string>(kStorageReferenceFnGetDownloadUrl);
 
@@ -752,8 +843,11 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
 
 // Returns the result of the most recent call to GetDownloadUrl();
 Future<std::string> StorageReferenceInternal::GetDownloadUrlLastResult() {
-  return static_cast<const Future<std::string>&>(
-      future()->LastResult(kStorageReferenceFnGetDownloadUrl));
+  auto* future_api = future();
+  return future_api
+             ? static_cast<const Future<std::string>&>(
+                   future_api->LastResult(kStorageReferenceFnGetDownloadUrl))
+             : Future<std::string>();
 }
 
 // Returns the short name of this object.
@@ -764,11 +858,20 @@ std::string StorageReferenceInternal::name() {
 // Returns a new instance of StorageReference pointing to the parent location
 // or null if this instance references the root location.
 StorageReferenceInternal* StorageReferenceInternal::GetParent() {
-  return new StorageReferenceInternal(storageUri_.GetParent(), storage_);
+  auto locked = LockStorage();
+  if (!locked) return nullptr;
+  return new StorageReferenceInternal(storageUri_.GetParent(),
+                                      std::move(locked));
 }
 
 ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
-  return storage_->future_manager().GetFutureApi(this);
+  auto locked = LockStorage();
+  return locked ? locked->future_manager().GetFutureApi(this) : nullptr;
+}
+
+StorageReference StorageReferenceInternal::CreateWeakReference(
+    const StoragePath& storageUri, std::weak_ptr<StorageInternal> storage) {
+  return StorageReference(CreateWeak(storageUri, std::move(storage)));
 }
 
 }  // namespace internal

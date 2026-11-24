@@ -15,6 +15,7 @@
 #include "functions/src/ios/functions_ios.h"
 
 #include <memory>
+#include <utility>
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -27,10 +28,11 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-FunctionsInternal::FunctionsInternal(App* app, const char* region)
-    : app_(app), region_(region) {
+FunctionsInternal::FunctionsInternal(::firebase::internal::AppState& app_state,
+                                     const App& app, const char* region)
+    : app_state_(app_state), region_(region) {
   impl_.reset(new FIRFunctionsPointer([FIRFunctions
-      functionsForApp:app->GetPlatformApp()
+      functionsForApp:app.GetPlatformApp()
                region:@(region)]));
 }
 
@@ -38,39 +40,45 @@ FunctionsInternal::~FunctionsInternal() {
   // Destructor is necessary for ARC garbage collection.
 }
 
-::firebase::App* FunctionsInternal::app() const { return app_; }
+::firebase::App FunctionsInternal::app() const {
+  return app_state_.TryMakeAppHandle();
+}
 const char* FunctionsInternal::region() const { return region_.c_str(); }
 
-HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* name) const {
-  return GetHttpsCallable(name, HttpsCallableOptions());
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
+    std::shared_ptr<FunctionsInternal> self, const char* name) const {
+  return GetHttpsCallable(std::move(self), name, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
-    const char* name, const HttpsCallableOptions& options) const {
+    std::shared_ptr<FunctionsInternal> self, const char* name,
+    const HttpsCallableOptions& options) const {
   FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
       initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
 
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this),
+      std::move(self),
       std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
           HTTPSCallableWithName:@(name)
                         options:firOptions]));
 }
 
-HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const char* url) const {
-  return GetHttpsCallableFromURL(url, HttpsCallableOptions());
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
+    std::shared_ptr<FunctionsInternal> self, const char* url) const {
+  return GetHttpsCallableFromURL(std::move(self), url, HttpsCallableOptions());
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
-    const char* url, const HttpsCallableOptions& options) const {
+    std::shared_ptr<FunctionsInternal> self, const char* url,
+    const HttpsCallableOptions& options) const {
   FIRHTTPSCallableOptions *firOptions = [[FIRHTTPSCallableOptions alloc]
       initWithRequireLimitedUseAppCheckTokens:options.limited_use_app_check_token];
 
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   NSURL *nsurl = [NSURL URLWithString:@(url)];
   return new HttpsCallableReferenceInternal(
-      const_cast<FunctionsInternal*>(this),
+      std::move(self),
       std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get()
           HTTPSCallableWithURL:nsurl
                        options:firOptions]));

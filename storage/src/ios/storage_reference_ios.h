@@ -44,8 +44,12 @@ OBJ_C_PTR_WRAPPER(FIRStorageObservableTask);
 
 class StorageReferenceInternal {
  public:
-  explicit StorageReferenceInternal(StorageInternal* _Nonnull storage,
-                                    std::unique_ptr<FIRStorageReferencePointer> impl);
+  StorageReferenceInternal(std::shared_ptr<StorageInternal> storage,
+                           std::unique_ptr<FIRStorageReferencePointer> impl);
+
+  static StorageReferenceInternal* _Nullable CreateWeak(
+      std::weak_ptr<StorageInternal> storage,
+      std::unique_ptr<FIRStorageReferencePointer> impl);
 
   ~StorageReferenceInternal();
 
@@ -70,11 +74,13 @@ class StorageReferenceInternal {
   StorageReferenceInternal& operator=(StorageReferenceInternal&& other);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
+  bool is_valid() const;
+
   // Gets the storage to which we refer.
-  Storage* _Nonnull storage();
+  Storage storage() const;
 
   // Gets a reference to a location relative to this one.
-  StorageReferenceInternal* _Nonnull Child(const char* _Nonnull path) const;
+  StorageReferenceInternal* _Nullable Child(const char* _Nonnull path) const;
 
   // Deletes the object at the current path.
   Future<void> Delete();
@@ -169,15 +175,21 @@ class StorageReferenceInternal {
   // Returns the result of the most recent call to List();
   Future<StorageListResult> ListLastResult();
 
+  std::shared_ptr<StorageInternal> LockStorage() const {
+    return strong_storage_ ? strong_storage_ : weak_storage_.lock();
+  }
+
   // StorageInternal instance we are associated with.
-  StorageInternal* _Nullable storage_internal() const { return storage_; }
+  StorageInternal* _Nullable storage_internal() const {
+    return LockStorage().get();
+  }
 
  private:
-#ifdef __OBJC__
-  void AssignListener(
-      FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task,
-      Listener* _Nullable listener, StorageInternal* _Nullable storage);
+  struct WeakTag {};
+  StorageReferenceInternal(WeakTag, std::weak_ptr<StorageInternal> storage,
+                           std::unique_ptr<FIRStorageReferencePointer> impl);
 
+#ifdef __OBJC__
   FIRStorageReference* _Nullable impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
@@ -185,12 +197,11 @@ class StorageReferenceInternal {
   ReferenceCountedFutureImpl* _Nullable future();
 
   // Keep track of the Storage object for managing Futures.
-  StorageInternal* _Nullable storage_;
+  std::shared_ptr<StorageInternal> strong_storage_;
+  std::weak_ptr<StorageInternal> weak_storage_;
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRStorageReferencePointer> impl_;
-
-  Mutex controller_init_mutex_;
 };
 
 }  // namespace internal

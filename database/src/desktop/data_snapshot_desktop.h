@@ -17,6 +17,7 @@
 
 #include <stddef.h>
 
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/variant.h"
@@ -38,6 +39,8 @@ class DatabaseReferenceInternal;
 // Firebase Database location.
 class DataSnapshotInternal {
  public:
+  DataSnapshotInternal(std::weak_ptr<DatabaseInternal> database,
+                       const Variant& data, const QuerySpec& query_spec);
   DataSnapshotInternal(DatabaseInternal* database, const Variant& data,
                        const QuerySpec& query_spec);
 
@@ -95,7 +98,7 @@ class DataSnapshotInternal {
   /// Get the absolute URL of this data snapshot.
   std::string GetUrl() const;
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* database_internal() const { return database_.lock().get(); }
 
   const Path& path() const { return query_spec_.path; }
 
@@ -107,7 +110,9 @@ class DataSnapshotInternal {
   bool operator!=(const DataSnapshotInternal& other) const;
 
  private:
-  DatabaseInternal* database_;
+  // Kept weak so Future<DataSnapshot> cached in DatabaseInternal's
+  // FutureManager never forms a reference cycle with DatabaseInternal/AppState.
+  std::weak_ptr<DatabaseInternal> database_;
 
   Variant data_;
 

@@ -21,9 +21,9 @@
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
 #include "app/src/app_common.h"
-#include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
+#include "app/src/service_interfaces.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/desktop/storage_reference_desktop.h"
 
@@ -31,14 +31,14 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-StorageInternal::StorageInternal(App* app, const char* url) {
-  app_ = app;
-
+StorageInternal::StorageInternal(::firebase::internal::AppState& app_state,
+                                 const App& app, const char* url)
+    : app_state_(app_state) {
   if (url) {
     url_ = url;
     root_ = StoragePath(this, url_);
   } else {
-    const char* bucket = app->options().storage_bucket();
+    const char* bucket = app.options().storage_bucket();
     root_ = StoragePath(this, bucket ? std::string(kGsScheme) + bucket : "");
   }
 
@@ -54,9 +54,10 @@ StorageInternal::StorageInternal(App* app, const char* url) {
 
   firebase::rest::util::Initialize();
   firebase::rest::InitTransportCurl();
-  // Spin up the token auto-update thread in Auth.
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthStartTokenListener, app_, nullptr, nullptr);
+  // Spin up the token auto-update thread in Auth if Auth is present.
+  if (auto* auth = app_state_.auth_token_provider()) {
+    auth->StartTokenListener();
+  }
 
   std::string sdk;
   std::string version;
@@ -67,43 +68,56 @@ StorageInternal::StorageInternal(App* app, const char* url) {
 }
 
 StorageInternal::~StorageInternal() {
-  cleanup().CleanupAll();
+  std::vector<RestOperation*> remaining;
+  {
+    MutexLock lock(operations_mutex_);
+    remaining.swap(operations_);
+  }
+  for (RestOperation* op : remaining) {
+    delete op;
+  }
   firebase::rest::CleanupTransportCurl();
   firebase::rest::util::Terminate();
-  // Stop the token auto-update thread in Auth.
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
-  app_ = nullptr;
+  // Stop the token auto-update thread in Auth if Auth is present.
+  if (auto* auth = app_state_.auth_token_provider()) {
+    auth->StopTokenListener();
+  }
 }
 
 // Get a StorageReference to the root of the database.
 StorageReferenceInternal* StorageInternal::GetReference() {
   configured_ = true;
-  return new StorageReferenceInternal(url_, const_cast<StorageInternal*>(this));
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
+  return new StorageReferenceInternal(root_, std::move(self));
 }
 
 // Get a StorageReference for the specified path.
 StorageReferenceInternal* StorageInternal::GetReference(const char* path) {
   configured_ = true;
-  return new StorageReferenceInternal(root_.GetChild(path),
-                                      const_cast<StorageInternal*>(this));
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
+  return new StorageReferenceInternal(root_.GetChild(path ? path : ""),
+                                      std::move(self));
 }
 
 // Get a StorageReference for the provided URL.
 StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(
     const char* url) {
   configured_ = true;
-  return new StorageReferenceInternal(url, const_cast<StorageInternal*>(this));
+  auto self = MakeSharedHandle();
+  if (!self) return nullptr;
+  return new StorageReferenceInternal(url ? url : "", std::move(self));
 }
 
 // Returns the auth token for the current user, if there is a current user,
 // and they have a token, and auth exists as part of the app.
 // Otherwise, returns an empty string.
 std::string StorageInternal::GetAuthToken() {
-  std::string result;
-  app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetCurrentToken, app(), nullptr, &result);
-  return result;
+  if (auto* auth = app_state_.auth_token_provider()) {
+    return auth->GetCurrentToken();
+  }
+  return std::string();
 }
 
 // Add an operation to the list of outstanding operations.

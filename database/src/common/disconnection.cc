@@ -33,32 +33,18 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
 
-#include "database/src/common/cleanup.h"
-
 namespace firebase {
 namespace database {
 
 using internal::DisconnectionHandlerInternal;
 
-typedef CleanupFn<DisconnectionHandler, DisconnectionHandlerInternal>
-    CleanupFnDisconnectionHandler;
-
-template <>
-CleanupFnDisconnectionHandler::CreateInvalidObjectFn
-    CleanupFnDisconnectionHandler::create_invalid_object =
-        DisconnectionHandlerInternal::GetInvalidDisconnectionHandler;
-
 DisconnectionHandler::DisconnectionHandler(
     DisconnectionHandlerInternal* internal)
-    : internal_(internal) {
-  CleanupFnDisconnectionHandler::Register(this, internal_);
-}
+    : internal_(internal) {}
 
 DisconnectionHandler::~DisconnectionHandler() {
-  CleanupFnDisconnectionHandler::Unregister(this, internal_);
-  if (internal_) {
-    delete internal_;
-  }
+  delete internal_;
+  internal_ = nullptr;
 }
 
 Future<void> DisconnectionHandler::Cancel() {

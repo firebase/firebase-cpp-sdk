@@ -19,6 +19,7 @@
 #include <stdint.h>
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/app.h"
@@ -93,14 +94,15 @@ class StorageReferenceInternal;
 
 class MetadataInternal {
  public:
-  // You may pass in nullptr for `storage`; it will only cause GetReference to
-  // fail.
-  MetadataInternal(StorageInternal* storage, jobject obj);
+  // Construct a MetadataInternal with an empty Java StorageMetadata object.
+  MetadataInternal();
+
+  // You may pass in an empty weak_ptr for `storage`; it will only cause
+  // GetReference to fail.
+  MetadataInternal(std::weak_ptr<StorageInternal> storage, jobject obj);
 
   // Construct a MetadataInternal with an empty Java StorageMetadata object.
-  // You may pass in nullptr for `storage`; it will only cause GetReference to
-  // fail.
-  explicit MetadataInternal(StorageInternal* storage);
+  explicit MetadataInternal(std::weak_ptr<StorageInternal> storage);
 
   MetadataInternal(const MetadataInternal& ref);
 
@@ -183,11 +185,11 @@ class MetadataInternal {
   const char* md5_hash();
 
   // Initialize JNI bindings for this class.
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool Initialize(const App& app);
+  static void Terminate(JNIEnv* env);
 
-  // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
+  // Gets the StorageInternal we are a part of (or nullptr if expired).
+  StorageInternal* storage_internal() const { return storage_.lock().get(); }
 
   // Special method to create an invalid Metadata, because Metadata's default
   // constructor now gives us a valid one.
@@ -252,7 +254,7 @@ class MetadataInternal {
   int64_t GetInt64Property(storage_metadata::Method long_method,
                            int64_t* cached_value);
 
-  StorageInternal* storage_;
+  std::weak_ptr<StorageInternal> storage_;
   jobject obj_;
 
   std::map<std::string, std::string>* custom_metadata_;

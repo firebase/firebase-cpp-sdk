@@ -15,10 +15,12 @@
 #include "database/src/include/firebase/database/database_reference.h"
 
 #include <cassert>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/common/database_reference.h"
+#include "database/src/include/firebase/database.h"
 
 // DatabaseReferenceInternal is defined in these 3 files, one implementation for
 // each OS.
@@ -37,8 +39,6 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
 
-#include "database/src/common/cleanup.h"
-
 namespace firebase {
 namespace database {
 namespace internal {
@@ -56,92 +56,50 @@ const char kErrorMsgInvalidVariantForUpdateChildren[] =
 
 using internal::DatabaseReferenceInternal;
 
-static DatabaseReference GetInvalidDatabaseReference() {
-  return DatabaseReference();
-}
-
-typedef CleanupFn<DatabaseReference, DatabaseReferenceInternal>
-    CleanupFnDatabaseReference;
-
-template <>
-CleanupFnDatabaseReference::CreateInvalidObjectFn
-    CleanupFnDatabaseReference::create_invalid_object =
-        GetInvalidDatabaseReference;
-
-void DatabaseReference::SwitchCleanupRegistrationToDatabaseReference() {
-  Query::UnregisterCleanup();
-  if (internal_) CleanupFnDatabaseReference::Register(this, internal_);
-}
-
-void DatabaseReference::SwitchCleanupRegistrationBackToQuery() {
-  if (internal_) CleanupFnDatabaseReference::Unregister(this, internal_);
-  Query::RegisterCleanup();
-}
-
 DatabaseReference::DatabaseReference(DatabaseReferenceInternal* internal)
-    : Query(internal), internal_(internal) {
-  MutexLock lock(internal::g_database_reference_constructor_mutex);
-
-  SwitchCleanupRegistrationToDatabaseReference();
-}
+    : Query(internal), internal_(internal) {}
 
 DatabaseReference::DatabaseReference(const DatabaseReference& reference)
     : Query(), internal_(nullptr) {
-  MutexLock lock(internal::g_database_reference_constructor_mutex);
-
   internal_ = reference.internal_
                   ? new DatabaseReferenceInternal(*reference.internal_)
                   : nullptr;
   Query::SetInternal(internal_);
-  SwitchCleanupRegistrationToDatabaseReference();
 }
 
 DatabaseReference& DatabaseReference::operator=(
     const DatabaseReference& reference) {
-  MutexLock lock(internal::g_database_reference_constructor_mutex);
-
+  if (this == &reference) return *this;
   internal_ = reference.internal_
                   ? new DatabaseReferenceInternal(*reference.internal_)
                   : nullptr;
   Query::SetInternal(internal_);
-  SwitchCleanupRegistrationToDatabaseReference();
-
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReference::DatabaseReference(DatabaseReference&& reference)
-    : Query(), internal_(reference.internal_) {
-  MutexLock lock(internal::g_database_reference_constructor_mutex);
-
+    : Query(std::move(reference)), internal_(reference.internal_) {
   reference.internal_ = nullptr;
-  Query::operator=(std::move(reference));
-  SwitchCleanupRegistrationToDatabaseReference();
 }
 
 DatabaseReference& DatabaseReference::operator=(DatabaseReference&& reference) {
-  MutexLock lock(internal::g_database_reference_constructor_mutex);
-
+  if (this == &reference) return *this;
   internal_ = reference.internal_;
   reference.internal_ = nullptr;
   Query::operator=(std::move(reference));
-  SwitchCleanupRegistrationToDatabaseReference();
-
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-DatabaseReference::~DatabaseReference() {
-  SwitchCleanupRegistrationBackToQuery();
-  internal_ = nullptr;
-}
+DatabaseReference::~DatabaseReference() { internal_ = nullptr; }
 
 bool operator==(const DatabaseReference& lhs, const DatabaseReference& rhs) {
   return lhs.url() == rhs.url();
 }
 
-Database* DatabaseReference::database() const {
-  return internal_ ? internal_->GetDatabase() : nullptr;
+Database DatabaseReference::database() const {
+  return internal_ ? internal_->GetDatabase() : Database();
 }
 
 const char* DatabaseReference::key() const {
