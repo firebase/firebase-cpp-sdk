@@ -29,8 +29,8 @@ namespace auth {
 
 // Test CreateAuthUriRequest
 TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  CreateAuthUriRequest request(*app, "APIKEY", "email");
+  App app = testing::CreateApp();
+  CreateAuthUriRequest request(app, "APIKEY", "email");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "createAuthUri?key=APIKEY",
@@ -44,9 +44,9 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
 }
 
 TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  CreateAuthUriRequest request(*app, "APIKEY", "email");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  CreateAuthUriRequest request(app, "APIKEY", "email");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/createAuthUri?key=APIKEY",
@@ -55,7 +55,7 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithEmulator) {
 
 // Test CreateAuthUriResponse
 TEST(CreateAuthUriTest, TestCreateAuthUriResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   CreateAuthUriResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.

@@ -45,14 +45,12 @@ AuthResult AuthenticationResult::SetAsCurrentUser(
   // Save the previous user state to be able to check whether listeners should
   // be notified later on.
   UserData previous_user;
-  User* api_user_to_return = nullptr;
   {
     UserView::Writer writer =
         UserView::ResetUser(auth_data, user_impl_, &previous_user);
     if (user_account_info_.IsValid()) {
       user_account_info_.MergeToUser(writer);
     }
-    api_user_to_return = &auth_data->current_user;
   }
 
   if (previous_user.uid != uid()) {
@@ -63,9 +61,7 @@ AuthResult AuthenticationResult::SetAsCurrentUser(
   }
 
   AuthResult result;
-  if (api_user_to_return != nullptr) {
-    result.user = *api_user_to_return;
-  }
+  result.user = auth_data->MakeCurrentUserHandle();
   result.additional_user_info = info_;
   return result;
 }

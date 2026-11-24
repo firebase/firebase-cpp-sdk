@@ -19,6 +19,11 @@
 #import "FIRDeviceCheckProvider.h"
 #import "FIRDeviceCheckProviderFactory.h"
 
+#include <memory>
+
+#include "app/src/app_state.h"
+#include "app/src/no_destructor.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
 #include "app_check/src/ios/util_ios.h"
@@ -73,38 +78,51 @@ void DeviceCheckProvider::GetLimitedUseToken(
   }];
 }
 
-DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() : created_providers_() {
+namespace {
+
+const char kIosDeviceCheckProviderServiceTag = 0;
+
+class IosDeviceCheckProviderService : public ::firebase::internal::Service {
+ public:
+  explicit IosDeviceCheckProviderService(FIRDeviceCheckProvider* ios_provider)
+      : provider_(ios_provider) {}
+
+  int teardown_priority() const override { return -20; }
+
+  DeviceCheckProvider* provider() { return &provider_; }
+
+ private:
+  DeviceCheckProvider provider_;
+};
+
+}  // namespace
+
+DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() {
   ios_provider_factory_ = std::make_unique<FIRDeviceCheckProviderFactoryPointer>(
       [[FIRDeviceCheckProviderFactory alloc] init]);
 }
 
-DeviceCheckProviderFactoryInternal::~DeviceCheckProviderFactoryInternal() {
-  // Cleanup any providers created by this factory.
-  for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
-    delete it->second;
-  }
-  created_providers_.clear();
-}
+DeviceCheckProviderFactoryInternal::~DeviceCheckProviderFactoryInternal() = default;
 
-AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
-  // Return the provider if it already exists.
-  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
-  if (it != created_providers_.end()) {
-    return it->second;
-  }
-  // Otherwise, create a new provider
-  FIRDeviceCheckProvider* ios_provider =
-      [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
-  AppCheckProvider* cpp_provider = new internal::DeviceCheckProvider(ios_provider);
-  created_providers_[app] = cpp_provider;
-  return cpp_provider;
+AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(const App& app) {
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return nullptr;
+
+  auto service = state->GetOrCreateService<IosDeviceCheckProviderService>(
+      &kIosDeviceCheckProviderServiceTag, "", [this, &app](::firebase::internal::AppState&) {
+        FIRDeviceCheckProvider* ios_provider =
+            [ios_provider_factory() createProviderWithApp:app.GetPlatformApp()];
+        return std::make_shared<IosDeviceCheckProviderService>(ios_provider);
+      });
+  return service ? service->provider() : nullptr;
 }
 
 }  // namespace internal
 
 DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
-  static DeviceCheckProviderFactory g_device_check_check_provider_factory;
-  return &g_device_check_check_provider_factory;
+  static ::firebase::internal::NoDestructor<DeviceCheckProviderFactory>
+      g_device_check_provider_factory;
+  return g_device_check_provider_factory.get();
 }
 
 DeviceCheckProviderFactory::DeviceCheckProviderFactory()
@@ -117,7 +135,7 @@ DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {
   }
 }
 
-AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(const App& app) {
   if (internal_) {
     return internal_->CreateProvider(app);
   }

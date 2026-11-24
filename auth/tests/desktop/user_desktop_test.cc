@@ -259,15 +259,15 @@ class UserDesktopTest : public ::testing::Test {
     });
     AppOptions options = testing::MockAppOptions();
     options.set_api_key(API_KEY);
-    firebase_app_ = std::unique_ptr<App>(testing::CreateApp(options));
-    firebase_auth_ = std::unique_ptr<Auth>(Auth::GetAuth(firebase_app_.get()));
+    firebase_app_ = testing::CreateApp(options);
+    firebase_auth_ = Auth::GetAuth(firebase_app_);
 
     InitializeSignUpFlowFakes();
 
-    firebase_auth_->AddIdTokenListener(&id_token_listener);
-    firebase_auth_->AddAuthStateListener(&auth_state_listener);
+    firebase_auth_.AddIdTokenListener(&id_token_listener);
+    firebase_auth_.AddAuthStateListener(&auth_state_listener);
 
-    WaitOnLoadPersistence(firebase_auth_->auth_data_);
+    WaitOnLoadPersistence(firebase_auth_.auth_data_.get());
 
     // Current user should be updated upon successful anonymous sign-in.
     // Should expect one extra trigger during either listener add after load
@@ -276,10 +276,10 @@ class UserDesktopTest : public ::testing::Test {
     id_token_listener.ExpectChanges(2);
     auth_state_listener.ExpectChanges(2);
 
-    Future<AuthResult> future = firebase_auth_->SignInAnonymously();
+    Future<AuthResult> future = firebase_auth_.SignInAnonymously();
     while (future.status() == kFutureStatusPending) {
     }
-    firebase_user_ = firebase_auth_->current_user();
+    firebase_user_ = firebase_auth_.current_user();
     EXPECT_TRUE(firebase_user_.is_valid());
 
     // Reset listeners before tests are run.
@@ -291,7 +291,7 @@ class UserDesktopTest : public ::testing::Test {
     // Reset listeners before signing out.
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();
-    firebase_auth_->SignOut();
+    firebase_auth_.SignOut();
 
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
@@ -300,8 +300,9 @@ class UserDesktopTest : public ::testing::Test {
     // cache has valid user logged in, preventing listeners from firing.
     { SleepUponDestruction sleep_for_listeners; }
 
-    firebase_auth_.reset(nullptr);
-    firebase_app_.reset(nullptr);
+    firebase_user_ = User();
+    firebase_auth_ = Auth();
+    firebase_app_ = App();
     // cppsdk needs to be the last thing torn down, because the mocks are still
     // needed for parts of the firebase destructors.
     firebase::testing::cppsdk::ConfigReset();
@@ -330,8 +331,8 @@ class UserDesktopTest : public ::testing::Test {
     return future;
   }
 
-  std::unique_ptr<App> firebase_app_;
-  std::unique_ptr<Auth> firebase_auth_;
+  App firebase_app_;
+  Auth firebase_auth_;
   User firebase_user_;
 
   test::IdTokenChangesCounter id_token_listener;
@@ -343,8 +344,8 @@ class UserDesktopTest : public ::testing::Test {
 // Test that metadata is correctly being populated and exposed
 TEST_F(UserDesktopTest, TestAccountMetadata) {
   EXPECT_EQ(123,
-            firebase_auth_->current_user().metadata().last_sign_in_timestamp);
-  EXPECT_EQ(456, firebase_auth_->current_user().metadata().creation_timestamp);
+            firebase_auth_.current_user().metadata().last_sign_in_timestamp);
+  EXPECT_EQ(456, firebase_auth_.current_user().metadata().creation_timestamp);
 }
 
 TEST_F(UserDesktopTest, TestGetToken) {

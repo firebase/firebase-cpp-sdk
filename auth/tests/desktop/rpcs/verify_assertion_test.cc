@@ -37,16 +37,16 @@ namespace auth {
 
 // Test VerifyAssertionRequest
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromIdToken) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  auto request = VerifyAssertionRequest::FromIdToken(*app, "APIKEY", "provider",
+  App app = testing::CreateApp();
+  auto request = VerifyAssertionRequest::FromIdToken(app, "APIKEY", "provider",
                                                      "id_token");
   CheckUrl(*request);
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  auto request = VerifyAssertionRequest::FromIdToken(*app, "APIKEY", "provider",
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  auto request = VerifyAssertionRequest::FromIdToken(app, "APIKEY", "provider",
                                                      "id_token");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
@@ -55,21 +55,21 @@ TEST(VerifyAssertionTest, TestVerifyAssertionRequestWithEmulator) {
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessToken) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   auto request = VerifyAssertionRequest::FromAccessToken(
-      *app, "APIKEY", "provider", "access_token");
+      app, "APIKEY", "provider", "access_token");
   CheckUrl(*request);
 }
 
 TEST(VerifyAssertionTest, TestVerifyAssertionRequest_FromAccessTokenAndSecret) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   auto request = VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
-      *app, "APIKEY", "provider", "access_token", "oauth_secret");
+      app, "APIKEY", "provider", "access_token", "oauth_secret");
   CheckUrl(*request);
 }
 
 TEST(VerifyAssertionTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   VerifyAssertionResponse response;
   const char body[] =
       "{\n"

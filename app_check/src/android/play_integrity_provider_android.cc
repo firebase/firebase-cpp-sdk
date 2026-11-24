@@ -14,9 +14,12 @@
 
 #include "app_check/src/android/play_integrity_provider_android.h"
 
-#include <map>
+#include <memory>
 
 #include "app/src/app_common.h"
+#include "app/src/app_state.h"
+#include "app/src/no_destructor.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/play_integrity_provider.h"
@@ -62,67 +65,87 @@ void ReleasePlayIntegrityProviderClasses(JNIEnv* env) {
   g_methods_cached = false;
 }
 
+namespace {
+
+const char kAndroidPlayIntegrityProviderServiceTag = 0;
+
+class AndroidPlayIntegrityProviderService
+    : public ::firebase::internal::Service {
+ public:
+  explicit AndroidPlayIntegrityProviderService(jobject local_provider)
+      : provider_(local_provider) {}
+
+  int teardown_priority() const override { return -20; }
+
+  AndroidAppCheckProvider* provider() { return &provider_; }
+
+ private:
+  AndroidAppCheckProvider provider_;
+};
+
+}  // namespace
+
 PlayIntegrityProviderFactoryInternal::PlayIntegrityProviderFactoryInternal()
-    : created_providers_(), android_provider_factory_(nullptr) {}
+    : android_provider_factory_(nullptr) {}
 
 PlayIntegrityProviderFactoryInternal::~PlayIntegrityProviderFactoryInternal() {
-  for (auto it = created_providers_.begin(); it != created_providers_.end();
-       ++it) {
-    delete it->second;
-  }
-  created_providers_.clear();
-  JNIEnv* env = GetJniEnv();
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
   if (env != nullptr && android_provider_factory_ != nullptr) {
     env->DeleteGlobalRef(android_provider_factory_);
+    android_provider_factory_ = nullptr;
   }
 }
 
 AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
-    App* app) {
+    const App& app) {
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
                                  kMethodsNotCachedError);
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return nullptr;
 
-  // Return the provider if it already exists.
-  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
-  if (it != created_providers_.end()) {
-    return it->second;
-  }
-  JNIEnv* env = app->GetJNIEnv();
-  // Create a provider factory first if needed.
-  if (android_provider_factory_ == nullptr) {
-    jobject j_provider_factory_local = env->CallStaticObjectMethod(
-        play_integrity_provider_factory::GetClass(),
-        play_integrity_provider_factory::GetMethodId(
-            play_integrity_provider_factory::kGetInstance));
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    // Hold a global references.
-    // The global references will be freed when this factory is destroyed
-    android_provider_factory_ = env->NewGlobalRef(j_provider_factory_local);
-    env->DeleteLocalRef(j_provider_factory_local);
-  }
-  jobject platform_app = app->GetPlatformApp();
-  jobject j_android_provider_local =
-      env->CallObjectMethod(android_provider_factory_,
-                            play_integrity_provider_factory::GetMethodId(
-                                play_integrity_provider_factory::kCreate),
-                            platform_app);
-  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-  env->DeleteLocalRef(platform_app);
+  auto service = state->GetOrCreateService<AndroidPlayIntegrityProviderService>(
+      &kAndroidPlayIntegrityProviderServiceTag, "",
+      [this, &app](::firebase::internal::AppState&) {
+        JNIEnv* env = app.GetJNIEnv();
+        jobject factory_ref = nullptr;
+        {
+          MutexLock lock(mutex_);
+          if (android_provider_factory_ == nullptr) {
+            jobject j_provider_factory_local = env->CallStaticObjectMethod(
+                play_integrity_provider_factory::GetClass(),
+                play_integrity_provider_factory::GetMethodId(
+                    play_integrity_provider_factory::kGetInstance));
+            FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+            android_provider_factory_ =
+                env->NewGlobalRef(j_provider_factory_local);
+            env->DeleteLocalRef(j_provider_factory_local);
+          }
+          factory_ref = android_provider_factory_;
+        }
 
-  // Pass a global ref into the cpp provider constructor.
-  // It will be released when the cpp provider is destroyed
-  AppCheckProvider* cpp_provider =
-      new internal::AndroidAppCheckProvider(j_android_provider_local);
-  env->DeleteLocalRef(j_android_provider_local);
-  created_providers_[app] = cpp_provider;
-  return cpp_provider;
+        jobject platform_app = app.GetPlatformApp();
+        jobject j_android_provider_local = env->CallObjectMethod(
+            factory_ref,
+            play_integrity_provider_factory::GetMethodId(
+                play_integrity_provider_factory::kCreate),
+            platform_app);
+        FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+        env->DeleteLocalRef(platform_app);
+
+        auto created = std::make_shared<AndroidPlayIntegrityProviderService>(
+            j_android_provider_local);
+        env->DeleteLocalRef(j_android_provider_local);
+        return created;
+      });
+  return service ? service->provider() : nullptr;
 }
 
 }  // namespace internal
 
 PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
-  static PlayIntegrityProviderFactory g_play_integrity_provider_factory;
-  return &g_play_integrity_provider_factory;
+  static ::firebase::internal::NoDestructor<PlayIntegrityProviderFactory>
+      g_play_integrity_provider_factory;
+  return g_play_integrity_provider_factory.get();
 }
 
 PlayIntegrityProviderFactory::PlayIntegrityProviderFactory()
@@ -135,7 +158,7 @@ PlayIntegrityProviderFactory::~PlayIntegrityProviderFactory() {
   }
 }
 
-AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(const App& app) {
   if (internal_) {
     return internal_->CreateProvider(app);
   }

@@ -69,19 +69,18 @@ SetAccountInfoResult SetAccountInfoResult::FromResponse(
   return result;
 }
 
-User* SetAccountInfoResult::MergeToCurrentUser(
+User SetAccountInfoResult::MergeToCurrentUser(
     AuthData* const auth_data) const {
-  FIREBASE_ASSERT_RETURN(nullptr, auth_data);
+  FIREBASE_ASSERT_RETURN(User(), auth_data);
   if (!IsValid()) {
-    return nullptr;
+    return User();
   }
 
   bool has_token_changed = false;
-  User* api_user_to_return = nullptr;
   {
     UserView::Writer user = UserView::GetWriter(auth_data);
     if (!user.IsValid()) {
-      return nullptr;
+      return User();
     }
 
     has_token_changed =
@@ -104,14 +103,12 @@ User* SetAccountInfoResult::MergeToCurrentUser(
     }
 
     user.ResetUserInfos(provider_data_);
-
-    api_user_to_return = &auth_data->current_user;
   }
 
   if (has_token_changed) {
     NotifyIdTokenListeners(auth_data);
   }
-  return api_user_to_return;
+  return auth_data->MakeCurrentUserHandle();
 }
 
 }  // namespace auth

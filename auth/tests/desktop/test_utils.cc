@@ -41,11 +41,11 @@ void ListenerChangeCounter::Verify() {
 
 }  // namespace detail
 
-void IdTokenChangesCounter::OnIdTokenChanged(Auth* const /*unused*/) {
+void IdTokenChangesCounter::OnIdTokenChanged(Auth /*unused*/) {
   ++actual_changes_;
 }
 
-void AuthStateChangesCounter::OnAuthStateChanged(Auth* const /*unused*/) {
+void AuthStateChangesCounter::OnAuthStateChanged(Auth /*unused*/) {
   ++actual_changes_;
 }
 

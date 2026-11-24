@@ -15,7 +15,6 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
 
-#include <map>
 #include <memory>
 #include <string>
 
@@ -39,9 +38,9 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   DebugAppCheckProviderFactoryInternal();
 
-  virtual ~DebugAppCheckProviderFactoryInternal();
+  ~DebugAppCheckProviderFactoryInternal() override;
 
-  AppCheckProvider* CreateProvider(App* app) override;
+  AppCheckProvider* CreateProvider(const App& app) override;
 
   void SetDebugToken(const std::string& token);
 
@@ -54,8 +53,6 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRAppCheckDebugProviderFactoryPointer> ios_provider_factory_;
-
-  std::map<App*, AppCheckProvider*> created_providers_;
 };
 
 }  // namespace internal

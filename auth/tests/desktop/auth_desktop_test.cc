@@ -234,21 +234,21 @@ class AuthDesktopTest : public ::testing::Test {
     AppOptions options = testing::MockAppOptions();
     options.set_app_id("com.firebase.test");
     options.set_api_key(API_KEY);
-    firebase_app_ = std::unique_ptr<App>(App::Create(options));
-    firebase_auth_ = std::unique_ptr<Auth>(Auth::GetAuth(firebase_app_.get()));
-    EXPECT_NE(nullptr, firebase_auth_);
+    firebase_app_ = App::Create(options);
+    firebase_auth_ = Auth::GetAuth(firebase_app_);
+    EXPECT_TRUE(firebase_auth_.is_valid());
 
-    firebase_auth_->AddIdTokenListener(&id_token_listener);
-    firebase_auth_->AddAuthStateListener(&auth_state_listener);
+    firebase_auth_.AddIdTokenListener(&id_token_listener);
+    firebase_auth_.AddAuthStateListener(&auth_state_listener);
 
-    WaitOnLoadPersistence(firebase_auth_->auth_data_);
+    WaitOnLoadPersistence(firebase_auth_.auth_data_.get());
   }
 
   void TearDown() override {
     // Reset listeners before signing out.
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();
-    firebase_auth_->SignOut();
+    firebase_auth_.SignOut();
 
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
@@ -257,8 +257,8 @@ class AuthDesktopTest : public ::testing::Test {
     // cache has valid user logged in, preventing listeners from firing.
     { SleepUponDestruction sleep_for_listeners; }
 
-    firebase_auth_.reset(nullptr);
-    firebase_app_.reset(nullptr);
+    firebase_auth_ = Auth();
+    firebase_app_ = App();
     // cppsdk needs to be the last thing torn down, because the mocks are still
     // needed for parts of the firebase destructors.
     firebase::testing::cppsdk::ConfigReset();
@@ -270,15 +270,17 @@ class AuthDesktopTest : public ::testing::Test {
     InitializeSignInWithProviderFakes(CreateGetAccountInfoFake());
     provider->SetProviderData(GetFakeOAuthProviderData());
     provider->SetAuthHandler(handler);
-    Future<AuthResult> future = firebase_auth_->SignInWithProvider(provider);
+    Future<AuthResult> future = firebase_auth_.SignInWithProvider(provider);
     if (trigger_sign_in) {
       handler->TriggerSignInComplete();
     }
     return future;
   }
 
-  std::unique_ptr<App> firebase_app_;
-  std::unique_ptr<Auth> firebase_auth_;
+  AuthData* auth_data() { return firebase_auth_.auth_data_.get(); }
+
+  App firebase_app_;
+  Auth firebase_auth_;
 
   test::IdTokenChangesCounter id_token_listener;
   test::AuthStateChangesCounter auth_state_listener;
@@ -286,7 +288,7 @@ class AuthDesktopTest : public ::testing::Test {
 
 TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
-  Future<AuthResult> future = firebase_auth_->SignInWithProvider(&provider);
+  Future<AuthResult> future = firebase_auth_.SignInWithProvider(&provider);
   EXPECT_FALSE(future.result()->user.is_valid());
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
@@ -299,7 +301,7 @@ TEST_F(AuthDesktopTest,
   OAuthProviderTestHandler handler(/*extra_integrity_checks_=*/true);
 
   InitializeSuccessfulSignInWithProviderFlow(&provider, &handler);
-  Future<AuthResult> future = firebase_auth_->SignInWithProvider(&provider);
+  Future<AuthResult> future = firebase_auth_.SignInWithProvider(&provider);
   handler.TriggerSignInComplete();
   AuthResult result = WaitForFuture(future);
 }
@@ -315,9 +317,9 @@ TEST_F(AuthDesktopTest,
 
   OAuthProviderTestHandler handler2;
   provider2.SetAuthHandler(&handler2);
-  Future<AuthResult> future1 = firebase_auth_->SignInWithProvider(&provider1);
+  Future<AuthResult> future1 = firebase_auth_.SignInWithProvider(&provider1);
   EXPECT_EQ(future1.status(), kFutureStatusPending);
-  Future<AuthResult> future2 = firebase_auth_->SignInWithProvider(&provider2);
+  Future<AuthResult> future2 = firebase_auth_.SignInWithProvider(&provider2);
   VerifyAuthResult(future2, kAuthErrorFederatedProviderAlreadyInUse);
   handler1.TriggerSignInComplete();
   const AuthResult result = WaitForFuture(future1);
@@ -458,20 +460,15 @@ TEST_F(AuthDesktopTest, TestGetAccountInfo) {
                              "      \"createdAt\": \"123\""
                              "    }"
                              "  ]");
-  InitializeConfigWithAFake(GetUrlForApi("APIKEY", "getAccountInfo"), response);
+  InitializeConfigWithAFake(GetUrlForApi(API_KEY, "getAccountInfo"), response);
 
   // getAccountInfo never returns new tokens, and can't change current user.
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
 
   // Call the function and verify results.
-  AuthData auth_data;
-  AuthImpl auth;
-  auth_data.app = firebase_app_.get();
-  auth_data.auth_impl = &auth;
-  auth.api_key = "APIKEY";
   const GetAccountInfoResult result =
-      GetAccountInfo(auth_data, "fake_access_token");
+      GetAccountInfo(*auth_data(), "fake_access_token");
   EXPECT_TRUE(result.IsValid());
   const UserData& user = result.user();
   EXPECT_EQ("localid123", user.uid);
@@ -498,7 +495,7 @@ TEST_F(AuthDesktopTest, CompleteSignInWithFailedResponse) {
 
   // Call the function and verify results.
   AuthResult result =
-      WaitForFuture(firebase_auth_->SignInAnonymously(), kAuthErrorFailure);
+      WaitForFuture(firebase_auth_.SignInAnonymously(), kAuthErrorFailure);
   EXPECT_FALSE(result.user.is_valid());
 }
 
@@ -524,7 +521,7 @@ TEST_F(AuthDesktopTest, CompleteSignInWithGetAccountInfoFailure) {
 
   // Call the function and verify results.
   AuthResult result =
-      WaitForFuture(firebase_auth_->SignInAnonymously(), kAuthErrorFailure);
+      WaitForFuture(firebase_auth_.SignInAnonymously(), kAuthErrorFailure);
   EXPECT_FALSE(result.user.is_valid());
 }
 
@@ -554,7 +551,7 @@ TEST_F(AuthDesktopTest, TestSignInAnonymously) {
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
 
-  AuthResult result = WaitForFuture(firebase_auth_->SignInAnonymously());
+  AuthResult result = WaitForFuture(firebase_auth_.SignInAnonymously());
   const User user(result.user);
   EXPECT_TRUE(user.is_anonymous());
   EXPECT_EQ("localid123", user.uid());
@@ -584,7 +581,7 @@ TEST_F(AuthDesktopTest, TestSignInWithEmailAndPassword) {
   auth_state_listener.ExpectChanges(2);
 
   // Call the function and verify results.
-  const Future<AuthResult> future = firebase_auth_->SignInWithEmailAndPassword(
+  const Future<AuthResult> future = firebase_auth_.SignInWithEmailAndPassword(
       "testsignin@example.com", "testsignin");
   AuthResult result = WaitForFuture(future);
   EXPECT_FALSE(result.user.is_anonymous());
@@ -620,7 +617,7 @@ TEST_F(AuthDesktopTest, TestCreateUserWithEmailAndPassword) {
   auth_state_listener.ExpectChanges(2);
 
   const Future<AuthResult> future =
-      firebase_auth_->CreateUserWithEmailAndPassword("testsignin@example.com",
+      firebase_auth_.CreateUserWithEmailAndPassword("testsignin@example.com",
                                                      "testsignin");
   AuthResult result = WaitForFuture(future);
   EXPECT_FALSE(result.user.is_anonymous());
@@ -644,7 +641,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCustomToken) {
   auth_state_listener.ExpectChanges(2);
 
   AuthResult result =
-      WaitForFuture(firebase_auth_->SignInWithCustomToken("fake_custom_token"));
+      WaitForFuture(firebase_auth_.SignInWithCustomToken("fake_custom_token"));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 }
@@ -660,7 +657,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleIdToken) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 }
@@ -674,7 +671,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleAccessToken) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 }
@@ -692,7 +689,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential),
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential),
       kAuthErrorFailure);
   EXPECT_FALSE(result.user.is_valid());
 }
@@ -711,7 +708,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential),
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential),
       kAuthErrorFailure);
   EXPECT_FALSE(result.user.is_valid());
 }
@@ -728,7 +725,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_NeedsConfirmation) {
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
-  WaitForFuture(firebase_auth_->SignInWithCredential(credential),
+  WaitForFuture(firebase_auth_.SignInWithCredential(credential),
                 kAuthErrorAccountExistsWithDifferentCredentials);
 }
 
@@ -746,7 +743,7 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_GitHub) {
   const Credential credential =
       GitHubAuthProvider::GetCredential("fake_access_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
@@ -775,7 +772,7 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_Twitter) {
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
   AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
@@ -795,7 +792,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
   const AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
@@ -818,7 +815,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
   const AuthResult result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential));
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);
 
@@ -840,7 +837,7 @@ TEST_F(AuthDesktopTest, TestFetchProvidersForEmail) {
   auth_state_listener.ExpectChanges(1);
 
   const Auth::FetchProvidersResult result = WaitForFuture(
-      firebase_auth_->FetchProvidersForEmail("fake_email@example.com"));
+      firebase_auth_.FetchProvidersForEmail("fake_email@example.com"));
   EXPECT_EQ(2, result.providers.size());
   EXPECT_EQ("password", result.providers[0]);
   EXPECT_EQ("example.com", result.providers[1]);
@@ -857,7 +854,7 @@ TEST_F(AuthDesktopTest, TestSendPasswordResetEmail) {
   auth_state_listener.ExpectChanges(1);
 
   WaitForFuture(
-      firebase_auth_->SendPasswordResetEmail("fake_email@example.com"));
+      firebase_auth_.SendPasswordResetEmail("fake_email@example.com"));
 }
 
 TEST(UserViewTest, TestCopyUserView) {
@@ -901,6 +898,114 @@ TEST(UserViewTest, TestMoveUserView) {
   EXPECT_EQ("mrsspoon", view2.user_data().uid);
 }
 #endif  // defined(defined(FIREBASE_USE_MOVE_OPERATORS)
+
+TEST_F(AuthDesktopTest, InvalidAppReturnsInvalidAuth) {
+  InitResult init_result = kInitResultSuccess;
+  Auth invalid = Auth::GetAuth(App(), &init_result);
+  EXPECT_FALSE(invalid.is_valid());
+  EXPECT_EQ(kInitResultFailedMissingDependency, init_result);
+  EXPECT_FALSE(invalid.app().is_valid());
+  EXPECT_FALSE(invalid.current_user().is_valid());
+}
+
+TEST_F(AuthDesktopTest, AuthHandleKeepsAppStateAliveAfterAppDropped) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "signupNewUser")] =
+      FakeSuccessfulResponse("SignupNewUserResponse",
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\","
+                             "\"localId\": \"localid123\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  AppOptions options = testing::MockAppOptions();
+  options.set_app_id("com.firebase.keepalive");
+  options.set_api_key(API_KEY);
+  Auth auth;
+  std::weak_ptr<internal::AppState> weak_state;
+  {
+    App app = App::Create(options, "auth_keepalive_app");
+    weak_state = internal::AppState::FromApp(app);
+    auth = Auth::GetAuth(app);
+    ASSERT_TRUE(auth.is_valid());
+  }
+  // App handle dropped, but Auth handle must keep AppState alive.
+  EXPECT_FALSE(weak_state.expired());
+  EXPECT_TRUE(auth.is_valid());
+  EXPECT_TRUE(auth.app().is_valid());
+  EXPECT_STREQ("auth_keepalive_app", auth.app().name());
+
+  AuthResult result = WaitForFuture(auth.SignInAnonymously());
+  EXPECT_TRUE(result.user.is_valid());
+  EXPECT_TRUE(auth.current_user().is_valid());
+
+  // User must NOT create a reference cycle with AppState / FutureManager.
+  User user = auth.current_user();
+  EXPECT_TRUE(user.is_valid());
+  auth.SignOut();
+  { SleepUponDestruction sleep_for_listeners; }
+  auth = Auth();
+  result = AuthResult();
+  EXPECT_TRUE(weak_state.expired());
+  EXPECT_FALSE(user.is_valid());
+  EXPECT_EQ("", user.uid());
+  EXPECT_EQ(kFutureStatusInvalid, user.GetToken(false).status());
+}
+
+TEST_F(AuthDesktopTest, MultiAppAuthIsolationAndTokenProvider) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "signupNewUser")] =
+      FakeSuccessfulResponse("SignupNewUserResponse",
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\","
+                             "\"localId\": \"localid123\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  AppOptions options = testing::MockAppOptions();
+  options.set_app_id("com.firebase.isolation");
+  options.set_api_key(API_KEY);
+  App app1 = App::Create(options, "auth_iso_1");
+  App app2 = App::Create(options, "auth_iso_2");
+  Auth auth1 = Auth::GetAuth(app1);
+  Auth auth2 = Auth::GetAuth(app2);
+  EXPECT_NE(auth1, auth2);
+
+  auto* provider1 = internal::AppState::FromApp(app1)->auth_token_provider();
+  auto* provider2 = internal::AppState::FromApp(app2)->auth_token_provider();
+  ASSERT_NE(nullptr, provider1);
+  ASSERT_NE(nullptr, provider2);
+  EXPECT_NE(provider1, provider2);
+
+  int callback_count = 0;
+  auto cb = [](void* ctx) { ++(*static_cast<int*>(ctx)); };
+  provider1->AddAuthStateListener(cb, &callback_count);
+
+  WaitForFuture(auth1.SignInAnonymously());
+  EXPECT_TRUE(auth1.current_user().is_valid());
+  EXPECT_FALSE(auth2.current_user().is_valid());
+  EXPECT_FALSE(provider1->GetCurrentUserUid().empty());
+  EXPECT_TRUE(provider2->GetCurrentUserUid().empty());
+  EXPECT_FALSE(provider1->GetCurrentToken().empty());
+  EXPECT_GT(callback_count, 0);
+
+  provider1->RemoveAuthStateListener(cb, &callback_count);
+  auth1.SignOut();
+  { SleepUponDestruction sleep_for_listeners; }
+}
+
+TEST_F(AuthDesktopTest, StaticDurationAuthSurvivesProcessExit) {
+  AppOptions options = testing::MockAppOptions();
+  options.set_app_id("com.firebase.static_auth");
+  options.set_api_key(API_KEY);
+  static Auth static_auth = [&options]() {
+    App app = App::Create(options, "static_auth_app");
+    return Auth::GetAuth(app);
+  }();
+  EXPECT_TRUE(static_auth.is_valid());
+}
 
 }  // namespace auth
 }  // namespace firebase

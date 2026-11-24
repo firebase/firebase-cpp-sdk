@@ -108,7 +108,7 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
       std::unique_ptr<firebase::app::secure::UserSecureManager>
           user_secure_manager);
 
-  void OnAuthStateChanged(Auth* auth) override;
+  void OnAuthStateChanged(Auth auth) override;
 
   Future<void> SaveUserData(AuthData* auth_data);
   Future<std::string> LoadUserData(AuthData* auth_data);

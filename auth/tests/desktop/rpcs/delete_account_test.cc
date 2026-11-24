@@ -29,8 +29,8 @@ namespace auth {
 
 // Test DeleteAccountRequest
 TEST(DeleteAccountTest, TestDeleteAccountRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  DeleteAccountRequest request(*app, "APIKEY");
+  App app = testing::CreateApp();
+  DeleteAccountRequest request(app, "APIKEY");
   request.SetIdToken("token");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
@@ -44,9 +44,9 @@ TEST(DeleteAccountTest, TestDeleteAccountRequest) {
 }
 
 TEST(DeleteAccountTest, TestDeleteAccountRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  DeleteAccountRequest request(*app, "APIKEY");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  DeleteAccountRequest request(app, "APIKEY");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/deleteAccount?key=APIKEY",
@@ -55,7 +55,7 @@ TEST(DeleteAccountTest, TestDeleteAccountRequestWithEmulator) {
 
 // Test DeleteAccountResponse
 TEST(DeleteAccountTest, TestDeleteAccountResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   DeleteAccountResponse response;
   const char body[] =
       "{\n"

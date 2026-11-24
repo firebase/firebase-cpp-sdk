@@ -27,7 +27,7 @@ AppAttestProviderFactory::AppAttestProviderFactory() {}
 
 AppAttestProviderFactory::~AppAttestProviderFactory() {}
 
-AppCheckProvider* AppAttestProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* AppAttestProviderFactory::CreateProvider(const App& app) {
   return nullptr;
 }
 

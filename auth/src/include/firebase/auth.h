@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -146,7 +147,24 @@ class Auth {
     std::vector<std::string> providers;
   };
 
-  ~Auth();
+  /// Constructs an invalid Auth handle (`is_valid() == false`).
+  Auth() = default;
+  Auth(const Auth&) = default;
+  Auth& operator=(const Auth&) = default;
+  Auth(Auth&&) noexcept = default;
+  Auth& operator=(Auth&&) noexcept = default;
+  ~Auth() = default;
+
+  /// Returns true if this handle refers to a valid Auth instance.
+  bool is_valid() const { return auth_data_ != nullptr; }
+  explicit operator bool() const { return is_valid(); }
+
+  bool operator==(const Auth& other) const {
+    return auth_data_ == other.auth_data_;
+  }
+  bool operator!=(const Auth& other) const {
+    return auth_data_ != other.auth_data_;
+  }
 
   /// Synchronously gets the cached current user, or returns an object where
   /// is_valid() == false if there is none.
@@ -501,12 +519,10 @@ class Auth {
 #endif  //! defined(DOXYGEN), to hide the api from public documentation.
 
   /// Gets the App this auth object is connected to.
-  App& app();
+  App app() const;
 
-  /// Returns the Auth object for an App. Creates the Auth if required.
-  ///
-  /// To get the Auth object for the default app, use,
-  /// GetAuth(GetDefaultFirebaseApp());
+  /// Returns the Auth handle for an App. Creates the Auth service on the App's
+  /// AppState if required.
   ///
   /// If the library Auth fails to initialize, init_result_out will be
   /// written with the result status (if a pointer is given).
@@ -516,11 +532,12 @@ class Auth {
   /// here. Will be set to kInitResultSuccess if initialization succeeded, or
   /// kInitResultFailedMissingDependency on Android if Google Play services is
   /// not available on the current device.
-  static Auth* GetAuth(App* app, InitResult* init_result_out = nullptr);
+  static Auth GetAuth(const App& app, InitResult* init_result_out = nullptr);
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class ::firebase::App;
+  friend struct ::firebase::auth::AuthData;
   friend class ::firebase::auth::PhoneAuthProvider;
   friend class ::firebase::auth::AuthRequest;
   friend class IdTokenRefreshListener;
@@ -533,70 +550,15 @@ class Auth {
   friend void EnableTokenAutoRefresh(AuthData* authData);
   friend void DisableTokenAutoRefresh(AuthData* authData);
   friend void ResetTokenRefreshCounter(AuthData* authData);
-  friend void LogHeartbeat(Auth* auth);
+  friend void LogHeartbeat(const Auth& auth);
 #endif  // not SWIG
   /// @endcond
 
-  // Find Auth instance using App.  Return null if the instance does not exist.
-  static Auth* FindAuth(App* app);
+  explicit Auth(std::shared_ptr<AuthData> auth_data);
 
-  // Provides access to the auth token for the current user.  Returns the
-  // current user's auth token, or an empty string, if there isn't one.
-  // Note that this can potentially return an expired token from the cache.
-  static bool GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out);
-
-  // Provides asynchronous access to the auth token for the current user. Allow
-  // the caller to force-refresh the token.  Even without force-refresh, this
-  // ensure the future contain a fresh current user's auth token.  This function
-  // returns invalid future if user data is not available.
-  static bool GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
-                                           void* out_future);
-
-  // Provides access to the current user's uid, equivalent to calling
-  // this->current_user().uid(). Returns the current user's uid or
-  // an empty string, if there isn't one. The out pointer is expected to point
-  // to an instance of std::string.
-  static bool GetCurrentUserUidForRegistry(App* app, void* /*unused*/,
-                                           void* out);
-
-  // Starts and stops a thread to ensure that the cached auth token is never
-  // kept long enough for it to expire.  Refcounted, so multiple classes can
-  // register this without causing problems.
-  static bool StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
-                                                 void* /*unused*/);
-  static bool StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
-                                                void* /*unused*/);
-
-  // Adds an indirect auth state listener implemented as a callback and a
-  // context object.
-  //
-  // @param callback a function pointer that takes a single void* argument and
-  //     returns void (i.e. it has type void (*)(void*)).
-  // @param context a pointer to an arbitrary object that Auth will pass to
-  //     the callback when the auth state changes.
-  static bool AddAuthStateListenerForRegistry(App* app, void* callback,
-                                              void* context);
-
-  // Removes the indirect auth state listener that was added with the same
-  // arguments.
-  static bool RemoveAuthStateListenerForRegistry(App* app, void* callback,
-                                                 void* context);
-
-  // Init and Destroy the platform specific auth data.
-  void InitPlatformAuth(AuthData* const auth_data);
-  void DestroyPlatformAuth(AuthData* const auth_data);
-
-  // Call GetAuth() to create an Auth object.
-  // Constructors and destructors don't make any external calls.
-  // They just initialize and deinitialize internal variables.
-  Auth(App* app, void* auth_impl);
-
-  // Delete the internal AuthData object.
-  void DeleteInternal();
-
-  // This class uses the pimpl mechanism to avoid exposing platform-dependent
-  // implementation.
-  AuthData* auth_data_;
+  // Aliasing shared_ptr sharing AppState's control block so Auth handles keep
+  // AppState and AuthData alive together without a separate global registry.
+  std::shared_ptr<AuthData> auth_data_;
 };
 
 #ifndef SWIG
@@ -620,15 +582,17 @@ class AuthStateListener {
   /// @param[in] auth Disambiguates which Auth instance the event
   /// corresponds to, in the case where you are using more than one at the same
   /// time.
-  virtual void OnAuthStateChanged(Auth* auth) = 0;
+  virtual void OnAuthStateChanged(Auth auth) = 0;
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class Auth;
+  friend struct AuthData;
   /// @endcond
 
-  /// The Auths with which this listener has been registered.
-  std::vector<Auth*> auths_;
+  /// Non-owning weak handles to the AuthData instances with which this listener
+  /// has been registered.
+  std::vector<std::weak_ptr<AuthData>> auths_;
 };
 #endif  // not SWIG
 
@@ -654,15 +618,17 @@ class IdTokenListener {
   /// @param[in] auth Disambiguates which Auth instance the event
   /// corresponds to, in the case where you are using more than one at the same
   /// time.
-  virtual void OnIdTokenChanged(Auth* auth) = 0;
+  virtual void OnIdTokenChanged(Auth auth) = 0;
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class Auth;
+  friend struct AuthData;
   /// @endcond
 
-  /// The Auths with which this listener has been registered.
-  std::vector<Auth*> auths_;
+  /// Non-owning weak handles to the AuthData instances with which this listener
+  /// has been registered.
+  std::vector<std::weak_ptr<AuthData>> auths_;
 };
 
 #endif  // not SWIG

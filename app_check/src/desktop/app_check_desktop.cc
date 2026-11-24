@@ -15,63 +15,90 @@
 #include "app_check/src/desktop/app_check_desktop.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <ctime>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "app/src/function_registry.h"
+#include "app/src/app_state.h"
 #include "app/src/log.h"
+#include "app/src/service_interfaces.h"
 #include "app_check/src/common/common.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
 
-static AppCheckProviderFactory* g_provider_factory = nullptr;
+namespace {
+std::atomic<AppCheckProviderFactory*> g_provider_factory{nullptr};
+}  // namespace
 
-AppCheckInternal::AppCheckInternal(App* app)
-    : app_(app),
-      cached_token_(),
-      cached_provider_(),
-      is_token_auto_refresh_enabled_(true) {
+AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
+    : app_state_(app_state) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
-  AddAppCheckListener(&internal_listener_);
-  InitRegistryCalls();
 }
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
-  CleanupRegistryCalls();
-  app_ = nullptr;
-  // Clear the cached token by setting the expiration
+  MutexLock lock(mutex_);
   cached_token_.expire_time_millis = 0;
+  token_listeners_.clear();
+  internal_listeners_.clear();
 }
 
-::firebase::App* AppCheckInternal::app() const { return app_; }
+::firebase::App AppCheckInternal::app() const {
+  return app_state_.TryMakeAppHandle();
+}
 
 ReferenceCountedFutureImpl* AppCheckInternal::future() {
   return future_manager().GetFutureApi(this);
 }
 
-bool AppCheckInternal::HasValidCacheToken() const {
-  // Get the current time, in milliseconds (Done in two lines because of x86)
+bool AppCheckInternal::HasValidCacheTokenLocked() const {
+  // Get the current time, in milliseconds (done in two lines because of x86).
   int64_t current_time = std::time(nullptr);
   current_time *= 1000;
-  // TODO(amaurice): Add some additional time to the check
   return cached_token_.expire_time_millis > current_time;
 }
 
 void AppCheckInternal::UpdateCachedToken(AppCheckToken token) {
-  cached_token_ = token;
-  // Call the token listeners
-  for (AppCheckListener* listener : token_listeners_) {
+  std::vector<AppCheckListener*> public_listeners;
+  std::vector<InternalListenerEntry> internal_listeners;
+  {
+    MutexLock lock(mutex_);
+    cached_token_ = token;
+    public_listeners.assign(token_listeners_.begin(), token_listeners_.end());
+    internal_listeners = internal_listeners_;
+  }
+  for (AppCheckListener* listener : public_listeners) {
     listener->OnAppCheckTokenChanged(token);
+  }
+  for (const InternalListenerEntry& entry : internal_listeners) {
+    entry.first(token.token, entry.second);
   }
 }
 
 AppCheckProvider* AppCheckInternal::GetProvider() {
-  if (!cached_provider_ && g_provider_factory && app_) {
-    cached_provider_ = g_provider_factory->CreateProvider(app_);
+  {
+    MutexLock lock(mutex_);
+    if (cached_provider_) {
+      return cached_provider_;
+    }
+  }
+  AppCheckProviderFactory* factory = g_provider_factory.load();
+  if (!factory) {
+    return nullptr;
+  }
+  App app_handle = app_state_.TryMakeAppHandle();
+  if (!app_handle.is_valid()) {
+    return nullptr;
+  }
+  AppCheckProvider* provider = factory->CreateProvider(app_handle);
+  MutexLock lock(mutex_);
+  if (!cached_provider_) {
+    cached_provider_ = provider;
   }
   return cached_provider_;
 }
@@ -79,39 +106,47 @@ AppCheckProvider* AppCheckInternal::GetProvider() {
 // static
 void AppCheckInternal::SetAppCheckProviderFactory(
     AppCheckProviderFactory* factory) {
-  g_provider_factory = factory;
+  g_provider_factory.store(factory);
 }
 
 void AppCheckInternal::SetTokenAutoRefreshEnabled(
     bool is_token_auto_refresh_enabled) {
+  MutexLock lock(mutex_);
   is_token_auto_refresh_enabled_ = is_token_auto_refresh_enabled;
 }
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
-  if (!force_refresh && HasValidCacheToken()) {
-    // If the cached token is valid, and not told to refresh, return the cache
-    future()->CompleteWithResult(handle, 0, cached_token_);
-  } else {
-    // Get a new token, and pass the result into the future.
-    AppCheckProvider* provider = GetProvider();
-    if (provider != nullptr) {
-      auto token_callback{
-          [this, handle](firebase::app_check::AppCheckToken token,
-                         int error_code, const std::string& error_message) {
-            if (error_code == firebase::app_check::kAppCheckErrorNone) {
-              UpdateCachedToken(token);
-              future()->CompleteWithResult(handle, 0, token);
-            } else {
-              future()->Complete(handle, error_code, error_message.c_str());
-            }
-          }};
-      provider->GetToken(token_callback);
-    } else {
-      future()->Complete(
-          handle, firebase::app_check::kAppCheckErrorInvalidConfiguration,
-          "No AppCheckProvider installed.");
+  if (!force_refresh) {
+    MutexLock lock(mutex_);
+    if (HasValidCacheTokenLocked()) {
+      future()->CompleteWithResult(handle, 0, cached_token_);
+      return MakeFuture(future(), handle);
     }
+  }
+
+  AppCheckProvider* provider = GetProvider();
+  if (provider != nullptr) {
+    std::weak_ptr<AppCheckInternal> weak_self =
+        app_state_.FindServiceHandle<AppCheckInternal>(
+            &::firebase::internal::kAppCheckServiceTag);
+    auto token_callback =
+        [weak_self, handle](firebase::app_check::AppCheckToken token,
+                            int error_code, const std::string& error_message) {
+          auto self = weak_self.lock();
+          if (!self) return;
+          if (error_code == firebase::app_check::kAppCheckErrorNone) {
+            self->UpdateCachedToken(token);
+            self->future()->CompleteWithResult(handle, 0, token);
+          } else {
+            self->future()->Complete(handle, error_code, error_message.c_str());
+          }
+        };
+    provider->GetToken(token_callback);
+  } else {
+    future()->Complete(handle,
+                       firebase::app_check::kAppCheckErrorInvalidConfiguration,
+                       "No AppCheckProvider installed.");
   }
   return MakeFuture(future(), handle);
 }
@@ -124,19 +159,24 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
   auto handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetLimitedUseAppCheckToken);
-  // Get a new token, and pass the result into the future.
   AppCheckProvider* provider = GetProvider();
   if (provider != nullptr) {
-    auto token_callback{[this, handle](firebase::app_check::AppCheckToken token,
-                                       int error_code,
-                                       const std::string& error_message) {
-      if (error_code == firebase::app_check::kAppCheckErrorNone) {
-        // Note that we do NOT update the cached token for limited-use tokens.
-        future()->CompleteWithResult(handle, 0, token);
-      } else {
-        future()->Complete(handle, error_code, error_message.c_str());
-      }
-    }};
+    std::weak_ptr<AppCheckInternal> weak_self =
+        app_state_.FindServiceHandle<AppCheckInternal>(
+            &::firebase::internal::kAppCheckServiceTag);
+    auto token_callback =
+        [weak_self, handle](firebase::app_check::AppCheckToken token,
+                            int error_code, const std::string& error_message) {
+          auto self = weak_self.lock();
+          if (!self) return;
+          if (error_code == firebase::app_check::kAppCheckErrorNone) {
+            // Note that we do NOT update the cached token for limited-use
+            // tokens.
+            self->future()->CompleteWithResult(handle, 0, token);
+          } else {
+            self->future()->Complete(handle, error_code, error_message.c_str());
+          }
+        };
     provider->GetLimitedUseToken(token_callback);
   } else {
     future()->Complete(handle,
@@ -151,28 +191,38 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetLimitedUseAppCheckToken));
 }
 
-Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
+Future<std::string> AppCheckInternal::GetTokenAsync() {
   auto handle =
       future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckStringInternal);
-  if (HasValidCacheToken()) {
-    future()->CompleteWithResult(handle, 0, cached_token_.token);
-  } else if (is_token_auto_refresh_enabled_) {
-    // Only refresh the token if it is enabled
+  bool auto_refresh = false;
+  {
+    MutexLock lock(mutex_);
+    if (HasValidCacheTokenLocked()) {
+      future()->CompleteWithResult(handle, 0, cached_token_.token);
+      return MakeFuture(future(), handle);
+    }
+    auto_refresh = is_token_auto_refresh_enabled_;
+  }
+
+  if (auto_refresh) {
     AppCheckProvider* provider = GetProvider();
     if (provider != nullptr) {
-      // Get a new token, and pass the result into the future.
-      // Note that this is slightly different from the one above, as the
-      // Future result is just the string token, and not the full struct.
-      auto token_callback{
-          [this, handle](firebase::app_check::AppCheckToken token,
-                         int error_code, const std::string& error_message) {
-            if (error_code == firebase::app_check::kAppCheckErrorNone) {
-              UpdateCachedToken(token);
-              future()->CompleteWithResult(handle, 0, token.token);
-            } else {
-              future()->Complete(handle, error_code, error_message.c_str());
-            }
-          }};
+      std::weak_ptr<AppCheckInternal> weak_self =
+          app_state_.FindServiceHandle<AppCheckInternal>(
+              &::firebase::internal::kAppCheckServiceTag);
+      auto token_callback = [weak_self, handle](
+                                firebase::app_check::AppCheckToken token,
+                                int error_code,
+                                const std::string& error_message) {
+        auto self = weak_self.lock();
+        if (!self) return;
+        if (error_code == firebase::app_check::kAppCheckErrorNone) {
+          self->UpdateCachedToken(token);
+          self->future()->CompleteWithResult(handle, 0, token.token);
+        } else {
+          self->future()->Complete(handle, error_code, error_message.c_str());
+        }
+      };
       provider->GetToken(token_callback);
     } else {
       future()->Complete(
@@ -187,22 +237,26 @@ Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
   return MakeFuture(future(), handle);
 }
 
-Future<std::string>
-AppCheckInternal::GetLimitedUseAppCheckTokenStringInternal() {
+Future<std::string> AppCheckInternal::GetLimitedUseTokenAsync() {
   auto handle = future()->SafeAlloc<std::string>(
       kAppCheckFnGetLimitedUseAppCheckStringInternal);
 
   AppCheckProvider* provider = GetProvider();
   if (provider != nullptr) {
-    auto token_callback{[this, handle](firebase::app_check::AppCheckToken token,
-                                       int error_code,
-                                       const std::string& error_message) {
-      if (error_code == firebase::app_check::kAppCheckErrorNone) {
-        future()->CompleteWithResult(handle, 0, token.token);
-      } else {
-        future()->Complete(handle, error_code, error_message.c_str());
-      }
-    }};
+    std::weak_ptr<AppCheckInternal> weak_self =
+        app_state_.FindServiceHandle<AppCheckInternal>(
+            &::firebase::internal::kAppCheckServiceTag);
+    auto token_callback =
+        [weak_self, handle](firebase::app_check::AppCheckToken token,
+                            int error_code, const std::string& error_message) {
+          auto self = weak_self.lock();
+          if (!self) return;
+          if (error_code == firebase::app_check::kAppCheckErrorNone) {
+            self->future()->CompleteWithResult(handle, 0, token.token);
+          } else {
+            self->future()->Complete(handle, error_code, error_message.c_str());
+          }
+        };
     provider->GetLimitedUseToken(token_callback);
   } else {
     future()->Complete(handle,
@@ -213,150 +267,56 @@ AppCheckInternal::GetLimitedUseAppCheckTokenStringInternal() {
 }
 
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
-  if (listener) {
+  if (!listener) return;
+  bool notify = false;
+  AppCheckToken token_copy;
+  {
+    MutexLock lock(mutex_);
     token_listeners_.push_back(listener);
-
-    // Following the Android pattern, if there is a cached token, call the
-    // listener. Note that the iOS implementation does not do this.
-    if (HasValidCacheToken()) {
-      listener->OnAppCheckTokenChanged(cached_token_);
+    if (HasValidCacheTokenLocked()) {
+      notify = true;
+      token_copy = cached_token_;
     }
+  }
+  if (notify) {
+    listener->OnAppCheckTokenChanged(token_copy);
   }
 }
 
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
-  if (listener) {
-    token_listeners_.remove(listener);
-  }
+  if (!listener) return;
+  MutexLock lock(mutex_);
+  token_listeners_.remove(listener);
 }
 
-static int g_app_check_registry_count = 0;
-
-void AppCheckInternal::InitRegistryCalls() {
-  if (g_app_check_registry_count == 0) {
-    app_->function_registry()->RegisterFunction(
-        ::firebase::internal::FnAppCheckGetTokenAsync,
-        AppCheckInternal::GetAppCheckTokenAsyncForRegistry);
-    app_->function_registry()->RegisterFunction(
-        ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync,
-        AppCheckInternal::GetLimitedUseAppCheckTokenAsyncForRegistry);
-    app_->function_registry()->RegisterFunction(
-        ::firebase::internal::FnAppCheckAddListener,
-        AppCheckInternal::AddAppCheckListenerForRegistry);
-    app_->function_registry()->RegisterFunction(
-        ::firebase::internal::FnAppCheckRemoveListener,
-        AppCheckInternal::RemoveAppCheckListenerForRegistry);
-  }
-  g_app_check_registry_count++;
-}
-
-void AppCheckInternal::CleanupRegistryCalls() {
-  g_app_check_registry_count--;
-  if (g_app_check_registry_count == 0) {
-    app_->function_registry()->UnregisterFunction(
-        ::firebase::internal::FnAppCheckGetTokenAsync);
-    app_->function_registry()->UnregisterFunction(
-        ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync);
-    app_->function_registry()->UnregisterFunction(
-        ::firebase::internal::FnAppCheckAddListener);
-    app_->function_registry()->UnregisterFunction(
-        ::firebase::internal::FnAppCheckRemoveListener);
-  }
-}
-
-// Static functions used by the internal registry tool
-bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
-                                                        void* /*unused*/,
-                                                        void* out) {
-  Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
-  if (!app || !out_future) {
-    return false;
-  }
-
-  AppCheck* app_check = AppCheck::GetInstance(app);
-  if (app_check && app_check->internal_) {
-    *out_future = app_check->internal_->GetAppCheckTokenStringInternal();
-    return true;
-  }
-  return false;
-}
-
-// static
-bool AppCheckInternal::GetLimitedUseAppCheckTokenAsyncForRegistry(
-    App* app, void* /*unused*/, void* out) {
-  Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
-  if (!app || !out_future) {
-    return false;
-  }
-
-  AppCheck* app_check = AppCheck::GetInstance(app);
-  if (app_check && app_check->internal_) {
-    *out_future =
-        app_check->internal_->GetLimitedUseAppCheckTokenStringInternal();
-    return true;
-  }
-  return false;
-}
-
-void FunctionRegistryAppCheckListener::AddListener(
-    FunctionRegistryCallback callback, void* context) {
-  callbacks_.emplace_back(callback, context);
-}
-
-void FunctionRegistryAppCheckListener::RemoveListener(
-    FunctionRegistryCallback callback, void* context) {
-  Entry entry = {callback, context};
-
-  auto iter = std::find(callbacks_.begin(), callbacks_.end(), entry);
-  if (iter != callbacks_.end()) {
-    callbacks_.erase(iter);
-  }
-}
-
-void FunctionRegistryAppCheckListener::OnAppCheckTokenChanged(
-    const AppCheckToken& token) {
-  for (const Entry& entry : callbacks_) {
-    entry.first(token.token, entry.second);
-  }
-}
-
-// static
-bool AppCheckInternal::AddAppCheckListenerForRegistry(App* app, void* callback,
-                                                      void* context) {
-  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
-  if (!app || !typed_callback) {
-    return false;
-  }
-
-  AppCheck* app_check = AppCheck::GetInstance(app);
-  if (app_check && app_check->internal_) {
-    app_check->internal_->internal_listener_.AddListener(typed_callback,
-                                                         context);
-    // If there is a cached token, pass it along to the callback
-    if (app_check->internal_->HasValidCacheToken()) {
-      typed_callback(app_check->internal_->cached_token_.token, context);
+void AppCheckInternal::AddTokenListener(TokenChangedCallback callback,
+                                        void* context) {
+  if (!callback) return;
+  bool notify = false;
+  std::string token_copy;
+  {
+    MutexLock lock(mutex_);
+    internal_listeners_.emplace_back(callback, context);
+    if (HasValidCacheTokenLocked()) {
+      notify = true;
+      token_copy = cached_token_.token;
     }
-    return true;
   }
-  return false;
+  if (notify) {
+    callback(token_copy, context);
+  }
 }
 
-// static
-bool AppCheckInternal::RemoveAppCheckListenerForRegistry(App* app,
-                                                         void* callback,
-                                                         void* context) {
-  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
-  if (!app || !typed_callback) {
-    return false;
+void AppCheckInternal::RemoveTokenListener(TokenChangedCallback callback,
+                                           void* context) {
+  if (!callback) return;
+  MutexLock lock(mutex_);
+  InternalListenerEntry entry{callback, context};
+  auto iter = std::find(internal_listeners_.begin(), internal_listeners_.end(),
+                        entry);
+  if (iter != internal_listeners_.end()) {
+    internal_listeners_.erase(iter);
   }
-
-  AppCheck* app_check = AppCheck::GetInstance(app);
-  if (app_check && app_check->internal_) {
-    app_check->internal_->internal_listener_.RemoveListener(typed_callback,
-                                                            context);
-    return true;
-  }
-  return false;
 }
 
 }  // namespace internal

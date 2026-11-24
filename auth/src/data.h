@@ -17,10 +17,14 @@
 #ifndef FIREBASE_AUTH_SRC_DATA_H_
 #define FIREBASE_AUTH_SRC_DATA_H_
 
+#include <memory>
 #include <string>
+#include <vector>
 
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/service_interfaces.h"
 #include "auth/src/include/firebase/auth.h"
 #include "auth/src/include/firebase/auth/user.h"
 
@@ -70,52 +74,43 @@ enum AuthApiFunction {
 /// Delete all the user_infos in auth_data and reset the length to zero.
 void ClearUserInfos(AuthData* auth_data);
 
-/// The pimpl data for the Auth and User classes.
-/// The same pimpl is referred to by both classes, since the two implementations
-/// are tightly linked (there can only be one User per Auth).
-struct AuthData {
-  AuthData()
-      : app(nullptr),
-        auth(nullptr),
-        future_impl(kNumAuthFunctions),
-        current_user(this),
-        auth_impl(nullptr),
-        user_impl(nullptr),
-        listener_impl(nullptr),
-        id_token_listener_impl(nullptr),
-        expect_id_token_listener_callback(false),
-        persistent_cache_load_pending(true),
-        destructing(false) {}
+/// The pimpl service owned by AppState for Auth and User handles.
+struct AuthData : public ::firebase::internal::AuthTokenProvider {
+  AuthData(::firebase::internal::AppState& state, void* platform_auth_impl);
+  ~AuthData() override;
 
-  ~AuthData() {
-    ClearUserInfos(this);
+  // Creates an aliasing Auth handle sharing AppState's control block, or an
+  // invalid Auth if AppState is already tearing down.
+  Auth MakeAuthHandle();
 
-    // Reset the listeners so that they don't try to unregister themselves
-    // when they are destroyed.
-    ClearListeners();
+  // Creates a non-owning User handle referring to this AuthData, or an invalid
+  // User if no user is signed in or AppState is tearing down.
+  User MakeCurrentUserHandle();
 
-    app = nullptr;
-    auth = nullptr;
-    auth_impl = nullptr;
-    user_impl = nullptr;
-    listener_impl = nullptr;
-    id_token_listener_impl = nullptr;
-  }
+  // Internal listener registration used by Auth-owned helpers (no weak_ptr
+  // back-registration needed since AuthData removes them before destroying
+  // platform state).
+  void AddInternalAuthStateListener(AuthStateListener* listener);
+  void RemoveInternalAuthStateListener(AuthStateListener* listener);
+  void AddInternalIdTokenListener(IdTokenListener* listener);
+  void RemoveInternalIdTokenListener(IdTokenListener* listener);
 
-  void ClearListeners() {
-    while (!listeners.empty()) {
-      auth->RemoveAuthStateListener(listeners.back());
-    }
-    while (!id_token_listeners.empty()) {
-      auth->RemoveIdTokenListener(id_token_listeners.back());
-    }
-  }
+  void ClearListeners();
 
-  /// The Firebase App this auth is connected to.
-  App* app;
+  // ::firebase::internal::AuthTokenProvider overrides (implemented per
+  // platform: full desktop implementation, no-op stubs on Android/iOS where
+  // native SDKs handle cross-product auth).
+  std::string GetCurrentToken() override;
+  Future<std::string> GetTokenAsync(bool force_refresh) override;
+  std::string GetCurrentUserUid() override;
+  void StartTokenListener() override;
+  void StopTokenListener() override;
+  void AddAuthStateListener(AuthStateCallback callback, void* context) override;
+  void RemoveAuthStateListener(AuthStateCallback callback,
+                               void* context) override;
 
-  /// Backpointer to the external Auth class that holds this internal data.
-  Auth* auth;
+  /// Non-owning reference to the owning AppState (guaranteed to outlive this).
+  ::firebase::internal::AppState& app_state;
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl;
@@ -123,68 +118,59 @@ struct AuthData {
   /// Identifier used to track futures associated with future_impl.
   std::string future_api_id;
 
-  /// Unique user for this Auth. Note: we only support one user per Auth.
-  User current_user;
-
   /// Platform-dependent implementation of Auth (that we're wrapping).
   /// For example, on Android `jobject`.
-  void* auth_impl;
+  void* auth_impl = nullptr;
 
   /// Platform-dependent implementation of User (that we're wrapping).
   /// For example, on iOS `FIRUser`.
-  void* user_impl;
+  void* user_impl = nullptr;
 
   /// Platform-dependent implementation of AuthStateListener (that we're
   /// wrapping). For example, on Android `jobject`.
-  void* listener_impl;
+  void* listener_impl = nullptr;
 
   /// Platform-dependent implementation of IdTokenListener (that we're
-  /// wrapping). For example, on Android `jobject`
-  void* id_token_listener_impl;
+  /// wrapping). For example, on Android `jobject`.
+  void* id_token_listener_impl = nullptr;
 
-  /// Backing data for the return value of User::ProviderData().
+  /// Lazily created platform-specific data for PhoneAuthProvider (owned here
+  /// and released in DestroyPlatformAuth).
+  void* phone_auth_provider_data = nullptr;
+
+  /// Backing data for the return value of User::provider_data().
   /// These point to WrappedUserInfos.
   std::vector<UserInfoInterface*> user_infos;
 
-  /// User-supplied listener classes. All of these are updated when Auth's
-  /// sign in state changes.
+  /// User-supplied and internal AuthStateListeners.
   std::vector<AuthStateListener*> listeners;
 
-  /// User-supplied ID token listeners. All of these are updated when Auth's
-  /// ID token changes.
+  /// User-supplied and internal IdTokenListeners.
   std::vector<IdTokenListener*> id_token_listeners;
 
-  /// Unique phone provider for this Auth. Initialized the first time
-  /// PhoneAuthProvider::GetInstance() is called.
-  PhoneAuthProvider phone_auth_provider;
-
-  /// Mutex protecting the `listeners`, `id_token_listeners`, and
-  /// `phone_auth_provider.data_->listeners vectors`.
-  /// 'listeners' are added and removed and accessed on different threads.
-  /// This is also protecting persistent_cache_load_pending flag.
+  /// Mutex protecting `listeners`, `id_token_listeners`, and
+  /// `persistent_cache_load_pending`.
   Mutex listeners_mutex;
 
   // Mutex for changes to the internal token listener state.
   Mutex token_listener_mutex;
 
   // Tracks if the Id Token listener is expecting a callback to occur.
-  bool expect_id_token_listener_callback;
+  bool expect_id_token_listener_callback = false;
 
   // Tracks if the persistent cache load is pending.
-  bool persistent_cache_load_pending;
+  bool persistent_cache_load_pending = true;
 
-  // Mutex protecting `expect_id_token_listener_callback`
+  // Mutex protecting `expect_id_token_listener_callback`.
   Mutex expect_id_token_mutex;
 
   // Tracks if auth is being destroyed.
-  bool destructing;
+  bool destructing = false;
 
-  // Mutex protecting destructing
+  // Mutex protecting `destructing`.
   Mutex destructing_mutex;
 
   // Sets if the Id Token Listener is expecting a callback.
-  // Used to workaround an issue where the Id Token is not reset with a new one,
-  // and thus not triggered correctly.
   void SetExpectIdTokenListenerCallback(bool expect) {
     MutexLock lock(expect_id_token_mutex);
     expect_id_token_listener_callback = expect;

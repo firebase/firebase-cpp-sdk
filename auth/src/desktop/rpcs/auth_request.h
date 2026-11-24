@@ -43,11 +43,10 @@ const char* const kEmulatorPort = "9099";
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
-  // App is a non-const parameter because this constructor might modify App's
-  // internal HeartbeatController by logging or fetching heartbeats.
-  AuthRequest(::firebase::App& app, const char* schema, bool deliver_heartbeat);
+  AuthRequest(const ::firebase::App& app, const char* schema,
+              bool deliver_heartbeat);
 
-  AuthRequest(::firebase::App& app, const unsigned char* schema,
+  AuthRequest(const ::firebase::App& app, const unsigned char* schema,
               bool deliver_heartbeat)
       : AuthRequest(app, reinterpret_cast<const char*>(schema),
                     deliver_heartbeat) {}
@@ -55,7 +54,7 @@ class AuthRequest
   std::string GetUrl(const char* server_url = kServerURL);
 
  private:
-  ::firebase::App& app;
+  ::firebase::App app_;
 };
 
 }  // namespace auth

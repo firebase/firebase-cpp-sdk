@@ -29,8 +29,8 @@ namespace auth {
 
 // Test VerifyCustomTokenRequest
 TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  VerifyCustomTokenRequest request(*app, "APIKEY", "token123");
+  App app = testing::CreateApp();
+  VerifyCustomTokenRequest request(app, "APIKEY", "token123");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "verifyCustomToken?key=APIKEY",
@@ -44,9 +44,9 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
 }
 
 TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  VerifyCustomTokenRequest request(*app, "APIKEY", "token123");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  VerifyCustomTokenRequest request(app, "APIKEY", "token123");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/verifyCustomToken?key=APIKEY",
@@ -55,7 +55,7 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequestWithEmulator) {
 
 // Test VerifyCustomTokenResponse
 TEST(VerifyCustomTokenTest, TestVerifyCustomTokenResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   VerifyCustomTokenResponse response;
   // An example HTTP response JSON.
   const char body[] =
@@ -72,7 +72,7 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenResponse) {
 }
 
 TEST(VerifyCustomTokenTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   VerifyCustomTokenResponse response;
   const char body[] =
       "{\n"

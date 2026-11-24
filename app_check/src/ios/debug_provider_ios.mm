@@ -19,7 +19,9 @@
 #import "FIRAppCheckDebugProvider.h"
 #import "FIRAppCheckDebugProviderFactory.h"
 
+#include "app/src/app_state.h"
 #include "app/src/log.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
 #include "app_check/src/ios/util_ios.h"
@@ -78,35 +80,46 @@ void DebugAppCheckProvider::GetLimitedUseToken(
   }];
 }
 
-DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : created_providers_() {
+namespace {
+
+const char kIosDebugProviderServiceTag = 0;
+
+class IosDebugProviderService : public ::firebase::internal::Service {
+ public:
+  explicit IosDebugProviderService(FIRAppCheckDebugProvider* ios_provider)
+      : provider_(ios_provider) {}
+
+  int teardown_priority() const override { return -20; }
+
+  DebugAppCheckProvider* provider() { return &provider_; }
+
+ private:
+  DebugAppCheckProvider provider_;
+};
+
+}  // namespace
+
+DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {
   ios_provider_factory_ = std::make_unique<FIRAppCheckDebugProviderFactoryPointer>(
       [[FIRAppCheckDebugProviderFactory alloc] init]);
 }
 
-DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
-  // Cleanup any providers created by this factory.
-  for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
-    delete it->second;
-  }
-  created_providers_.clear();
-}
+DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() = default;
 
-AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
+AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(const App& app) {
   firebase::LogWarning("[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
                        "are for development only; prefer a production provider where one is "
                        "available.");
-  // Return the provider if it already exists.
-  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
-  if (it != created_providers_.end()) {
-    return it->second;
-  }
-  // Otherwise, create a new provider
-  FIRAppCheckDebugProvider* ios_provider =
-      [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
-  AppCheckProvider* cpp_provider = new internal::DebugAppCheckProvider(ios_provider);
-  created_providers_[app] = cpp_provider;
-  return cpp_provider;
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return nullptr;
+
+  auto service = state->GetOrCreateService<IosDebugProviderService>(
+      &kIosDebugProviderServiceTag, "", [this, &app](::firebase::internal::AppState&) {
+        FIRAppCheckDebugProvider* ios_provider =
+            [ios_provider_factory() createProviderWithApp:app.GetPlatformApp()];
+        return std::make_shared<IosDebugProviderService>(ios_provider);
+      });
+  return service ? service->provider() : nullptr;
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {

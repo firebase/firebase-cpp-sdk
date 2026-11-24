@@ -20,10 +20,12 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "app/rest/request.h"
 #include "app/src/scheduler.h"
 #include "app/src/semaphore.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
 #include "auth/src/data.h"
@@ -34,15 +36,22 @@
 namespace firebase {
 namespace auth {
 
-// Token listener used by the IdTokenRefreshThread object.  Basically just
+// Internal helper to fetch a fresh user token on desktop without requiring a
+// public User handle (used by User::GetTokenInternal, IdTokenRefreshThread,
+// and AuthData::GetTokenAsync).
+Future<std::string> GetUserTokenInternal(AuthData* auth_data,
+                                         bool force_refresh,
+                                         int future_identifier);
+
+// Token listener used by the IdTokenRefreshThread object. Basically just
 // listens for changes, and when one occurs, caches the result, along with a
-// timestamp.  All functions are thread-safe and locked with the mutex.
+// timestamp. All functions are thread-safe and locked with the mutex.
 class IdTokenRefreshListener : public IdTokenListener {
  public:
   IdTokenRefreshListener();
-  ~IdTokenRefreshListener();
+  ~IdTokenRefreshListener() override;
 
-  void OnIdTokenChanged(Auth* auth) override;
+  void OnIdTokenChanged(Auth auth) override;
   std::string GetCurrentToken();
   uint64_t GetTokenTimestamp();
 
@@ -53,8 +62,8 @@ class IdTokenRefreshListener : public IdTokenListener {
   std::string current_token_;
 };
 
-// This class handles the full lifecycle of the token refresh thread.  It
-// manages thread creation, deletion, activation, deactivation, etc.  It also
+// This class handles the full lifecycle of the token refresh thread. It
+// manages thread creation, deletion, activation, deactivation, etc. It also
 // owns the IdTokenRefreshListener object used by the thread to detect changes
 // to the auth token.
 class IdTokenRefreshThread {
@@ -73,12 +82,8 @@ class IdTokenRefreshThread {
 
   // Thread-safe getter, for checking if it's time to shut down.
   bool is_shutting_down() {
-    bool result;
-    {
-      MutexLock lock(ref_count_mutex_);
-      result = is_shutting_down_;
-    }
-    return result;
+    MutexLock lock(ref_count_mutex_);
+    return is_shutting_down_;
   }
 
   // Thread-safe setter.
@@ -100,14 +105,11 @@ class IdTokenRefreshThread {
   IdTokenRefreshListener token_refresh_listener_;
 
   firebase::Thread thread_;
-  Auth* auth;
+  AuthData* auth_data_ = nullptr;
 };
 
 // Facilitates completion of Federated Auth operations on non-mobile
-// environments which return AuthResults. Custom application logic fulfills the
-// authentication request and uses this completion handle in callbacks. Our
-// callbacks observe contextual information in these handles to access to
-// trigger the corresponding Future<AuthResult>.
+// environments which return AuthResults.
 struct AuthResultCompletionHandle {
  public:
   AuthResultCompletionHandle(const SafeFutureHandle<AuthResult>& handle,
@@ -122,22 +124,19 @@ struct AuthResultCompletionHandle {
   AuthData* auth_data;
 };
 
-// The callback type for pseudo-AuthStateListeners added via the function
-// registry.
-using FunctionRegistryCallback = void (*)(void*);
-
-// An AuthStateListener used for managing pseudo-AuthStateListeners added via
-// the function registry.
-class FunctionRegistryAuthStateListener : public AuthStateListener {
+// An AuthStateListener used for managing internal cross-product auth state
+// listeners registered via AuthTokenProvider.
+class InternalAuthStateListener : public AuthStateListener {
  public:
-  void AddListener(FunctionRegistryCallback callback, void* context);
+  using Callback = ::firebase::internal::AuthTokenProvider::AuthStateCallback;
 
-  void RemoveListener(FunctionRegistryCallback callback, void* context);
-
-  void OnAuthStateChanged(Auth* auth) override;
+  void AddListener(Callback callback, void* context);
+  void RemoveListener(Callback callback, void* context);
+  void OnAuthStateChanged(Auth auth) override;
 
  private:
-  using Entry = std::pair<FunctionRegistryCallback, void*>;
+  using Entry = std::pair<Callback, void*>;
+  Mutex mutex_;
   std::vector<Entry> callbacks_;
 };
 
@@ -157,20 +156,19 @@ struct AuthImpl {
   // Instance responsible for user data persistence.
   std::unique_ptr<UserDataPersist> user_data_persist;
 
-  // Firebase-internal auth state listeners added via the function registry
-  // are tracked here. This is added as the first AuthStateListener to mimic
-  // the behavior of the iOS and Android SDKs which guarantee that all internal
-  // listeners are called before any user-supplied ones.
-  std::unique_ptr<FunctionRegistryAuthStateListener> internal_listeners;
+  // Firebase-internal auth state listeners added via AuthTokenProvider are
+  // tracked here. Added as the first AuthStateListener to match iOS/Android
+  // ordering (internal listeners called before user-supplied listeners).
+  std::unique_ptr<InternalAuthStateListener> internal_listeners;
 
-  // Serializes all REST call from this object.
+  // Serializes all REST calls from this object.
   scheduler::Scheduler scheduler_;
 
-  // Synchronization primative for tracking sate of FederatedAuth futures.
+  // Synchronization primitive for tracking state of FederatedAuth futures.
   Mutex provider_mutex;
 
-  // The current user language code. This can be set to the app’s current
-  // language by calling SetLanguageCode.
+  // The current user language code. This can be set to the app's current
+  // language by calling set_language_code.
   std::string language_code;
 
   std::string assigned_emulator_url;
@@ -199,11 +197,8 @@ class ExponentialBackoff {
         multiplier_(std::max(1.0, multiplier)),
         current_delay_ms_(min_delay_ms_) {}
 
-  // Resets the backoff delay to the initial minimum delay.
   void Reset() { current_delay_ms_ = min_delay_ms_; }
 
-  // Returns the delay to wait for the current retry attempt, and advances
-  // the internal delay for subsequent attempts up to max_delay_ms.
   int NextDelayMs() {
     int delay = current_delay_ms_;
     if (static_cast<double>(current_delay_ms_) * multiplier_ >=
@@ -215,7 +210,6 @@ class ExponentialBackoff {
     return delay;
   }
 
-  // Returns the current delay without advancing it.
   int current_delay_ms() const { return current_delay_ms_; }
 
  private:

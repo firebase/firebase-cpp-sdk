@@ -21,12 +21,13 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
+#include "app/src/app_state.h"
 #include "app/src/assert.h"
-#include "app/src/function_registry.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/src/common.h"
@@ -85,14 +86,28 @@ Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
   return promise.LastResult();
 }
 
+void InitializeInternalAuthStateListener(AuthData* auth_data) {
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  auth_impl->internal_listeners =
+      std::make_unique<InternalAuthStateListener>();
+  auth_data->AddInternalAuthStateListener(auth_impl->internal_listeners.get());
+}
+
+void DestroyInternalAuthStateListener(AuthData* auth_data) {
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  auth_data->RemoveInternalAuthStateListener(
+      auth_impl->internal_listeners.get());
+  auth_impl->internal_listeners.reset();
+}
+
 }  // namespace
 
-void* CreatePlatformAuth(App* const app) {
-  FIREBASE_ASSERT_RETURN(nullptr, app);
+void* CreatePlatformAuth(const App& app) {
+  FIREBASE_ASSERT_RETURN(nullptr, app.is_valid());
 
   AuthImpl* const auth = new AuthImpl();
-  auth->api_key = app->options().api_key();
-  auth->app_name = app->name();
+  auth->api_key = app.options().api_key();
+  auth->app_name = app.name();
 
   // Check environment variables for emulator if set.
   if (std::getenv("USE_AUTH_EMULATOR") != nullptr) {
@@ -109,12 +124,9 @@ void* CreatePlatformAuth(App* const app) {
   return auth;
 }
 
-void InitializeFunctionRegistryListener(AuthData* auth_data);
-void DestroyFunctionRegistryListener(AuthData* auth_data);
-
-void LogHeartbeat(Auth* const auth) {
-  if (auth && auth->auth_data_ && auth->auth_data_->app) {
-    auth->auth_data_->app->LogHeartbeat();
+void LogHeartbeat(const Auth& auth) {
+  if (App app = auth.app(); app.is_valid()) {
+    app.LogHeartbeat();
   }
 }
 
@@ -122,17 +134,19 @@ IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 
 IdTokenRefreshListener::~IdTokenRefreshListener() {}
 
-void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
-  // Note:  Make sure to always make future_impl.mutex the innermost lock,
+void IdTokenRefreshListener::OnIdTokenChanged(Auth auth) {
+  if (!auth.auth_data_) return;
+  AuthData* auth_data = auth.auth_data_.get();
+  // Note: Make sure to always make future_impl.mutex the innermost lock,
   // to prevent deadlocks!
   MutexLock lock(mutex_);
-  MutexLock future_lock(auth->auth_data_->future_impl.mutex());
-  if (auth->current_user().is_valid()) {
-    ResetTokenRefreshCounter(auth->auth_data_);
+  MutexLock future_lock(auth_data->future_impl.mutex());
+  if (auth_data->user_impl != nullptr) {
+    ResetTokenRefreshCounter(auth_data);
 
-    // Retrieve id_token from auth_data
+    // Retrieve id_token from auth_data.
     {
-      UserView::Reader reader = UserView::GetReader(auth->auth_data_);
+      UserView::Reader reader = UserView::GetReader(auth_data);
       assert(reader.IsValid());
       current_token_ = reader->id_token;
     }
@@ -143,202 +157,110 @@ void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
 }
 
 std::string IdTokenRefreshListener::GetCurrentToken() {
-  std::string current_token;
-  {
-    MutexLock lock(mutex_);
-    current_token = current_token_;
-  }
-  return current_token;
+  MutexLock lock(mutex_);
+  return current_token_;
 }
 
 uint64_t IdTokenRefreshListener::GetTokenTimestamp() {
-  uint64_t token_timestamp;
-  {
-    MutexLock lock(mutex_);
-    token_timestamp = token_timestamp_;
-  }
-  return token_timestamp;
+  MutexLock lock(mutex_);
+  return token_timestamp_;
 }
 
-// This is the static version of GetAuthToken, with a function signature
-// appropriate for the function registry.  It basically just calls the public
-// GetAuthToken function on the current auth object.
-bool Auth::GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out) {
-  Auth* auth = Auth::FindAuth(app);
-  if (auth) {
-    // Make sure the persistent cache is loaded.
-    (void)auth->current_user();
-
-    auto result = static_cast<std::string*>(out);
-    MutexLock lock(auth->auth_data_->token_listener_mutex);
-    auto auth_impl = static_cast<AuthImpl*>(auth->auth_data_->auth_impl);
-    *result = auth_impl->token_refresh_thread.CurrentAuthToken();
-    return true;
-  }
-  return false;
-}
-
-// It basically just calls the public GetToken function on the current user and
-// output the Future.
-bool Auth::GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
-                                        void* out) {
-  Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
-  // Reset the future
-  if (out_future) *out_future = Future<std::string>();
-  bool* in_force_refresh = static_cast<bool*>(force_refresh);
-
-  if (!app) return false;
-  assert(force_refresh);
-
-  Auth* auth = Auth::FindAuth(app);
-  if (auth) {
-    User user = auth->current_user();
-    if (user.is_valid()) {
-      Future<std::string> future = user.GetTokenInternal(
-          *in_force_refresh, kInternalFn_GetTokenForFunctionRegistry);
-      if (out_future) {
-        *out_future = future;
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-bool Auth::GetCurrentUserUidForRegistry(App* app, void* /*unused*/, void* out) {
-  auto* out_string = static_cast<std::string*>(out);
-  if (out_string) {
-    // Reset the output regardless of outcome.
-    out_string->clear();
-  }
-
-  Auth* auth = Auth::FindAuth(app);
-  if (!auth) return false;
-
-  User user = auth->current_user();
-  if (!user.is_valid()) return false;
-
-  if (out_string) {
-    *out_string = user.uid();
-  }
-  return true;
-}
-
-bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
-                                              void* /*unused*/) {
-  Auth* auth = Auth::FindAuth(app);
-  if (auth) {
-    EnableTokenAutoRefresh(auth->auth_data_);
-    return true;
-  }
-  return false;
-}
-
-bool Auth::StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
-                                             void* /*unused*/) {
-  Auth* auth = Auth::FindAuth(app);
-  if (auth) {
-    DisableTokenAutoRefresh(auth->auth_data_);
-    return true;
-  }
-  return false;
-}
-
-using FunctionRegistryCallback = void (*)(void*);
-
-void FunctionRegistryAuthStateListener::AddListener(
-    FunctionRegistryCallback callback, void* context) {
+void InternalAuthStateListener::AddListener(Callback callback, void* context) {
+  if (!callback) return;
+  MutexLock lock(mutex_);
   callbacks_.emplace_back(callback, context);
 }
 
-void FunctionRegistryAuthStateListener::RemoveListener(
-    FunctionRegistryCallback callback, void* context) {
+void InternalAuthStateListener::RemoveListener(Callback callback,
+                                               void* context) {
+  if (!callback) return;
+  MutexLock lock(mutex_);
   Entry entry = {callback, context};
-
   auto iter = std::find(callbacks_.begin(), callbacks_.end(), entry);
   if (iter != callbacks_.end()) {
     callbacks_.erase(iter);
   }
 }
 
-void FunctionRegistryAuthStateListener::OnAuthStateChanged(Auth* auth) {
-  for (const Entry& entry : callbacks_) {
+void InternalAuthStateListener::OnAuthStateChanged(Auth /*auth*/) {
+  std::vector<Entry> callbacks_copy;
+  {
+    MutexLock lock(mutex_);
+    callbacks_copy = callbacks_;
+  }
+  for (const Entry& entry : callbacks_copy) {
     entry.first(entry.second);
   }
 }
 
-bool Auth::AddAuthStateListenerForRegistry(App* app, void* callback,
-                                           void* context) {
-  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
+// ::firebase::internal::AuthTokenProvider overrides on AuthData (Desktop):
 
-  Auth* auth = Auth::FindAuth(app);
-  if (!auth) return false;
-
-  auto auth_impl = static_cast<AuthImpl*>(auth->auth_data_->auth_impl);
-  auth_impl->internal_listeners->AddListener(typed_callback, context);
-  return true;
+std::string AuthData::GetCurrentToken() {
+  // Make sure the persistent cache is loaded.
+  if (Auth handle = MakeAuthHandle(); handle.is_valid()) {
+    (void)handle.current_user();
+  }
+  MutexLock lock(token_listener_mutex);
+  auto* impl = static_cast<AuthImpl*>(auth_impl);
+  return impl ? impl->token_refresh_thread.CurrentAuthToken() : std::string();
 }
 
-bool Auth::RemoveAuthStateListenerForRegistry(App* app, void* callback,
-                                              void* context) {
-  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
-
-  Auth* auth = Auth::FindAuth(app);
-  if (!auth) return false;
-
-  auto auth_impl = static_cast<AuthImpl*>(auth->auth_data_->auth_impl);
-  auth_impl->internal_listeners->RemoveListener(typed_callback, context);
-  return true;
+Future<std::string> AuthData::GetTokenAsync(bool force_refresh) {
+  Auth handle = MakeAuthHandle();
+  if (!handle.is_valid()) return Future<std::string>();
+  User user = handle.current_user();
+  if (!user.is_valid()) return Future<std::string>();
+  return GetUserTokenInternal(this, force_refresh,
+                              kInternalFn_GetTokenForFunctionRegistry);
 }
 
-void Auth::InitPlatformAuth(AuthData* const auth_data) {
+std::string AuthData::GetCurrentUserUid() {
+  Auth handle = MakeAuthHandle();
+  if (!handle.is_valid()) return std::string();
+  User user = handle.current_user();
+  return user.is_valid() ? user.uid() : std::string();
+}
+
+void AuthData::StartTokenListener() { EnableTokenAutoRefresh(this); }
+
+void AuthData::StopTokenListener() { DisableTokenAutoRefresh(this); }
+
+void AuthData::AddAuthStateListener(AuthStateCallback callback, void* context) {
+  auto* impl = static_cast<AuthImpl*>(auth_impl);
+  if (impl && impl->internal_listeners) {
+    impl->internal_listeners->AddListener(callback, context);
+  }
+}
+
+void AuthData::RemoveAuthStateListener(AuthStateCallback callback,
+                                       void* context) {
+  auto* impl = static_cast<AuthImpl*>(auth_impl);
+  if (impl && impl->internal_listeners) {
+    impl->internal_listeners->RemoveListener(callback, context);
+  }
+}
+
+void InitPlatformAuth(AuthData* const auth_data) {
   firebase::rest::InitTransportCurl();
-  auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthGetCurrentToken, Auth::GetAuthTokenForRegistry);
-  auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthGetCurrentUserUid, Auth::GetCurrentUserUidForRegistry);
-  auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthStartTokenListener,
-      Auth::StartTokenRefreshThreadForRegistry);
-  auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthStopTokenListener,
-      Auth::StopTokenRefreshThreadForRegistry);
-  auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthGetTokenAsync, Auth::GetAuthTokenAsyncForRegistry);
-  auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthAddAuthStateListener,
-      Auth::AddAuthStateListenerForRegistry);
-  auth_data->app->function_registry()->RegisterFunction(
-      internal::FnAuthRemoveAuthStateListener,
-      Auth::RemoveAuthStateListenerForRegistry);
 
-  // Load existing UserData
+  // Add internal listeners first so they run before user-supplied listeners.
+  InitializeInternalAuthStateListener(auth_data);
+
+  // Load existing UserData.
   InitializeUserDataPersist(auth_data);
 
   InitializeTokenRefresher(auth_data);
-
-  InitializeFunctionRegistryListener(auth_data);
 }
 
-void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
+void DestroyPlatformAuth(AuthData* const auth_data) {
   FIREBASE_ASSERT_RETURN_VOID(auth_data);
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->scheduler_.CancelAllAndShutdownWorkerThread();
-  // Unregister from the function registry.
-  auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthRemoveAuthStateListener);
-  auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthAddAuthStateListener);
-  auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthGetCurrentToken);
-  auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthStartTokenListener);
-  auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthStopTokenListener);
-  auth_data->app->function_registry()->UnregisterFunction(
-      internal::FnAuthGetTokenAsync);
+  if (!auth_impl) return;
 
-  DestroyFunctionRegistryListener(auth_data);
+  auth_impl->scheduler_.CancelAllAndShutdownWorkerThread();
+
+  DestroyInternalAuthStateListener(auth_data);
 
   DestroyTokenRefresher(auth_data);
 
@@ -346,13 +268,14 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 
   UserView::ClearUser(auth_data);
 
-  delete static_cast<AuthImpl*>(auth_data->auth_impl);
+  delete auth_impl;
   auth_data->auth_impl = nullptr;
   firebase::rest::CleanupTransportCurl();
 }
 
 // RPCs
 Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kAuthFn_SignInWithCustomToken);
   if (!custom_token || strlen(custom_token) == 0) {
@@ -360,27 +283,28 @@ Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
     return promise.LastResult();
   }
 
+  App app_handle = app();
   typedef VerifyCustomTokenRequest RequestT;
-  // Note: std::make_unique is not supported by Visual Studio 2012, which is
-  // among our target compilers.
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token));
+      new RequestT(app_handle, GetApiKey(*auth_data_), custom_token));
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  return CallAsync(auth_data_.get(), promise, std::move(request),
                    PerformSignInFlow<VerifyCustomTokenResponse>);
 }
 
 Future<User> Auth::SignInWithCredential(const Credential& credential) {
+  if (!auth_data_) return Future<User>();
   Promise<User> promise(&auth_data_->future_impl, kAuthFn_SignInWithCredential);
   if (!ValidateCredential(&promise, credential.provider(), credential.impl_)) {
     return promise.LastResult();
   }
 
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+  return DoSignInWithCredential(promise, auth_data_.get(),
+                                credential.provider(), credential.impl_);
 }
 
 Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+  if (!auth_data_) return Future<AuthResult>();
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
 
   SafeFutureHandle<AuthResult> handle =
@@ -393,84 +317,90 @@ Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
 }
 
 Future<AuthResult> Auth::SignInAnonymously() {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kAuthFn_SignInAnonymously);
 
   // If user is already signed in anonymously, return immediately.
   bool is_anonymous = false;
-  User* api_user_to_return = nullptr;
-  UserView::TryRead(auth_data_, [&](const UserView::Reader& reader) {
+  UserView::TryRead(auth_data_.get(), [&](const UserView::Reader& reader) {
     is_anonymous = reader->is_anonymous;
-    api_user_to_return = &auth_data_->current_user;
   });
 
   if (is_anonymous) {
     AuthResult auth_result;
-    auth_result.user = *api_user_to_return;
+    auth_result.user = auth_data_->MakeCurrentUserHandle();
     promise.CompleteWithResult(auth_result);
     return promise.LastResult();
   }
 
+  App app_handle = app();
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
+      new RequestT(app_handle, GetApiKey(*auth_data_)));
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  return CallAsync(auth_data_.get(), promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
 
 Future<AuthResult> Auth::SignInWithEmailAndPassword(
     const char* const email, const char* const password) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kAuthFn_SignInWithEmailAndPassword);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
     return promise.LastResult();
   }
 
+  App app_handle = app();
   typedef VerifyPasswordRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password));
+      new RequestT(app_handle, GetApiKey(*auth_data_), email, password));
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  return CallAsync(auth_data_.get(), promise, std::move(request),
                    PerformSignInFlow<VerifyPasswordResponse>);
 }
 
 Future<AuthResult> Auth::CreateUserWithEmailAndPassword(
     const char* const email, const char* const password) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kAuthFn_CreateUserWithEmailAndPassword);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
     return promise.LastResult();
   }
 
+  App app_handle = app();
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password,
-                   ""));
+      new RequestT(app_handle, GetApiKey(*auth_data_), email, password, ""));
 
-  return CallAsync(auth_data_, promise, std::move(request),
+  return CallAsync(auth_data_.get(), promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
 
 Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(
     const Credential& credential) {
+  if (!auth_data_) return Future<AuthResult>();
   Promise<AuthResult> promise(&auth_data_->future_impl,
                               kAuthFn_SignInAndRetrieveDataWithCredential);
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+  return DoSignInWithCredential(promise, auth_data_.get(),
+                                credential.provider(), credential.impl_);
 }
 
 Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
     const char* email) {
+  if (!auth_data_) return Future<FetchProvidersResult>();
   Promise<FetchProvidersResult> promise(&auth_data_->future_impl,
                                         kAuthFn_FetchProvidersForEmail);
   if (!ValidateEmail(&promise, email)) {
     return promise.LastResult();
   }
 
+  App app_handle = app();
   typedef CreateAuthUriRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email));
+      new RequestT(app_handle, GetApiKey(*auth_data_), email));
 
   const auto callback =
       [](AuthDataHandle<FetchProvidersResult, RequestT>* handle) {
@@ -485,10 +415,11 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
         }
       };
 
-  return CallAsync(auth_data_, promise, std::move(request), callback);
+  return CallAsync(auth_data_.get(), promise, std::move(request), callback);
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
+  if (!auth_data_) return Future<void>();
   Promise<void> promise(&auth_data_->future_impl,
                         kAuthFn_SendPasswordResetEmail);
   if (!ValidateEmail(&promise, email)) {
@@ -501,9 +432,10 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
     language_code = auth_impl->language_code.c_str();
   }
 
+  App app_handle = app();
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request = RequestT::CreateSendPasswordResetEmailRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), email, language_code);
+      app_handle, GetApiKey(*auth_data_), email, language_code);
 
   const auto callback = [](AuthDataHandle<void, RequestT>* handle) {
     const auto response =
@@ -515,12 +447,13 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
     }
   };
 
-  return CallAsync(auth_data_, promise, std::move(request), callback);
+  return CallAsync(auth_data_.get(), promise, std::move(request), callback);
 }
 
 void Auth::SignOut() {
+  if (!auth_data_) return;
   // No REST request. So we can do this in the main thread.
-  AuthenticationResult::SignOut(auth_data_);
+  AuthenticationResult::SignOut(auth_data_.get());
 }
 
 // AuthStateListener to wait for current_user() until persistent
@@ -530,7 +463,7 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
   CurrentUserBlockListener() : semaphore_(0) {}
   ~CurrentUserBlockListener() override {}
 
-  void OnAuthStateChanged(Auth* auth) override { semaphore_.Post(); }
+  void OnAuthStateChanged(Auth /*auth*/) override { semaphore_.Post(); }
 
   void WaitForEvent() { semaphore_.Wait(); }
 
@@ -539,25 +472,18 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
 };
 
 User Auth::current_user() {
-  if (!auth_data_) return User(nullptr);
+  if (!auth_data_) return User();
 
   // Add a listener and wait for the first trigger.
   CurrentUserBlockListener listener;
   AddAuthStateListener(&listener);
-  // If the persistent cache has not be loaded, this would wait until the
-  // loading is finished and OnAuthStateChanged() is triggered.
-  // If it has been loaded, OnAuthStateChanged() should be triggered recursively
-  // and synchronously when AddAuthStateListener() is called.
+  // If the persistent cache has not been loaded, this waits until loading
+  // finishes and OnAuthStateChanged() triggers. Otherwise OnAuthStateChanged()
+  // fires synchronously inside AddAuthStateListener().
   listener.WaitForEvent();
   RemoveAuthStateListener(&listener);
 
-  {
-    MutexLock lock(auth_data_->future_impl.mutex());
-    if (auth_data_->user_impl == nullptr) {
-      return User(nullptr);
-    }
-    return auth_data_->current_user;
-  }
+  return auth_data_->MakeCurrentUserHandle();
 }
 
 std::string Auth::language_code() const {
@@ -580,11 +506,11 @@ void Auth::set_language_code(const char* language_code) {
 void Auth::UseAppLanguage() {
   if (!auth_data_) return;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
-  std::string empty_string;
-  auth_impl->language_code.assign(empty_string);
+  auth_impl->language_code.clear();
 }
 
 void Auth::UseEmulator(std::string host, uint32_t port) {
+  if (!auth_data_) return;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   auth_impl->assigned_emulator_url = "";
   auth_impl->assigned_emulator_url.append(host);
@@ -603,51 +529,42 @@ void DestroyTokenRefresher(AuthData* auth_data) {
   auth_impl->token_refresh_thread.Destroy();
 }
 
-void InitializeFunctionRegistryListener(AuthData* auth_data) {
-  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->internal_listeners =
-      std::make_unique<FunctionRegistryAuthStateListener>();
-  auth_data->auth->AddAuthStateListener(auth_impl->internal_listeners.get());
-}
-
-void DestroyFunctionRegistryListener(AuthData* auth_data) {
-  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_data->auth->RemoveAuthStateListener(auth_impl->internal_listeners.get());
-  auth_impl->internal_listeners.reset(nullptr);
-}
-
 void EnableTokenAutoRefresh(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->token_refresh_thread.EnableAuthRefresh();
+  if (auth_impl) {
+    auth_impl->token_refresh_thread.EnableAuthRefresh();
+  }
 }
 
 void DisableTokenAutoRefresh(AuthData* auth_data) {
-  // We don't actually directly stop the thread here - we just decrease the ref
-  // count and it the thread will remove itself next time it fires, if it is
-  // no longer needed.
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->token_refresh_thread.DisableAuthRefresh();
+  if (auth_impl) {
+    auth_impl->token_refresh_thread.DisableAuthRefresh();
+  }
 }
 
 // Called automatically whenever anyone refreshes the auth token.
 void ResetTokenRefreshCounter(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->token_refresh_thread.WakeThread();
+  if (auth_impl) {
+    auth_impl->token_refresh_thread.WakeThread();
+  }
 }
 
 void InitializeUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->user_data_persist = std::make_unique<UserDataPersist>(
-      internal::CreateAppIdentifierFromOptions(auth_data->app->options())
+      internal::CreateAppIdentifierFromOptions(auth_data->app_state.options())
           .c_str());
 
-  auth_data->auth->AddAuthStateListener(auth_impl->user_data_persist.get());
+  auth_data->AddInternalAuthStateListener(auth_impl->user_data_persist.get());
   auth_impl->user_data_persist->LoadUserData(auth_data);
 }
 
 void DestroyUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_data->auth->RemoveAuthStateListener(auth_impl->user_data_persist.get());
+  auth_data->RemoveInternalAuthStateListener(
+      auth_impl->user_data_persist.get());
 }
 
 void LoadFinishTriggerListeners(AuthData* auth_data) {
@@ -656,9 +573,11 @@ void LoadFinishTriggerListeners(AuthData* auth_data) {
     // If auth is destructing, abort.
     return;
   }
-  // We would have to block other listener changes to protect race condition
-  // on how many times a listener should be triggered. We would rely on first
-  // listener trigger to flip the persistence loading bit.
+  // Obtain Auth handle before acquiring listeners_mutex (strict lock ordering).
+  Auth auth_handle = auth_data->MakeAuthHandle();
+  if (!auth_handle.is_valid()) {
+    return;
+  }
   MutexLock lock(auth_data->listeners_mutex);
   NotifyAuthStateListeners(auth_data);
   NotifyIdTokenListeners(auth_data);
@@ -669,40 +588,32 @@ void IdTokenRefreshThread::WakeThread() { wakeup_sem_.Post(); }
 IdTokenRefreshThread::IdTokenRefreshThread()
     : ref_count_(0), is_shutting_down_(false), wakeup_sem_(0) {}
 
-// Called once, at startup.
-// Should only be used by the Auth object, on construction.
 void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
   MutexLock lock(ref_count_mutex_);
   set_is_shutting_down(false);
-  auth = auth_data->auth;
-  IdTokenListener* listener = &token_refresh_listener_;
-  auth->AddIdTokenListener(listener);
+  auth_data_ = auth_data;
+  auth_data_->AddInternalIdTokenListener(&token_refresh_listener_);
   ref_count_ = 0;
 
   thread_ = firebase::Thread(
       [](IdTokenRefreshThread* refresh_thread) {
-        Auth* auth = refresh_thread->auth;
+        AuthData* auth_data = refresh_thread->auth_data_;
         ExponentialBackoff backoff;
 
         while (!refresh_thread->is_shutting_down()) {
-          // Note:  Make sure to always make future_impl.mutex the innermost
+          // Note: Make sure to always make future_impl.mutex the innermost
           // lock, to prevent deadlocks!
           refresh_thread->ref_count_mutex_.Acquire();
-          auth->auth_data_->future_impl.mutex().Acquire();
-          if (auth->auth_data_->user_impl && refresh_thread->ref_count_ > 0) {
-            // The internal identifier kInternalFn_GetTokenForRefresher,
-            // ensures that we won't mess with the LastResult for the
-            // user-facing one.
-
+          auth_data->future_impl.mutex().Acquire();
+          if (auth_data->user_impl && refresh_thread->ref_count_ > 0) {
             uint64_t ms_since_last_refresh =
                 internal::GetTimestampEpoch() -
                 refresh_thread->token_refresh_listener_.GetTokenTimestamp();
 
             if (ms_since_last_refresh >= kMsPerTokenRefresh) {
-              Future<std::string> future =
-                  refresh_thread->auth->auth_data_->current_user
-                      .GetTokenInternal(true, kInternalFn_GetTokenForRefresher);
-              auth->auth_data_->future_impl.mutex().Release();
+              Future<std::string> future = GetUserTokenInternal(
+                  auth_data, true, kInternalFn_GetTokenForRefresher);
+              auth_data->future_impl.mutex().Release();
               refresh_thread->ref_count_mutex_.Release();
 
               Semaphore future_sem(0);
@@ -712,26 +623,18 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
                     sem->Post();
                   },
                   &future_sem);
-              // We need to wait for this future to finish because otherwise
-              // something might force the thread to shut down before the future
-              // is completed.
               future_sem.Wait();
 
               if (future.error() != 0) {
-                // Token refresh failed (e.g. network outage). Wait with
-                // exponential backoff to prevent tight retry loops and avoid
-                // overloading backend servers upon reconnect. Matches Android
-                // DefaultTokenRefresher (30s initial, doubling up to 16m max).
                 if (!refresh_thread->is_shutting_down()) {
                   refresh_thread->wakeup_sem_.TimedWait(backoff.NextDelayMs());
                 }
                 continue;
               } else {
-                // Refresh succeeded! Reset backoff to minimum interval.
                 backoff.Reset();
               }
             } else {
-              auth->auth_data_->future_impl.mutex().Release();
+              auth_data->future_impl.mutex().Release();
               refresh_thread->ref_count_mutex_.Release();
             }
 
@@ -746,20 +649,15 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
                   internal::GetTimestampEpoch() -
                   refresh_thread->token_refresh_listener_.GetTokenTimestamp();
 
-              // If the timed-wait returns true, then it means we were
-              // interrupted early - either it's time to shut down, or we
-              // got a new token and should restart the clock.
               if (!refresh_thread->wakeup_sem_.TimedWait(
                       kMsPerTokenRefresh - ms_since_last_refresh)) {
                 break;
               }
             }
-
           } else {
-            auth->auth_data_->future_impl.mutex().Release();
+            auth_data->future_impl.mutex().Release();
             refresh_thread->ref_count_mutex_.Release();
 
-            // No user, so we just wait for something to wake up the thread.
             if (!refresh_thread->is_shutting_down()) {
               refresh_thread->wakeup_sem_.Wait();
             }
@@ -769,19 +667,18 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
       this);
 }
 
-// Only called by the system, when it's time to shut down the thread.
-// Should only be used by the Auth object, on destruction.
 void IdTokenRefreshThread::Destroy() {
   assert(!is_shutting_down());
   set_is_shutting_down(true);
-  auth->RemoveIdTokenListener(&token_refresh_listener_);
+  if (auth_data_) {
+    auth_data_->RemoveInternalIdTokenListener(&token_refresh_listener_);
+  }
 
-  // All thread pauses are done via timed-wait semaphores, so this will
-  // wake the thread up, whatever it's doing.
   wakeup_sem_.Post();
 
   assert(thread_.Joinable());
   thread_.Join();
+  auth_data_ = nullptr;
 }
 
 void IdTokenRefreshThread::EnableAuthRefresh() {
@@ -789,8 +686,6 @@ void IdTokenRefreshThread::EnableAuthRefresh() {
     MutexLock lock(ref_count_mutex_);
     ref_count_++;
   }
-  // Need to force a wakeup so the thread can check if it needs to refresh the
-  // auth token now.
   wakeup_sem_.Post();
 }
 

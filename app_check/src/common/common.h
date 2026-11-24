@@ -28,11 +28,6 @@ enum AppCheckFn {
   kAppCheckFnCount,
 };
 
-// Helper function to get an existing AppCheck instance or nullptr,
-// if an instance does not already exist.
-::firebase::app_check::AppCheck* GetExistingAppCheckInstance(
-    ::firebase::App* app);
-
 }  // namespace internal
 }  // namespace app_check
 }  // namespace firebase

@@ -18,10 +18,12 @@
 #include <string>
 #include <vector>
 
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
 
@@ -29,13 +31,17 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-class AppCheckInternal {
+class AppCheckInternal : public ::firebase::internal::Service {
  public:
-  explicit AppCheckInternal(::firebase::App* app);
+  explicit AppCheckInternal(::firebase::internal::AppState& app_state);
 
-  ~AppCheckInternal();
+  ~AppCheckInternal() override;
 
-  App* app() const;
+  int teardown_priority() const override {
+    return ::firebase::internal::kProviderServiceTeardownPriority;
+  }
+
+  ::firebase::App app() const;
 
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
 
@@ -60,13 +66,13 @@ class AppCheckInternal {
   ReferenceCountedFutureImpl* future();
 
  private:
-  ::firebase::App* app_;
+  ::firebase::internal::AppState& app_state_;
 
   // A Java FirebaseAppCheck instance
-  jobject app_check_impl_;
+  jobject app_check_impl_ = nullptr;
 
   // A Java AppCheckListener instance
-  jobject j_app_check_listener_;
+  jobject j_app_check_listener_ = nullptr;
 
   // A collection of C++ AppCheckListeners
   std::vector<AppCheckListener*> listeners_;

@@ -15,11 +15,11 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_DEBUG_PROVIDER_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_DEBUG_PROVIDER_ANDROID_H_
 
-#include <map>
 #include <string>
 #include <vector>
 
 #include "app/src/embedded_file.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "firebase/app_check.h"
 
 namespace firebase {
@@ -38,17 +38,15 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   DebugAppCheckProviderFactoryInternal();
 
-  virtual ~DebugAppCheckProviderFactoryInternal();
+  ~DebugAppCheckProviderFactoryInternal() override;
 
-  AppCheckProvider* CreateProvider(App* app) override;
+  AppCheckProvider* CreateProvider(const App& app) override;
 
   void SetDebugToken(const std::string& token);
 
  private:
-  jobject android_provider_factory_;
-
-  std::map<App*, AppCheckProvider*> created_providers_;
-
+  Mutex mutex_;
+  jobject android_provider_factory_ = nullptr;
   std::string debug_token_;
 };
 

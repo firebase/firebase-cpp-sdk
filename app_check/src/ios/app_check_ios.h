@@ -16,9 +16,11 @@
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 
 #include <memory>
+#include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/include/firebase/app_check.h"
 
@@ -56,13 +58,17 @@ OBJ_C_PTR_WRAPPER(AppCheckNotificationCenterWrapper);
 // wrapper around the FIRAppCheck Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRAppCheck);
 
-class AppCheckInternal {
+class AppCheckInternal : public ::firebase::internal::Service {
  public:
-  explicit AppCheckInternal(::firebase::App* app);
+  explicit AppCheckInternal(::firebase::internal::AppState& app_state);
 
-  ~AppCheckInternal();
+  ~AppCheckInternal() override;
 
-  App* app() const;
+  int teardown_priority() const override {
+    return ::firebase::internal::kProviderServiceTeardownPriority;
+  }
+
+  ::firebase::App app() const;
 
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
 
@@ -97,7 +103,7 @@ class AppCheckInternal {
 
   std::unique_ptr<AppCheckNotificationCenterWrapperPointer> notification_center_wrapper_;
 
-  ::firebase::App* app_;
+  ::firebase::internal::AppState& app_state_;
 
   FutureManager future_manager_;
 };

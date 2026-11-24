@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <queue>
+#include <vector>
 
 #include "app/src/callback.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -85,14 +86,15 @@ class RequestHandle {
 // Scheduler can be used to trigger a callback from the same worker thread.
 // Currently it supports to trigger a callback ASAP using Execute() or with
 // a delay using Schedule().
-// All the public functions are safe to be called from different thread
+// All the public functions are safe to be called from different thread.
 class Scheduler {
  public:
   Scheduler();
 
   // When a scheduler is deleted, all the future callback will be discarded.
-  // The scheduler does not guarentee to trigger any callback scheduled before
-  // the deletion or any the potentially due callback
+  // The scheduler does not guarantee to trigger any callback scheduled before
+  // the deletion or any potentially due callback. Safe to destroy even from
+  // within a callback executing on the worker thread itself.
   ~Scheduler();
 
   // Scheduler is neither copyable nor movable.
@@ -103,14 +105,6 @@ class Scheduler {
 
   // Schedule a callback to be triggered with a delay and optional
   // repeat interval.
-  // A handler is returned for caller to check status or cancel the callback.
-  // If delay is 0, the first trigger will happen as soon as possible.
-  // If repeat is non-zero, after the first trigger, the callback will be push
-  // back to the queue again using repeat interval and trigger timestamp
-  // Note that multiple callback with the same due time theoretically will be
-  // triggered in order.  The only edge case is when request id reaches 2^64 - 1
-  // and some of the requests of the same due time are using the wrapped id. Ex.
-  // [2^64 - 2, 2^64 - 1, 0, 1, 2].  This should be really rare.
   RequestHandle Schedule(callback::Callback* callback, ScheduleTimeMs delay = 0,
                          ScheduleTimeMs repeat = 0);
 
@@ -152,12 +146,6 @@ class Scheduler {
   // Request data.
   typedef std::unique_ptr<RequestData> RequestDataPtr;
 
-  // Comparer struct for priority_queue.  If the operator return true, lhs will
-  // output later than rhs, due to the implementation of std::priority_queue.
-  // http://en.cppreference.com/w/cpp/container/priority_queue
-  // That is, the request with lowest timestamp is on the top of the queue.
-  // If multiple requests have the same due timestamp, it would be sorted based
-  // on request id, i.e. creation time.
   struct RequestDataPtrComparer {
     bool operator()(const RequestDataPtr& lhs,
                     const RequestDataPtr& rhs) const {
@@ -166,43 +154,40 @@ class Scheduler {
     }
   };
 
-  // The worker thread to process scheduled callback.
+  // Shared state kept alive by both the Scheduler and its running worker
+  // thread, allowing safe detachment if a callback destroys the Scheduler on
+  // the worker thread itself.
+  struct Impl {
+    Impl()
+        : next_request_id_(0),
+          terminating_(false),
+          worker_thread_id_set_(false),
+          request_mutex_(Mutex::kModeRecursive),
+          sleep_sem_(0) {}
+
+    RequestId next_request_id_;
+    bool terminating_;
+    Thread::Id worker_thread_id_;
+    bool worker_thread_id_set_;
+    std::priority_queue<RequestDataPtr, std::vector<RequestDataPtr>,
+                        RequestDataPtrComparer>
+        request_queue_;
+    Mutex request_mutex_;
+    Semaphore sleep_sem_;
+
+    void AddToQueue(RequestDataPtr request, uint64_t current,
+                    ScheduleTimeMs after);
+    bool TriggerCallback(const RequestDataPtr& request);
+  };
+
+  // The worker thread to process scheduled callbacks.
   Thread* thread_;
 
-  // Generate next available request id.
-  RequestId next_request_id_;
+  // Shared worker state.
+  std::shared_ptr<Impl> impl_;
 
-  // Whether the scheduler is terminating.  Only be changed in destructor and
-  // referenced in worker thread.
-  bool terminating_;
-
-  // Priority queue for all scheduled callback, ordered by due timestamp and
-  // request id
-  std::priority_queue<RequestDataPtr, std::vector<RequestDataPtr>,
-                      RequestDataPtrComparer>
-      request_queue_;
-
-  // Mutex to guard next_request_id_, terminating_ and request_queue_
-  Mutex request_mutex_;
-
-  // A semaphore with its count equivalent to the number of unfinished
-  // requests.  Used to sleep the thread when there are no more unfinished
-  // requests.  Also, it's used to wake the thread when new requests is added
-  // or when the scheduler is terminating.
-  Semaphore sleep_sem_;
-
-  // Everything below runs on worker thread
-  // The main worker thread routine
+  // The main worker thread routine.
   static void WorkerThreadRoutine(void* data);
-
-  // Move the request to the priority queue that will be triggered in given
-  // milliseconds since now
-  void AddToQueue(RequestDataPtr request, uint64_t current,
-                  ScheduleTimeMs after);
-
-  // Trigger the callback.  Return true if this callback repeats and is not
-  // cancelled yet.
-  bool TriggerCallback(const RequestDataPtr& request);
 };
 
 }  // namespace scheduler

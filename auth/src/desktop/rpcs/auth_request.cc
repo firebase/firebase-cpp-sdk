@@ -20,11 +20,12 @@
 #include <string>
 
 #include "app/src/app_common.h"
-#include "app/src/function_registry.h"
+#include "app/src/app_state.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/service_interfaces.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firebase/log.h"
@@ -39,15 +40,15 @@ namespace auth {
 // Key name for header when sending language code data.
 const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
 
-AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
+AuthRequest::AuthRequest(const ::firebase::App& app, const char* schema,
                          bool deliver_heartbeat)
-    : RequestJson(schema), app(app) {
+    : RequestJson(schema), app_(app) {
   if (deliver_heartbeat) {
     std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller =
-        app.GetHeartbeatController();
+        app_.GetHeartbeatController();
     if (heartbeat_controller) {
       std::string payload = heartbeat_controller->GetAndResetStoredHeartbeats();
-      std::string gmp_app_id = app.options().app_id();
+      std::string gmp_app_id = app_.options().app_id();
       if (!payload.empty()) {
         add_header(app_common::kApiClientHeader, payload.c_str());
         add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
@@ -57,17 +58,15 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
 
   // Add AppCheck attestation token if available.
   // This is required when AppCheck enforcement is enabled on the project.
-  ::firebase::internal::FunctionRegistry* registry = app.function_registry();
-  if (registry) {
-    Future<std::string> app_check_future;
-    bool succeeded =
-        registry->CallFunction(::firebase::internal::FnAppCheckGetTokenAsync,
-                               &app, nullptr, &app_check_future);
-    if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-      const std::string* token =
-          app_check_future.Await(kAppCheckTokenTimeoutMs);
-      if (token && app_check_future.error() == 0 && !token->empty()) {
-        add_header("X-Firebase-AppCheck", token->c_str());
+  if (auto state = ::firebase::internal::AppState::FromApp(app_)) {
+    if (auto* app_check = state->app_check_token_provider()) {
+      Future<std::string> app_check_future = app_check->GetTokenAsync();
+      if (app_check_future.status() != kFutureStatusInvalid) {
+        const std::string* token =
+            app_check_future.Await(kAppCheckTokenTimeoutMs);
+        if (token && app_check_future.error() == 0 && !token->empty()) {
+          add_header("X-Firebase-AppCheck", token->c_str());
+        }
       }
     }
   }
@@ -77,10 +76,13 @@ std::string AuthRequest::GetUrl(const char* server_url) {
   if (server_url == nullptr) {
     return "";
   }
-  Auth* auth_ptr = Auth::GetAuth(&app);
-  std::string assigned_emulator_url =
-      static_cast<AuthImpl*>(auth_ptr->auth_data_->auth_impl)
-          ->assigned_emulator_url;
+  Auth auth = Auth::GetAuth(app_);
+  std::string assigned_emulator_url;
+  if (auth.auth_data_ && auth.auth_data_->auth_impl) {
+    assigned_emulator_url =
+        static_cast<AuthImpl*>(auth.auth_data_->auth_impl)
+            ->assigned_emulator_url;
+  }
 
   if (assigned_emulator_url.empty()) {
     std::string url(kHttps);

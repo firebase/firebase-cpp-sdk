@@ -127,7 +127,12 @@ inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
 }
 
 // Return the JNI environment.
-inline JNIEnv* Env(AuthData* auth_data) { return auth_data->app->GetJNIEnv(); }
+inline JNIEnv* Env(AuthData* /*auth_data*/) {
+  return firebase::util::GetJNIEnvFromApp();
+}
+
+// Destroys platform PhoneAuthProviderData owned by AuthData, if initialized.
+void DestroyPhoneAuthProviderData(AuthData* auth_data);
 
 // Convert j_local (a local reference) into a global reference, delete the local
 // reference, and set the impl pointer to the new global reference.

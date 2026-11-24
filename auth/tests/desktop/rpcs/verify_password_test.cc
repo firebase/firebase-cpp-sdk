@@ -28,8 +28,8 @@ namespace auth {
 
 // Test VerifyPasswordRequest
 TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd");
+  App app = testing::CreateApp();
+  VerifyPasswordRequest request(app, "APIKEY", "abc@email", "pwd");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "verifyPassword?key=APIKEY",
@@ -44,9 +44,9 @@ TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
 }
 
 TEST(VerifyPasswordTest, TestVerifyPasswordRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  VerifyPasswordRequest request(app, "APIKEY", "abc@email", "pwd");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/verifyPassword?key=APIKEY",
@@ -55,7 +55,7 @@ TEST(VerifyPasswordTest, TestVerifyPasswordRequestWithEmulator) {
 
 // Test VerifyPasswordResponse
 TEST(VerifyPasswordTest, TestVerifyPasswordResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   VerifyPasswordResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -83,7 +83,7 @@ TEST(VerifyPasswordTest, TestVerifyPasswordResponse) {
 }
 
 TEST(VerifyPasswordTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   VerifyPasswordResponse response;
   const char body[] =
       "{\n"

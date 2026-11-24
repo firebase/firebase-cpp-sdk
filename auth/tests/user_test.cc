@@ -168,14 +168,14 @@ class UserTest : public ::testing::Test {
         "}");
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    Future<AuthResult> result = firebase_auth_->SignInAnonymously();
+    Future<AuthResult> result = firebase_auth_.SignInAnonymously();
     MaybeWaitForFuture(result);
-    EXPECT_TRUE(firebase_auth_->current_user().is_valid());
-    firebase_user_ = firebase_auth_->current_user();
+    EXPECT_TRUE(firebase_auth_.current_user().is_valid());
+    firebase_user_ = firebase_auth_.current_user();
   }
 
   void TearDown() override {
-    firebase_auth_->SignOut();
+    firebase_auth_.SignOut();
 
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
@@ -184,11 +184,9 @@ class UserTest : public ::testing::Test {
     // cache has valid user logged in, preventing listeners from firing.
     firebase::internal::Sleep(200);
 
-    // We do not own firebase_user_ object. So just assign it to nullptr here.
-    delete firebase_auth_;
-    firebase_auth_ = nullptr;
-    delete firebase_app_;
-    firebase_app_ = nullptr;
+    firebase_user_ = User();
+    firebase_auth_ = Auth();
+    firebase_app_ = App();
     // cppsdk needs to be the last thing torn down, because the mocks are still
     // needed for parts of the firebase destructors.
     firebase::testing::cppsdk::ConfigReset();
@@ -213,8 +211,8 @@ class UserTest : public ::testing::Test {
     EXPECT_EQ(0, result.error());
   }
 
-  App* firebase_app_ = nullptr;
-  Auth* firebase_auth_ = nullptr;
+  App firebase_app_;
+  Auth firebase_auth_;
   User firebase_user_;
 };
 
@@ -471,7 +469,7 @@ TEST_F(UserTest, TestReauthenticate) {
 
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
   Future<AuthResult> result =
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential);
+      firebase_auth_.SignInAndRetrieveDataWithCredential(credential);
   Verify(result);
 
   Future<void> reauthenticate_result =
@@ -730,8 +728,8 @@ TEST_F(UserTest, TestComparisonOperator) {
 
   {
     // Two copied of current_user()
-    User user1 = firebase_auth_->current_user();
-    User user2 = firebase_auth_->current_user();
+    User user1 = firebase_auth_.current_user();
+    User user2 = firebase_auth_.current_user();
     EXPECT_EQ(user1, user2);
   }
 }

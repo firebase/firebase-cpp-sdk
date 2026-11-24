@@ -18,6 +18,11 @@
 #include "firebase/app_check.h"
 
 namespace firebase {
+namespace internal {
+template <typename T>
+class NoDestructor;
+}  // namespace internal
+
 namespace app_check {
 
 namespace internal {
@@ -41,9 +46,12 @@ class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
-  firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
+  firebase::app_check::AppCheckProvider* CreateProvider(
+      const App& app) override;
 
  private:
+  friend class ::firebase::internal::NoDestructor<PlayIntegrityProviderFactory>;
+
   PlayIntegrityProviderFactory();
   ~PlayIntegrityProviderFactory() override;
 

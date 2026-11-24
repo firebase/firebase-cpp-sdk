@@ -14,12 +14,15 @@
 
 #include "app_check/src/android/debug_provider_android.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "app/src/app_common.h"
+#include "app/src/app_state.h"
 #include "app/src/embedded_file.h"
 #include "app/src/log.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/debug_provider.h"
@@ -83,83 +86,100 @@ void ReleaseDebugProviderClasses(JNIEnv* env) {
   g_methods_cached = false;
 }
 
+namespace {
+
+const char kAndroidDebugProviderServiceTag = 0;
+
+class AndroidDebugProviderService : public ::firebase::internal::Service {
+ public:
+  explicit AndroidDebugProviderService(jobject local_provider)
+      : provider_(local_provider) {}
+
+  int teardown_priority() const override { return -20; }
+
+  AndroidAppCheckProvider* provider() { return &provider_; }
+
+ private:
+  AndroidAppCheckProvider provider_;
+};
+
+}  // namespace
+
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : created_providers_(),
-      android_provider_factory_(nullptr),
-      debug_token_() {}
+    : android_provider_factory_(nullptr), debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
-  for (auto it = created_providers_.begin(); it != created_providers_.end();
-       ++it) {
-    delete it->second;
-  }
-  created_providers_.clear();
-  JNIEnv* env = GetJniEnv();
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
   if (env != nullptr && android_provider_factory_ != nullptr) {
     env->DeleteGlobalRef(android_provider_factory_);
+    android_provider_factory_ = nullptr;
   }
 }
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
-    App* app) {
+    const App& app) {
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
                                  kMethodsNotCachedError);
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return nullptr;
 
   firebase::LogWarning(
       "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
       "are for development only; prefer a production provider where one is "
       "available.");
 
-  // Return the provider if it already exists.
-  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
-  if (it != created_providers_.end()) {
-    return it->second;
-  }
-  JNIEnv* env = app->GetJNIEnv();
-  // Create a provider factory first if needed.
-  if (android_provider_factory_ == nullptr) {
-    jobject j_provider_factory_local =
-        env->CallStaticObjectMethod(debug_provider_factory::GetClass(),
-                                    debug_provider_factory::GetMethodId(
-                                        debug_provider_factory::kGetInstance));
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    // Hold a global references.
-    // The global references will be freed when this factory is destroyed
-    android_provider_factory_ = env->NewGlobalRef(j_provider_factory_local);
-    env->DeleteLocalRef(j_provider_factory_local);
-  }
-  jobject platform_app = app->GetPlatformApp();
+  auto service = state->GetOrCreateService<AndroidDebugProviderService>(
+      &kAndroidDebugProviderServiceTag, "",
+      [this, &app](::firebase::internal::AppState&) {
+        JNIEnv* env = app.GetJNIEnv();
+        jobject factory_ref = nullptr;
+        std::string token;
+        {
+          MutexLock lock(mutex_);
+          if (android_provider_factory_ == nullptr) {
+            jobject j_provider_factory_local = env->CallStaticObjectMethod(
+                debug_provider_factory::GetClass(),
+                debug_provider_factory::GetMethodId(
+                    debug_provider_factory::kGetInstance));
+            FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+            android_provider_factory_ =
+                env->NewGlobalRef(j_provider_factory_local);
+            env->DeleteLocalRef(j_provider_factory_local);
+          }
+          factory_ref = android_provider_factory_;
+          token = debug_token_;
+        }
 
-  // Before making the Provider, which is when Android reads the Debug token,
-  // if we have a token to override it with, use it.
-  if (!debug_token_.empty()) {
-    jstring java_token = env->NewStringUTF(debug_token_.c_str());
-    env->CallStaticVoidMethod(
-        jni_debug_helper::GetClass(),
-        jni_debug_helper::GetMethodId(jni_debug_helper::kSetDebugToken),
-        platform_app, java_token);
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    env->DeleteLocalRef(java_token);
-  }
+        jobject platform_app = app.GetPlatformApp();
+        if (!token.empty()) {
+          jstring java_token = env->NewStringUTF(token.c_str());
+          env->CallStaticVoidMethod(
+              jni_debug_helper::GetClass(),
+              jni_debug_helper::GetMethodId(jni_debug_helper::kSetDebugToken),
+              platform_app, java_token);
+          FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+          env->DeleteLocalRef(java_token);
+        }
 
-  jobject j_android_provider_local = env->CallObjectMethod(
-      android_provider_factory_,
-      debug_provider_factory::GetMethodId(debug_provider_factory::kCreate),
-      platform_app);
-  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-  env->DeleteLocalRef(platform_app);
+        jobject j_android_provider_local = env->CallObjectMethod(
+            factory_ref,
+            debug_provider_factory::GetMethodId(
+                debug_provider_factory::kCreate),
+            platform_app);
+        FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+        env->DeleteLocalRef(platform_app);
 
-  // Pass a global ref into the cpp provider constructor.
-  // It will be released when the cpp provider is destroyed
-  AppCheckProvider* cpp_provider =
-      new internal::AndroidAppCheckProvider(j_android_provider_local);
-  env->DeleteLocalRef(j_android_provider_local);
-  created_providers_[app] = cpp_provider;
-  return cpp_provider;
+        auto created = std::make_shared<AndroidDebugProviderService>(
+            j_android_provider_local);
+        env->DeleteLocalRef(j_android_provider_local);
+        return created;
+      });
+  return service ? service->provider() : nullptr;
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(
     const std::string& token) {
+  MutexLock lock(mutex_);
   // The App may not exist yet, so we save the debug token to use later.
   debug_token_ = token;
 }

@@ -32,8 +32,8 @@ typedef GetOobConfirmationCodeResponse ResponseT;
 
 // Test SetVerifyEmailRequest
 TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  auto request = RequestT::CreateSendEmailVerificationRequest(*app, "APIKEY");
+  App app = testing::CreateApp();
+  auto request = RequestT::CreateSendEmailVerificationRequest(app, "APIKEY");
   request->SetIdToken("token");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
@@ -48,9 +48,9 @@ TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequest) {
 }
 
 TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  auto request = RequestT::CreateSendEmailVerificationRequest(*app, "APIKEY");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  auto request = RequestT::CreateSendEmailVerificationRequest(app, "APIKEY");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/getOobConfirmationCode?key=APIKEY",
@@ -58,9 +58,9 @@ TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequestWithEmulator) {
 }
 
 TEST(GetOobConfirmationCodeTest, SendPasswordResetEmailRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   auto request =
-      RequestT::CreateSendPasswordResetEmailRequest(*app, "APIKEY", "email");
+      RequestT::CreateSendPasswordResetEmailRequest(app, "APIKEY", "email");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "getOobConfirmationCode?key=APIKEY",
@@ -75,7 +75,7 @@ TEST(GetOobConfirmationCodeTest, SendPasswordResetEmailRequest) {
 
 // Test GetOobConfirmationCodeResponse
 TEST(GetOobConfirmationCodeTest, TestGetOobConfirmationCodeResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   ResponseT response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.

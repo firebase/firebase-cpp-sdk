@@ -28,8 +28,8 @@ namespace auth {
 
 // Test ResetPasswordRequest
 TEST(ResetPasswordTest, TestResetPasswordRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  ResetPasswordRequest request(*app, "APIKEY", "oob", "password");
+  App app = testing::CreateApp();
+  ResetPasswordRequest request(app, "APIKEY", "oob", "password");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "resetPassword?key=APIKEY",
@@ -43,9 +43,9 @@ TEST(ResetPasswordTest, TestResetPasswordRequest) {
 }
 
 TEST(ResetPasswordTest, TestResetPasswordRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  ResetPasswordRequest request(*app, "APIKEY", "oob", "password");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  ResetPasswordRequest request(app, "APIKEY", "oob", "password");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/resetPassword?key=APIKEY",
@@ -54,7 +54,7 @@ TEST(ResetPasswordTest, TestResetPasswordRequestWithEmulator) {
 
 // Test ResetPasswordResponse
 TEST(ResetPasswordTest, TestResetPasswordResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   ResetPasswordResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.

@@ -18,6 +18,11 @@
 
 #import "FIRAppAttestProvider.h"
 
+#include <memory>
+
+#include "app/src/app_state.h"
+#include "app/src/no_destructor.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
 #include "app_check/src/ios/util_ios.h"
@@ -71,36 +76,49 @@ void AppAttestProvider::GetLimitedUseToken(
   }];
 }
 
-AppAttestProviderFactoryInternal::AppAttestProviderFactoryInternal() : created_providers_() {}
+namespace {
 
-AppAttestProviderFactoryInternal::~AppAttestProviderFactoryInternal() {
-  // Cleanup any providers created by this factory.
-  for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
-    delete it->second;
-  }
-  created_providers_.clear();
-}
+const char kIosAppAttestProviderServiceTag = 0;
 
-AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
-  // Return the provider if it already exists.
-  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
-  if (it != created_providers_.end()) {
-    return it->second;
-  }
-  // Otherwise, create a new provider
-  // Note: FIRAppAttestProvider is only supported on iOS 14+
-  FIRAppAttestProvider* ios_provider =
-      [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
-  AppCheckProvider* cpp_provider = new internal::AppAttestProvider(ios_provider);
-  created_providers_[app] = cpp_provider;
-  return cpp_provider;
+class IosAppAttestProviderService : public ::firebase::internal::Service {
+ public:
+  explicit IosAppAttestProviderService(FIRAppAttestProvider* ios_provider)
+      : provider_(ios_provider) {}
+
+  int teardown_priority() const override { return -20; }
+
+  AppAttestProvider* provider() { return &provider_; }
+
+ private:
+  AppAttestProvider provider_;
+};
+
+}  // namespace
+
+AppAttestProviderFactoryInternal::AppAttestProviderFactoryInternal() = default;
+
+AppAttestProviderFactoryInternal::~AppAttestProviderFactoryInternal() = default;
+
+AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(const App& app) {
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return nullptr;
+
+  auto service = state->GetOrCreateService<IosAppAttestProviderService>(
+      &kIosAppAttestProviderServiceTag, "", [&app](::firebase::internal::AppState&) {
+        // Note: FIRAppAttestProvider is only supported on iOS 14+
+        FIRAppAttestProvider* ios_provider =
+            [[FIRAppAttestProvider alloc] initWithApp:app.GetPlatformApp()];
+        return std::make_shared<IosAppAttestProviderService>(ios_provider);
+      });
+  return service ? service->provider() : nullptr;
 }
 
 }  // namespace internal
 
 AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
-  static AppAttestProviderFactory g_app_attest_provider_factory;
-  return &g_app_attest_provider_factory;
+  static ::firebase::internal::NoDestructor<AppAttestProviderFactory>
+      g_app_attest_provider_factory;
+  return g_app_attest_provider_factory.get();
 }
 
 AppAttestProviderFactory::AppAttestProviderFactory()
@@ -113,7 +131,7 @@ AppAttestProviderFactory::~AppAttestProviderFactory() {
   }
 }
 
-AppCheckProvider* AppAttestProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* AppAttestProviderFactory::CreateProvider(const App& app) {
   if (internal_) {
     return internal_->CreateProvider(app);
   }

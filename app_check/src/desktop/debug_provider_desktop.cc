@@ -31,10 +31,12 @@
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
 #include "app/src/scheduler.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/uuid.h"
 #include "app/src/variant_util.h"
 #include "app_check/src/desktop/debug_token_request.h"
@@ -241,7 +243,8 @@ namespace {
 //      APP_CHECK_DEBUG_TOKEN)
 //   3. Local configstore (~/.config/configstore/firebase-appcheck.json)
 //   4. Auto-generated UUID
-std::string ResolveDebugToken(App* app, const std::string& explicit_token) {
+std::string ResolveDebugToken(const App& app,
+                              const std::string& explicit_token) {
   firebase::LogWarning(
       "[FirebaseAppCheck] DebugAppCheckProviderFactory is in use. Debug tokens "
       "are for development only; prefer a production provider where one is "
@@ -268,7 +271,7 @@ std::string ResolveDebugToken(App* app, const std::string& explicit_token) {
   }
 
   // 3. Check local configstore JSON.
-  std::string app_id = app->options().app_id();
+  std::string app_id = app.options().app_id();
   if (!app_id.empty()) {
     for (const std::string& config_path : ResolveConfigstorePaths()) {
       std::string token = ResolveDebugTokenFromConfig(config_path, app_id);
@@ -282,7 +285,7 @@ std::string ResolveDebugToken(App* app, const std::string& explicit_token) {
 
   // 4. Fallback: auto-generate UUID and log local secret warning.
   std::string token = GenerateUuidString();
-  std::string project_id = app->options().project_id();
+  std::string project_id = app.options().project_id();
   // Split across multiple LogWarning calls to stay under the 512-byte
   // buffer in app/src/log.cc.
   std::string message_to_log =
@@ -322,10 +325,32 @@ std::string ResolveDebugToken(App* app, const std::string& explicit_token) {
   return token;
 }
 
+const char kDebugProviderServiceTag = 0;
+
+class DebugProviderService : public ::firebase::internal::Service {
+ public:
+  DebugProviderService(const App& app, const std::string& token)
+      : provider_(app, token) {}
+
+  // Tear down after AppCheckInternal (-10) so cached provider pointers are
+  // never dangling during AppCheckInternal teardown.
+  int teardown_priority() const override { return -20; }
+
+  DebugAppCheckProvider* provider() { return &provider_; }
+
+ private:
+  DebugAppCheckProvider provider_;
+};
+
 }  // namespace
 
-DebugAppCheckProvider::DebugAppCheckProvider(App* app, const std::string& token)
-    : app_(app), scheduler_(), debug_token_(ResolveDebugToken(app, token)) {
+DebugAppCheckProvider::DebugAppCheckProvider(const App& app,
+                                             const std::string& token)
+    : project_id_(app.options().project_id()),
+      app_id_(app.options().app_id()),
+      api_key_(app.options().api_key()),
+      scheduler_(),
+      debug_token_(ResolveDebugToken(app, token)) {
   firebase::rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -388,7 +413,8 @@ void DebugAppCheckProvider::GetTokenInternal(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
   // Exchange debug token with the backend to get a proper attestation token.
-  auto request = std::make_shared<DebugTokenRequest>(app_);
+  auto request =
+      std::make_shared<DebugTokenRequest>(project_id_, app_id_, api_key_);
   request->SetDebugToken(debug_token_);
   request->SetLimitedUse(limited_use);
 
@@ -399,31 +425,32 @@ void DebugAppCheckProvider::GetTokenInternal(
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : provider_map_(), debug_token_() {}
+    : debug_token_() {}
 
-DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
-  // Clear the map
-  for (auto it : provider_map_) {
-    delete it.second;
-  }
-  provider_map_.clear();
-}
+DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() =
+    default;
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
-    App* app) {
-  // Check the map
-  std::map<App*, AppCheckProvider*>::iterator it = provider_map_.find(app);
-  if (it != provider_map_.end()) {
-    return it->second;
+    const App& app) {
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return nullptr;
+
+  std::string token;
+  {
+    MutexLock lock(mutex_);
+    token = debug_token_;
   }
-  // Create a new provider and cache it
-  AppCheckProvider* provider = new DebugAppCheckProvider(app, debug_token_);
-  provider_map_[app] = provider;
-  return provider;
+  auto service = state->GetOrCreateService<DebugProviderService>(
+      &kDebugProviderServiceTag, "",
+      [&app, &token](::firebase::internal::AppState&) {
+        return std::make_shared<DebugProviderService>(app, token);
+      });
+  return service ? service->provider() : nullptr;
 }
 
 void DebugAppCheckProviderFactoryInternal::SetDebugToken(
     const std::string& token) {
+  MutexLock lock(mutex_);
   debug_token_ = token;
 }
 

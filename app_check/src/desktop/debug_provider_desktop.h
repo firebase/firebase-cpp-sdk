@@ -16,9 +16,9 @@
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 
 #include <functional>
-#include <map>
 #include <string>
 
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/scheduler.h"
 #include "firebase/app_check.h"
 
@@ -34,7 +34,7 @@ std::string ResolveDebugTokenFromConfig(const std::string& config_path,
 
 class DebugAppCheckProvider : public AppCheckProvider {
  public:
-  DebugAppCheckProvider(App* app, const std::string& token);
+  DebugAppCheckProvider(const App& app, const std::string& token);
   ~DebugAppCheckProvider() override;
 
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
@@ -52,7 +52,9 @@ class DebugAppCheckProvider : public AppCheckProvider {
       std::function<void(AppCheckToken, int, const std::string&)>
           completion_callback);
 
-  App* app_;
+  std::string project_id_;
+  std::string app_id_;
+  std::string api_key_;
   scheduler::Scheduler scheduler_;
   const std::string debug_token_;
 };
@@ -61,15 +63,14 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   DebugAppCheckProviderFactoryInternal();
 
-  virtual ~DebugAppCheckProviderFactoryInternal();
+  ~DebugAppCheckProviderFactoryInternal() override;
 
-  AppCheckProvider* CreateProvider(App* app) override;
+  AppCheckProvider* CreateProvider(const App& app) override;
 
   void SetDebugToken(const std::string& token);
 
  private:
-  std::map<App*, AppCheckProvider*> provider_map_;
-
+  Mutex mutex_;
   std::string debug_token_;
 };
 

@@ -29,8 +29,8 @@ namespace auth {
 
 // Test GetAccountInfoRequest
 TEST(GetAccountInfoTest, TestGetAccountInfoRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  GetAccountInfoRequest request(*app, "APIKEY", "token");
+  App app = testing::CreateApp();
+  GetAccountInfoRequest request(app, "APIKEY", "token");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "getAccountInfo?key=APIKEY",
@@ -43,9 +43,9 @@ TEST(GetAccountInfoTest, TestGetAccountInfoRequest) {
 }
 
 TEST(GetAccountInfoTest, TestGetAccountInfoRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  GetAccountInfoRequest request(*app, "APIKEY", "token");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  GetAccountInfoRequest request(app, "APIKEY", "token");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/getAccountInfo?key=APIKEY",
@@ -54,7 +54,7 @@ TEST(GetAccountInfoTest, TestGetAccountInfoRequestWithEmulator) {
 
 // Test GetAccountInfoResponse
 TEST(GetAccountInfoTest, TestGetAccountInfoResponse) {
-  std::unique_ptr<App> app(App::Create(AppOptions()));
+  App app = App::Create(AppOptions());
   GetAccountInfoResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.

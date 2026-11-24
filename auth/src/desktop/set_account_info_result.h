@@ -81,11 +81,10 @@ class SetAccountInfoResult {
   AuthError error() const { return error_; }
 
   // Updates the properties of the currently signed-in user to those returned by
-  // the operation this result represents, and returns the pointer to current
-  // user which can be easily returned to the API caller.
+  // the operation this result represents, and returns the current User handle.
   //
   // Updates to AuthData are done in a thread-safe manner.
-  User* MergeToCurrentUser(AuthData* auth_data) const;
+  User MergeToCurrentUser(AuthData* auth_data) const;
 
  private:
   friend class AuthenticationResult;

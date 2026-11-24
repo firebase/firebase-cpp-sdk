@@ -50,77 +50,80 @@ class IOSWrappedUserInfo : public UserInfoInterface {
   id<FIRUserInfo> user_info_;
 };
 
-User::User(const User &user) { auth_data_ = user.auth_data_; }
-
-User &User::operator=(const User &user) {
-  auth_data_ = user.auth_data_;
-  return *this;
+bool User::is_valid() const {
+  auto data = auth_data_.lock();
+  return ValidUser(data.get());
 }
 
-User::~User() { auth_data_ = nullptr; }
-
-bool User::is_valid() const { return ValidUser(auth_data_); }
-
 Future<std::string> User::GetToken(bool force_refresh) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<std::string>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<std::string>(kUserFn_GetToken);
-  [UserImpl(auth_data_)
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
       getIDTokenForcingRefresh:force_refresh
                     completion:^(NSString *_Nullable token, NSError *_Nullable error) {
-                      futures.Complete(handle, AuthErrorFromNSError(error),
-                                       [error.localizedDescription UTF8String],
-                                       [token](std::string *data) {
-                                         data->assign(token == nullptr ? "" : [token UTF8String]);
-                                       });
+                      auto locked = weak_auth.lock();
+                      if (!locked) return;
+                      locked->future_impl.Complete(
+                          handle, AuthErrorFromNSError(error),
+                          [error.localizedDescription UTF8String],
+                          [token](std::string *result) {
+                            result->assign(token == nullptr ? "" : [token UTF8String]);
+                          });
                     }];
   return MakeFuture(&futures, handle);
 }
 
 Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<IdTokenResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<IdTokenResult>(kUserFn_GetIdTokenResult);
-  [UserImpl(auth_data_)
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
       getIDTokenResultForcingRefresh:force_refresh
                           completion:^(FIRAuthTokenResult *_Nullable token_result,
                                        NSError *_Nullable error) {
-                            futures.Complete(
+                            auto locked = weak_auth.lock();
+                            if (!locked) return;
+                            locked->future_impl.Complete(
                                 handle, AuthErrorFromNSError(error),
                                 [error.localizedDescription UTF8String],
-                                [token_result](IdTokenResult *data) {
+                                [token_result](IdTokenResult *result) {
                                   if (token_result != nullptr) {
-                                    data->token = StringFromNSString(token_result.token);
-                                    data->auth_timestamp =
+                                    result->token = StringFromNSString(token_result.token);
+                                    result->auth_timestamp =
                                         token_result.authDate
                                             ? static_cast<uint64_t>(
                                                   token_result.authDate.timeIntervalSince1970)
                                             : 0;
-                                    data->issued_at_timestamp =
+                                    result->issued_at_timestamp =
                                         token_result.issuedAtDate
                                             ? static_cast<uint64_t>(
                                                   token_result.issuedAtDate.timeIntervalSince1970)
                                             : 0;
-                                    data->expiration_timestamp =
+                                    result->expiration_timestamp =
                                         token_result.expirationDate
                                             ? static_cast<uint64_t>(
                                                   token_result.expirationDate.timeIntervalSince1970)
                                             : 0;
-                                    data->sign_in_provider =
+                                    result->sign_in_provider =
                                         StringFromNSString(token_result.signInProvider);
-                                    data->sign_in_second_factor =
+                                    result->sign_in_second_factor =
                                         StringFromNSString(token_result.signInSecondFactor);
-                                    data->claims.clear();
+                                    result->claims.clear();
                                     if (token_result.claims != nil) {
                                       util::NSDictionaryToStdMap(token_result.claims,
-                                                                 &data->claims);
+                                                                 &result->claims);
                                     }
                                   } else {
-                                    *data = IdTokenResult();
+                                    *result = IdTokenResult();
                                   }
                                 });
                           }];
@@ -129,8 +132,9 @@ Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
 
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
-  if (ValidUser(auth_data_)) {
-    NSArray<id<FIRUserInfo>> *fir_provider_data = UserImpl(auth_data_).providerData;
+  auto data = auth_data_.lock();
+  if (ValidUser(data.get())) {
+    NSArray<id<FIRUserInfo>> *fir_provider_data = UserImpl(data.get()).providerData;
     if (fir_provider_data != nullptr) {
       provider_data.reserve(fir_provider_data.count);
       for (size_t i = 0; i < fir_provider_data.count; ++i) {
@@ -152,27 +156,33 @@ std::vector<UserInfoInterface> User::provider_data() const {
 }
 
 Future<void> User::UpdatePassword(const char *password) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdatePassword);
-  [UserImpl(auth_data_) updatePassword:@(password)
-                            completion:^(NSError *_Nullable error) {
-                              futures.Complete(handle, AuthErrorFromNSError(error),
-                                               [error.localizedDescription UTF8String]);
-                            }];
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
+      updatePassword:@(password)
+          completion:^(NSError *_Nullable error) {
+            auto locked = weak_auth.lock();
+            if (!locked) return;
+            locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                         [error.localizedDescription UTF8String]);
+          }];
   return MakeFuture(&futures, handle);
 }
 
 Future<void> User::UpdateUserProfile(const UserProfile &profile) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateUserProfile);
   // Create and populate the change request.
-  FIRUserProfileChangeRequest *request = [UserImpl(auth_data_) profileChangeRequest];
+  FIRUserProfileChangeRequest *request = [UserImpl(data.get()) profileChangeRequest];
   if (profile.display_name != nullptr) {
     request.displayName = @(profile.display_name);
   }
@@ -184,82 +194,107 @@ Future<void> User::UpdateUserProfile(const UserProfile &profile) {
   }
 
   // Execute the change request.
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
   [request commitChangesWithCompletion:^(NSError *_Nullable error) {
-    futures.Complete(handle, AuthErrorFromNSError(error), [error.localizedDescription UTF8String]);
+    auto locked = weak_auth.lock();
+    if (!locked) return;
+    locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                 [error.localizedDescription UTF8String]);
   }];
   return MakeFuture(&futures, handle);
 }
 
 Future<void> User::SendEmailVerification() {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerification);
-  [UserImpl(auth_data_) sendEmailVerificationWithCompletion:^(NSError *_Nullable error) {
-    futures.Complete(handle, AuthErrorFromNSError(error), [error.localizedDescription UTF8String]);
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get()) sendEmailVerificationWithCompletion:^(NSError *_Nullable error) {
+    auto locked = weak_auth.lock();
+    if (!locked) return;
+    locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                 [error.localizedDescription UTF8String]);
   }];
   return MakeFuture(&futures, handle);
 }
 
 Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char *email) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerificationBeforeUpdatingEmail);
-  [UserImpl(auth_data_)
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
       sendEmailVerificationBeforeUpdatingEmail:@(email)
                                     completion:^(NSError *_Nullable error) {
-                                      futures.Complete(handle, AuthErrorFromNSError(error),
-                                                       [error.localizedDescription UTF8String]);
+                                      auto locked = weak_auth.lock();
+                                      if (!locked) return;
+                                      locked->future_impl.Complete(
+                                          handle, AuthErrorFromNSError(error),
+                                          [error.localizedDescription UTF8String]);
                                     }];
   return MakeFuture(&futures, handle);
 }
 
 Future<AuthResult> User::LinkWithCredential(const Credential &credential) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_LinkWithCredential, AuthResult());
   if (!credential.is_valid()) {
     futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
     return MakeFuture(&futures, handle);
   }
-  AuthData *auth_data = auth_data_;
-  [UserImpl(auth_data)
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                AuthResultCallback(auth_result, error, handle, auth_data);
+                auto locked = weak_auth.lock();
+                if (!locked) return;
+                AuthResultCallback(auth_result, error, handle, locked.get());
               }];
   return MakeFuture(&futures, handle);
 }
 
 Future<AuthResult> User::LinkWithProvider(FederatedAuthProvider *provider) const {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Link(auth_data_);
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
+    return Future<AuthResult>();
+  }
+  return provider->Link(data.get());
 }
 
 Future<AuthResult> User::Unlink(const char *provider) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_Unlink);
-  AuthData *auth_data = auth_data_;
-  [UserImpl(auth_data) unlinkFromProvider:@(provider)
-                               completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
-                                 AuthResultCallback(user, error, handle, auth_data);
-                               }];
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get()) unlinkFromProvider:@(provider)
+                                completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
+                                  auto locked = weak_auth.lock();
+                                  if (!locked) return;
+                                  AuthResultCallback(user, error, handle, locked.get());
+                                }];
   return MakeFuture(&futures, handle);
 }
 
 Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &credential) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<User>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<User>(kUserFn_UpdatePhoneNumberCredential);
 
 #if FIREBASE_PLATFORM_IOS
@@ -268,11 +303,15 @@ Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &creden
     return MakeFuture(&futures, handle);
   }
   FIRPhoneAuthCredential *objc_credential = PhoneAuthCredentialFromImpl(credential.impl_);
-  [UserImpl(auth_data_)
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
       updatePhoneNumberCredential:objc_credential
                        completion:^(NSError *_Nullable error) {
-                         futures.Complete(handle, AuthErrorFromNSError(error),
-                                          [error.localizedDescription UTF8String]);
+                         auto locked = weak_auth.lock();
+                         if (!locked) return;
+                         locked->future_impl.Complete(
+                             handle, AuthErrorFromNSError(error),
+                             [error.localizedDescription UTF8String]);
                        }];
 #else   // non iOS Apple platforms (eg: tvOS).
   futures.Complete(handle, kAuthErrorApiNotAvailable,
@@ -283,130 +322,157 @@ Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &creden
 }
 
 Future<void> User::Reload() {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reload);
-
-  [UserImpl(auth_data_) reloadWithCompletion:^(NSError *_Nullable error) {
-    futures.Complete(handle, AuthErrorFromNSError(error), [error.localizedDescription UTF8String]);
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get()) reloadWithCompletion:^(NSError *_Nullable error) {
+    auto locked = weak_auth.lock();
+    if (!locked) return;
+    locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                 [error.localizedDescription UTF8String]);
   }];
   return MakeFuture(&futures, handle);
 }
 
 Future<void> User::Reauthenticate(const Credential &credential) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
   if (!credential.is_valid()) {
     futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
     return MakeFuture(&futures, handle);
   }
-
-  [UserImpl(auth_data_)
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
                         completion:^(FIRAuthDataResult *_Nullable auth_result,
                                      NSError *_Nullable error) {
-                          futures.Complete(handle, AuthErrorFromNSError(error),
-                                           [error.localizedDescription UTF8String]);
+                          auto locked = weak_auth.lock();
+                          if (!locked) return;
+                          locked->future_impl.Complete(
+                              handle, AuthErrorFromNSError(error),
+                              [error.localizedDescription UTF8String]);
                         }];
   return MakeFuture(&futures, handle);
 }
 
 Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential &credential) {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<AuthResult>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
+  ReferenceCountedFutureImpl &futures = data->future_impl;
+  const auto handle = futures.SafeAlloc<AuthResult>(
       kUserFn_ReauthenticateAndRetrieveData, AuthResult());
   if (!credential.is_valid()) {
     futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
     return MakeFuture(&futures, handle);
   }
-  AuthData *auth_data = auth_data_;
-  [UserImpl(auth_data)
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get())
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
                         completion:^(FIRAuthDataResult *_Nullable auth_result,
                                      NSError *_Nullable error) {
-                          AuthResultCallback(auth_result, error, handle, auth_data);
+                          auto locked = weak_auth.lock();
+                          if (!locked) return;
+                          AuthResultCallback(auth_result, error, handle, locked.get());
                         }];
   return MakeFuture(&futures, handle);
 }
 
 Future<AuthResult> User::ReauthenticateWithProvider(FederatedAuthProvider *provider) const {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  return provider->Reauthenticate(auth_data_);
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
+    return Future<AuthResult>();
+  }
+  return provider->Reauthenticate(data.get());
 }
 
 Future<void> User::Delete() {
-  if (!ValidUser(auth_data_)) {
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
-  AuthData *auth_data = auth_data_;
-  [UserImpl(auth_data) deleteWithCompletion:^(NSError *_Nullable error) {
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
+  [UserImpl(data.get()) deleteWithCompletion:^(NSError *_Nullable error) {
+    auto locked = weak_auth.lock();
+    if (!locked) return;
     if (!error) {
-      UpdateCurrentUser(auth_data);
-      futures.Complete(handle, kAuthErrorNone, "");
+      UpdateCurrentUser(locked.get());
+      locked->future_impl.Complete(handle, kAuthErrorNone, "");
     } else {
-      futures.Complete(handle, AuthErrorFromNSError(error),
-                       [error.localizedDescription UTF8String]);
+      locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                   [error.localizedDescription UTF8String]);
     }
   }];
   return MakeFuture(&futures, handle);
 }
 
 UserMetadata User::metadata() const {
-  if (!ValidUser(auth_data_)) return UserMetadata();
+  auto data = auth_data_.lock();
+  if (!ValidUser(data.get())) return UserMetadata();
 
-  FIRUserMetadata *meta = UserImpl(auth_data_).metadata;
+  FIRUserMetadata *meta = UserImpl(data.get()).metadata;
   if (!meta) return UserMetadata();
 
-  UserMetadata data;
+  UserMetadata result;
   // * 1000 because timeIntervalSince1970 is in seconds, and we need ms.
   // TODO(b/69176745): Use a util for this so we don't forget about this ms conversion elsewhere.
-  data.last_sign_in_timestamp =
+  result.last_sign_in_timestamp =
       static_cast<uint64_t>([meta.lastSignInDate timeIntervalSince1970] * 1000.0);
-  data.creation_timestamp =
+  result.creation_timestamp =
       static_cast<uint64_t>([meta.creationDate timeIntervalSince1970] * 1000.0);
-  return data;
+  return result;
 }
 
 bool User::is_email_verified() const {
-  return ValidUser(auth_data_) ? UserImpl(auth_data_).emailVerified : false;
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? UserImpl(data.get()).emailVerified : false;
 }
 
 bool User::is_anonymous() const {
-  return ValidUser(auth_data_) ? UserImpl(auth_data_).anonymous : false;
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? UserImpl(data.get()).anonymous : false;
 }
 
 std::string User::uid() const {
-  return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).uid) : "";
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? StringFromNSString(UserImpl(data.get()).uid) : "";
 }
 
 std::string User::email() const {
-  return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).email) : "";
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? StringFromNSString(UserImpl(data.get()).email) : "";
 }
 
 std::string User::display_name() const {
-  return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).displayName) : "";
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? StringFromNSString(UserImpl(data.get()).displayName) : "";
 }
 
 std::string User::phone_number() const {
-  return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).phoneNumber) : "";
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? StringFromNSString(UserImpl(data.get()).phoneNumber) : "";
 }
 
 std::string User::photo_url() const {
-  return ValidUser(auth_data_) ? StringFromNSUrl(UserImpl(auth_data_).photoURL) : "";
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? StringFromNSUrl(UserImpl(data.get()).photoURL) : "";
 }
 
 std::string User::provider_id() const {
-  return ValidUser(auth_data_) ? StringFromNSString(UserImpl(auth_data_).providerID) : "";
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) ? StringFromNSString(UserImpl(data.get()).providerID) : "";
 }
 
 }  // namespace auth

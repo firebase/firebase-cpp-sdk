@@ -29,8 +29,8 @@ namespace auth {
 
 // Test SignUpNewUserRequest for making anonymous signin
 TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  SignUpNewUserRequest request(*app, "APIKEY");
+  App app = testing::CreateApp();
+  SignUpNewUserRequest request(app, "APIKEY");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "signupNewUser?key=APIKEY",
@@ -43,9 +43,9 @@ TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
 }
 
 TEST(SignUpNewUserTest, TestAnonymousSignInRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
-  SignUpNewUserRequest request(*app, "APIKEY");
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
+  SignUpNewUserRequest request(app, "APIKEY");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/signupNewUser?key=APIKEY",
@@ -54,8 +54,8 @@ TEST(SignUpNewUserTest, TestAnonymousSignInRequestWithEmulator) {
 
 // Test SignUpNewUserRequest for using password signin
 TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  SignUpNewUserRequest request(*app, "APIKEY", "e@mail", "pwd", "rabbit");
+  App app = testing::CreateApp();
+  SignUpNewUserRequest request(app, "APIKEY", "e@mail", "pwd", "rabbit");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "signupNewUser?key=APIKEY",
@@ -71,9 +71,9 @@ TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
 }
 
 TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPassword) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   auto request = SignUpRequest::CreateLinkWithEmailAndPasswordRequest(
-      *app, "APIKEY", "e@mail", "pwd");
+      app, "APIKEY", "e@mail", "pwd");
   EXPECT_EQ(
       "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=APIKEY",
       request->options().url);
@@ -87,10 +87,10 @@ TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPassword) {
 }
 
 TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPasswordWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth::GetAuth(app.get())->UseEmulator("localhost", 9099);
+  App app = testing::CreateApp();
+  Auth::GetAuth(app).UseEmulator("localhost", 9099);
   auto request = SignUpRequest::CreateLinkWithEmailAndPasswordRequest(
-      *app, "APIKEY", "e@mail", "pwd");
+      app, "APIKEY", "e@mail", "pwd");
   EXPECT_EQ(
       "http://localhost:9099/identitytoolkit.googleapis.com/v1/"
       "accounts:signUp?key=APIKEY",
@@ -99,7 +99,7 @@ TEST(SignUpNewUserTest, TestSignUpRequestLinkWithEmailAndPasswordWithEmulator) {
 
 // Test SignUpNewUserResponse
 TEST(SignUpNewUserTest, TestSignUpNewUserResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   SignUpNewUserResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.
@@ -119,7 +119,7 @@ TEST(SignUpNewUserTest, TestSignUpNewUserResponse) {
 }
 
 TEST(SignUpNewUserTest, TestErrorResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   SignUpNewUserResponse response;
   const char body[] =
       "{\n"

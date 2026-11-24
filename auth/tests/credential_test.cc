@@ -45,15 +45,13 @@ class CredentialTest : public ::testing::Test {
     firebase::testing::cppsdk::ConfigSet("{}");
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    EXPECT_NE(nullptr, firebase_auth_);
+    EXPECT_TRUE(firebase_auth_.is_valid());
   }
 
   void TearDown() override {
     firebase::testing::cppsdk::ConfigReset();
-    delete firebase_auth_;
-    firebase_auth_ = nullptr;
-    delete firebase_app_;
-    firebase_app_ = nullptr;
+    firebase_auth_ = Auth();
+    firebase_app_ = App();
   }
 
   // Helper function to verify the credential result.
@@ -62,8 +60,8 @@ class CredentialTest : public ::testing::Test {
     EXPECT_EQ(provider, credential.provider());
   }
 
-  App* firebase_app_ = nullptr;
-  Auth* firebase_auth_ = nullptr;
+  App firebase_app_;
+  Auth firebase_auth_;
 };
 
 TEST_F(CredentialTest, TestEmailAuthProvider) {

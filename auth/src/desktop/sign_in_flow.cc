@@ -27,7 +27,8 @@ GetAccountInfoResult GetAccountInfo(const GetAccountInfoRequest& request) {
 
 GetAccountInfoResult GetAccountInfo(const AuthData& auth_data,
                                     const std::string& access_token) {
-  const GetAccountInfoRequest request(*auth_data.app, GetApiKey(auth_data),
+  App app_handle = auth_data.app_state.TryMakeAppHandle();
+  const GetAccountInfoRequest request(app_handle, GetApiKey(auth_data),
                                       access_token.c_str());
   return GetAccountInfo(request);
 }

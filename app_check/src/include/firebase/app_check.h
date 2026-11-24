@@ -16,6 +16,8 @@
 #define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include <string>
 
 #include "firebase/app.h"
@@ -103,14 +105,14 @@ class AppCheckProviderFactory {
   /// Gets the {@link AppCheckProvider} associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
-  virtual AppCheckProvider* CreateProvider(App* app) = 0;
+  virtual AppCheckProvider* CreateProvider(const App& app) = 0;
 };
 
 namespace internal {
 class AppCheckInternal;
 }  // namespace internal
 
-/// @brief Firebase App Check object.
+/// @brief Firebase App Check value handle.
 ///
 /// App Check helps protect your API resources from abuse by preventing
 /// unauthorized clients from accessing your backend resources.
@@ -119,15 +121,33 @@ class AppCheckInternal;
 /// attests to one or both of the following:
 /// * Requests originate from your authentic app
 /// * Requests originate from an authentic, untampered device
+///
+/// AppCheck is a lightweight copyable value handle sharing ownership of the
+/// underlying App state. Copies refer to the same per-App App Check instance.
 class AppCheck {
  public:
-  /// @brief Destructor. You may delete an instance of AppCheck when
-  /// you are finished using it to shut down the AppCheck library.
-  ~AppCheck();
+  /// Constructs an invalid AppCheck handle (`is_valid() == false`).
+  AppCheck() = default;
+  AppCheck(const AppCheck&) = default;
+  AppCheck& operator=(const AppCheck&) = default;
+  AppCheck(AppCheck&&) noexcept = default;
+  AppCheck& operator=(AppCheck&&) noexcept = default;
+  ~AppCheck() = default;
+
+  /// Returns true if this handle refers to a valid AppCheck instance.
+  bool is_valid() const { return internal_ != nullptr; }
+  explicit operator bool() const { return is_valid(); }
+
+  bool operator==(const AppCheck& other) const {
+    return internal_ == other.internal_;
+  }
+  bool operator!=(const AppCheck& other) const {
+    return internal_ != other.internal_;
+  }
 
   /// Gets the instance of AppCheck associated with the given
-  /// {@link App} instance.
-  static AppCheck* GetInstance(::firebase::App* app);
+  /// {@link App} instance, or an invalid AppCheck handle if `app` is invalid.
+  static AppCheck GetInstance(const ::firebase::App& app);
 
   /// Installs the given AppCheckProviderFactory, overwriting any that
   /// were previously associated with this AppCheck instance. Any
@@ -146,7 +166,7 @@ class AppCheck {
   /// @brief Get the firebase::App that this AppCheck was created with.
   ///
   /// @returns The firebase::App this AppCheck was created with.
-  ::firebase::App* app();
+  ::firebase::App app() const;
 
   /// Sets the isTokenAutoRefreshEnabled flag.
   void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
@@ -178,13 +198,11 @@ class AppCheck {
   void RemoveAppCheckListener(AppCheckListener* listener);
 
  private:
-  explicit AppCheck(::firebase::App* app);
-
-  void DeleteInternal();
+  explicit AppCheck(std::shared_ptr<internal::AppCheckInternal> internal);
 
   // Make the Internal version a friend class, so that it can access itself.
   friend class internal::AppCheckInternal;
-  internal::AppCheckInternal* internal_;
+  std::shared_ptr<internal::AppCheckInternal> internal_;
 };
 
 }  // namespace app_check

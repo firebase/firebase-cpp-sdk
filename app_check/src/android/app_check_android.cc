@@ -14,9 +14,12 @@
 
 #include "app_check/src/android/app_check_android.h"
 
+#include <algorithm>
+#include <atomic>
 #include <string>
 #include <vector>
 
+#include "app/src/app_state.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -143,7 +146,7 @@ static const JNINativeMethod kNativeJniAppCheckListenerMethods[] = {
      reinterpret_cast<void*>(JniAppCheckListener_nativeOnAppCheckTokenChanged)},
 };
 
-static AppCheckProviderFactory* g_provider_factory = nullptr;
+static std::atomic<AppCheckProviderFactory*> g_provider_factory{nullptr};
 static int g_initialized_count = 0;
 
 bool CacheAppCheckMethodIds(
@@ -233,7 +236,10 @@ void TokenResultCallback(JNIEnv* env, jobject result,
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
     JNIEnv* env, jobject clazz, jlong c_factory, jlong c_app) {
-  App* cpp_app = reinterpret_cast<App*>(c_app);
+  auto* app_state = reinterpret_cast<::firebase::internal::AppState*>(c_app);
+  if (!app_state) return 0;
+  App cpp_app = app_state->TryMakeAppHandle();
+  if (!cpp_app.is_valid()) return 0;
   AppCheckProviderFactory* provider_factory =
       reinterpret_cast<AppCheckProviderFactory*>(c_factory);
   AppCheckProvider* provider = provider_factory->CreateProvider(cpp_app);
@@ -313,13 +319,15 @@ JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
   app_check_internal->NotifyTokenChanged(cpp_token);
 }
 
-AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
+AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
+    : app_state_(app_state) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
 
+  App app_handle = app_state_.MakeAppHandle();
   // Cache the JNI method ids so we only have to look them up by name once.
-  JNIEnv* env = app->GetJNIEnv();
+  JNIEnv* env = app_handle.GetJNIEnv();
   if (!g_initialized_count) {
-    jobject activity = app->activity();
+    jobject activity = app_state_.activity();
     if (util::Initialize(env, activity)) {
       // Cache embedded files and load embedded classes.
       const std::vector<firebase::internal::EmbeddedFile> embedded_files =
@@ -349,7 +357,7 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   // Create the FirebaseAppCheck class in Java.
-  jobject platform_app = app->GetPlatformApp();
+  jobject platform_app = app_handle.GetPlatformApp();
   jobject j_app_check_local = env->CallStaticObjectMethod(
       app_check::GetClass(), app_check::GetMethodId(app_check::kGetInstance),
       platform_app);
@@ -363,15 +371,16 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     env->DeleteLocalRef(j_app_check_local);
 
     // Install the AppCheckProviderFactory for this instance of AppCheck.
-    if (g_provider_factory) {
+    AppCheckProviderFactory* factory = g_provider_factory.load();
+    if (factory) {
       // Create a Java ProviderFactory to wrap the C++ ProviderFactory
       // Since InstallAppCheckProviderFactory is done for a single instance of
       // AppCheck, this factory will only be used for this App.
       jobject j_factory = env->NewObject(
           jni_provider_factory::GetClass(),
           jni_provider_factory::GetMethodId(jni_provider_factory::kConstructor),
-          reinterpret_cast<jlong>(g_provider_factory),
-          reinterpret_cast<jlong>(app));
+          reinterpret_cast<jlong>(factory),
+          reinterpret_cast<jlong>(&app_state_));
       FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
       // Install the Java ProviderFactory in the java AppCheck class.
       env->CallVoidMethod(
@@ -403,45 +412,40 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
-  JNIEnv* env = app_->GetJNIEnv();
-  app_ = nullptr;
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
   listeners_.clear();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
+  if (env != nullptr) {
+    util::CancelCallbacks(env, jni_task_id_.c_str());
 
-  if (j_app_check_listener_ != nullptr) {
-    env->CallVoidMethod(
-        app_check_impl_,
-        app_check::GetMethodId(app_check::kRemoveAppCheckListener),
-        j_app_check_listener_);
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    env->DeleteGlobalRef(j_app_check_listener_);
-  }
-  if (app_check_impl_ != nullptr) {
-    // The Android App Check library holds onto the provider,
-    // which can be a problem if it tries to call up to C++
-    // after being deleted. So we use a hidden function meant
-    // for testing purposes to clear out the App Check state,
-    // to prevent this. Note, this assumes that the java object
-    // is a DefaultFirebaseAppCheck (instead of a FirebaseAppCheck)
-    // which is currently true, but may not be in the future.
-    // We will have to rely on tests to detect if this changes.
-    env->CallVoidMethod(app_check_impl_,
-                        default_app_check_impl::GetMethodId(
-                            default_app_check_impl::kResetAppCheckState));
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+    if (j_app_check_listener_ != nullptr) {
+      env->CallVoidMethod(
+          app_check_impl_,
+          app_check::GetMethodId(app_check::kRemoveAppCheckListener),
+          j_app_check_listener_);
+      FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+      env->DeleteGlobalRef(j_app_check_listener_);
+    }
+    if (app_check_impl_ != nullptr) {
+      env->CallVoidMethod(app_check_impl_,
+                          default_app_check_impl::GetMethodId(
+                              default_app_check_impl::kResetAppCheckState));
+      FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
 
-    env->DeleteGlobalRef(app_check_impl_);
+      env->DeleteGlobalRef(app_check_impl_);
+    }
   }
 
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
-  if (g_initialized_count == 0) {
+  if (g_initialized_count == 0 && env != nullptr) {
     ReleaseClasses(env);
     util::Terminate(env);
   }
 }
 
-::firebase::App* AppCheckInternal::app() const { return app_; }
+::firebase::App AppCheckInternal::app() const {
+  return app_state_.TryMakeAppHandle();
+}
 
 ReferenceCountedFutureImpl* AppCheckInternal::future() {
   return future_manager().GetFutureApi(this);
@@ -452,12 +456,12 @@ void AppCheckInternal::SetAppCheckProviderFactory(
   // Store the C++ factory in a static variable.
   // Whenever an instance of AppCheck is created, it will read this variable
   // and install the factory as it is initialized.
-  g_provider_factory = factory;
+  g_provider_factory.store(factory);
 }
 
 void AppCheckInternal::SetTokenAutoRefreshEnabled(
     bool is_token_auto_refresh_enabled) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
   env->CallVoidMethod(
       app_check_impl_,
       app_check::GetMethodId(app_check::kSetTokenAutoRefreshEnabled),
@@ -466,7 +470,7 @@ void AppCheckInternal::SetTokenAutoRefreshEnabled(
 }
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
   jobject j_task = env->CallObjectMethod(
       app_check_impl_, app_check::GetMethodId(app_check::kGetToken),
@@ -493,7 +497,7 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 }
 
 Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
-  JNIEnv* env = app_->GetJNIEnv();
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
   auto handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetLimitedUseAppCheckToken);
   jobject j_task = env->CallObjectMethod(

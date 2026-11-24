@@ -27,7 +27,7 @@ PlayIntegrityProviderFactory::PlayIntegrityProviderFactory() {}
 
 PlayIntegrityProviderFactory::~PlayIntegrityProviderFactory() {}
 
-AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(const App& app) {
   return nullptr;
 }
 

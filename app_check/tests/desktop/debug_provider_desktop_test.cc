@@ -118,7 +118,7 @@ class DebugProviderDesktopTest : public ::testing::Test {
   }
 
   void TearDown() override {
-    delete app_;
+    app_ = App();
     DebugAppCheckProviderFactory::GetInstance()->SetDebugToken("");
     rest::SetTransportBuilder(nullptr);
     LogSetCallback(nullptr, nullptr);
@@ -170,7 +170,7 @@ class DebugProviderDesktopTest : public ::testing::Test {
     return future.get();
   }
 
-  App* app_ = nullptr;
+  App app_;
   fs::path temp_dir_;
   LogLevel orig_log_level_;
   std::string logs_;

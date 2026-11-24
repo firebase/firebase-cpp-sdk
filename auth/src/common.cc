@@ -70,6 +70,9 @@ PhoneAuthOptions::PhoneAuthOptions() {
 //
 // PhoneAuthProvider
 //
+PhoneAuthProvider::PhoneAuthProvider(std::shared_ptr<AuthData> auth_data)
+    : auth_data_(std::move(auth_data)) {}
+
 void PhoneAuthProvider::Listener::OnCodeSent(
     const std::string& verification_id,
     const ForceResendingToken& force_resending_token) {}
@@ -80,13 +83,14 @@ void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
 ///
 /// User
 ///
-User::User() { auth_data_ = nullptr; }
+User::User() = default;
 
 bool User::operator==(const User& user) const {
-  // This is based on the assumption that there is only one user before
-  // Auth rewrite.
-  // TODO(AuthRewrite): Must change during Auth Rewrite
-  return is_valid() == user.is_valid();
+  const bool valid_lhs = is_valid();
+  const bool valid_rhs = user.is_valid();
+  if (valid_lhs != valid_rhs) return false;
+  if (!valid_lhs) return true;
+  return auth_data_.lock() == user.auth_data_.lock();
 }
 
 bool User::operator!=(const User& user) const { return !(*this == user); }

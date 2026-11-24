@@ -221,13 +221,13 @@ class OAuthProviderTestHandler
 class IdTokenChangesCounter : public detail::ListenerChangeCounter,
                               public IdTokenListener {
  public:
-  void OnIdTokenChanged(Auth* /*unused*/) override;
+  void OnIdTokenChanged(Auth /*unused*/) override;
 };
 
 class AuthStateChangesCounter : public detail::ListenerChangeCounter,
                                 public AuthStateListener {
  public:
-  void OnAuthStateChanged(Auth* /*unused*/) override;
+  void OnAuthStateChanged(Auth /*unused*/) override;
 };
 
 // Class that when destroyed will momentarly sleep.  Used to ensure that

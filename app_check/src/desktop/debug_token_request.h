@@ -16,6 +16,7 @@
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_TOKEN_REQUEST_H_
 
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "app/rest/request_json.h"
@@ -27,11 +28,11 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// The server url to exchange the debug token with for a attestation token.
-static const char* kDebugTokenRequestServerUrlBase =
+// The server url to exchange the debug token with for an attestation token.
+inline constexpr const char* kDebugTokenRequestServerUrlBase =
     "https://firebaseappcheck.googleapis.com/v1/projects/";
 // The header used to pass the project's API key.
-static const char* kDebugTokenRequestHeader = "X-Goog-Api-Key";
+inline constexpr const char* kDebugTokenRequestHeader = "X-Goog-Api-Key";
 
 // Request to exchange the user provided Debug Token with a valid attestation
 // token.
@@ -39,17 +40,22 @@ class DebugTokenRequest
     : public firebase::rest::RequestJson<fbs::DebugTokenRequest,
                                          fbs::DebugTokenRequestT> {
  public:
-  explicit DebugTokenRequest(App* app)
+  DebugTokenRequest(std::string_view project_id, std::string_view app_id,
+                    std::string_view api_key)
       : RequestJson(debug_token_request_resource_data) {
     std::string server_url(kDebugTokenRequestServerUrlBase);
-    server_url.append(app->options().project_id());
+    server_url.append(project_id);
     server_url.append("/apps/");
-    server_url.append(app->options().app_id());
+    server_url.append(app_id);
     server_url.append(":exchangeDebugToken");
     set_url(server_url.c_str());
 
-    add_header(kDebugTokenRequestHeader, app->options().api_key());
+    add_header(kDebugTokenRequestHeader, std::string(api_key).c_str());
   }
+
+  explicit DebugTokenRequest(const App& app)
+      : DebugTokenRequest(app.options().project_id(), app.options().app_id(),
+                          app.options().api_key()) {}
 
   void SetDebugToken(std::string debug_token) {
     application_data_->debug_token = std::move(debug_token);

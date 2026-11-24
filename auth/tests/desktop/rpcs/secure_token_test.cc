@@ -29,8 +29,8 @@ namespace auth {
 
 // Test SignUpNewUserRequest using refresh token
 TEST(SecureTokenTest, TestSetRefreshRequest) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  SecureTokenRequest request(*app, "APIKEY", "token123");
+  App app = testing::CreateApp();
+  SecureTokenRequest request(app, "APIKEY", "token123");
   EXPECT_EQ("https://securetoken.googleapis.com/v1/token?key=APIKEY",
             request.options().url);
   EXPECT_EQ(
@@ -42,10 +42,10 @@ TEST(SecureTokenTest, TestSetRefreshRequest) {
 }
 
 TEST(SecureTokenTest, TestSetRefreshRequestWithEmulator) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  Auth* auth = Auth::GetAuth(app.get());
-  auth->UseEmulator("localhost", 9099);
-  SecureTokenRequest request(*app, "APIKEY", "token123");
+  App app = testing::CreateApp();
+  Auth auth = Auth::GetAuth(app);
+  auth.UseEmulator("localhost", 9099);
+  SecureTokenRequest request(app, "APIKEY", "token123");
   EXPECT_EQ(
       "http://localhost:9099/securetoken.googleapis.com/v1/token?key=APIKEY",
       request.options().url);
@@ -53,7 +53,7 @@ TEST(SecureTokenTest, TestSetRefreshRequestWithEmulator) {
 
 // Test SecureTokenResponse
 TEST(SecureTokenTest, TestSecureTokenResponse) {
-  std::unique_ptr<App> app(testing::CreateApp());
+  App app = testing::CreateApp();
   SecureTokenResponse response;
   // An example HTTP response JSON in the exact format we get from real server
   // with token string replaced by dummy string.

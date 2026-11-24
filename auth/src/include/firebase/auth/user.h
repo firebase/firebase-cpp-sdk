@@ -20,7 +20,9 @@
 #include <stdint.h>
 
 #include <map>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "firebase/auth/credential.h"
@@ -229,10 +231,16 @@ class User : public UserInfoInterface {
   };
 
   /// Copy constructor.
-  User(const User&);
+  User(const User&) = default;
 
   /// Assignment operator.
-  User& operator=(const User&);
+  User& operator=(const User&) = default;
+
+  /// Move constructor.
+  User(User&&) noexcept = default;
+
+  /// Move assignment operator.
+  User& operator=(User&&) noexcept = default;
 
   /// Equality operator.
   bool operator==(const User&) const;
@@ -240,7 +248,7 @@ class User : public UserInfoInterface {
   /// Inequality operator.
   bool operator!=(const User&) const;
 
-  ~User();
+  ~User() = default;
 
   /// Returns whether this User object represents a valid user. Could be false
   /// on Users contained with AuthResult structures from failed Auth
@@ -555,22 +563,25 @@ class User : public UserInfoInterface {
 
  private:
   friend struct AuthData;
-  // Only exists in AuthData. Access via Auth::CurrentUser().
-  explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
+  friend class Auth;
+  // Constructed internally by Auth / AuthData. Access via Auth::current_user().
+  explicit User(std::weak_ptr<AuthData> auth_data)
+      : auth_data_(std::move(auth_data)) {}
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.
   /// @cond FIREBASE_APP_INTERNAL
   friend class IdTokenRefreshThread;
   friend class IdTokenRefreshListener;
-  friend class Auth;
   Future<std::string> GetTokenInternal(const bool force_refresh,
                                        const int future_identifier);
   /// @endcond
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
-  // Use the pimpl mechanism to hide data details in the cpp files.
-  AuthData* auth_data_;
+  // Non-owning weak handle to AuthData so cached LastResult futures inside
+  // AuthData do not create a reference cycle, and User degrades safely to
+  // invalid if App/Auth handles are all dropped.
+  std::weak_ptr<AuthData> auth_data_;
 };
 
 /// @brief The result of operations that can affect authentication state.

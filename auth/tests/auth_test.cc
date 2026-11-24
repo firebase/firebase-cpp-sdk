@@ -110,10 +110,8 @@ class AuthTest : public ::testing::Test {
   }
 
   void TearDown() override {
-    delete firebase_auth_;
-    firebase_auth_ = nullptr;
-    delete firebase_app_;
-    firebase_app_ = nullptr;
+    firebase_auth_ = Auth();
+    firebase_app_ = App();
     // cppsdk needs to be the last thing torn down, because the mocks are still
     // needed for parts of the firebase destructors.
     firebase::testing::cppsdk::ConfigReset();
@@ -124,29 +122,27 @@ class AuthTest : public ::testing::Test {
   void MakeAuth() {
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    if (firebase_auth_->current_user().is_valid()) {
-      firebase_auth_->SignOut();
+    if (firebase_auth_.current_user().is_valid()) {
+      firebase_auth_.SignOut();
     }
   }
 
-  App* firebase_app_ = nullptr;
-  Auth* firebase_auth_ = nullptr;
+  App firebase_app_;
+  Auth firebase_auth_;
 };
 
 TEST_F(AuthTest, TestAuthCreation) {
   // This test verifies the creation of an Auth object.
-  App* firebase_app = testing::CreateApp();
-  EXPECT_NE(nullptr, firebase_app);
+  App firebase_app = testing::CreateApp();
+  EXPECT_TRUE(firebase_app.is_valid());
 
-  Auth* firebase_auth = Auth::GetAuth(firebase_app);
-  EXPECT_NE(nullptr, firebase_auth);
+  Auth firebase_auth = Auth::GetAuth(firebase_app);
+  EXPECT_TRUE(firebase_auth.is_valid());
 
-  // Calling again does not create a new Auth object.
-  Auth* firebase_auth_again = Auth::GetAuth(firebase_app);
+  // Calling again returns a handle to the same underlying Auth instance.
+  Auth firebase_auth_again = Auth::GetAuth(firebase_app);
   EXPECT_EQ(firebase_auth, firebase_auth_again);
-
-  delete firebase_auth;
-  delete firebase_app;
+  EXPECT_EQ(firebase_auth.app(), firebase_app);
 }
 
 // Creates and destroys multiple auth objects to ensure destruction doesn't
@@ -154,33 +150,30 @@ TEST_F(AuthTest, TestAuthCreation) {
 TEST_F(AuthTest, TestAuthCreateDestroy) {
   static int kTestIterations = 100;
   // Pipeline of app and auth objects that are all active at once.
-  struct {
-    App* app;
-    Auth* auth;
+  struct Entry {
+    App app;
+    Auth auth;
   } created_queue[10];
-  memset(created_queue, 0, sizeof(created_queue));
   size_t created_queue_items = sizeof(created_queue) / sizeof(created_queue[0]);
 
   // Create and destroy app and auth objects keeping up to created_queue_items
   // alive at a time.
   for (size_t i = 0; i < kTestIterations; ++i) {
     auto* queue_entry = &created_queue[i % created_queue_items];
-    delete queue_entry->auth;
-    delete queue_entry->app;
+    queue_entry->auth = Auth();
+    queue_entry->app = App();
     queue_entry->app =
         testing::CreateApp(testing::MockAppOptions(),
                            (std::string("app") + std::to_string(i)).c_str());
     queue_entry->auth = Auth::GetAuth(queue_entry->app);
-    EXPECT_NE(nullptr, queue_entry->auth);
+    EXPECT_TRUE(queue_entry->auth.is_valid());
   }
 
   // Clean up the queue.
   for (size_t i = 0; i < created_queue_items; ++i) {
     auto* queue_entry = &created_queue[i % created_queue_items];
-    delete queue_entry->auth;
-    queue_entry->auth = nullptr;
-    delete queue_entry->app;
-    queue_entry->app = nullptr;
+    queue_entry->auth = Auth();
+    queue_entry->app = App();
   }
 }
 
@@ -195,13 +188,11 @@ TEST_F(AuthTest, TestAuthCreationWithNoGooglePlay) {
       "     futureint:{value:1}}"
       "  ]"
       "}");
-  App* firebase_app = testing::CreateApp();
-  EXPECT_NE(nullptr, firebase_app);
+  App firebase_app = testing::CreateApp();
+  EXPECT_TRUE(firebase_app.is_valid());
 
-  Auth* firebase_auth = Auth::GetAuth(firebase_app);
-  EXPECT_EQ(nullptr, firebase_auth);
-
-  delete firebase_app;
+  Auth firebase_auth = Auth::GetAuth(firebase_app);
+  EXPECT_FALSE(firebase_auth.is_valid());
 }
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
@@ -232,7 +223,7 @@ TEST_F(AuthTest, TestSignInWithCustomTokenSucceeded) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->SignInWithCustomToken("its-a-token");
+      firebase_auth_.SignInWithCustomToken("its-a-token");
   Verify(kAuthErrorNone, result);
 }
 
@@ -261,7 +252,7 @@ TEST_F(AuthTest, TestSignInWithCredentialSucceeded) {
       "}");
   MakeAuth();
   Credential credential = EmailAuthProvider::GetCredential("abc@g.com", "abc");
-  Future<User> result = firebase_auth_->SignInWithCredential(credential);
+  Future<User> result = firebase_auth_.SignInWithCredential(credential);
   Verify(kAuthErrorNone, result);
 }
 
@@ -289,7 +280,7 @@ TEST_F(AuthTest, TestSignInAnonymouslySucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<AuthResult> result = firebase_auth_->SignInAnonymously();
+  Future<AuthResult> result = firebase_auth_.SignInAnonymously();
   Verify(kAuthErrorNone, result);
 }
 
@@ -318,7 +309,7 @@ TEST_F(AuthTest, TestSignInWithEmailAndPasswordSucceeded) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->SignInWithEmailAndPassword("abc@xyz.com", "password");
+      firebase_auth_.SignInWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorNone, result);
 }
 
@@ -347,7 +338,7 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordSucceeded) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com", "password");
+      firebase_auth_.CreateUserWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorNone, result);
 }
 
@@ -377,7 +368,7 @@ TEST_F(AuthTest, TestSignInWithCustomTokenFailed) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->SignInWithCustomToken("its-a-token");
+      firebase_auth_.SignInWithCustomToken("its-a-token");
   Verify(kAuthErrorInvalidCustomToken, result);
 }
 
@@ -401,7 +392,7 @@ TEST_F(AuthTest, TestSignInWithCredentialFailed) {
       "}");
   MakeAuth();
   Credential credential = EmailAuthProvider::GetCredential("abc@g.com", "abc");
-  Future<User> result = firebase_auth_->SignInWithCredential(credential);
+  Future<User> result = firebase_auth_.SignInWithCredential(credential);
   Verify(kAuthErrorInvalidEmail, result);
 }
 
@@ -424,7 +415,7 @@ TEST_F(AuthTest, TestSignInAnonymouslyFailed) {
       "  ]"
       "}");
   MakeAuth();
-  Future<AuthResult> result = firebase_auth_->SignInAnonymously();
+  Future<AuthResult> result = firebase_auth_.SignInAnonymously();
   Verify(kAuthErrorOperationNotAllowed, result);
 }
 
@@ -448,7 +439,7 @@ TEST_F(AuthTest, TestSignInWithEmailAndPasswordFailed) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->SignInWithEmailAndPassword("abc@xyz.com", "password");
+      firebase_auth_.SignInWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorWrongPassword, result);
 }
 
@@ -472,7 +463,7 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordFailed) {
       "}");
   MakeAuth();
   Future<AuthResult> result =
-      firebase_auth_->CreateUserWithEmailAndPassword("abc@xyz.com", "password");
+      firebase_auth_.CreateUserWithEmailAndPassword("abc@xyz.com", "password");
   Verify(kAuthErrorEmailAlreadyInUse, result);
 }
 
@@ -506,16 +497,16 @@ TEST_F(AuthTest, TestCurrentUserAndSignOut) {
   MakeAuth();
 
   // No user is signed in.
-  EXPECT_FALSE(firebase_auth_->current_user().is_valid());
+  EXPECT_FALSE(firebase_auth_.current_user().is_valid());
 
   // Now sign-in, say anonymously.
-  Future<AuthResult> result = firebase_auth_->SignInAnonymously();
+  Future<AuthResult> result = firebase_auth_.SignInAnonymously();
   MaybeWaitForFuture(result);
-  EXPECT_TRUE(firebase_auth_->current_user().is_valid());
+  EXPECT_TRUE(firebase_auth_.current_user().is_valid());
 
   // Now sign-out.
-  firebase_auth_->SignOut();
-  EXPECT_FALSE(firebase_auth_->current_user().is_valid());
+  firebase_auth_.SignOut();
+  EXPECT_FALSE(firebase_auth_.current_user().is_valid());
 }
 
 TEST_F(AuthTest, TestSendPasswordResetEmailSucceeded) {
@@ -536,7 +527,7 @@ TEST_F(AuthTest, TestSendPasswordResetEmailSucceeded) {
       "  ]"
       "}");
   MakeAuth();
-  Future<void> result = firebase_auth_->SendPasswordResetEmail("my@email.com");
+  Future<void> result = firebase_auth_.SendPasswordResetEmail("my@email.com");
   Verify(kAuthErrorNone, result);
 }
 
@@ -561,7 +552,7 @@ TEST_F(AuthTest, TestSendPasswordResetEmailFailed) {
       "  ]"
       "}");
   MakeAuth();
-  Future<void> result = firebase_auth_->SendPasswordResetEmail("my@email.com");
+  Future<void> result = firebase_auth_.SendPasswordResetEmail("my@email.com");
   Verify(kAuthErrorInvalidMessagePayload, result);
 }
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||

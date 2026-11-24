@@ -15,7 +15,6 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_DEVICE_CHECK_PROVIDER_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_DEVICE_CHECK_PROVIDER_IOS_H_
 
-#include <map>
 #include <memory>
 
 #include "app/src/util_ios.h"
@@ -37,9 +36,9 @@ class DeviceCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   DeviceCheckProviderFactoryInternal();
 
-  virtual ~DeviceCheckProviderFactoryInternal();
+  ~DeviceCheckProviderFactoryInternal() override;
 
-  AppCheckProvider* CreateProvider(App* app) override;
+  AppCheckProvider* CreateProvider(const App& app) override;
 
  private:
 #ifdef __OBJC__
@@ -50,8 +49,6 @@ class DeviceCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
   // Object lifetime managed by Objective C ARC.
   std::unique_ptr<FIRDeviceCheckProviderFactoryPointer> ios_provider_factory_;
-
-  std::map<App*, AppCheckProvider*> created_providers_;
 };
 
 }  // namespace internal

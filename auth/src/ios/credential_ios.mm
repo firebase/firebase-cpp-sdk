@@ -326,24 +326,34 @@ struct PhoneAuthProviderData {
   // The wrapped provider in Objective-C.
   FIRPhoneAuthProvider* objc_provider;
 };
-#endif  // FIREBASE_PLATFORM_IOS
 
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
-
-#if FIREBASE_PLATFORM_IOS
-PhoneAuthProvider::~PhoneAuthProvider() { delete data_; }
+void DestroyPhoneAuthProviderData(AuthData* auth_data) {
+  if (auth_data == nullptr || auth_data->phone_auth_provider_data == nullptr) {
+    return;
+  }
+  delete static_cast<PhoneAuthProviderData*>(auth_data->phone_auth_provider_data);
+  auth_data->phone_auth_provider_data = nullptr;
+}
 #else   // non-iOS Apple platforms (eg: tvOS)
-PhoneAuthProvider::~PhoneAuthProvider() {}
+void DestroyPhoneAuthProviderData(AuthData* auth_data) {
+  if (auth_data != nullptr) {
+    auth_data->phone_auth_provider_data = nullptr;
+  }
+}
 #endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
 void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
                                           PhoneAuthProvider::Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+  FIREBASE_ASSERT_RETURN_VOID(auth_data_ != nullptr &&
+                              auth_data_->phone_auth_provider_data != nullptr);
   const PhoneAuthProvider::ForceResendingToken invalid_resending_token;
   PhoneListenerDataObjC* objc_listener_data = listener->data_->objc;
+  auto* provider_data =
+      static_cast<PhoneAuthProviderData*>(auth_data_->phone_auth_provider_data);
 
-  [data_->objc_provider
+  [provider_data->objc_provider
       verifyPhoneNumber:@(options.phone_number.c_str())
              UIDelegate:options.ui_parent
              completion:^(NSString* _Nullable verificationID, NSError* _Nullable error) {
@@ -391,9 +401,14 @@ void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
 PhoneAuthCredential PhoneAuthProvider::GetCredential(const char* verification_id,
                                                      const char* verification_code) {
   FIREBASE_ASSERT_RETURN(PhoneAuthCredential(), verification_id && verification_code);
+  FIREBASE_ASSERT_RETURN(PhoneAuthCredential(),
+                         auth_data_ != nullptr &&
+                             auth_data_->phone_auth_provider_data != nullptr);
+  auto* provider_data =
+      static_cast<PhoneAuthProviderData*>(auth_data_->phone_auth_provider_data);
   FIRPhoneAuthCredential* credential =
-      [data_->objc_provider credentialWithVerificationID:@(verification_id)
-                                        verificationCode:@(verification_code)];
+      [provider_data->objc_provider credentialWithVerificationID:@(verification_id)
+                                                verificationCode:@(verification_code)];
   return PhoneAuthCredential(new FIRPhoneAuthCredentialPointer(credential));
 }
 
@@ -411,21 +426,28 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(const char* verification_id
 
 #if FIREBASE_PLATFORM_IOS
 // static
-PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
-  PhoneAuthProvider& provider = auth->auth_data_->phone_auth_provider;
-  if (provider.data_ == nullptr) {
-    FIRPhoneAuthProvider* objc_provider =
-        [FIRPhoneAuthProvider providerWithAuth:AuthImpl(auth->auth_data_)];
-
-    // Create the implementation class that holds the wrapped FIRPhoneAuthProvider.
-    provider.data_ = new PhoneAuthProviderData(objc_provider);
+PhoneAuthProvider PhoneAuthProvider::GetInstance(const Auth& auth) {
+  if (!auth.is_valid()) {
+    return PhoneAuthProvider();
   }
-  return provider;
+  {
+    MutexLock lock(auth.auth_data_->future_impl.mutex());
+    if (auth.auth_data_->phone_auth_provider_data == nullptr) {
+      FIRPhoneAuthProvider* objc_provider =
+          [FIRPhoneAuthProvider providerWithAuth:AuthImpl(auth.auth_data_.get())];
+      auth.auth_data_->phone_auth_provider_data =
+          new PhoneAuthProviderData(objc_provider);
+    }
+  }
+  return PhoneAuthProvider(auth.auth_data_);
 }
 #else   // non-iOS Apple platforms (eg: tvOS)
 // static
-PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
-  return auth->auth_data_->phone_auth_provider;
+PhoneAuthProvider PhoneAuthProvider::GetInstance(const Auth& auth) {
+  if (!auth.is_valid()) {
+    return PhoneAuthProvider();
+  }
+  return PhoneAuthProvider(auth.auth_data_);
 }
 #endif  // FIREBASE_PLATFORM_IOS
 

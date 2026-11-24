@@ -96,11 +96,15 @@
 
 - (nullable id<FIRAppCheckProvider>)createProviderWithApp:(FIRApp*)app {
   std::string app_name = firebase::util::NSStringToString(app.name);
-  firebase::App* cpp_app = firebase::app_common::FindAppByName(app_name.c_str());
-  if (cpp_app == nullptr) {
-    cpp_app = firebase::internal::FindPartialAppByName(app_name.c_str());
+  auto cpp_app = firebase::internal::FindIosAppByName(app_name);
+  if (!cpp_app.has_value()) {
+    return nil;
   }
-  firebase::app_check::AppCheckProvider* cppProvider = _cppProviderFactory->CreateProvider(cpp_app);
+  firebase::app_check::AppCheckProvider* cppProvider =
+      _cppProviderFactory->CreateProvider(*cpp_app);
+  if (cppProvider == nullptr) {
+    return nil;
+  }
   return [[CppAppCheckProvider alloc] initWithProvider:cppProvider];
 }
 
@@ -157,7 +161,8 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
+AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
+    : app_state_(app_state) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
   impl_ = std::make_unique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
   notification_center_wrapper_ = std::make_unique<AppCheckNotificationCenterWrapperPointer>(
@@ -167,10 +172,9 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
 AppCheckInternal::~AppCheckInternal() {
   [notification_center_wrapper() stopListening];
   future_manager().ReleaseFutureApi(this);
-  app_ = nullptr;
 }
 
-::firebase::App* AppCheckInternal::app() const { return app_; }
+::firebase::App AppCheckInternal::app() const { return app_state_.TryMakeAppHandle(); }
 
 ReferenceCountedFutureImpl* AppCheckInternal::future() {
   return future_manager().GetFutureApi(this);

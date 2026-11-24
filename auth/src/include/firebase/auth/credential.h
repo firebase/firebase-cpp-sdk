@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 
+#include <memory>
 #include <string>
 
 #include "firebase/auth/types.h"
@@ -578,6 +579,17 @@ class PhoneAuthProvider {
     PhoneListenerData* data_;
   };
 
+  /// Constructs an invalid PhoneAuthProvider handle (`is_valid() == false`).
+  PhoneAuthProvider() = default;
+  PhoneAuthProvider(const PhoneAuthProvider&) = default;
+  PhoneAuthProvider& operator=(const PhoneAuthProvider&) = default;
+  PhoneAuthProvider(PhoneAuthProvider&&) noexcept = default;
+  PhoneAuthProvider& operator=(PhoneAuthProvider&&) noexcept = default;
+  ~PhoneAuthProvider() = default;
+
+  bool is_valid() const { return auth_data_ != nullptr; }
+  explicit operator bool() const { return is_valid(); }
+
   /// Start the phone number authentication operation.
   ///
   /// @param[in] options The PhoneAuthOptions struct with a verification
@@ -599,11 +611,11 @@ class PhoneAuthProvider {
   PhoneAuthCredential GetCredential(const char* verification_id,
                                     const char* verification_code);
 
-  /// Return the PhoneAuthProvider for the specified `auth`.
+  /// Return the PhoneAuthProvider handle for the specified `auth`.
   ///
   /// @param[in] auth The Auth session for which we want to get a
   ///    PhoneAuthProvider.
-  static PhoneAuthProvider& GetInstance(Auth* auth);
+  static PhoneAuthProvider GetInstance(const Auth& auth);
 
   /// The string used to identify this provider.
   static const char* const kProviderId;
@@ -612,13 +624,9 @@ class PhoneAuthProvider {
   friend struct AuthData;
   friend class JniAuthPhoneListener;
 
-  // Use @ref GetInstance to access the PhoneAuthProvider.
-  PhoneAuthProvider();
+  explicit PhoneAuthProvider(std::shared_ptr<AuthData> auth_data);
 
-  // The PhoneAuthProvider is owned by the Auth class.
-  ~PhoneAuthProvider();
-
-  PhoneAuthProviderData* data_;
+  std::shared_ptr<AuthData> auth_data_;
 };
 
 /// Options object for configuring phone validation flows in @ref

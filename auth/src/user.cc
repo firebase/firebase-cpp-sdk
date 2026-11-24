@@ -19,45 +19,43 @@
 namespace firebase {
 namespace auth {
 
-AUTH_RESULT_FN(User, GetToken, std::string)
-AUTH_RESULT_FN(User, GetIdTokenResult, IdTokenResult)
-AUTH_RESULT_FN(User, UpdatePassword, void)
-AUTH_RESULT_FN(User, LinkWithCredential, AuthResult)
-AUTH_RESULT_FN(User, Reauthenticate, void)
-AUTH_RESULT_FN(User, ReauthenticateAndRetrieveData, AuthResult)
-AUTH_RESULT_FN(User, SendEmailVerification, void)
-AUTH_RESULT_FN(User, SendEmailVerificationBeforeUpdatingEmail, void)
-AUTH_RESULT_FN(User, Unlink, AuthResult)
-AUTH_RESULT_FN(User, UpdateUserProfile, void)
-AUTH_RESULT_FN(User, Reload, void)
-AUTH_RESULT_FN(User, Delete, void)
-AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
+USER_RESULT_FN(User, GetToken, std::string)
+USER_RESULT_FN(User, GetIdTokenResult, IdTokenResult)
+USER_RESULT_FN(User, UpdatePassword, void)
+USER_RESULT_FN(User, LinkWithCredential, AuthResult)
+USER_RESULT_FN(User, Reauthenticate, void)
+USER_RESULT_FN(User, ReauthenticateAndRetrieveData, AuthResult)
+USER_RESULT_FN(User, SendEmailVerification, void)
+USER_RESULT_FN(User, SendEmailVerificationBeforeUpdatingEmail, void)
+USER_RESULT_FN(User, Unlink, AuthResult)
+USER_RESULT_FN(User, UpdateUserProfile, void)
+USER_RESULT_FN(User, Reload, void)
+USER_RESULT_FN(User, Delete, void)
+USER_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
 #if defined(INTERNAL_EXPERIMENTAL)
-// I'd like to change all the above functions to use LastResultProxy, as it
-// makes multi-threaded situations more deterministic. However, LastResult
-// functions are public in the C++ SDK. And even while they are
-// non-deterministic in multi-threaded situations, someone might rely on their
-// current behavior. So for now, we only use it in Unity, and only for
-// GetToken where there is a real, reproductible issue.
 Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
+  auto data = auth_data_.lock();
+  if (!data) return Future<std::string>();
   Future<std::string> future = GetToken(force_refresh);
   if (future.status() != kFutureStatusPending) {
     return future;
   } else {
-    FutureBase base = auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
+    FutureBase base = data->future_impl.LastResultProxy(kUserFn_GetToken);
     const FutureBase& rFuture = base;
     return static_cast<const Future<std::string>&>(rFuture);
   }
 }
 
 Future<IdTokenResult> User::GetIdTokenResultThreadSafe(bool force_refresh) {
+  auto data = auth_data_.lock();
+  if (!data) return Future<IdTokenResult>();
   Future<IdTokenResult> future = GetIdTokenResult(force_refresh);
   if (future.status() != kFutureStatusPending) {
     return future;
   } else {
     FutureBase base =
-        auth_data_->future_impl.LastResultProxy(kUserFn_GetIdTokenResult);
+        data->future_impl.LastResultProxy(kUserFn_GetIdTokenResult);
     const FutureBase& rFuture = base;
     return static_cast<const Future<IdTokenResult>&>(rFuture);
   }

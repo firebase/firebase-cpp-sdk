@@ -486,7 +486,7 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
     SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
 
     AuthResult* auth_result = static_cast<AuthResult*>(void_data);
-    auth_result->user = d->auth_data->auth->current_user();
+    auth_result->user = d->auth_data->MakeCurrentUserHandle();
 
     // Grab the additional user info too.
     // Additional user info is not guaranteed to exist, so could be nullptr.
@@ -529,7 +529,7 @@ void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
   }
 
   User* user_ptr = static_cast<User*>(void_data);
-  *user_ptr = d->auth_data->auth->current_user();
+  *user_ptr = d->auth_data->MakeCurrentUserHandle();
 }
 
 }  // namespace auth

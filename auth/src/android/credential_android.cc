@@ -381,9 +381,9 @@ void ReleaseCredentialClasses(JNIEnv* env) {
 
 static JNIEnv* GetJniEnv() {
   // The JNI environment is the same regardless of App.
-  App* app = app_common::GetAnyApp();
-  FIREBASE_ASSERT(app != nullptr);
-  return app->GetJNIEnv();
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
+  FIREBASE_ASSERT(env != nullptr);
+  return env;
 }
 
 // Remove the reference on destruction.
@@ -816,26 +816,22 @@ bool PhoneAuthProvider::ForceResendingToken::operator!=(
 
 // This implementation of PhoneAuthProviderData is specific to Android.
 struct PhoneAuthProviderData {
-  PhoneAuthProviderData()
-      : auth_data(nullptr), j_phone_auth_provider(nullptr) {}
-
-  // Back-pointer to structure that holds this one.
-  AuthData* auth_data;
+  PhoneAuthProviderData() : j_phone_auth_provider(nullptr) {}
 
   // The Java PhoneAuthProvider class for this Auth instance.
   jobject j_phone_auth_provider;
 };
 
-// The `data_` pimpl is created lazily in @ref PhoneAuthProvider::GetInstance.
-// This is necessary since the Java Auth class must be fully created to get
-// `j_phone_auth_provider`.
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
-PhoneAuthProvider::~PhoneAuthProvider() {
-  if (data_ != nullptr) {
-    JNIEnv* env = GetJniEnv();
-    env->DeleteGlobalRef(data_->j_phone_auth_provider);
-    delete data_;
+void DestroyPhoneAuthProviderData(AuthData* auth_data) {
+  if (!auth_data || !auth_data->phone_auth_provider_data) return;
+  auto* provider_data =
+      static_cast<PhoneAuthProviderData*>(auth_data->phone_auth_provider_data);
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
+  if (env != nullptr && provider_data->j_phone_auth_provider != nullptr) {
+    env->DeleteGlobalRef(provider_data->j_phone_auth_provider);
   }
+  delete provider_data;
+  auth_data->phone_auth_provider_data = nullptr;
 }
 
 // This implementation of PhoneListenerData is specific to Android.
@@ -882,6 +878,11 @@ PhoneAuthProvider::Listener::~Listener() {
 void PhoneAuthProvider::VerifyPhoneNumber(
     const PhoneAuthOptions& options, PhoneAuthProvider::Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+  if (!auth_data_) {
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: invalid PhoneAuthProvider handle");
+    return;
+  }
 
   if (options.phone_number.empty()) {
     listener->OnVerificationFailed(
@@ -889,7 +890,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
     return;
   }
 
-  JNIEnv* env = Env(data_->auth_data);
+  JNIEnv* env = Env(auth_data_.get());
   assert(env);
 
   // phone auth builder
@@ -897,7 +898,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
       env->NewObject(phone_auth_options_builder::GetClass(),
                      phone_auth_options_builder::GetMethodId(
                          phone_auth_options_builder::kConstructor),
-                     AuthImpl(data_->auth_data));
+                     AuthImpl(auth_data_.get()));
   if (util::CheckAndClearJniExceptions(env)) {
     listener->OnVerificationFailed(
         "VerifyPhoneNumber: unable to construct PhoneAuthOptions builder.");
@@ -907,7 +908,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   // activity
   jobject activity = options.ui_parent;
   if (activity == nullptr) {
-    activity = data_->auth_data->app->activity();
+    activity = auth_data_->app_state.activity();
   }
   jobject chained_ref =
       env->CallObjectMethod(builder,
@@ -1016,8 +1017,9 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
                          verification_id && verification_code);
   FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(), g_methods_cached,
                                  kMethodsNotCachedError);
+  if (!auth_data_) return PhoneAuthCredential();
 
-  JNIEnv* env = Env(data_->auth_data);
+  JNIEnv* env = Env(auth_data_.get());
 
   jstring j_verification_id = env->NewStringUTF(verification_id);
   jstring j_verification_code = env->NewStringUTF(verification_code);
@@ -1035,26 +1037,25 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
 }
 
 // static
-PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
-  PhoneAuthProvider& provider = auth->auth_data_->phone_auth_provider;
-  if (provider.data_ == nullptr) {
-    JNIEnv* env = Env(auth->auth_data_);
+PhoneAuthProvider PhoneAuthProvider::GetInstance(const Auth& auth) {
+  if (!auth.auth_data_) return PhoneAuthProvider();
+  MutexLock lock(auth.auth_data_->listeners_mutex);
+  if (auth.auth_data_->phone_auth_provider_data == nullptr) {
+    JNIEnv* env = Env(auth.auth_data_.get());
 
     // Get a global reference to the Java PhoneAuthProvider for this Auth.
     jobject j_phone_auth_provider_local = env->CallStaticObjectMethod(
         phoneauthprovider::GetClass(),
         phoneauthprovider::GetMethodId(phoneauthprovider::kGetInstance),
-        AuthImpl(auth->auth_data_));
+        AuthImpl(auth.auth_data_.get()));
 
-    // Create the implementation class that holds the global references.
-    // The global references will be freed when provider is destroyed
-    // (during the Auth destructor).
-    provider.data_ = new PhoneAuthProviderData();
-    provider.data_->j_phone_auth_provider =
+    auto* provider_data = new PhoneAuthProviderData();
+    provider_data->j_phone_auth_provider =
         env->NewGlobalRef(j_phone_auth_provider_local);
-    provider.data_->auth_data = auth->auth_data_;
+    env->DeleteLocalRef(j_phone_auth_provider_local);
+    auth.auth_data_->phone_auth_provider_data = provider_data;
   }
-  return provider;
+  return PhoneAuthProvider(auth.auth_data_);
 }
 
 // Redirect JniAuthPhoneListener.java callback to C++
@@ -1191,7 +1192,7 @@ Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
     jobject task = env->CallObjectMethod(
         AuthImpl(auth_data),
         auth_idp::GetMethodId(auth_idp::kStartActivityForSignInWithProvider),
-        auth_data->app->activity(), oauthprovider);
+        auth_data->app_state.activity(), oauthprovider);
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterFederatedAuthProviderCallback(task, handle, auth_data,
                                             ReadAuthResult);
@@ -1215,7 +1216,7 @@ Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
     jobject task = env->CallObjectMethod(
         UserImpl(auth_data),
         user_idp::GetMethodId(user_idp::kStartActivityForLinkWithProvider),
-        auth_data->app->activity(), oauthprovider);
+        auth_data->app_state.activity(), oauthprovider);
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterFederatedAuthProviderCallback(task, handle, auth_data,
                                             ReadAuthResult);
@@ -1240,7 +1241,7 @@ Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
         UserImpl(auth_data),
         user_idp::GetMethodId(
             user_idp::kStartActivityForReauthenticateWithProvider),
-        auth_data->app->activity(), oauthprovider);
+        auth_data->app_state.activity(), oauthprovider);
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterFederatedAuthProviderCallback(task, handle, auth_data,
                                             ReadAuthResult);

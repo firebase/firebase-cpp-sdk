@@ -27,7 +27,7 @@ DeviceCheckProviderFactory::DeviceCheckProviderFactory() {}
 
 DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {}
 
-AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(const App& app) {
   return nullptr;
 }
 

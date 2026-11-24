@@ -14,6 +14,7 @@
 
 #include <string>
 
+#include "app/src/no_destructor.h"
 #include "firebase/app_check/debug_provider.h"
 
 // Include the header that matches the platform being used.
@@ -30,8 +31,9 @@ namespace firebase {
 namespace app_check {
 
 DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-  static DebugAppCheckProviderFactory g_debug_app_check_provider_factory;
-  return &g_debug_app_check_provider_factory;
+  static ::firebase::internal::NoDestructor<DebugAppCheckProviderFactory>
+      g_debug_app_check_provider_factory;
+  return g_debug_app_check_provider_factory.get();
 }
 
 DebugAppCheckProviderFactory::DebugAppCheckProviderFactory()
@@ -44,7 +46,7 @@ DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {
   }
 }
 
-AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(const App& app) {
   if (internal_) {
     return internal_->CreateProvider(app);
   }

@@ -31,7 +31,7 @@ enum CredentialApiFunction {
 };
 
 // Platform-specific method to create the wrapped Auth class.
-void* CreatePlatformAuth(App* app);
+void* CreatePlatformAuth(const App& app);
 
 // Platform-specific method to initialize AuthData.
 void InitPlatformAuth(AuthData* auth_data);
@@ -41,14 +41,24 @@ void DestroyPlatformAuth(AuthData* auth_data);
 
 // Platform-specific method that causes a heartbeat to be logged.
 // See go/firebase-platform-logging-design for more information.
-void LogHeartbeat(Auth* auth);
+void LogHeartbeat(const Auth& auth);
 
-// All the result functions are similar.
-// Just return the local Future, cast to the proper result type.
+// All the result functions on Auth return an invalid Future if the Auth handle
+// is invalid, or otherwise forward to auth_data_->future_impl.LastResult().
 #define AUTH_RESULT_FN(class_name, fn_name, result_type)                  \
   Future<result_type> class_name::fn_name##LastResult() const {           \
+    if (!auth_data_) return Future<result_type>();                        \
     return static_cast<const Future<result_type>&>(                       \
         auth_data_->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
+  }
+
+// Result functions on User lock the weak_ptr<AuthData> first.
+#define USER_RESULT_FN(class_name, fn_name, result_type)                 \
+  Future<result_type> class_name::fn_name##LastResult() const {          \
+    auto data = auth_data_.lock();                                       \
+    if (!data) return Future<result_type>();                             \
+    return static_cast<const Future<result_type>&>(                      \
+        data->future_impl.LastResult(k##class_name##Fn_##fn_name));      \
   }
 
 // Returns true if `auth_data` has a user that's currently active.

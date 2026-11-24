@@ -84,9 +84,9 @@ AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj) {
 
 JNIEnv* GetJniEnv() {
   // The JNI environment is the same regardless of App.
-  App* app = app_common::GetAnyApp();
-  FIREBASE_ASSERT(app != nullptr);
-  return app->GetJNIEnv();
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
+  FIREBASE_ASSERT(env != nullptr);
+  return env;
 }
 
 namespace {

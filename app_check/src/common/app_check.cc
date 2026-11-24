@@ -14,17 +14,16 @@
 
 #include "app_check/src/include/firebase/app_check.h"
 
-#include <assert.h>
-
-#include <map>
+#include <memory>
 #include <string>
+#include <utility>
 
-#include "app/src/assert.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/service_interfaces.h"
 #include "app/src/util.h"
 #include "app_check/src/common/common.h"
 
@@ -42,27 +41,18 @@
 FIREBASE_APP_REGISTER_CALLBACKS(
     app_check,
     {
-      // Create the AppCheck object for the given app.
+      // Attach AppCheck to each newly created AppState so other products can
+      // discover it via AppState::app_check_token_provider().
       ::firebase::app_check::AppCheck::GetInstance(app);
       return ::firebase::kInitResultSuccess;
     },
-    {
-      ::firebase::app_check::AppCheck* app_check =
-          ::firebase::app_check::internal::GetExistingAppCheckInstance(app);
-      if (app_check) {
-        delete app_check;
-      }
-    },
-    // App Check wants to be turned on by default
+    // App Check wants to be turned on by default.
     true);
 
 namespace firebase {
 namespace app_check {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAppCheck);
-
-Mutex g_app_check_lock;  // NOLINT
-static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 
 // Define the destructors for the virtual listener/provider/factory classes.
 AppCheckListener::~AppCheckListener() {}
@@ -81,69 +71,27 @@ void AppCheckProvider::GetLimitedUseToken(
 }
 AppCheckProviderFactory::~AppCheckProviderFactory() {}
 
-namespace internal {
+AppCheck AppCheck::GetInstance(const ::firebase::App& app) {
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) return AppCheck();
 
-AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
-  if (!app) return nullptr;
-
-  MutexLock lock(g_app_check_lock);
-  if (g_app_check_map) {
-    auto it = g_app_check_map->find(app);
-    if (it != g_app_check_map->end()) {
-      return it->second;
-    }
-  }
-  return nullptr;
-}
-
-}  // namespace internal
-
-AppCheck* AppCheck::GetInstance(::firebase::App* app) {
-  if (!app) return nullptr;
-
-  MutexLock lock(g_app_check_lock);
-  if (!g_app_check_map) {
-    g_app_check_map = new std::map<::firebase::App*, AppCheck*>();
-  }
-
-  auto it = g_app_check_map->find(app);
-  if (it != g_app_check_map->end()) {
-    return it->second;
-  }
-
-  AppCheck* app_check = new AppCheck(app);
-  g_app_check_map->insert(std::make_pair(app, app_check));
-  return app_check;
+  auto service = state->GetOrCreateService<internal::AppCheckInternal>(
+      &::firebase::internal::kAppCheckServiceTag, "",
+      [](::firebase::internal::AppState& app_state) {
+        return std::make_shared<internal::AppCheckInternal>(app_state);
+      });
+  return AppCheck(std::move(service));
 }
 
 void AppCheck::SetAppCheckProviderFactory(AppCheckProviderFactory* factory) {
   internal::AppCheckInternal::SetAppCheckProviderFactory(factory);
 }
 
-AppCheck::AppCheck(::firebase::App* app) {
-  internal_ = new internal::AppCheckInternal(app);
-}
+AppCheck::AppCheck(std::shared_ptr<internal::AppCheckInternal> internal)
+    : internal_(std::move(internal)) {}
 
-AppCheck::~AppCheck() { DeleteInternal(); }
-
-void AppCheck::DeleteInternal() {
-  MutexLock lock(g_app_check_lock);
-
-  if (!internal_) return;
-
-  // Remove it from the map
-  g_app_check_map->erase(app());
-  delete internal_;
-  internal_ = nullptr;
-  // If it is the last one, delete the map.
-  if (g_app_check_map->empty()) {
-    delete g_app_check_map;
-    g_app_check_map = nullptr;
-  }
-}
-
-::firebase::App* AppCheck::app() {
-  return internal_ ? internal_->app() : nullptr;
+::firebase::App AppCheck::app() const {
+  return internal_ ? internal_->app() : ::firebase::App();
 }
 
 void AppCheck::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) {

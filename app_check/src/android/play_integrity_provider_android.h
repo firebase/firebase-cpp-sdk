@@ -15,8 +15,7 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_PLAY_INTEGRITY_PROVIDER_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_PLAY_INTEGRITY_PROVIDER_ANDROID_H_
 
-#include <map>
-
+#include "app/src/include/firebase/internal/mutex.h"
 #include "firebase/app_check.h"
 
 namespace firebase {
@@ -33,14 +32,13 @@ class PlayIntegrityProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   PlayIntegrityProviderFactoryInternal();
 
-  virtual ~PlayIntegrityProviderFactoryInternal();
+  ~PlayIntegrityProviderFactoryInternal() override;
 
-  AppCheckProvider* CreateProvider(App* app) override;
+  AppCheckProvider* CreateProvider(const App& app) override;
 
  private:
-  jobject android_provider_factory_;
-
-  std::map<App*, AppCheckProvider*> created_providers_;
+  Mutex mutex_;
+  jobject android_provider_factory_ = nullptr;
 };
 
 }  // namespace internal

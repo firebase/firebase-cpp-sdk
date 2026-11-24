@@ -15,8 +15,6 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_APP_ATTEST_PROVIDER_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_ATTEST_PROVIDER_IOS_H_
 
-#include <map>
-
 #include "firebase/app_check.h"
 
 namespace firebase {
@@ -27,12 +25,9 @@ class AppAttestProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   AppAttestProviderFactoryInternal();
 
-  virtual ~AppAttestProviderFactoryInternal();
+  ~AppAttestProviderFactoryInternal() override;
 
-  AppCheckProvider* CreateProvider(App* app) override;
-
- private:
-  std::map<App*, AppCheckProvider*> created_providers_;
+  AppCheckProvider* CreateProvider(const App& app) override;
 };
 
 }  // namespace internal

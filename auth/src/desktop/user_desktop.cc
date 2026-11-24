@@ -89,13 +89,14 @@ class GetTokenResult {
 
 // Signs out the current user if the error indicates the user is no longer
 // valid.
-void SignOutIfUserNoLongerValid(Auth* const auth, const AuthError error_code) {
-  FIREBASE_ASSERT_RETURN_VOID(auth);
+void SignOutIfUserNoLongerValid(AuthData* const auth_data,
+                                const AuthError error_code) {
+  FIREBASE_ASSERT_RETURN_VOID(auth_data);
 
   if (error_code == kAuthErrorUserNotFound ||
       error_code == kAuthErrorUserTokenExpired ||
       error_code == kAuthErrorUserDisabled) {
-    auth->SignOut();
+    AuthenticationResult::SignOut(auth_data);
   }
 }
 
@@ -143,11 +144,12 @@ GetTokenResult EnsureFreshToken(AuthData* const auth_data,
     return GetTokenResult(old_token.token());
   }
 
-  const SecureTokenRequest request(*auth_data->app, GetApiKey(*auth_data),
+  App app_handle = auth_data->app_state.TryMakeAppHandle();
+  const SecureTokenRequest request(app_handle, GetApiKey(*auth_data),
                                    refresh_token.c_str());
   auto response = GetResponse<SecureTokenResponse>(request);
   if (!response.IsSuccessful()) {
-    SignOutIfUserNoLongerValid(auth_data->auth, response.error_code());
+    SignOutIfUserNoLongerValid(auth_data, response.error_code());
     return GetTokenResult(response.error_code());
   }
 
@@ -229,17 +231,17 @@ Future<ResultT> CallAsyncWithFreshToken(
 }
 
 void CompleteSetAccountInfoPromise(Promise<void>* const promise,
-                                   User* const user) {
+                                   const User& /*user*/) {
   FIREBASE_ASSERT_RETURN_VOID(promise);
   promise->Complete();
 }
 
 void CompleteSetAccountInfoPromise(Promise<AuthResult>* const promise,
-                                   User* const user) {
-  FIREBASE_ASSERT_RETURN_VOID(promise && user);
+                                   const User& user) {
+  FIREBASE_ASSERT_RETURN_VOID(promise);
 
   AuthResult result;
-  result.user = *user;
+  result.user = user;
   promise->CompleteWithResult(result);
 }
 
@@ -277,13 +279,13 @@ void PerformSetAccountInfoFlow(
   const auto account_info = SetAccountInfoResult::FromResponse(response);
 
   if (account_info.IsValid()) {
-    User* api_user_to_return =
+    User api_user_to_return =
         account_info.MergeToCurrentUser(handle->auth_data);
 
     TriggerSaveUserFlow(handle->auth_data);
     CompleteSetAccountInfoPromise(&handle->promise, api_user_to_return);
   } else {
-    SignOutIfUserNoLongerValid(handle->auth_data->auth, account_info.error());
+    SignOutIfUserNoLongerValid(handle->auth_data, account_info.error());
     FailPromise(&handle->promise, account_info.error());
   }
 }
@@ -301,9 +303,10 @@ Future<ResultT> DoLinkWithEmailAndPassword(
   const EmailAuthCredential* email_credential =
       GetEmailCredential(raw_credential_impl);
 
+  App app_handle = auth_data->app_state.TryMakeAppHandle();
   typedef SignUpRequest RequestT;
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
-      *auth_data->app, GetApiKey(*auth_data),
+      app_handle, GetApiKey(*auth_data),
       email_credential->GetEmail().c_str(),
       email_credential->GetPassword().c_str());
 
@@ -376,7 +379,7 @@ Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
               authentication_result.SetAsCurrentUser(handle->auth_data);
           CompletePromise(&handle->promise, auth_result);
         } else {
-          SignOutIfUserNoLongerValid(handle->auth_data->auth,
+          SignOutIfUserNoLongerValid(handle->auth_data,
                                      authentication_result.error());
           FailPromise(&handle->promise, authentication_result.error());
         }
@@ -392,7 +395,7 @@ void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const handle) {
   const AuthenticationResult authentication_result =
       CompleteSignInFlow(handle->auth_data, response);
   if (!authentication_result.IsValid()) {
-    SignOutIfUserNoLongerValid(handle->auth_data->auth,
+    SignOutIfUserNoLongerValid(handle->auth_data,
                                authentication_result.error());
     FailPromise(&handle->promise, authentication_result.error());
     return;
@@ -457,11 +460,12 @@ UserDataPersist::UserDataPersist(
     std::unique_ptr<UserSecureManager> user_secure_manager)
     : user_secure_manager_(std::move(user_secure_manager)) {}
 
-void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
-  if (auth->current_user().is_valid()) {
-    SaveUserData(auth->auth_data_);
+void UserDataPersist::OnAuthStateChanged(Auth auth) {  // NOLINT
+  if (!auth.auth_data_) return;
+  if (auth.current_user().is_valid()) {
+    SaveUserData(auth.auth_data_.get());
   } else {
-    DeleteUserData(auth->auth_data_);
+    DeleteUserData(auth.auth_data_.get());
   }
 }
 
@@ -569,7 +573,7 @@ Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
   }
 
   Future<std::string> future =
-      user_secure_manager_->LoadUserData(auth_data->app->name());
+      user_secure_manager_->LoadUserData(auth_data->app_state.name().c_str());
   future.OnCompletion(HandleLoadedData, auth_data);
   return future;
 }
@@ -635,45 +639,36 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
   std::string encoded;
   UserSecureManager::BinaryToAscii(save_string, &encoded);
 
-  return user_secure_manager_->SaveUserData(auth_data->app->name(), encoded);
+  return user_secure_manager_->SaveUserData(auth_data->app_state.name().c_str(),
+                                            encoded);
 }
 
 Future<void> UserDataPersist::DeleteUserData(AuthData* auth_data) {
-  return user_secure_manager_->DeleteUserData(auth_data->app->name());
+  return user_secure_manager_->DeleteUserData(
+      auth_data->app_state.name().c_str());
 }
-
-User::User(const User& user) { auth_data_ = user.auth_data_; }
-
-User& User::operator=(const User& user) {
-  auth_data_ = user.auth_data_;
-  return *this;
-}
-
-User::~User() { auth_data_ = nullptr; }
 
 bool User::is_valid() const {
-  return ValidUser(auth_data_) && UserView::GetReader(auth_data_).IsValid();
+  auto data = auth_data_.lock();
+  return ValidUser(data.get()) && UserView::GetReader(data.get()).IsValid();
 }
 
 // RPCs
 
-Future<std::string> User::GetToken(const bool force_refresh) {
-  return GetTokenInternal(force_refresh, kUserFn_GetToken);
-}
-
-Future<std::string> User::GetTokenInternal(const bool force_refresh,
-                                           const int future_identifier) {
-  if (auth_data_ == nullptr) {     // user is not valid
-    return Future<std::string>();  // invalid future
+Future<std::string> GetUserTokenInternal(AuthData* auth_data,
+                                         const bool force_refresh,
+                                         const int future_identifier) {
+  if (auth_data == nullptr) {
+    return Future<std::string>();
   }
-  Promise<std::string> promise(&auth_data_->future_impl, future_identifier);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<std::string> promise(&auth_data->future_impl, future_identifier);
+  if (!ValidateCurrentUser(&promise, auth_data)) {
     return promise.LastResult();
   }
 
   GetTokenResult current_token(kAuthErrorFailure);
   const bool is_user_logged_in =
-      UserView::TryRead(auth_data_, [&](const UserView::Reader& user) {
+      UserView::TryRead(auth_data, [&](const UserView::Reader& user) {
         current_token = GetTokenIfFresh(user, force_refresh);
       });
 
@@ -700,23 +695,33 @@ Future<std::string> User::GetTokenInternal(const bool force_refresh,
       };
 
   // Note: request is deliberately null because EnsureFreshToken will create it.
-  return CallAsync(auth_data_, promise, std::unique_ptr<rest::Request>(),
+  return CallAsync(auth_data, promise, std::unique_ptr<rest::Request>(),
                    callback);
 }
 
+Future<std::string> User::GetToken(const bool force_refresh) {
+  return GetTokenInternal(force_refresh, kUserFn_GetToken);
+}
+
+Future<std::string> User::GetTokenInternal(const bool force_refresh,
+                                           const int future_identifier) {
+  auto data = auth_data_.lock();
+  return GetUserTokenInternal(data.get(), force_refresh, future_identifier);
+}
+
 Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
-  if (auth_data_ == nullptr) {
+  auto data = auth_data_.lock();
+  if (!data) {
     return Future<IdTokenResult>();
   }
-  Promise<IdTokenResult> promise(&auth_data_->future_impl,
-                                 kUserFn_GetIdTokenResult);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<IdTokenResult> promise(&data->future_impl, kUserFn_GetIdTokenResult);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
 
   GetTokenResult current_token(kAuthErrorFailure);
   const bool is_user_logged_in =
-      UserView::TryRead(auth_data_, [&](const UserView::Reader& user) {
+      UserView::TryRead(data.get(), [&](const UserView::Reader& user) {
         current_token = GetTokenIfFresh(user, force_refresh);
       });
 
@@ -756,58 +761,59 @@ Future<IdTokenResult> User::GetIdTokenResult(const bool force_refresh) {
       };
 
   // Note: request is deliberately null because EnsureFreshToken will create it.
-  return CallAsync(auth_data_, promise, std::unique_ptr<rest::Request>(),
+  return CallAsync(data.get(), promise, std::unique_ptr<rest::Request>(),
                    callback);
 }
 
 Future<void> User::Delete() {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return Future<void>();
   }
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_Delete);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<void> promise(&data->future_impl, kUserFn_Delete);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
 
+  App app_handle = data->app_state.TryMakeAppHandle();
   typedef DeleteAccountRequest RequestT;
-  // Note: make_unique can't be used because it's not supported by Visual Studio
-  // 2012.
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
+      new RequestT(app_handle, GetApiKey(*data)));
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const auto response = GetResponse<DeleteAccountResponse>(*handle->request);
     if (response.IsSuccessful()) {
-      handle->auth_data->auth->SignOut();
+      AuthenticationResult::SignOut(handle->auth_data);
       handle->promise.Complete();
     } else {
       FailPromise(&handle->promise, response.error_code());
     }
   };
 
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+  return CallAsyncWithFreshToken(data.get(), promise, std::move(request),
                                  callback);
 }
 
 Future<void> User::SendEmailVerification() {
-  if (!is_valid()) {
+  auto data = auth_data_.lock();
+  if (!data || !is_valid()) {
     return Future<void>();
   }
-  Promise<void> promise(&auth_data_->future_impl,
-                        kUserFn_SendEmailVerification);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<void> promise(&data->future_impl, kUserFn_SendEmailVerification);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
 
   const char* language_code = nullptr;
-  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  auto auth_impl = static_cast<AuthImpl*>(data->auth_impl);
   if (!auth_impl->language_code.empty()) {
     language_code = auth_impl->language_code.c_str();
   }
 
+  App app_handle = data->app_state.TryMakeAppHandle();
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request = RequestT::CreateSendEmailVerificationRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), language_code);
+      app_handle, GetApiKey(*data), language_code);
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const auto response =
@@ -819,30 +825,32 @@ Future<void> User::SendEmailVerification() {
     }
   };
 
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+  return CallAsyncWithFreshToken(data.get(), promise, std::move(request),
                                  callback);
 }
 
 Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
-  if (!is_valid()) {
+  auto data = auth_data_.lock();
+  if (!data || !is_valid()) {
     return Future<void>();
   }
-  Promise<void> promise(&auth_data_->future_impl,
+  Promise<void> promise(&data->future_impl,
                         kUserFn_SendEmailVerificationBeforeUpdatingEmail);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
 
   const char* language_code = nullptr;
-  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  auto auth_impl = static_cast<AuthImpl*>(data->auth_impl);
   if (!auth_impl->language_code.empty()) {
     language_code = auth_impl->language_code.c_str();
   }
 
+  App app_handle = data->app_state.TryMakeAppHandle();
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request =
       RequestT::CreateSendEmailVerificationBeforeUpdatingEmailRequest(
-          *auth_data_->app, GetApiKey(*auth_data_), email, language_code);
+          app_handle, GetApiKey(*data), email, language_code);
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const auto response =
@@ -854,57 +862,56 @@ Future<void> User::SendEmailVerificationBeforeUpdatingEmail(const char* email) {
     }
   };
 
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+  return CallAsyncWithFreshToken(data.get(), promise, std::move(request),
                                  callback);
 }
 
 Future<void> User::Reload() {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return Future<void>();
   }
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_Reload);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<void> promise(&data->future_impl, kUserFn_Reload);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
 
   std::string id_token;
   const bool is_user_logged_in = UserView::TryRead(
-      auth_data_,
+      data.get(),
       [&](const UserView::Reader& user) { id_token = user->id_token; });
 
   if (!is_user_logged_in) {
     return promise.InvalidateLastResult();
   }
 
+  App app_handle = data->app_state.TryMakeAppHandle();
   typedef GetAccountInfoRequest RequestT;
   auto request = std::unique_ptr<RequestT>(
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
-                   id_token.c_str()));  // NOLINT
+      new RequestT(app_handle, GetApiKey(*data), id_token.c_str()));  // NOLINT
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const GetAccountInfoResult account_info = GetAccountInfo(*handle->request);
-    // No listeners will be notified: UID couldn't have changed, because we
-    // are reloading the same user. Token couldn't have changed, because
-    // GetAccountInfoResponse doesn't contain any tokens.
     if (account_info.IsValid()) {
       account_info.MergeToCurrentUser(handle->auth_data);
       handle->promise.Complete();
     } else {
-      SignOutIfUserNoLongerValid(handle->auth_data->auth, account_info.error());
+      SignOutIfUserNoLongerValid(handle->auth_data, account_info.error());
       FailPromise(&handle->promise, account_info.error());
     }
   };
 
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+  return CallAsyncWithFreshToken(data.get(), promise, std::move(request),
                                  callback);
 }
 
 Future<void> User::UpdatePassword(const char* const password) {
-  if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();      // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<void>();
   }
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdatePassword);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<void> promise(&data->future_impl, kUserFn_UpdatePassword);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
   if (!ValidatePassword(&promise, password)) {
@@ -912,43 +919,46 @@ Future<void> User::UpdatePassword(const char* const password) {
   }
 
   const char* language_code = nullptr;
-  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  auto auth_impl = static_cast<AuthImpl*>(data->auth_impl);
   if (!auth_impl->language_code.empty()) {
     language_code = auth_impl->language_code.c_str();
   }
 
+  App app_handle = data->app_state.TryMakeAppHandle();
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUpdatePasswordRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), password, language_code);
+      app_handle, GetApiKey(*data), password, language_code);
 
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+  return CallAsyncWithFreshToken(data.get(), promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
 }
 
 Future<void> User::UpdateUserProfile(const UserProfile& profile) {
-  if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();      // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<void>();
   }
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateUserProfile);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<void> promise(&data->future_impl, kUserFn_UpdateUserProfile);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
 
+  App app_handle = data->app_state.TryMakeAppHandle();
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUpdateProfileRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), profile.display_name,
-      profile.photo_url);
+      app_handle, GetApiKey(*data), profile.display_name, profile.photo_url);
 
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+  return CallAsyncWithFreshToken(data.get(), promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
 }
 
 Future<AuthResult> User::Unlink(const char* const provider) {
-  if (auth_data_ == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<AuthResult>();
   }
-  Promise<AuthResult> promise(&auth_data_->future_impl, kUserFn_Unlink);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<AuthResult> promise(&data->future_impl, kUserFn_Unlink);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
   if (!provider || strlen(provider) == 0) {
@@ -958,7 +968,7 @@ Future<AuthResult> User::Unlink(const char* const provider) {
 
   bool is_provider_linked = false;
   const bool is_user_logged_in =
-      UserView::TryRead(auth_data_, [&](const UserView::Reader& user) {
+      UserView::TryRead(data.get(), [&](const UserView::Reader& user) {
         is_provider_linked = IsProviderAlreadyLinked(provider, user);
       });
 
@@ -970,89 +980,94 @@ Future<AuthResult> User::Unlink(const char* const provider) {
     return promise.LastResult();
   }
 
+  App app_handle = data->app_state.TryMakeAppHandle();
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUnlinkProviderRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), provider);
+      app_handle, GetApiKey(*data), provider);
 
-  return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
+  return CallAsyncWithFreshToken(data.get(), promise, std::move(request),
                                  PerformSetAccountInfoFlow<AuthResult>);
 }
 
 Future<AuthResult> User::LinkWithCredential(const Credential& credential) {
-  if (auth_data_ == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<AuthResult>();
   }
-  Promise<AuthResult> promise(&auth_data_->future_impl,
-                              kUserFn_LinkWithCredential);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<AuthResult> promise(&data->future_impl, kUserFn_LinkWithCredential);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
-  return DoLinkCredential(promise, auth_data_, credential.provider(),
+  return DoLinkCredential(promise, data.get(), credential.provider(),
                           credential.impl_);
 }
 
 Future<AuthResult> User::LinkWithProvider(
     FederatedAuthProvider* provider) const {
-  if (auth_data_ == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<AuthResult>();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   SafeFutureHandle<AuthResult> handle =
-      auth_data_->future_impl.SafeAlloc<AuthResult>(kUserFn_LinkWithProvider);
-  auth_data_->future_impl.CompleteWithResult(
+      data->future_impl.SafeAlloc<AuthResult>(kUserFn_LinkWithProvider);
+  data->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",
       /*result=*/{});
-  return MakeFuture(&auth_data_->future_impl, handle);
+  return MakeFuture(&data->future_impl, handle);
 }
 
 Future<void> User::Reauthenticate(const Credential& credential) {
-  if (auth_data_ == nullptr) {  // user is not valid
-    return Future<void>();      // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<void>();
   }
-  Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  Promise<void> promise(&data->future_impl, kUserFn_Reauthenticate);
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
-  return DoReauthenticate(promise, auth_data_, credential.provider(),
+  return DoReauthenticate(promise, data.get(), credential.provider(),
                           credential.impl_);
 }
 
 Future<AuthResult> User::ReauthenticateAndRetrieveData(
     const Credential& credential) {
-  if (auth_data_ == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<AuthResult>();
   }
-  Promise<AuthResult> promise(&auth_data_->future_impl,
+  Promise<AuthResult> promise(&data->future_impl,
                               kUserFn_ReauthenticateAndRetrieveData);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
-  return DoReauthenticate(promise, auth_data_, credential.provider(),
+  return DoReauthenticate(promise, data.get(), credential.provider(),
                           credential.impl_);
 }
 
 Future<AuthResult> User::ReauthenticateWithProvider(
     FederatedAuthProvider* provider) const {
-  if (auth_data_ == nullptr) {    // user is not valid
-    return Future<AuthResult>();  // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<AuthResult>();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
   SafeFutureHandle<AuthResult> handle =
-      auth_data_->future_impl.SafeAlloc<AuthResult>(
+      data->future_impl.SafeAlloc<AuthResult>(
           kUserFn_ReauthenticateWithProvider);
-  auth_data_->future_impl.CompleteWithResult(
+  data->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",
       /*result=*/{});
-  return MakeFuture(&auth_data_->future_impl, handle);
+  return MakeFuture(&data->future_impl, handle);
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
   std::vector<UserInfoInterface> provider_data;
-  if (is_valid()) {
-    std::vector<UserInfoInterface*> internal_provider_data =
-        auth_data_->user_infos;
+  auto data = auth_data_.lock();
+  if (data && is_valid()) {
+    std::vector<UserInfoInterface*> internal_provider_data = data->user_infos;
     provider_data.reserve(internal_provider_data.size());
     for (size_t i = 0; i < internal_provider_data.size(); ++i) {
       UserInfoInterface user_info;
@@ -1069,90 +1084,101 @@ std::vector<UserInfoInterface> User::provider_data() const {
 }
 
 UserMetadata User::metadata() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return UserMetadata();
   }
 
-  UserData* user_data = static_cast<UserData*>(auth_data_->user_impl);
+  const auto user_view = UserView::GetReader(data.get());
   UserMetadata metadata;
-
-  metadata.last_sign_in_timestamp = user_data->last_sign_in_timestamp;
-  metadata.creation_timestamp = user_data->creation_timestamp;
+  if (user_view.IsValid()) {
+    metadata.last_sign_in_timestamp = user_view->last_sign_in_timestamp;
+    metadata.creation_timestamp = user_view->creation_timestamp;
+  }
   return metadata;
 }
 
 bool User::is_email_verified() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return false;
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->is_email_verified : false;
 }
 
 bool User::is_anonymous() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return false;
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->is_anonymous : true;
 }
 
 std::string User::uid() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return "";
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->uid : std::string();
 }
 
 std::string User::email() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return "";
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->email : std::string();
 }
 
 std::string User::display_name() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return "";
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->display_name : std::string();
 }
 
 std::string User::phone_number() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return "";
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->phone_number : std::string();
 }
 
 std::string User::photo_url() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return "";
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->photo_url : std::string();
 }
 
 std::string User::provider_id() const {
-  if (auth_data_ == nullptr) {  // user is not valid
+  auto data = auth_data_.lock();
+  if (!data) {
     return "";
   }
-  const auto user_view = UserView::GetReader(auth_data_);
+  const auto user_view = UserView::GetReader(data.get());
   return user_view.IsValid() ? user_view->provider_id : std::string();
 }
 
 Future<User> User::UpdatePhoneNumberCredential(
     const PhoneAuthCredential& credential) {
-  if (auth_data_ == nullptr) {  // user is not valid
-    return Future<User>();      // invalid future
+  auto data = auth_data_.lock();
+  if (!data) {
+    return Future<User>();
   }
-  Promise<User> promise(&auth_data_->future_impl,
+  Promise<User> promise(&data->future_impl,
                         kUserFn_UpdatePhoneNumberCredential);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  if (!ValidateCurrentUser(&promise, data.get())) {
     return promise.LastResult();
   }
 

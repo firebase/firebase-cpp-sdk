@@ -125,10 +125,8 @@ void AuthResultWithProviderCallback(FIRAuthDataResult *_Nullable auth_result,
                                     AuthData *_Nonnull auth_data,
                                     const FIROAuthProvider *_Nonnull ios_auth_provider);
 
-/// Common code for all API calls that return a User*.
-/// Initialize `auth_data->current_user` and complete the `future`.
-void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
-                    SafeFutureHandle<User *> handle, AuthData *_Nonnull auth_data);
+/// Clean up lazily-allocated PhoneAuthProvider platform data on AuthData.
+void DestroyPhoneAuthProviderData(AuthData *_Nonnull auth_data);
 
 /// Remap iOS SDK errors reported by the UIDelegate. While these errors seem
 /// like user interaction errors, they are actually caused by bad provider ids.

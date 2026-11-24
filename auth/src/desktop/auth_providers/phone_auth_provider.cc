@@ -59,9 +59,6 @@ bool PhoneAuthProvider::ForceResendingToken::operator!=(
 PhoneAuthProvider::Listener::Listener() : data_(nullptr) {}
 PhoneAuthProvider::Listener::~Listener() {}
 
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
-PhoneAuthProvider::~PhoneAuthProvider() {}
-
 void PhoneAuthProvider::VerifyPhoneNumber(
     const PhoneAuthOptions& options, PhoneAuthProvider::Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
@@ -85,8 +82,8 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(
 }
 
 // static
-PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
-  return auth->auth_data_->phone_auth_provider;
+PhoneAuthProvider PhoneAuthProvider::GetInstance(const Auth& auth) {
+  return PhoneAuthProvider(auth.auth_data_);
 }
 
 //
