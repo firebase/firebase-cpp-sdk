@@ -193,10 +193,13 @@ void AppCheckInternal::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_ena
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   __block SafeFutureHandle<AppCheckToken> handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
 
   [impl()
       tokenForcingRefresh:force_refresh
                completion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+                 auto locked_state = weak_state.lock();
+                 if (!locked_state) return;
                  AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
                  if (error != nil) {
                    NSLog(@"Unable to retrieve App Check token: %@", error);
@@ -227,9 +230,12 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
   __block SafeFutureHandle<AppCheckToken> handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetLimitedUseAppCheckToken);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
 
   [impl()
       limitedUseTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        auto locked_state = weak_state.lock();
+        if (!locked_state) return;
         AppCheckToken cpp_token = AppCheckTokenFromFIRAppCheckToken(token);
         if (error != nil) {
           NSLog(@"Unable to retrieve limited-use App Check token: %@", error);

@@ -98,6 +98,13 @@ IosWeakAppTable& GetIosWeakAppTable() {
 void TrackIosAppWeakly(const std::shared_ptr<internal::AppState>& state) {
   IosWeakAppTable& table = GetIosWeakAppTable();
   MutexLock lock(table.mutex);
+  for (auto it = table.by_name.begin(); it != table.by_name.end();) {
+    if (it->second.expired()) {
+      it = table.by_name.erase(it);
+    } else {
+      ++it;
+    }
+  }
   table.by_name[state->name()] = state;
 }
 

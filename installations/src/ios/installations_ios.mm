@@ -54,8 +54,11 @@ bool InstallationsInternal::Initialized() const{
 Future<std::string> InstallationsInternal::GetId() {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetId);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   [impl() installationIDWithCompletion:^(NSString *_Nullable identity,
                                            NSError *_Nullable error) {
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     if (error) {
       future_impl_.Complete(handle, kInstallationsErrorFailure,
                             util::NSStringToString(error.localizedDescription).c_str());
@@ -75,10 +78,13 @@ Future<std::string> InstallationsInternal::GetIdLastResult() {
 Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetToken);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
 
   FIRInstallationsTokenHandler tokenHandler =
       ^(FIRInstallationsAuthTokenResult *_Nullable token,
         NSError *_Nullable error) {
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     if (error) {
       future_impl_.Complete(handle, kInstallationsErrorFailure,
                             util::NSStringToString(error.localizedDescription).c_str());
@@ -102,7 +108,10 @@ Future<std::string> InstallationsInternal::GetTokenLastResult() {
 Future<void> InstallationsInternal::Delete() {
   const auto handle =
       future_impl_.SafeAlloc<void>(kInstallationsFnGetId);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   [impl() deleteWithCompletion:^(NSError *_Nullable error) {
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     future_impl_.Complete(handle,
                           error == nullptr ? kInstallationsErrorNone : kInstallationsErrorFailure,
                           util::NSStringToString(error.localizedDescription).c_str());

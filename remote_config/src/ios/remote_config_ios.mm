@@ -234,7 +234,10 @@ static int64_t FutureCompleteWithError(NSError *error, ReferenceCountedFutureImp
 
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
   const auto handle = future_impl_.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   [impl() ensureInitializedWithCompletionHandler:^(NSError *error) {
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     ConfigInfo config_info;
     if (error) {
       throttled_end_time_in_sec_ =
@@ -255,7 +258,10 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitializedLastResult() {
 
 Future<bool> RemoteConfigInternal::Activate() {
   const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   [impl() activateWithCompletion:^(BOOL changed, NSError *error) {
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     if (error) {
       throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
           error, &future_impl_, handle, false);
@@ -272,8 +278,11 @@ Future<bool> RemoteConfigInternal::ActivateLastResult() {
 
 Future<bool> RemoteConfigInternal::FetchAndActivate() {
   const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   [impl() fetchAndActivateWithCompletionHandler:^(FIRRemoteConfigFetchAndActivateStatus status,
                                                   NSError *error) {
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     if (error) {
       throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
           error, &future_impl_, handle, false);
@@ -297,9 +306,12 @@ Future<bool> RemoteConfigInternal::FetchAndActivateLastResult() {
 
 Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnFetch);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   [impl()
       fetchWithExpirationDuration:cache_expiration_in_seconds
                 completionHandler:^(FIRRemoteConfigFetchStatus status, NSError *error) {
+                  auto locked_state = weak_state.lock();
+                  if (!locked_state) return;
                   if (error) {
                     if (error.userInfo) {
                       throttled_end_time_in_sec_ =
@@ -343,7 +355,10 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValueVariant *defa
       LogError("Remote Config: Invalid Variant type for SetDefaults() key %s", key);
     }
   }
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     [impl() setDefaults:dict];
     future_impl_.Complete(handle, kFutureStatusSuccess);
   });
@@ -361,7 +376,10 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue *defaults,
     dict[@(key)] = @(defaults[i].value);
     default_keys_.push_back(key);
   }
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     [impl() setDefaults:dict];
     future_impl_.Complete(handle, kFutureStatusSuccess);
   });
@@ -380,7 +398,10 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
                                   ::firebase::internal::kMillisecondsPerSecond);
   newConfigSettings.fetchTimeout = static_cast<NSTimeInterval>(
       settings.fetch_timeout_in_milliseconds / ::firebase::internal::kMillisecondsPerSecond);
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    auto locked_state = weak_state.lock();
+    if (!locked_state) return;
     [impl() setConfigSettings:newConfigSettings];
     future_impl_.Complete(handle, kFutureStatusSuccess);
   });
@@ -423,8 +444,11 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
       return MakeFuture<void>(&future_impl_, handle);
     }
   }
+  std::weak_ptr<::firebase::internal::AppState> weak_state = app_state_.weak_from_this();
   [impl() setCustomSignals:dict
             withCompletion:^(NSError* _Nullable error) {
+              auto locked_state = weak_state.lock();
+              if (!locked_state) return;
               if (error) {
                 future_impl_.Complete(
                     handle, kFutureStatusFailure,

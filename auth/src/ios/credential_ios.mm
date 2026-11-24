@@ -475,10 +475,13 @@ Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
+    std::weak_ptr<::firebase::internal::AppState> weak_state = auth_data->app_state;
     [AuthImpl(auth_data)
         signInWithProvider:ios_provider
                 UIDelegate:nullptr
                 completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
+                  auto locked_state = weak_state.lock();
+                  if (!locked_state) return;
                   AuthResultWithProviderCallback(auth_result, error, handle, auth_data,
                                                  ios_provider);
                 }];
@@ -508,10 +511,13 @@ Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
+    std::weak_ptr<::firebase::internal::AppState> weak_state = auth_data->app_state;
     [UserImpl(auth_data)
         linkWithProvider:ios_provider
               UIDelegate:nullptr
               completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
+                auto locked_state = weak_state.lock();
+                if (!locked_state) return;
                 AuthResultWithProviderCallback(auth_result, error, handle, auth_data, ios_provider);
               }];
     return MakeFuture(&futures, handle);
@@ -540,10 +546,13 @@ Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
+    std::weak_ptr<::firebase::internal::AppState> weak_state = auth_data->app_state;
     [UserImpl(auth_data) reauthenticateWithProvider:ios_provider
                                          UIDelegate:nullptr
                                          completion:^(FIRAuthDataResult* _Nullable auth_result,
                                                       NSError* _Nullable error) {
+                                           auto locked_state = weak_state.lock();
+                                           if (!locked_state) return;
                                            AuthResultWithProviderCallback(
                                                auth_result, error, handle, auth_data, ios_provider);
                                          }];

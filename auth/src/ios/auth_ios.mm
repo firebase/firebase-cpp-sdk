@@ -273,12 +273,15 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<FetchProvidersResult>(kAuthFn_FetchProvidersForEmail, initial_data);
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
 
   [AuthImpl(auth_data_.get())
       fetchSignInMethodsForEmail:@(email)
                       completion:^(NSArray<NSString *> *_Nullable providers,
                                    NSError *_Nullable error) {
-                        futures.Complete<FetchProvidersResult>(
+                        auto locked = weak_auth.lock();
+                        if (!locked) return;
+                        locked->future_impl.Complete<FetchProvidersResult>(
                             handle, AuthErrorFromNSError(error),
                             [error.localizedDescription UTF8String],
                             [providers](FetchProvidersResult *data) {
@@ -437,12 +440,14 @@ Future<AuthResult> Auth::SignInWithCustomToken(const char *token) {
   if (!auth_data_) return Future<AuthResult>();
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithCustomToken, AuthResult());
-  AuthData *auth_data = auth_data_.get();
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
 
-  [AuthImpl(auth_data)
+  [AuthImpl(auth_data_.get())
       signInWithCustomToken:@(token)
                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                   AuthResultCallback(auth_result, error, handle, auth_data);
+                   auto locked = weak_auth.lock();
+                   if (!locked) return;
+                   AuthResultCallback(auth_result, error, handle, locked.get());
                  }];
 
   return MakeFuture(&futures, handle);
@@ -456,12 +461,14 @@ Future<User> Auth::SignInWithCredential(const Credential &credential) {
     futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
     return MakeFuture(&futures, handle);
   }
-  AuthData *auth_data = auth_data_.get();
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
 
-  [AuthImpl(auth_data)
+  [AuthImpl(auth_data_.get())
       signInWithCredential:CredentialFromImpl(credential.impl_)
                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                  AuthResultCallback(auth_result.user, error, handle, auth_data);
+                  auto locked = weak_auth.lock();
+                  if (!locked) return;
+                  AuthResultCallback(auth_result.user, error, handle, locked.get());
                 }];
 
   return MakeFuture(&futures, handle);
@@ -476,12 +483,14 @@ Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(const Credential &c
     futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
     return MakeFuture(&futures, handle);
   }
-  AuthData *auth_data = auth_data_.get();
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
 
-  [AuthImpl(auth_data)
+  [AuthImpl(auth_data_.get())
       signInWithCredential:CredentialFromImpl(credential.impl_)
                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                  AuthResultCallback(auth_result, error, handle, auth_data);
+                  auto locked = weak_auth.lock();
+                  if (!locked) return;
+                  AuthResultCallback(auth_result, error, handle, locked.get());
                 }];
 
   return MakeFuture(&futures, handle);
@@ -498,12 +507,15 @@ Future<AuthResult> Auth::SignInAnonymously() {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle =
       auth_data_->future_impl.SafeAlloc<AuthResult>(kAuthFn_SignInAnonymously, AuthResult());
-  AuthData *auth_data = auth_data_.get();
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
 
-  [AuthImpl(auth_data) signInAnonymouslyWithCompletion:^(FIRAuthDataResult *_Nullable auth_result,
-                                                         NSError *_Nullable error) {
-    AuthResultCallback(auth_result, error, handle, auth_data);
-  }];
+  [AuthImpl(auth_data_.get())
+      signInAnonymouslyWithCompletion:^(FIRAuthDataResult *_Nullable auth_result,
+                                        NSError *_Nullable error) {
+        auto locked = weak_auth.lock();
+        if (!locked) return;
+        AuthResultCallback(auth_result, error, handle, locked.get());
+      }];
 
   return MakeFuture(&futures, handle);
 }
@@ -513,17 +525,19 @@ Future<AuthResult> Auth::SignInWithEmailAndPassword(const char *email, const cha
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithEmailAndPassword, AuthResult());
-  AuthData *auth_data = auth_data_.get();
   if (!email || strlen(email) == 0) {
     futures.Complete(handle, kAuthErrorMissingEmail, "Empty email is not allowed.");
   } else if (!password || strlen(password) == 0) {
     futures.Complete(handle, kAuthErrorMissingPassword, "Empty password is not allowed.");
   } else {
-    [AuthImpl(auth_data)
+    std::weak_ptr<AuthData> weak_auth = auth_data_;
+    [AuthImpl(auth_data_.get())
         signInWithEmail:@(email)
                password:@(password)
              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-               AuthResultCallback(auth_result, error, handle, auth_data);
+               auto locked = weak_auth.lock();
+               if (!locked) return;
+               AuthResultCallback(auth_result, error, handle, locked.get());
              }];
   }
   return MakeFuture(&futures, handle);
@@ -534,17 +548,19 @@ Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char *email, const
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<AuthResult>(kAuthFn_CreateUserWithEmailAndPassword, AuthResult());
-  AuthData *auth_data = auth_data_.get();
   if (!email || strlen(email) == 0) {
     futures.Complete(handle, kAuthErrorMissingEmail, "Empty email is not allowed.");
   } else if (!password || strlen(password) == 0) {
     futures.Complete(handle, kAuthErrorMissingPassword, "Empty password is not allowed.");
   } else {
-    [AuthImpl(auth_data)
+    std::weak_ptr<AuthData> weak_auth = auth_data_;
+    [AuthImpl(auth_data_.get())
         createUserWithEmail:@(email)
                    password:@(password)
                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                   AuthResultCallback(auth_result, error, handle, auth_data);
+                   auto locked = weak_auth.lock();
+                   if (!locked) return;
+                   AuthResultCallback(auth_result, error, handle, locked.get());
                  }];
   }
   return MakeFuture(&futures, handle);
@@ -561,12 +577,15 @@ Future<void> Auth::SendPasswordResetEmail(const char *email) {
   if (!auth_data_) return Future<void>();
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kAuthFn_SendPasswordResetEmail);
+  std::weak_ptr<AuthData> weak_auth = auth_data_;
 
   [AuthImpl(auth_data_.get())
       sendPasswordResetWithEmail:@(email)
                       completion:^(NSError *_Nullable error) {
-                        futures.Complete(handle, AuthErrorFromNSError(error),
-                                         [error.localizedDescription UTF8String]);
+                        auto locked = weak_auth.lock();
+                        if (!locked) return;
+                        locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                                     [error.localizedDescription UTF8String]);
                       }];
 
   return MakeFuture(&futures, handle);

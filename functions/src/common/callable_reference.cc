@@ -18,6 +18,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "functions/src/include/firebase/functions.h"
 
 // CallableReference is defined in these 3 files, one implementation for each
 // OS.

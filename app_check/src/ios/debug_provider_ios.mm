@@ -19,6 +19,8 @@
 #import "FIRAppCheckDebugProvider.h"
 #import "FIRAppCheckDebugProviderFactory.h"
 
+#include <memory>
+
 #include "app/src/app_state.h"
 #include "app/src/log.h"
 #include "app/src/service_interfaces.h"
