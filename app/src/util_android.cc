@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <list>
 #include <map>
@@ -463,7 +464,15 @@ void TerminateActivityClasses(JNIEnv* env) {
   }
 }
 
+static std::atomic<JavaVM*> g_java_vm{nullptr};
+
 bool Initialize(JNIEnv* env, jobject activity_object) {
+  if (env) {
+    JavaVM* vm = nullptr;
+    if (env->GetJavaVM(&vm) == JNI_OK && vm != nullptr) {
+      g_java_vm.store(vm, std::memory_order_release);
+    }
+  }
   // Note: We increment g_initialized_count when it's possible to call
   // Terminate() in all clean up code paths. ScopedCleanup calls Terminate() to
   // clean up when its destructor is called, decrementing g_initialized_count.
@@ -1953,12 +1962,11 @@ jint AttachCurrentThread(JavaVM* java_vm, JNIEnv** env) {
       nullptr);
 }
 
-// Returns a pointer to the JNI environment. This retrieves the JNIEnv from
-// firebase::App, either the default App (if it exists) or any valid App.
+// Returns a pointer to the JNI environment for the current thread using the
+// process-wide JavaVM captured during util::Initialize().
 JNIEnv* GetJNIEnvFromApp() {
-  App* app = app_common::GetDefaultApp();
-  if (!app) app = app_common::GetAnyApp();
-  return app ? app->GetJNIEnv() : nullptr;
+  JavaVM* vm = g_java_vm.load(std::memory_order_acquire);
+  return vm ? GetThreadsafeJNIEnv(vm) : nullptr;
 }
 
 }  // namespace util

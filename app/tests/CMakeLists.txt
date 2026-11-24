@@ -101,6 +101,20 @@ firebase_cpp_cc_test(firebase_app_desktop_test
     flatbuffers
 )
 
+firebase_cpp_cc_test(firebase_app_no_destructor_test
+  SOURCES
+    ${FIREBASE_SOURCE_DIR}/app/tests/no_destructor_test.cc
+  DEPENDS
+    firebase_app
+)
+
+firebase_cpp_cc_test(firebase_app_state_test
+  SOURCES
+    ${FIREBASE_SOURCE_DIR}/app/tests/app_state_test.cc
+  DEPENDS
+    firebase_app
+)
+
 firebase_cpp_cc_test(firebase_app_log_test
   SOURCES
     ${FIREBASE_SOURCE_DIR}/app/tests/log_test.cc

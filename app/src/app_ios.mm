@@ -19,25 +19,29 @@
 #include "app/src/include/firebase/app.h"
 
 #include <dispatch/dispatch.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <functional>
+#include <map>
+#include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
 #include "app/src/app_common.h"
 #include "app/src/app_ios.h"
+#include "app/src/app_state.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_ios.h"
 
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-
 // Workaround for Xcode 15+ / Swift 5.10+ Concurrency and C++ verbose abort
 // crash on older iOS versions (iOS 15/16).
-// By providing this symbol in our own binary, we prevent dyld from
-// crashing when it is missing from the system libc++ on older OSs.
 #if defined(_LIBCPP_VERBOSE_ABORT_NOEXCEPT)
 #define FIREBASE_LIBCPP_VERBOSE_ABORT_NOEXCEPT _LIBCPP_VERBOSE_ABORT_NOEXCEPT
 #elif defined(__apple_build_version__) && __apple_build_version__ >= 16000000 && \
@@ -67,15 +71,8 @@ __attribute__((weak)) void __libcpp_verbose_abort(const char* format,
 #include "FIROptions.h"
 
 @interface FIRApp ()
-// Optionally use the private method isDefaultAppConfigured to determine whether a default
-// application is present.  We do this as [FIRApp defaultApp] reports an error if the default
-// app has not been configured.
 + (BOOL)isDefaultAppConfigured;
-// Internal method (should be part of the public API *soon*) that allows registration of a library
-// at the specified version which is added to the firebaseUserAgent string.
 + (void)registerLibrary:(NSString*)library withVersion:(NSString*)version;
-// Use the private method firebaseUserAgent to get propagate the set of register libraries into
-// the C++ SDK.
 + (NSString*)firebaseUserAgent;
 @end
 
@@ -85,7 +82,25 @@ DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
 namespace {
 
-// Copy values of FIROptions into AppOptions.
+// Non-owning weak map for iOS ObjC delegates (like FIRAppCheckProviderFactory)
+// that only receive a FIRApp* and need the corresponding C++ App handle even
+// during [FIRApp configureWithOptions:] or without App::Register().
+struct IosWeakAppTable {
+  Mutex mutex;
+  std::map<std::string, std::weak_ptr<internal::AppState>, std::less<>> by_name;
+};
+
+IosWeakAppTable& GetIosWeakAppTable() {
+  static internal::NoDestructor<IosWeakAppTable> table;
+  return *table;
+}
+
+void TrackIosAppWeakly(const std::shared_ptr<internal::AppState>& state) {
+  IosWeakAppTable& table = GetIosWeakAppTable();
+  MutexLock lock(table.mutex);
+  table.by_name[state->name()] = state;
+}
+
 static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions* app_options) {
   if (!strlen(app_options->app_id())) {
     const char* value = platform_options.googleAppID.UTF8String;
@@ -121,7 +136,6 @@ static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions
   }
 }
 
-// Copy AppOptions into a FIROptions instance.
 static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
   FIROptions* platform_options = [[FIROptions alloc] initWithGoogleAppID:@"" GCMSenderID:@""];
   if (strlen(app_options.app_id())) {
@@ -151,9 +165,7 @@ static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
   return platform_options;
 }
 
-// Find an iOS SDK FIRApp instance by name.
 static FIRApp* GetPlatformAppByName(const char* name) {
-  // Silence iOS SDKs warnings about FIRApp instances being missing.
   LogLevel log_level = GetLogLevel();
   SetLogLevel(kLogLevelAssert);
   FIRApp* platform_app =
@@ -162,24 +174,18 @@ static FIRApp* GetPlatformAppByName(const char* name) {
   return platform_app;
 }
 
-// Settings cached by SetFirConfigurationLoggerLevel if App wasn't already initialized.
 static bool g_delayed_fir_configuration_logger_level_set = false;
 static FIRLoggerLevel g_delayed_fir_configuration_logger_level = FIRLoggerLevelWarning;
 
-// Create an iOS FIRApp instance.
 static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
   __block FIRApp* platform_app = nil;
   AppOptions options_with_defaults = options;
   if (options_with_defaults.PopulateRequiredWithDefaults()) {
     FIROptions* platform_options = AppOptionsToPlatformOptions(options_with_defaults);
-    // FIRApp will fail configuration if the bundle ID isn't set so fallback
-    // to the main bundle ID.
     if (!platform_options.bundleID.length) {
       platform_options.bundleID = [[NSBundle mainBundle] bundleIdentifier];
     }
     if (platform_options) {
-      // TODO: Re-evaluate this workaround
-      // Workaround: App configuration needs to run from the main thread.
       void (^closure)(void) = ^{
         @try {
           if (app_common::IsDefaultAppName(name)) {
@@ -188,9 +194,6 @@ static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
             [FIRApp configureWithName:@(name) options:platform_options];
           }
           platform_app = GetPlatformAppByName(name);
-          // If the logger level was cached due to logging happening prior to
-          // App's initialization, apply the delayed setting now, when FIRApp
-          // is guaranteed to exist and we are in the main thread.
           if (g_delayed_fir_configuration_logger_level_set) {
             g_delayed_fir_configuration_logger_level_set = false;
             [[FIRConfiguration sharedInstance]
@@ -212,21 +215,18 @@ static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
   return platform_app;
 }
 
-// Create or get a iOS SDK FIRApp instance.
 static FIRApp* CreateOrGetPlatformApp(const AppOptions& options, const char* name) {
   FIRApp* platform_app = GetPlatformAppByName(name);
   if (platform_app) {
-    // If a FIRApp exists, make sure it has the requested options.
     AppOptions existing_options;
     PlatformOptionsToAppOptions(platform_app.options, &existing_options);
     if (options != existing_options) {
       LogWarning("Existing instance of App %s found and options do not match "
-                 "the requested options.  Deleting %s to attempt recreation "
+                 "the requested options. Deleting %s to attempt recreation "
                  "with requested options.",
                  name, name);
       dispatch_semaphore_t block_semaphore = dispatch_semaphore_create(0);
       [platform_app deleteApp:^(BOOL /*success*/) {
-        // NOTE: The delete will always succeed if the app previously existed.
         dispatch_semaphore_signal(block_semaphore);
       }];
       dispatch_semaphore_wait(block_semaphore, DISPATCH_TIME_FOREVER);
@@ -234,10 +234,18 @@ static FIRApp* CreateOrGetPlatformApp(const AppOptions& options, const char* nam
     }
   }
   return platform_app ? platform_app : CreatePlatformApp(options, name);
-  ;
 }
 
 }  // namespace
+
+namespace internal {
+
+void AppState::DestroyPlatformData() {
+  delete platform_data_;
+  platform_data_ = nullptr;
+}
+
+}  // namespace internal
 
 AppOptions* AppOptions::LoadDefault(AppOptions* app_options) {
   NSString* error_message;
@@ -260,57 +268,58 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options) {
   return app_options;
 }
 
-void App::Initialize() {}
-
-App::~App() {
-  app_common::RemoveApp(this);
-  delete internal_;
-  internal_ = nullptr;
-}
-
-App* App::Create() {
+App App::Create() {
   AppOptions options;
-  return AppOptions::LoadDefault(&options) ? Create(options) : nullptr;
+  return AppOptions::LoadDefault(&options) ? Create(options) : App();
 }
 
-App* App::Create(const AppOptions& options) { return Create(options, kDefaultAppName); }
+App App::Create(const AppOptions& options) { return Create(options, kDefaultAppName); }
 
-App* App::Create(const AppOptions& options, const char* name) {
-  App* app = GetInstance(name);
-  if (app) {
-    LogError("App %s already created, options will not be applied.", name);
-    return app;
-  }
+App App::Create(const AppOptions& options, std::string_view name) {
+  std::string app_name(name);
 
-  // Register C++/Unity user-agents before creating iOS app.
   app_common::RegisterSdkUsage(nullptr);
 
-  LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
-  app = new App();
-  app->options_ = options;
-  app->name_ = name;
+  LogDebug("Creating Firebase App %s for %s", app_name.c_str(), kFirebaseVersionString);
+  auto state = std::make_shared<internal::AppState>(app_name, options);
 
-  // Add the app to a temporary map in case app check initialization
-  // needs to reference the app before it is fully initialized.
-  internal::AddPartialApp(app);
-  FIRApp* platform_app = CreateOrGetPlatformApp(options, name);
-  // Once the app is initialized, the entry in the temporary map is not needed.
-  internal::RemovePartialApp(app);
-  if (platform_app) {
-    app->internal_ = new internal::AppInternal(platform_app);
-    app_common::AddApp(app, &app->init_results_);
-  } else {
-    delete app;
-    app = nullptr;
+  // Track weakly before [FIRApp configureWithOptions:] so FIRAppCheck provider
+  // factory callbacks can retrieve this App during configuration.
+  TrackIosAppWeakly(state);
+  FIRApp* platform_app = CreateOrGetPlatformApp(options, app_name.c_str());
+  if (!platform_app) {
+    return App();
   }
+
+  PlatformOptionsToAppOptions(platform_app.options, &state->mutable_options());
+  state->set_platform_data(new internal::AppInternal(platform_app));
+
+  App app = state->MakeAppHandle();
+  AppCallback::NotifyAllAppCreated(app, &state->mutable_init_results());
   return app;
 }
 
-App* App::GetInstance() { return app_common::GetDefaultApp(); }
+App App::CreateRegistered() {
+  AppOptions options;
+  return AppOptions::LoadDefault(&options) ? CreateRegistered(options) : App();
+}
 
-App* App::GetInstance(const char* name) { return app_common::FindAppByName(name); }
+App App::CreateRegistered(const AppOptions& options) {
+  return CreateRegistered(options, kDefaultAppName);
+}
 
-std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
+App App::CreateRegistered(const AppOptions& options, std::string_view name) {
+  if (auto existing = GetInstance(name)) {
+    LogError("App %.*s already registered, options will not be applied.",
+             static_cast<int>(name.size()), name.data());
+    return App();
+  }
+  App app = Create(options, name);
+  if (!app || !app.Register()) {
+    return App();
+  }
+  return app;
+}
 
 void App::RegisterLibrary(const char* library, const char* version, void* /* platform_resource */) {
   [FIRApp registerLibrary:@(library) withVersion:@(version)];
@@ -318,83 +327,52 @@ void App::RegisterLibrary(const char* library, const char* version, void* /* pla
       util::NSStringToString([FIRApp firebaseUserAgent]).c_str());
 }
 
-const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
-
-void App::SetDefaultConfigPath(const char* path) {}
+void App::SetDefaultConfigPath(const char* /* path */) {}
 
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
-  GetPlatformApp().dataCollectionDefaultEnabled = (enabled ? YES : NO);
+  FIRApp* platform_app = GetPlatformApp();
+  if (platform_app) {
+    platform_app.dataCollectionDefaultEnabled = (enabled ? YES : NO);
+  }
 }
 
 bool App::IsDataCollectionDefaultEnabled() const {
-  return GetPlatformApp().isDataCollectionDefaultEnabled ? true : false;
+  FIRApp* platform_app = GetPlatformApp();
+  return platform_app ? (platform_app.isDataCollectionDefaultEnabled ? true : false) : true;
 }
 
 FIRApp* App::GetPlatformApp() const {
-  if (internal_) {
-    return internal_->get();
-  } else {
-    // AppCheck initialization can depend on the FIRApp associated with an App
-    // before internal_ has been created.
-    return GetPlatformAppByName(name_.c_str());
+  if (!state_) return nil;
+  if (state_->platform_data()) {
+    return state_->platform_data()->get();
   }
+  // AppCheck initialization can depend on the FIRApp associated with an App
+  // before platform_data_ has been attached.
+  return GetPlatformAppByName(state_->name().c_str());
 }
 
 namespace internal {
 
 void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
-  // Check if a FIRApp has been created. FIRApp.allApps will return a
-  // list of all FIRApps, or nil if no FIRApp has been created yet.
   if (FIRApp.allApps != nil) {
-    // FIRApp has already been initialized, it's safe to set this
-    // value now.
     [[FIRConfiguration sharedInstance] setLoggerLevel:level];
   } else {
-    // FIRApp has not yet been initialized. Cache this value to set
-    // later, in CreatePlatformApp().
     g_delayed_fir_configuration_logger_level = level;
     g_delayed_fir_configuration_logger_level_set = true;
   }
 }
 
-// Guards g_partial_apps.
-static Mutex* g_partial_apps_mutex = new Mutex();
-// Stores partially initialized apps, indexed by app name
-static std::map<std::string, App*>* g_partial_apps;
-
-App* FindPartialAppByName(const char* name) {
-  assert(name);
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(name));
-    if (it == g_partial_apps->end()) {
-      return nullptr;
-    }
-    return it->second;
+std::optional<App> FindIosAppByName(std::string_view name) {
+  IosWeakAppTable& table = GetIosWeakAppTable();
+  MutexLock lock(table.mutex);
+  auto it = table.by_name.find(name);
+  if (it == table.by_name.end()) return std::nullopt;
+  auto state = it->second.lock();
+  if (!state) {
+    table.by_name.erase(it);
+    return std::nullopt;
   }
-  return nullptr;
-}
-
-void AddPartialApp(App* app) {
-  MutexLock lock(*g_partial_apps_mutex);
-  if (!g_partial_apps) {
-    g_partial_apps = new std::map<std::string, App*>();
-  }
-  (*g_partial_apps)[std::string(app->name())] = app;
-}
-
-void RemovePartialApp(App* app) {
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(app->name()));
-    if (it != g_partial_apps->end()) {
-      g_partial_apps->erase(it);
-      if (g_partial_apps->empty()) {
-        delete g_partial_apps;
-        g_partial_apps = nullptr;
-      }
-    }
-  }
+  return state->MakeAppHandle();
 }
 
 }  // namespace internal

@@ -22,16 +22,17 @@
 #include <fstream>
 #include <memory>
 #include <string>
-#include <vector>
+#include <string_view>
 
 #include "app/src/app_common.h"
-#include "app/src/function_registry.h"
+#include "app/src/app_state.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/semaphore.h"
 #include "app/src/util.h"
 
@@ -40,15 +41,27 @@ DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
 namespace internal {
 
+namespace {
+
+std::string& DefaultConfigPath() {
+  static NoDestructor<std::string> path;
+  return *path;
+}
+
+}  // namespace
+
+void AppState::DestroyPlatformData() {
+  delete platform_data_;
+  platform_data_ = nullptr;
+}
+
 // Attempts to load a config file from the path specified, and use it to
 // populate the AppOptions pointer.  Returns true on success, false otherwise.
 bool LoadAppOptionsFromJsonConfigFile(const char* path, AppOptions* options) {
-  // Size is arbitrary, just making sure that there is a sane limit.
   static const int kMaxBuffersize = 1024 * 500;
 
   bool loaded_options = false;
 #if FIREBASE_PLATFORM_WINDOWS
-  // Convert the path from UTF-8 to UTF-16 before opening on Windows.
   std::wstring path_utf16;
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>
       utf16_converter;
@@ -64,33 +77,25 @@ bool LoadAppOptionsFromJsonConfigFile(const char* path, AppOptions* options) {
 #endif  // FIREBASE_PLATFORM_WINDOWS
   if (infile) {
     infile.seekg(0, infile.end);
-    int file_length = infile.tellg();
-    // Make sure the file is a sane size:
+    int file_length = static_cast<int>(infile.tellg());
     if (file_length > kMaxBuffersize) return false;
     infile.seekg(0, infile.beg);
 
-    // Make sure our seeks/tells succeeded
     if (file_length == -1) return false;
     if (infile.fail()) return false;
 
-    char* buffer = new char[file_length + 1];
-    infile.read(buffer, file_length);
+    std::string buffer(static_cast<size_t>(file_length), '\0');
+    infile.read(&buffer[0], file_length);
     if (infile.fail()) return false;
-    // Make sure it is null-terminated, as this represents string data.
-    buffer[file_length] = '\0';
 
-    loaded_options = AppOptions::LoadFromJsonConfig(buffer, options) != nullptr;
-
-    delete[] buffer;
+    loaded_options =
+        AppOptions::LoadFromJsonConfig(buffer.c_str(), options) != nullptr;
   }
   return loaded_options;
 }
 
 }  // namespace internal
 
-// Searches internal::g_default_config_path for filenames matching
-// kDefaultGoogleServicesNames attempting to load the app options from each
-// config file in turn.
 AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   static const char* kDefaultGoogleServicesNames[] = {
       "google-services-desktop.json", "google-services.json"};
@@ -106,7 +111,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
       FIREBASE_ARRAYSIZE(kDefaultGoogleServicesNames);
   for (size_t i = 0; i < number_of_config_filenames; i++) {
     std::string full_path =
-        internal::g_default_config_path + kDefaultGoogleServicesNames[i];
+        internal::DefaultConfigPath() + kDefaultGoogleServicesNames[i];
     if (internal::LoadAppOptionsFromJsonConfigFile(full_path.c_str(),
                                                    options)) {
       return options;
@@ -122,121 +127,119 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   return nullptr;
 }
 
-void App::Initialize() { internal_ = new internal::AppInternal(); }
-
-App::~App() {
-  app_common::RemoveApp(this);
-  delete internal_;
-  internal_ = nullptr;
-}
-
-// On desktop, if you create an app with no arguments, it will try to
-// load any data it can find from the google-services-desktop.json
-// file, or the google-services.json file, in that order.
-App* App::Create() {
+App App::Create() {
   AppOptions options;
-  return AppOptions::LoadDefault(&options) ? Create(options) : nullptr;
+  return AppOptions::LoadDefault(&options) ? Create(options) : App();
 }
 
-App* App::Create(const AppOptions& options) {  // NOLINT
+App App::Create(const AppOptions& options) {
   return Create(options, kDefaultAppName);
 }
 
-App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
-  App* app = GetInstance(name);
-  if (app) {
-    LogError("App %s already created, options will not be applied.", name);
-    return app;
-  }
-  LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
+App App::Create(const AppOptions& options, std::string_view name) {
+  std::string app_name(name);
+  LogDebug("Creating Firebase App %s for %s", app_name.c_str(),
+           kFirebaseVersionString);
   LogDebug("Validating semaphore creation.");
   { firebase::Semaphore sem_test(0); }
 
   AppOptions options_with_defaults = options;
-  if (options_with_defaults.PopulateRequiredWithDefaults()) {
-    // Register C++/Unity user-agents
-    app_common::RegisterSdkUsage(nullptr);
-
-    app = new App();
-    app->name_ = name;
-    app->options_ = options_with_defaults;
-    std::string unique_name =
-        std::string(app->options_.package_name()) + "." + app->name_;
-    app = app_common::AddApp(app, &app->init_results_);
-    app->internal_->heartbeat_controller_ =
-        std::make_shared<heartbeat::HeartbeatController>(
-            unique_name, *app_common::FindAppLoggerByName(name),
-            app->internal_->date_provider_);
-#ifndef SWIG
-    // Log a heartbeat after creating an App. In the Unity SDK this will happen
-    // at a later time, after additional user agents have been registered.
-    app->internal_->heartbeat_controller_->LogHeartbeat();
-#endif  // SWIG
+  if (!options_with_defaults.PopulateRequiredWithDefaults()) {
+    return App();
   }
+
+  // Register C++/Unity user-agents.
+  app_common::RegisterSdkUsage(nullptr);
+
+  auto state = std::make_shared<internal::AppState>(
+      std::move(app_name), std::move(options_with_defaults));
+
+  auto* platform = new internal::AppInternal();
+  std::string unique_name =
+      std::string(state->options().package_name()) + "." + state->name();
+  platform->heartbeat_controller_ =
+      std::make_shared<heartbeat::HeartbeatController>(
+          unique_name, state->logger(), platform->date_provider_);
+  state->set_platform_data(platform);
+
+  App app = state->MakeAppHandle();
+  AppCallback::NotifyAllAppCreated(app, &state->mutable_init_results());
+
+#ifndef SWIG
+  // Log a heartbeat after creating an App. In the Unity SDK this will happen
+  // at a later time, after additional user agents have been registered.
+  platform->heartbeat_controller_->LogHeartbeat();
+#endif  // SWIG
+
   return app;
 }
 
-App* App::GetInstance() {  // NOLINT
-  return app_common::GetDefaultApp();
+App App::CreateRegistered() {
+  AppOptions options;
+  return AppOptions::LoadDefault(&options) ? CreateRegistered(options) : App();
 }
 
-App* App::GetInstance(const char* name) {  // NOLINT
-  return app_common::FindAppByName(name);
+App App::CreateRegistered(const AppOptions& options) {
+  return CreateRegistered(options, kDefaultAppName);
 }
 
-std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
-
-#ifdef INTERNAL_EXPERIMENTAL
-internal::FunctionRegistry* App::function_registry() {
-  return &internal_->function_registry;
+App App::CreateRegistered(const AppOptions& options, std::string_view name) {
+  if (auto existing = GetInstance(name)) {
+    LogError("App %.*s already registered, options will not be applied.",
+             static_cast<int>(name.size()), name.data());
+    return App();
+  }
+  App app = Create(options, name);
+  if (!app || !app.Register()) {
+    return App();
+  }
+  return app;
 }
-#endif  // INTERNAL_EXPERIMENTAL
 
 void App::RegisterLibrary(const char* library, const char* version,
                           void* /* platform_resource */) {
   app_common::RegisterLibrary(library, version);
 }
 
-const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
-
 void App::SetDefaultConfigPath(const char* path) {
-  internal::g_default_config_path = path;
+  std::string& config_path = internal::DefaultConfigPath();
+  config_path = path ? path : "";
 
 #if defined(WIN32)
-  const char kSeperator = '\\';
+  const char kSeparator = '\\';
 #else
-  const char kSeperator = '/';
+  const char kSeparator = '/';
 #endif
 
-  if (!internal::g_default_config_path.empty()) {
-    char last_character = internal::g_default_config_path.back();
+  if (!config_path.empty()) {
+    char last_character = config_path.back();
     if (last_character != '\\' && last_character != '/') {
-      internal::g_default_config_path += kSeperator;
+      config_path += kSeparator;
     }
   }
 }
 
 void App::LogHeartbeat() const {
-  if (internal_ != nullptr && internal_->heartbeat_controller_) {
-    internal_->heartbeat_controller_->LogHeartbeat();
+  if (state_ && state_->platform_data() &&
+      state_->platform_data()->heartbeat_controller_) {
+    state_->platform_data()->heartbeat_controller_->LogHeartbeat();
   }
 }
 
 std::shared_ptr<heartbeat::HeartbeatController> App::GetHeartbeatController()
     const {
-  if (internal_ != nullptr) {
-    return internal_->heartbeat_controller_;
-  } else {
-    return std::shared_ptr<heartbeat::HeartbeatController>();
+  if (state_ && state_->platform_data() &&
+      state_->platform_data()->heartbeat_controller_) {
+    // Alias to AppState so the HeartbeatController keeps date_provider_ and
+    // logger_ alive even if the caller drops its App handle.
+    return std::shared_ptr<heartbeat::HeartbeatController>(
+        state_, state_->platform_data()->heartbeat_controller_.get());
   }
+  return {};
 }
 
-// Desktop support is for developer workflow only, so automatic data collection
-// is always enabled.
 void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {}
 
-// Desktop support is for developer workflow only, so automatic data collection
-// is always enabled.
 bool App::IsDataCollectionDefaultEnabled() const { return true; }
 
 }  // namespace firebase

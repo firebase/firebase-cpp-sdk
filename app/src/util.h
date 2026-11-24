@@ -30,9 +30,6 @@
 
 namespace firebase {
 
-// Macros that allow Android code to easily fail initialization if Google Play
-// services is unavailable.
-
 #if FIREBASE_PLATFORM_ANDROID
 // Return kInitResultFailedMissingDependency if Google Play is unavailable.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app) \
@@ -42,18 +39,17 @@ namespace firebase {
     return ::firebase::kInitResultFailedMissingDependency;           \
   }
 
-// Return null if Google Play is unavailable. Also, if output is non-null, set
-// *output to kInitResultFailedMissingDependency.
+// Return an invalid/default value if Google Play is unavailable. Also, if
+// output is non-null, set *output to kInitResultFailedMissingDependency.
 #define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(app, output) \
   if (::google_play_services::CheckAvailability((app).GetJNIEnv(),        \
                                                 (app).activity()) !=      \
       ::google_play_services::kAvailabilityAvailable) {                   \
     if ((output) != nullptr)                                              \
       *(output) = ::firebase::kInitResultFailedMissingDependency;         \
-    return nullptr;                                                       \
+    return {};                                                            \
   }
 #else  // !FIREBASE_PLATFORM_ANDROID
-// No-ops on other platforms. Consume the variables to prevent warnings.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(x) \
   { (void)(x); }
 #define FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(x, y) \
@@ -63,16 +59,6 @@ namespace firebase {
   }
 #endif  // FIREBASE_PLATFORM_ANDROID
 
-// Macro that silences switch case fallthrough warnings when using certain
-// compilers.
-// For example:
-// switch (foo) {
-//   case YesIWantThisToFallThrough:
-//     FIREBASE_CASE_FALLTHROUGH;
-//   case AndDoThis:
-//     // some stuff with bar
-//     break;
-// }
 #if __clang__
 #define FIREBASE_CASE_FALLTHROUGH [[clang::fallthrough]]
 #else
@@ -80,128 +66,57 @@ namespace firebase {
 #endif  // __clang__
 
 // Class that allows modules to register for callbacks when instances of
-// firebase::App are created and destroyed.
-// Callbacks are called on the thread that created / destroyed the app.
+// firebase::App are created (e.g., App Check auto-attaching to each AppState).
+// Teardown is handled automatically by AppState::DestroyServices() when the
+// last handle to AppState drops.
 class AppCallback {
  public:
-  // Method which initializes a Firebase module.
-  typedef InitResult (*Created)(firebase::App* app);
-  // Method which terminates / shuts down a Firebase module.
-  typedef void (*Destroyed)(firebase::App* app);
+  typedef InitResult (*Created)(const firebase::App& app);
 
-  // Initialize a module instance.
-  //
-  // Module auto-initialization is determined by the enabled flag.
-  // Most products should default to false, except for App Check which
-  // needs to be aware of App creation, and may not require user calls.
-  // Module initialization can be enabled on a case by case basis using
-  // SetEnabledByName() before creating an App object, for example:
-  // SetEnabledByName("analytics", true);
-  AppCallback(const char* module_name, Created created, Destroyed destroyed,
+  AppCallback(const char* module_name, Created created,
               bool enabled_by_default)
       : module_name_(module_name),
         created_(created),
-        destroyed_(destroyed),
         enabled_(enabled_by_default) {
     AddCallback(this);
   }
 
-  // Get the name of the module associated with this callback class.
   const char* module_name() const { return module_name_; }
-
-  // Get whether this is enabled.
   bool enabled() const { return enabled_; }
-
-  // Enable / disable this callback object.
-  // NOTE: Use of this method is perilous!  This method should only disable
-  // a callback *before* any App instances are created otherwise it's possible
-  // to get into a state where a module is initialized and will never be torn
-  // down.
   void set_enabled(bool enable) { enabled_ = enable; }
 
-  // Called by firebase::App when an instance is created.
   static void NotifyAllAppCreated(
-      firebase::App* app, std::map<std::string, InitResult>* results = nullptr);
+      const firebase::App& app,
+      std::map<std::string, InitResult>* results = nullptr);
 
-  // Called by firebase::App when an App instance is about to be destroyed.
-  static void NotifyAllAppDestroyed(firebase::App* app);
-
-  // Enable a module callback by name.
   static void SetEnabledByName(const char* name, bool enable);
-
-  // Determine whether a module callback is enabled, by name.
   static bool GetEnabledByName(const char* name);
-
-  // Enable / disable all callbacks.
   static void SetEnabledAll(bool enable);
 
  private:
-  // Called by App when an instance is created.
-  InitResult NotifyAppCreated(firebase::App* app) const {
+  InitResult NotifyAppCreated(const firebase::App& app) const {
     return created_ ? created_(app) : kInitResultSuccess;
   }
 
-  // Called by App when an App instance is about to be destroyed.
-  void NotifyAppDestroyed(firebase::App* app) const {
-    if (destroyed_) destroyed_(app);
-  }
-
-  // Add a callback class to the list.
-  // NOTE: This is *not* synchronized as it's not possible to use Mutex
-  // from static constructors on some platforms.
   static void AddCallback(AppCallback* callback);
 
- private:
-  // Name of the module associated with this callback.
   const char* module_name_;
-  // Called when an app has just been created.
   Created created_;
-  // Called when an app is about to be destroyed.
-  Destroyed destroyed_;
-  // Whether this callback is enabled.
   bool enabled_;
-
-  // Global set of callbacks.
-  static std::map<std::string, AppCallback*>* callbacks_;
-  // Mutex which controls access to callbacks during notification.
-  // NOTE: This violates Google's C++ style guide as we do not have access to
-  // module initializers in //base so this replicates part of that behavior.
-  static Mutex* callbacks_mutex_;
 };
 
-// Register app callbacks for a module.
-//
-// This can be used to initialize a module when an app is created and tear it
-// down on destruction.
-//
-// For example:
-// FIREBASE_APP_REGISTER_CALLBACKS(\
-//   analytics,
-//   {
-//     if (app == ::firebase::App::GetInstance()) {
-//       firebase::analytics::Initialize(*app);
-//     }
-//     return kInitResultSuccess;
-//   },
-//   {
-//     if (app == ::firebase::App::GetInstance()) {
-//       firebase::analytics::Terminate();
-//     }
-//   });
-#define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,             \
-                                        destroyed_code, enabled_by_default)    \
-  namespace firebase {                                                         \
-  static InitResult module_name##Created(::firebase::App* app) {               \
-    created_code;                                                              \
-  }                                                                            \
-  static void module_name##Destroyed(::firebase::App* app) { destroyed_code; } \
-  static ::firebase::AppCallback module_name##_app_callback(                   \
-      #module_name, module_name##Created, module_name##Destroyed,              \
-      enabled_by_default);                                                     \
-  /* This is a global symbol that is referenced from all compilation units */  \
-  /* that include this module. */                                              \
-  void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)          \
-      FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;                  \
+// Register an App creation callback for a module.
+// Teardown is owned by AppState via internal::Service destructors.
+#define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,            \
+                                        enabled_by_default)                   \
+  namespace firebase {                                                        \
+  static InitResult module_name##Created(const ::firebase::App& app) {        \
+    created_code;                                                             \
+  }                                                                           \
+  static ::firebase::AppCallback module_name##_app_callback(                  \
+      #module_name, module_name##Created, enabled_by_default);                \
+  void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)         \
+      FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;                 \
   } /* namespace firebase */
 
 // Helper class to provide easy management and static access of
@@ -209,38 +124,23 @@ class AppCallback {
 class StaticFutureData {
  public:
   explicit StaticFutureData(int num_functions) : api_(num_functions) {}
-  ~StaticFutureData() {}
+  ~StaticFutureData() = default;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 
-  // Cleanup StaticFutureData for the specified module.
   static void CleanupFutureDataForModule(const void* module_identifier);
-  // Get the StaticFutureData instance for the specified module.  Creates a new
-  // one if none already exists.
   static StaticFutureData* GetFutureDataForModule(const void* module_identifier,
                                                   int num_functions);
 
  private:
   ReferenceCountedFutureImpl api_;
 
-  // Mutex which controls access to s_future_datas_
-  static Mutex* s_futures_mutex_;
-
-  // Static storage of StaticFutureDatas per module.  Keyed on a void pointer
-  // that should be declared in the module to serve as a unique identifier.
-  static std::map<const void*, StaticFutureData*>* s_future_datas_;
-
   static StaticFutureData* CreateNewData(const void* module_identifier,
                                          int num_functions);
 };
 
-// Platform independent function to split a string based on specified character
-// delimiter. Returns a vector of constituent parts.
 std::vector<std::string> SplitString(const std::string& s, char delimiter);
 
-// Helper function to combine a string and other object into a unique
-// identifier. Primarily used to manage listening to JNI Tasks on Android.
-// Note that repeated calls are expected to return different values.
 std::string CreateApiIdentifier(const char* api_id, void* object);
 
 }  // namespace firebase

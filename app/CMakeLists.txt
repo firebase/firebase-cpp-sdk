@@ -114,9 +114,9 @@ set(common_SRCS
     src/app_common.cc
     src/app_identifier.cc
     src/app_options.cc
+    src/app_state.cc
     src/callback.cc
     src/cleanup_notifier.cc
-    src/function_registry.cc
     src/future.cc
     src/future_manager.cc
     src/path.cc
@@ -240,15 +240,16 @@ set(internal_HDRS
 
 set(utility_common_HDRS
     src/app_common.h
+    src/app_state.h
     src/assert.h
     src/callback.h
     src/cleanup_notifier.h
     src/embedded_file.h
     src/filesystem.h
-    src/function_registry.h
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
+    src/no_destructor.h
     src/optional.h
     src/path.h
     src/pthread_condvar.h
@@ -256,6 +257,7 @@ set(utility_common_HDRS
     src/reference_counted_future_impl.h
     src/scheduler.h
     src/semaphore.h
+    src/service_interfaces.h
     src/thread.h
     src/time.h
     src/util.h)

@@ -20,12 +20,14 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/intrusive_list.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 
 // Set this to 1 to enable verbose logging in this module.
 #if !defined(FIREBASE_FUTURE_TRACE_ENABLE)
@@ -47,9 +49,10 @@ static_assert(sizeof(FutureBase) == sizeof(Future<int>),
 typedef void DataDeleteFn(void* data_to_delete);
 typedef std::pair<FutureHandleId, FutureBackingData*> BackingPair;
 
-// NOLINTNEXTLINE
-const FutureHandle ReferenceCountedFutureImpl::kInvalidHandle(
-    kInvalidFutureHandle);
+const FutureHandle& ReferenceCountedFutureImpl::kInvalidHandle = []() -> const FutureHandle& {
+  static internal::NoDestructor<FutureHandle> handle(kInvalidFutureHandle);
+  return *handle;
+}();
 
 namespace {
 

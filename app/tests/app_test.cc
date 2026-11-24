@@ -143,9 +143,10 @@ class AppTest : public ::testing::Test {
   }
 
  private:
-  // Clear all C++ firebase::App objects and any mobile SDK instances.
+  // Clear any opt-in global registrations and mobile SDK instances.
   void ClearAppInstances() {
-    app_common::DestroyAllApps();
+    app_common::ClearRegisteredAppsForTesting();
+    app_common::ResetLibraryRegistryForTesting();
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     FIRAppResetApps();
 #endif  // FIREBASE_PLATFORM_IOS
@@ -277,189 +278,167 @@ TEST_F(AppTest, PopulateRequiredWithDefaults) {
 // The following tests create Firebase App instances.
 
 // Helper functions to create test instance.
-std::unique_ptr<App> CreateFirebaseApp() {
-  return std::unique_ptr<App>(App::Create(
+App CreateFirebaseApp() {
+  return App::Create(
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-      // Additional parameters are required for Android.
       firebase::testing::cppsdk::GetTestJniEnv(),
       firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-          ));
+  );
 }
 
-std::unique_ptr<App> CreateFirebaseApp(const char* name) {
-  return std::unique_ptr<App>(App::Create(
+App CreateFirebaseApp(const char* name) {
+  return App::Create(
       AppOptions(),
       name
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-      // Additional parameters are required for Android.
       ,
       firebase::testing::cppsdk::GetTestJniEnv(),
       firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-          ));
+  );
 }
 
-std::unique_ptr<App> CreateFirebaseApp(const AppOptions& options) {
-  return std::unique_ptr<App>(App::Create(
+App CreateFirebaseApp(const AppOptions& options) {
+  return App::Create(
       options
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-      // Additional parameters are required for Android.
       ,
       firebase::testing::cppsdk::GetTestJniEnv(),
       firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-          ));
+  );
 }
 
-std::unique_ptr<App> CreateFirebaseApp(const AppOptions& options,
-                                       const char* name) {
-  return std::unique_ptr<App>(App::Create(
+App CreateFirebaseApp(const AppOptions& options, const char* name) {
+  return App::Create(
       options,
       name
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-      // Additional parameters are required for Android.
       ,
       firebase::testing::cppsdk::GetTestJniEnv(),
       firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-          ));
+  );
 }
 
 TEST_F(AppTest, TestCreateDefault) {
   // Created with default options.
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp();
-  EXPECT_NE(nullptr, firebase_app);
-  EXPECT_STREQ(firebase::kDefaultAppName, firebase_app->name());
+  App firebase_app = CreateFirebaseApp();
+  EXPECT_TRUE(firebase_app.is_valid());
+  EXPECT_STREQ(firebase::kDefaultAppName, firebase_app.name());
 }
 
 TEST_F(AppTest, TestCreateDefaultWithExistingApp) {
 #if FIREBASE_PLATFORM_MOBILE
-  // Create a default mobile app that will be proxied by a C++ app object.
   CreateMobileApp(nullptr);
-  // Create the C++ proxy object, since we've specified no options this should
-  // return a proxy to the previously created object.
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp();
-  EXPECT_NE(nullptr, firebase_app);
-  EXPECT_STREQ(firebase::kDefaultAppName, firebase_app->name());
-  // Make sure the options loaded from the fake resource are present.
+  App firebase_app = CreateFirebaseApp();
+  EXPECT_TRUE(firebase_app.is_valid());
+  EXPECT_STREQ(firebase::kDefaultAppName, firebase_app.name());
   EXPECT_STREQ("fake project id from resource",
-               firebase_app->options().project_id());
+               firebase_app.options().project_id());
 #endif  // FIREBASE_PLATFORM_MOBILE
 }
 
 TEST_F(AppTest, TestCreateNamedWithExistingApp) {
 #if FIREBASE_PLATFORM_MOBILE
-  // Create a default mobile app that will be proxied by a C++ app object.
   CreateMobileApp("a named app");
-  // Create the C++ proxy object, since we've specified no options this should
-  // return a proxy to the previously created object.
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp("a named app");
-  EXPECT_NE(nullptr, firebase_app);
-  EXPECT_STREQ("a named app", firebase_app->name());
+  App firebase_app = CreateFirebaseApp("a named app");
+  EXPECT_TRUE(firebase_app.is_valid());
+  EXPECT_STREQ("a named app", firebase_app.name());
 #endif  // FIREBASE_PLATFORM_MOBILE
 }
 
 TEST_F(AppTest, TestCreateWithOptions) {
-  // Created with options as well as name.
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp("my_apps_name");
-  EXPECT_NE(nullptr, firebase_app);
-  EXPECT_STREQ("my_apps_name", firebase_app->name());
+  App firebase_app = CreateFirebaseApp("my_apps_name");
+  EXPECT_TRUE(firebase_app.is_valid());
+  EXPECT_STREQ("my_apps_name", firebase_app.name());
 }
 
 TEST_F(AppTest, TestCreateDefaultWithDifferentOptionsToExistingApp) {
 #if FIREBASE_PLATFORM_MOBILE
-  // Create a default mobile app that will be proxied by a C++ app object.
   CreateMobileApp(nullptr);
-  // Create the C++ proxy object, this should delete the previously created
-  // object returning a new object with the specified options.
   AppOptions options;
   options.set_api_key("an api key");
   options.set_app_id("a different app id");
   options.set_project_id("a project id");
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp(options);
-  EXPECT_NE(nullptr, firebase_app);
-  EXPECT_STREQ("__FIRAPP_DEFAULT", firebase_app->name());
-  EXPECT_STREQ("an api key", firebase_app->options().api_key());
-  EXPECT_STREQ("a different app id", firebase_app->options().app_id());
-  EXPECT_STREQ("a project id", firebase_app->options().project_id());
+  App firebase_app = CreateFirebaseApp(options);
+  EXPECT_TRUE(firebase_app.is_valid());
+  EXPECT_STREQ("__FIRAPP_DEFAULT", firebase_app.name());
+  EXPECT_STREQ("an api key", firebase_app.options().api_key());
+  EXPECT_STREQ("a different app id", firebase_app.options().app_id());
+  EXPECT_STREQ("a project id", firebase_app.options().project_id());
 #endif  // FIREBASE_PLATFORM_MOBILE
 }
 
 TEST_F(AppTest, TestCreateNamedWithDifferentOptionsToExistingApp) {
 #if FIREBASE_PLATFORM_MOBILE
-  // Create a default mobile app that will be proxied by a C++ app object.
   CreateMobileApp("a named app");
-  // Create the C++ proxy object, this should delete the previously created
-  // object returning a new object with the specified options.
   AppOptions options;
   options.set_api_key("an api key");
   options.set_app_id("a different app id");
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp(options, "a named app");
-  EXPECT_NE(nullptr, firebase_app);
-  EXPECT_STREQ("a named app", firebase_app->name());
-  EXPECT_STREQ("a different app id", firebase_app->options().app_id());
-  EXPECT_STREQ("an api key", firebase_app->options().api_key());
+  App firebase_app = CreateFirebaseApp(options, "a named app");
+  EXPECT_TRUE(firebase_app.is_valid());
+  EXPECT_STREQ("a named app", firebase_app.name());
+  EXPECT_STREQ("a different app id", firebase_app.options().app_id());
+  EXPECT_STREQ("an api key", firebase_app.options().api_key());
 #endif  // FIREBASE_PLATFORM_MOBILE
 }
 
 TEST_F(AppTest, TestCreateMultipleTimes) {
-  // Created two apps with the same default name; the two are actually the same.
-  // We cannot use unique_ptr for this as the two will point to the same app.
-  App* firebase_app[2];
-  for (int i = 0; i < 2; ++i) {
-    firebase_app[i] = App::Create(
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-        // Additional parameters are required for Android.
-        firebase::testing::cppsdk::GetTestJniEnv(),
-        firebase::testing::cppsdk::GetTestActivity()
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-    );
-  }
-  // There is only one app with the same name.
-  EXPECT_NE(nullptr, firebase_app[0]);
-  EXPECT_EQ(firebase_app[0], firebase_app[1]);
-  delete firebase_app[0];
+  // Unregistered Apps are independent value handles with no global collision.
+  App app_a = CreateFirebaseApp();
+  App app_b = CreateFirebaseApp();
+  EXPECT_TRUE(app_a.is_valid());
+  EXPECT_TRUE(app_b.is_valid());
+  EXPECT_NE(app_a, app_b);
+  EXPECT_FALSE(App::GetInstance().has_value());
 }
 
-// The following tests call GetInstance().
+// The following tests verify opt-in global registration and GetInstance().
 
 TEST_F(AppTest, TestGetDefaultInstance) {
-  // Nothing is created yet. We get nullptr.
-  EXPECT_EQ(nullptr, App::GetInstance());
+  // Nothing is registered yet.
+  EXPECT_FALSE(App::GetInstance().has_value());
 
-  // Now we create one.
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp();
-  // We should get a non-nullptr pointer, which is what we created above.
-  EXPECT_NE(nullptr, App::GetInstance());
-  EXPECT_EQ(firebase_app.get(), App::GetInstance());
+  // App::Create() alone does NOT register globally.
+  App firebase_app = CreateFirebaseApp();
+  EXPECT_FALSE(App::GetInstance().has_value());
 
-  // But there is one app for each distinct name.
-  EXPECT_EQ(nullptr, App::GetInstance("thing_one"));
-  EXPECT_EQ(nullptr, App::GetInstance("thing_two"));
+  // Opt-in via Register() makes it discoverable.
+  EXPECT_TRUE(firebase_app.Register());
+  auto found = App::GetInstance();
+  ASSERT_TRUE(found.has_value());
+  EXPECT_EQ(firebase_app, *found);
+
+  // Distinct names remain unregistered.
+  EXPECT_FALSE(App::GetInstance("thing_one").has_value());
+  EXPECT_FALSE(App::GetInstance("thing_two").has_value());
 }
 
 TEST_F(AppTest, TestGetInstanceMultipleApps) {
-  // Nothing is created yet.
-  EXPECT_EQ(nullptr, App::GetInstance());
-  EXPECT_EQ(nullptr, App::GetInstance("thing_one"));
-  EXPECT_EQ(nullptr, App::GetInstance("thing_two"));
+  EXPECT_FALSE(App::GetInstance().has_value());
+  EXPECT_FALSE(App::GetInstance("thing_one").has_value());
+  EXPECT_FALSE(App::GetInstance("thing_two").has_value());
 
-  // Now we create named app.
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp("thing_one");
-  EXPECT_EQ(nullptr, App::GetInstance());
-  EXPECT_NE(nullptr, App::GetInstance("thing_one"));
-  EXPECT_EQ(firebase_app.get(), App::GetInstance("thing_one"));
-  EXPECT_EQ(nullptr, App::GetInstance("thing_two"));
+  App firebase_app = CreateFirebaseApp("thing_one");
+  EXPECT_TRUE(firebase_app.Register());
+  EXPECT_FALSE(App::GetInstance().has_value());
+  auto found_one = App::GetInstance("thing_one");
+  ASSERT_TRUE(found_one.has_value());
+  EXPECT_EQ(firebase_app, *found_one);
+  EXPECT_FALSE(App::GetInstance("thing_two").has_value());
 
-  // We again create a default app.
-  std::unique_ptr<App> firebase_app_default = CreateFirebaseApp();
-  EXPECT_NE(nullptr, App::GetInstance());
-  EXPECT_EQ(firebase_app_default.get(), App::GetInstance());
-  EXPECT_NE(nullptr, App::GetInstance("thing_one"));
-  EXPECT_EQ(firebase_app.get(), App::GetInstance("thing_one"));
+  App firebase_app_default = CreateFirebaseApp();
+  EXPECT_TRUE(firebase_app_default.Register());
+  auto found_default = App::GetInstance();
+  ASSERT_TRUE(found_default.has_value());
+  EXPECT_EQ(firebase_app_default, *found_default);
+  found_one = App::GetInstance("thing_one");
+  ASSERT_TRUE(found_one.has_value());
+  EXPECT_EQ(firebase_app, *found_one);
   EXPECT_NE(firebase_app, firebase_app_default);
-  EXPECT_EQ(nullptr, App::GetInstance("thing_two"));
+  EXPECT_FALSE(App::GetInstance("thing_two").has_value());
 }
 
 TEST_F(AppTest, TestParseUserAgent) {
@@ -475,7 +454,7 @@ TEST_F(AppTest, TestRegisterAndGetLibraryVersion) {
 }
 
 TEST_F(AppTest, TestGetOuterMostSdkAndVersion) {
-  std::unique_ptr<App> firebase_app_default = CreateFirebaseApp();
+  App firebase_app_default = CreateFirebaseApp();
   std::string sdk;
   std::string version;
   app_common::GetOuterMostSdkAndVersion(&sdk, &version);
@@ -494,7 +473,7 @@ TEST_F(AppTest, TestGetOuterMostSdkAndVersion) {
 TEST_F(AppTest, TestRegisterLibrary) {
   std::string firebase_version(std::string("fire-cpp/") +
                                std::string(FIREBASE_VERSION_NUMBER_STRING));
-  std::unique_ptr<App> firebase_app_default = CreateFirebaseApp();
+  App firebase_app_default = CreateFirebaseApp();
   EXPECT_THAT(std::string(App::GetUserAgent()), HasSubstr(firebase_version));
   EXPECT_THAT(std::string(App::GetUserAgent()),
               ContainsRegex("fire-cpp-os/(windows|darwin|linux|ios|android)"));
@@ -504,22 +483,19 @@ TEST_F(AppTest, TestRegisterLibrary) {
               ContainsRegex("fire-cpp-stl/[^ ]+"));
 #if FIREBASE_PLATFORM_ANDROID
   App::RegisterLibrary("fire-testing", "1.2.3",
-                       firebase_app_default->GetJNIEnv());
+                       firebase_app_default.GetJNIEnv());
 #else
   App::RegisterLibrary("fire-testing", "1.2.3", nullptr);
 #endif
   EXPECT_THAT(std::string(App::GetUserAgent()),
               HasSubstr("fire-testing/1.2.3"));
-  firebase_app_default.reset(nullptr);
-  EXPECT_THAT(std::string(App::GetUserAgent()),
-              Not(HasSubstr("fire-testing/1.2.3")));
 }
 
 #if TEST_RESOURCES_AVAILABLE
 TEST_F(AppTest, TestDefaultOptions) {
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp(AppOptions());
+  App firebase_app = CreateFirebaseApp(AppOptions());
 
-  const AppOptions& options = firebase_app->options();
+  const AppOptions& options = firebase_app.options();
   EXPECT_STREQ("fake app id from resource", options.app_id());
   EXPECT_STREQ("fake api key from resource", options.api_key());
   EXPECT_STREQ("", options.messaging_sender_id());
@@ -535,29 +511,22 @@ TEST_F(AppTest, TestReadOptionsFromResource) {
   std::string config;
   EXPECT_TRUE(flatbuffers::LoadFile(json_file.c_str(), false, &config));
   AppOptions::LoadFromJsonConfig(config.c_str(), &app_options);
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp(app_options);
+  App firebase_app = CreateFirebaseApp(app_options);
 
-  const AppOptions& options = firebase_app->options();
-  // Check for the various fake options.
+  const AppOptions& options = firebase_app.options();
   EXPECT_STREQ("fake mobilesdk app id", options.app_id());
   EXPECT_STREQ("fake api key", options.api_key());
   EXPECT_STREQ("fake project number", options.messaging_sender_id());
   EXPECT_STREQ("fake firebase url", options.database_url());
-  // None of Firebase sample apps contain GA tracking_id. Looks like the field
-  // is either deprecated or not important.
   EXPECT_STREQ("", options.ga_tracking_id());
-  // Firebase auth sample app does not contain storage_bucket field. This could
-  // change and we should update here accordingly.
   EXPECT_STREQ("", options.storage_bucket());
   EXPECT_STREQ("fake project id", options.project_id());
 }
 
-// Test that calling app.create() with no options tries to load from the local
-// file google-services-desktop.json, before giving up.
 TEST_F(AppTest, TestDefaultStart) {
-  // With no arguments, this will attempt to load a config from a file.
-  auto app = std::unique_ptr<App>(App::Create());
-  const AppOptions& options = app->options();
+  App app = App::Create();
+  ASSERT_TRUE(app.is_valid());
+  const AppOptions& options = app.options();
   EXPECT_STREQ(options.api_key(), "fake api key from resource");
   EXPECT_STREQ(options.storage_bucket(), "fake storage bucket from resource");
   EXPECT_STREQ(options.project_id(), "fake project id from resource");
@@ -567,13 +536,9 @@ TEST_F(AppTest, TestDefaultStart) {
 }
 
 TEST_F(AppTest, TestDefaultStartBrokenOptions) {
-  // Need to change the directory here to make sure we are in the same place
-  // as the broken google-services-desktop.json file.
   EXPECT_EQ(chdir(broken_test_data_dir_.c_str()), 0);
-  // With no arguments, this will attempt to load a config from a file.
-  // This should fail as the file's format is invalid.
-  auto app = std::unique_ptr<App>(App::Create());
-  EXPECT_EQ(app.get(), nullptr);
+  App app = App::Create();
+  EXPECT_FALSE(app.is_valid());
 }
 
 TEST_F(AppTest, TestCreateIdentifierFromOptions) {

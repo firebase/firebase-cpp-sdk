@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#include <string.h>
-
-#include <cassert>
+#include <memory>
+#include <string>
+#include <string_view>
 
 #include "app/src/app_common.h"
-#include "app/src/assert.h"
-#include "app/src/function_registry.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
@@ -30,58 +29,49 @@ namespace firebase {
 
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
-const char* const kDefaultAppName = "default";
+namespace internal {
 
-void App::Initialize() {
-  data_ = new internal::FunctionRegistry;
-  LogDebug("Creating firebase::App for %s", kFirebaseVersionString);
-}
+void AppState::DestroyPlatformData() {}
 
-App::~App() {
-  app_common::RemoveApp(this);
-  delete static_cast<internal::FunctionRegistry*>(data_);
-}
+}  // namespace internal
 
-App* App::Create() { return Create(AppOptions()); }
+App App::Create() { return Create(AppOptions()); }
 
-App* App::Create(const AppOptions& options) {
+App App::Create(const AppOptions& options) {
   return Create(options, kDefaultAppName);
 }
 
-App* App::Create(const AppOptions& options, const char* name) {
-  App* existing_app = GetInstance(name);
-  if (existing_app) {
-    LogError("firebase::App %s already created, options will not be applied.",
-             name);
-    return existing_app;
+App App::Create(const AppOptions& options, std::string_view name) {
+  LogDebug("Creating firebase::App for %s", kFirebaseVersionString);
+  auto state = std::make_shared<internal::AppState>(std::string(name), options);
+  App app = state->MakeAppHandle();
+  AppCallback::NotifyAllAppCreated(app, &state->mutable_init_results());
+  return app;
+}
+
+App App::CreateRegistered() { return CreateRegistered(AppOptions()); }
+
+App App::CreateRegistered(const AppOptions& options) {
+  return CreateRegistered(options, kDefaultAppName);
+}
+
+App App::CreateRegistered(const AppOptions& options, std::string_view name) {
+  if (auto existing = GetInstance(name)) {
+    LogError("firebase::App %.*s already registered, options will not be applied.",
+             static_cast<int>(name.size()), name.data());
+    return App();
   }
-  App* app = new App();
-  app->name_ = name;
-  app->options_ = options;
-  return app_common::AddApp(app, strcmp(name, kDefaultAppName) == 0,
-                            &app->init_results_);
+  App app = Create(options, name);
+  if (!app || !app.Register()) {
+    return App();
+  }
+  return app;
 }
-
-App* App::GetInstance() { return app_common::GetDefaultApp(); }
-
-App* App::GetInstance(const char* name) {
-  return app_common::FindAppByName(name);
-}
-
-std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
-
-#ifdef INTERNAL_EXPERIMENTAL
-internal::FunctionRegistry* App::function_registry() {
-  return static_cast<internal::FunctionRegistry*>(data_);
-}
-#endif
 
 void App::RegisterLibrary(const char* library, const char* version,
                           void* /* platform_resource */) {
   app_common::RegisterLibrary(library, version);
 }
-
-const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
 void App::SetDefaultConfigPath(const char* /* path */) {}
 

@@ -20,23 +20,25 @@
 #include <string.h>
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
-#include <utility>  // Used to detect STL variant.
+#include <string_view>
+#include <utility>
 #include <vector>
 
+#include "app/src/app_state.h"
 #include "app/src/assert.h"
-#include "app/src/callback.h"
-#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
-#include "app/src/util.h"
+#include "app/src/log.h"
+#include "app/src/no_destructor.h"
 
-// strtok_r is strtok_s on Windows.
 #if FIREBASE_PLATFORM_WINDOWS
 #define strtok_r strtok_s
 #endif  // FIREBASE_PLATFORM_WINDOWS
@@ -54,8 +56,61 @@ void CheckCompilerString(const char* input) {
 }
 #endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
 
-// Default app name.
 const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
+
+App::App(std::shared_ptr<internal::AppState> state)
+    : state_(std::move(state)) {
+#ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
+  if (state_) {
+    CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);
+  }
+#endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+}
+
+bool App::Register() const {
+  if (!state_) return false;
+  return app_common::RegisterApp(state_);
+}
+
+void App::Unregister() const {
+  if (!state_) return;
+  app_common::UnregisterApp(state_);
+}
+
+std::optional<App> App::GetInstance(std::string_view name) {
+  auto state = app_common::FindRegisteredApp(name);
+  if (!state) return std::nullopt;
+  return App(std::move(state));
+}
+
+std::vector<App> App::GetApps() {
+  auto states = app_common::GetRegisteredApps();
+  std::vector<App> result;
+  result.reserve(states.size());
+  for (auto& state : states) {
+    result.push_back(App(std::move(state)));
+  }
+  return result;
+}
+
+const char* App::name() const { return state_ ? state_->name().c_str() : ""; }
+
+const AppOptions& App::options() const {
+  if (state_) return state_->options();
+  static const internal::NoDestructor<AppOptions> kEmptyOptions;
+  return *kEmptyOptions;
+}
+
+#ifdef INTERNAL_EXPERIMENTAL
+const std::map<std::string, InitResult>& App::init_results() const {
+  if (state_) return state_->init_results();
+  static const internal::NoDestructor<std::map<std::string, InitResult>>
+      kEmptyResults;
+  return *kEmptyResults;
+}
+
+const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
+#endif  // INTERNAL_EXPERIMENTAL
 
 namespace app_common {
 
@@ -153,6 +208,8 @@ const char* kCppRuntimeOrStl = "libcpp";
 const char* kCpuArchitecture = "x86_64";
 #elif __i386__
 const char* kCpuArchitecture = "x86";
+#elif __aarch64__
+const char* kCpuArchitecture = "arm64";
 #else
 #error Unknown Linux architecture.
 #endif  // Architecture
@@ -170,29 +227,23 @@ const char* kBuildSource = "custom_built";
 const char* kApiClientHeader = "x-firebase-client";
 const char* kXFirebaseGmpIdHeader = "X-Firebase-GMPID";
 
-SystemLogger g_system_logger;  // NOLINT
+namespace {
 
-// Private cross platform data associated with an app.
-struct AppData {
-  // TODO(b/140528778): Remove kLogLevelVerbose here and add [GS]etLogLevel
-  // member functions to app.
-  AppData() : logger(&g_system_logger, kLogLevelVerbose) {}
-
-  // App associated with this data.
-  App* app;
-  // Notifies subscribers when the app is about to be destroyed.
-  CleanupNotifier cleanup_notifier;
-  // A per-app logger.
-  Logger logger;
+// Single opt-in process-wide weak registry for App::GetInstance(name) and
+// App::GetApps(). Holds only weak_ptr<AppState> so it never owns AppState,
+// and expired entries are pruned lazily so ~AppState() never touches this.
+struct AppRegistry {
+  Mutex mutex;
+  std::map<std::string, std::weak_ptr<internal::AppState>, std::less<>> apps;
 };
 
-// Tracks library registrations.
-class LibraryRegistry {
- private:
-  LibraryRegistry() : is_common_library_registered(false) {}
+AppRegistry& GetAppRegistry() {
+  static internal::NoDestructor<AppRegistry> registry;
+  return *registry;
+}
 
+class LibraryRegistry {
  public:
-  // Register a library, returns true if the library version changed.
   bool RegisterLibrary(const char* library, const char* version) {
     std::string library_string(library);
     std::string version_string(version);
@@ -211,7 +262,6 @@ class LibraryRegistry {
     return changed;
   }
 
-  // Get the version of a previously registered library.
   std::string GetLibraryVersion(const std::string& library) const {
     auto existing = library_to_version_.find(library);
     if (existing != library_to_version_.end()) {
@@ -220,206 +270,147 @@ class LibraryRegistry {
     return std::string();
   }
 
-  // Regenerate the user agent string.
   void UpdateUserAgent() {
     user_agent_.clear();
-    for (auto it = library_to_version_.begin(); it != library_to_version_.end();
-         ++it) {
-      user_agent_ += it->first + "/" + it->second + " ";
+    for (const auto& entry : library_to_version_) {
+      user_agent_ += entry.first + "/" + entry.second + " ";
     }
-    // Removing the trailing space.
     if (!user_agent_.empty()) {
-      user_agent_ = user_agent_.substr(0, user_agent_.length() - 1);
+      user_agent_.pop_back();
     }
   }
 
-  // Get the cached user agent string.
   const char* GetUserAgent() const { return user_agent_.c_str(); }
 
- public:
-  // Create the library registry singleton and get the instance.
-  static LibraryRegistry* Initialize() {
-    if (!library_registry_) library_registry_ = new LibraryRegistry();
-    return library_registry_;
+  bool is_common_library_registered() const {
+    return is_common_library_registered_;
+  }
+  void set_common_library_registered(bool value) {
+    is_common_library_registered_ = value;
   }
 
-  // Destroy the library registry singleton if there is one.
-  static void Terminate() {
-    if (library_registry_) {
-      delete library_registry_;
-      library_registry_ = nullptr;
-    }
+  void Clear() {
+    library_to_version_.clear();
+    user_agent_.clear();
+    is_common_library_registered_ = false;
   }
 
-  static bool IsCommonLibraryRegistered() {
-    if (library_registry_) {
-      return library_registry_->is_common_library_registered;
-    }
-    return false;
-  }
-
-  static void SetCommonLibraryRegistered() {
-    if (library_registry_) {
-      library_registry_->is_common_library_registered = true;
-    }
-  }
+  Mutex& mutex() { return mutex_; }
 
  private:
+  Mutex mutex_;
   std::map<std::string, std::string> library_to_version_;
   std::string user_agent_;
-  bool is_common_library_registered;
-
-  static LibraryRegistry* library_registry_;
+  bool is_common_library_registered_ = false;
 };
 
-// Guards g_apps and g_default_app.
-static Mutex* g_app_mutex = new Mutex();
-static std::map<std::string, std::unique_ptr<AppData>>* g_apps = nullptr;
-static App* g_default_app = nullptr;
-LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
-
-App* AddApp(App* app, std::map<std::string, InitResult>* results) {
-  bool created_first_app = false;
-  assert(app);
-  App* existing_app = FindAppByName(app->name());
-  FIREBASE_ASSERT_RETURN(nullptr, !existing_app);
-  MutexLock lock(*g_app_mutex);
-  if (IsDefaultAppName(app->name())) {
-    assert(!g_default_app);
-    g_default_app = app;
-  }
-  std::unique_ptr<AppData> app_data = std::make_unique<AppData>();
-  app_data->app = app;
-  app_data->cleanup_notifier.RegisterOwner(app);
-  if (!g_apps) {
-    g_apps = new std::map<std::string, std::unique_ptr<AppData>>();
-    created_first_app = true;
-  }
-  (*g_apps)[std::string(app->name())] = std::move(app_data);
-  // Create a cleanup notifier for the app.
-  {
-    const AppOptions& app_options = app->options();
-    LogDebug(
-        "Added app name=%s: options, api_key=%s, app_id=%s, database_url=%s, "
-        "messaging_sender_id=%s, storage_bucket=%s, project_id=%s (0x%08x)",
-        app->name(), app_options.api_key(), app_options.app_id(),
-        app_options.database_url(), app_options.messaging_sender_id(),
-        app_options.storage_bucket(), app_options.project_id(),
-        static_cast<int>(reinterpret_cast<intptr_t>(app)));
-  }
-  callback::Initialize();
-  AppCallback::NotifyAllAppCreated(app, results);
-  return app;
+LibraryRegistry& GetLibraryRegistry() {
+  static internal::NoDestructor<LibraryRegistry> registry;
+  return *registry;
 }
 
-App* FindAppByName(const char* name) {
-  assert(name);
-  MutexLock lock(*g_app_mutex);
-  if (g_apps) {
-    auto it = g_apps->find(std::string(name));
-    if (it == g_apps->end()) return nullptr;
-    return it->second->app;
-  }
-  return nullptr;
-}
+}  // namespace
 
-App* GetDefaultApp() { return g_default_app; }
+bool IsDefaultAppName(std::string_view name) { return name == kDefaultAppName; }
 
-App* GetAnyApp() {
-  if (g_default_app) {
-    return g_default_app;
-  }
+bool RegisterApp(const std::shared_ptr<internal::AppState>& state) {
+  if (!state) return false;
+  AppRegistry& registry = GetAppRegistry();
+  MutexLock lock(registry.mutex);
 
-  MutexLock lock(*g_app_mutex);
-  if (g_apps && !g_apps->empty()) {
-    return g_apps->begin()->second->app;
-  }
-  return nullptr;
-}
-
-std::vector<App*> GetAllApps() {
-  std::vector<App*> result;
-  App* const default_app = GetDefaultApp();
-  MutexLock lock(*g_app_mutex);
-  if (g_apps) {
-    for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
-      if (it->second->app != default_app) result.push_back(it->second->app);
+  auto it = registry.apps.find(state->name());
+  if (it != registry.apps.end()) {
+    auto existing = it->second.lock();
+    if (existing) {
+      if (existing == state) {
+        return true;  // Already registered (idempotent).
+      }
+      LogError(
+          "App '%s' is already registered in the global App registry; "
+          "ignoring duplicate registration.",
+          state->name().c_str());
+      return false;
     }
-    if (default_app) result.push_back(default_app);
+    // Previous entry expired; overwrite lazily.
+    it->second = state;
+    return true;
+  }
+  registry.apps.emplace(state->name(), state);
+  return true;
+}
+
+void UnregisterApp(const std::shared_ptr<internal::AppState>& state) {
+  if (!state) return;
+  AppRegistry& registry = GetAppRegistry();
+  MutexLock lock(registry.mutex);
+
+  auto it = registry.apps.find(state->name());
+  if (it == registry.apps.end()) return;
+
+  auto existing = it->second.lock();
+  if (!existing || existing == state) {
+    registry.apps.erase(it);
+  }
+}
+
+std::shared_ptr<internal::AppState> FindRegisteredApp(std::string_view name) {
+  AppRegistry& registry = GetAppRegistry();
+  MutexLock lock(registry.mutex);
+
+  auto it = registry.apps.find(name);
+  if (it == registry.apps.end()) return nullptr;
+
+  auto state = it->second.lock();
+  if (!state) {
+    // Lazy cleanup of expired entry.
+    registry.apps.erase(it);
+    return nullptr;
+  }
+  return state;
+}
+
+std::vector<std::shared_ptr<internal::AppState>> GetRegisteredApps() {
+  AppRegistry& registry = GetAppRegistry();
+  MutexLock lock(registry.mutex);
+
+  std::vector<std::shared_ptr<internal::AppState>> result;
+  std::shared_ptr<internal::AppState> default_app;
+  for (auto it = registry.apps.begin(); it != registry.apps.end();) {
+    auto state = it->second.lock();
+    if (!state) {
+      it = registry.apps.erase(it);
+      continue;
+    }
+    if (IsDefaultAppName(it->first)) {
+      default_app = std::move(state);
+    } else {
+      result.push_back(std::move(state));
+    }
+    ++it;
+  }
+  if (default_app) {
+    result.push_back(std::move(default_app));
   }
   return result;
 }
 
-void RemoveApp(App* app) {
-  assert(app);
-  MutexLock lock(*g_app_mutex);
-  if (g_apps) {
-    auto it = g_apps->find(std::string(app->name()));
-    bool last_app = false;
-    // If app initialization failed AddApp() will not be called.
-    if (it != g_apps->end()) {
-      LogDebug("Deleting app %s (0x%08x)", app->name(),
-               static_cast<int>(reinterpret_cast<intptr_t>(app)));
-      // Notify app callbacks before removing the app from the g_apps
-      // dictionary, this makes it possible to look up apps by name on
-      // destruction.
-      it->second->cleanup_notifier.CleanupAll();
-      AppCallback::NotifyAllAppDestroyed(app);
-      // Remove the app entry from the map, from this point it is no longer
-      // accessible to other components.
-      g_apps->erase(it);
-      if (app == g_default_app) {
-        g_default_app = nullptr;
-      }
-      if (g_apps->empty()) {
-        last_app = true;
-        delete g_apps;
-        g_apps = nullptr;
-      }
-    }
-    callback::Terminate(last_app);
-    if (last_app) {
-      LibraryRegistry::Terminate();
-    }
-  }
-}
-
-void DestroyAllApps() {
-  std::vector<App*> apps_to_delete;
-  App* const default_app = GetDefaultApp();
-  MutexLock lock(*g_app_mutex);
-  if (g_apps) {
-    for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
-      if (it->second->app != default_app)
-        apps_to_delete.push_back(it->second->app);
-    }
-    if (default_app) apps_to_delete.push_back(default_app);
-    for (auto it = apps_to_delete.begin(); it != apps_to_delete.end(); ++it) {
-      // As each App is deleted, RemoveApp() is called by the destructor which
-      // removes the app from the global list of apps (g_apps).  When g_apps
-      // is empty it is deleted by RemoveApp().
-      delete *it;
-    }
-  }
-}
-
-// Determine whether the specified app name refers to the default app.
-bool IsDefaultAppName(const char* name) {
-  return strcmp(kDefaultAppName, name) == 0;
+void ClearRegisteredAppsForTesting() {
+  AppRegistry& registry = GetAppRegistry();
+  MutexLock lock(registry.mutex);
+  registry.apps.clear();
 }
 
 void RegisterLibrary(const char* library, const char* version) {
-  MutexLock lock(*g_app_mutex);
-  LibraryRegistry* registry = LibraryRegistry::Initialize();
-  if (registry->RegisterLibrary(library, version)) {
-    registry->UpdateUserAgent();
+  LibraryRegistry& registry = GetLibraryRegistry();
+  MutexLock lock(registry.mutex());
+  if (registry.RegisterLibrary(library, version)) {
+    registry.UpdateUserAgent();
   }
 }
 
 void RegisterLibrariesFromUserAgent(const char* user_agent) {
-  MutexLock lock(*g_app_mutex);
-  LibraryRegistry* registry = LibraryRegistry::Initialize();
-  // Copy the string into a vector so that we can safely mutate the string.
+  LibraryRegistry& registry = GetLibraryRegistry();
+  MutexLock lock(registry.mutex());
   std::vector<char> user_agent_vector(user_agent,
                                       user_agent + strlen(user_agent) + 1);
   if (user_agent_vector.empty()) return;
@@ -427,31 +418,26 @@ void RegisterLibrariesFromUserAgent(const char* user_agent) {
   char* next_token = nullptr;
   bool changed = false;
   do {
-    // Split fields in the string.
     static const char kFieldSeparator[] = " ";
     token = strtok_r(token, kFieldSeparator, &next_token);
     if (token) {
-      // Split library / version components and register each tuple.
       static const char kLibraryVersionSeparator[] = "/";
       char* version;
       char* library = strtok_r(token, kLibraryVersionSeparator, &version);
       if (library && version) {
-        changed |= registry->RegisterLibrary(library, version);
+        changed |= registry.RegisterLibrary(library, version);
       }
     }
     token = next_token;
   } while (token && next_token && next_token[0] != '\0');
-  if (changed) registry->UpdateUserAgent();
+  if (changed) registry.UpdateUserAgent();
 }
 
 void RegisterSdkUsage(void* platform_resource) {
-  MutexLock lock(*g_app_mutex);
+  LibraryRegistry& registry = GetLibraryRegistry();
+  MutexLock lock(registry.mutex());
 
-  // Only register libraries when no C++ apps was created before.
-  if (!LibraryRegistry::IsCommonLibraryRegistered()) {
-    LibraryRegistry::Initialize();
-    // This calls the platform specific method to propagate the registration to
-    // any SDKs in use by this library.
+  if (!registry.is_common_library_registered()) {
     App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX,
                          FIREBASE_VERSION_NUMBER_STRING, platform_resource);
     App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-os", kOperatingSystem,
@@ -462,18 +448,20 @@ void RegisterSdkUsage(void* platform_resource) {
                          kCppRuntimeOrStl, platform_resource);
     App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-buildsrc",
                          kBuildSource, platform_resource);
-    LibraryRegistry::SetCommonLibraryRegistered();
+    registry.set_common_library_registered(true);
   }
 }
 
 const char* GetUserAgent() {
-  MutexLock lock(*g_app_mutex);
-  return LibraryRegistry::Initialize()->GetUserAgent();
+  LibraryRegistry& registry = GetLibraryRegistry();
+  MutexLock lock(registry.mutex());
+  return registry.GetUserAgent();
 }
 
 std::string GetLibraryVersion(const char* library) {
-  MutexLock lock(*g_app_mutex);
-  return LibraryRegistry::Initialize()->GetLibraryVersion(library);
+  LibraryRegistry& registry = GetLibraryRegistry();
+  MutexLock lock(registry.mutex());
+  return registry.GetLibraryVersion(library);
 }
 
 void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
@@ -482,19 +470,16 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
   sdk->clear();
   version->clear();
 
-  MutexLock lock(*g_app_mutex);
-  // Set of library versions to query in order of outer wrapper to inner.
-  // We're only retrieving the outer-most SDK version here as we can only send
-  // one component as part of the user agent string to the storage backend.
+  LibraryRegistry& registry = GetLibraryRegistry();
+  MutexLock lock(registry.mutex());
   static const char* kLibraryVersions[] = {
       FIREBASE_USER_AGENT_PREFIX "unity",
       FIREBASE_USER_AGENT_PREFIX "mono",
       FIREBASE_CPP_USER_AGENT_PREFIX,
   };
-  LibraryRegistry* registry = LibraryRegistry::Initialize();
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kLibraryVersions); ++i) {
     std::string library(kLibraryVersions[i]);
-    std::string library_version = registry->GetLibraryVersion(library);
+    std::string library_version = registry.GetLibraryVersion(library);
     if (!library_version.empty()) {
       *sdk = library;
       *version = library_version;
@@ -503,16 +488,10 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
   }
 }
 
-// Find a logger associated with an app by app name.
-Logger* FindAppLoggerByName(const char* name) {
-  assert(name);
-  MutexLock lock(*g_app_mutex);
-  if (g_apps) {
-    auto it = g_apps->find(std::string(name));
-    if (it == g_apps->end()) return nullptr;
-    return &it->second->logger;
-  }
-  return nullptr;
+void ResetLibraryRegistryForTesting() {
+  LibraryRegistry& registry = GetLibraryRegistry();
+  MutexLock lock(registry.mutex());
+  registry.Clear();
 }
 
 }  // namespace app_common

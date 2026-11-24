@@ -27,6 +27,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 
 namespace firebase {
 
@@ -66,15 +67,19 @@ class SafeFutureHandle {
   // See FutureHandle::Detach.
   void Detach() { handle_.Detach(); }
 
-  static const SafeFutureHandle kInvalidHandle;
+  static const SafeFutureHandle& kInvalidHandle;
 
  private:
   FutureHandle handle_;
 };
 
-// Type-safe version of kInvalidFutureHandle.
+// Type-safe version of kInvalidFutureHandle (backed by NoDestructor to avoid
+// exit-time destructors).
 template <typename T>
-const SafeFutureHandle<T> SafeFutureHandle<T>::kInvalidHandle;
+const SafeFutureHandle<T>& SafeFutureHandle<T>::kInvalidHandle = []() -> const SafeFutureHandle<T>& {
+  static internal::NoDestructor<SafeFutureHandle<T>> instance;
+  return *instance;
+}();
 
 /// @brief Backing class for Futures that allows a Future to have multiple
 ///        copies. When no copies remain, the Future is invalidated.
@@ -100,7 +105,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
  public:
   /// This handle will never be returned by @ref Alloc, so you can use it
   /// to signify an uninitialized or invalid value.
-  static const FutureHandle kInvalidHandle;
+  static const FutureHandle& kInvalidHandle;
 
   /// Returned by @ref GetFutureError when the passed in handle is invalid.
   static constexpr int kErrorFutureIsNoLongerValid = -1;

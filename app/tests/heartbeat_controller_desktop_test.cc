@@ -73,6 +73,9 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
     // For the sake of testing, clear any pre-existing stored heartbeats.
     LoggedHeartbeats empty_heartbeats_struct;
     storage_.Write(empty_heartbeats_struct);
+    // Reset registered library user agents so tests do not inherit SDK usage
+    // tags registered by earlier App::Create() tests in the same process.
+    app_common::ResetLibraryRegistryForTesting();
     // Default to registering a user agent with version 1
     app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
     // Record the original value of g_min_time_between_fetches_sec in case a
@@ -94,12 +97,11 @@ TEST_F(HeartbeatControllerDesktopTest, PerAppHeartbeatController) {
   storage.Write(empty_heartbeats_struct);
 
   // Creating an App should trigger logging of a heartbeat.
-  // The app will be deleted after the test, resetting registered user agents.
-  std::unique_ptr<App> firebase_app(testing::CreateApp());
-  ASSERT_NE(firebase_app.get(), nullptr);
+  App firebase_app = testing::CreateApp();
+  ASSERT_TRUE(firebase_app.is_valid());
 
   std::string encoded_payload =
-      firebase_app->GetHeartbeatController()->GetAndResetStoredHeartbeats();
+      firebase_app.GetHeartbeatController()->GetAndResetStoredHeartbeats();
   ASSERT_NE(encoded_payload, "");
   std::string decoded_payload =
       controller_.DecodeAndDecompress(encoded_payload);

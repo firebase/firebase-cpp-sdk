@@ -19,17 +19,20 @@
 
 #include <stddef.h>
 
-#include <map>
+#include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/src/include/firebase/app.h"
-#include "app/src/logger.h"
 
 namespace firebase {
 
-// Default app name.
 extern const char* const kDefaultAppName;
+
+namespace internal {
+class AppState;
+}  // namespace internal
 
 namespace app_common {
 
@@ -48,62 +51,37 @@ extern const char* kBuildSource;
 extern const char* kApiClientHeader;
 extern const char* kXFirebaseGmpIdHeader;
 
-// Add an app to the set of apps.
-App* AddApp(App* app, std::map<std::string, InitResult>* results);
-
-// Find an app in the set of apps.
-App* FindAppByName(const char* name);
-
-// Get the default app.
-App* GetDefaultApp();
-
-// Get an instantiated App. If there is more than one App, an unspecified App
-// will be returned.
-App* GetAnyApp();
-
-// Get all existing apps
-std::vector<App*> GetAllApps();
-
-// Remove an app from the set of apps.
-// Call this method before destroying an app.
-void RemoveApp(App* app);
-
-// Destroy all apps.
-void DestroyAllApps();
-
 // Determine whether the specified app name refers to the default app.
-bool IsDefaultAppName(const char* name);
+bool IsDefaultAppName(std::string_view name);
+
+// Opt-in global weak App registry helpers (backing App::Register(),
+// App::Unregister(), App::GetInstance(), App::GetApps()).
+bool RegisterApp(const std::shared_ptr<internal::AppState>& state);
+void UnregisterApp(const std::shared_ptr<internal::AppState>& state);
+std::shared_ptr<internal::AppState> FindRegisteredApp(std::string_view name);
+std::vector<std::shared_ptr<internal::AppState>> GetRegisteredApps();
+void ClearRegisteredAppsForTesting();
 
 // Register a library which uses this SDK.
-// Library registrations are not thread safe as we build the user agent string
-// once and return it from the UserAgent() method.
-// NOTE: This is an internal method, use App::RegisterLibrary() instead.
 void RegisterLibrary(const char* library, const char* version);
 
 // Register a set of libraries from a user agent string.
-// This is useful when this SDK wraps other SDKs.
 void RegisterLibrariesFromUserAgent(const char* user_agent);
 
 // Register all user-agents related to C++ SDK usages.
-// platform_resource currently is only used for passing JNIEnv on Android
 void RegisterSdkUsage(void* platform_resource);
 
 // Get the user agent string for all registered libraries.
-// This is not thread safe w.r.t RegisterLibrary().
-// NOTE: This is an internal method, use App::UserAgent() instead.
 const char* GetUserAgent();
 
 // Get the version of a registered library.
-// This returns an empty string if the library isn't registered.
 std::string GetLibraryVersion(const char* library);
 
 // Get the outer-most SDK above the C++ SDK.
-// sdk can be one of "fire-unity", "fire-mono" or "fire-cpp".
-// version is the version of the SDK respective SDK.
 void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version);
 
-// Find a logger associated with an app by app name.
-Logger* FindAppLoggerByName(const char* name);
+// Clears registered libraries (for unit tests).
+void ResetLibraryRegistryForTesting();
 
 }  // namespace app_common
 // NOLINTNEXTLINE - allow namespace overridden

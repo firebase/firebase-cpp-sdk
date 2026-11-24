@@ -16,6 +16,10 @@
 
 #ifndef FIREBASE_APP_SRC_APP_IOS_H_
 #define FIREBASE_APP_SRC_APP_IOS_H_
+
+#include <optional>
+#include <string_view>
+
 #include "FIRApp.h"
 #include "FIRConfiguration.h"
 #include "app/src/include/firebase/app.h"
@@ -28,17 +32,11 @@ OBJ_C_PTR_WRAPPER_NAMED(AppInternal, FIRApp);
 
 void SetFirConfigurationLoggerLevel(FIRLoggerLevel level);
 
-// Allows lookup of App by name for apps which are not yet fully initialized.
-// These Apps should have a name and options, but will not yet have an
-// associated AppInternal. This is used by AppCheck to use the App during
-// initialization of AppCheck while the internal FIRApp is being configured.
-App* FindPartialAppByName(const char* name);
-
-// Enables lookup by name for a partially initialized App.
-void AddPartialApp(App*);
-
-// Disables lookup by name for a partially initialized App.
-void RemovePartialApp(App*);
+// Looks up an App handle for an iOS FIRApp during native Objective-C callbacks
+// (such as FIRAppCheckProviderFactory::createProviderWithApp:) regardless of
+// whether the caller opted into global App::Register() name lookup, including
+// while [FIRApp configureWithOptions:] is still executing inside App::Create().
+std::optional<App> FindIosAppByName(std::string_view name);
 
 }  // namespace internal
 

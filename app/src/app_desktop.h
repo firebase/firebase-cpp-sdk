@@ -14,39 +14,28 @@
  * limitations under the License.
  */
 
+#ifndef FIREBASE_APP_SRC_APP_DESKTOP_H_
+#define FIREBASE_APP_SRC_APP_DESKTOP_H_
+
 #include <memory>
 
-#include "app/src/app_common.h"
-#include "app/src/function_registry.h"
+#include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
-#include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/internal/common.h"
-#include "app/src/include/firebase/version.h"
 
 namespace firebase {
-// DEFINE_FIREBASE_VERSION_STRING(Firebase);
-
 namespace internal {
 
 class AppInternal {
  public:
-  // A registry that modules can use to expose functions to each other, without
-  // requiring a linkage dependency.
-  // todo - make all the implementations use something like this, for internal
-  // or implementation-specific code.  b/70229654
-  FunctionRegistry function_registry;
+  // Declared before heartbeat_controller_ so date_provider_ outlives
+  // heartbeat_controller_ during destruction.
+  firebase::heartbeat::DateProviderImpl date_provider_;
 
   // HeartbeatController provides methods to log heartbeats and fetch payloads.
   std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller_;
-
-  // Has a method to get the current date. Used by heartbeat_controller.
-  firebase::heartbeat::DateProviderImpl date_provider_;
 };
-
-// When Create() is invoked without arguments, it checks for a file named
-// google-services-desktop.json, to load options from.  This specifies the
-// path to search.
-static std::string g_default_config_path;  // NOLINT
 
 }  // namespace internal
 }  // namespace firebase
+
+#endif  // FIREBASE_APP_SRC_APP_DESKTOP_H_

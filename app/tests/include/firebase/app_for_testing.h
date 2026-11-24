@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_
 #define FIREBASE_APP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_
 
+#include <string_view>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "testing/run_all_tests.h"
@@ -33,25 +35,44 @@ static AppOptions MockAppOptions() {
   return options;
 }
 
-// Create a named firebase::App with the specified options.
-static App* CreateApp(const AppOptions& options, const char* name) {
+// Create a named firebase::App with the specified options (unregistered).
+static App CreateApp(const AppOptions& options, std::string_view name) {
   return App::Create(options, name
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
                      ,
-                     // Additional parameters are required for Android.
                      firebase::testing::cppsdk::GetTestJniEnv(),
                      firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   );
 }
 
-// Create a default firebase::App with the specified options.
-static App* CreateApp(const AppOptions& options) {
+// Create a default firebase::App with the specified options (unregistered).
+static App CreateApp(const AppOptions& options) {
   return CreateApp(options, firebase::kDefaultAppName);
 }
 
-// Create a firebase::App with mock options.
-static App* CreateApp() { return CreateApp(MockAppOptions()); }
+// Create a firebase::App with mock options (unregistered).
+static App CreateApp() { return CreateApp(MockAppOptions()); }
+
+// Create a named firebase::App and register it in the global weak registry.
+static App CreateRegisteredApp(const AppOptions& options,
+                               std::string_view name) {
+  return App::CreateRegistered(options, name
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP)
+                               ,
+                               firebase::testing::cppsdk::GetTestJniEnv(),
+                               firebase::testing::cppsdk::GetTestActivity()
+#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
+  );
+}
+
+static App CreateRegisteredApp(const AppOptions& options) {
+  return CreateRegisteredApp(options, firebase::kDefaultAppName);
+}
+
+static App CreateRegisteredApp() {
+  return CreateRegisteredApp(MockAppOptions());
+}
 
 }  // namespace testing
 }  // namespace firebase

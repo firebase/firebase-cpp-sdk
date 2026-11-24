@@ -18,7 +18,9 @@
 
 #include <assert.h>
 
+#include <atomic>
 #include <cstdint>
+#include <cstdio>
 #include <map>
 #include <string>
 #include <vector>
@@ -32,6 +34,7 @@
 #endif  // FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 
@@ -44,26 +47,16 @@ enum ModuleInitializerFn {
 
 struct ModuleInitializerData {
   ModuleInitializerData()
-      : future_impl(kModuleInitializerCount),
-        app(nullptr),
-        context(nullptr),
-        init_fn_idx(0) {}
-  // Futures implementation.
+      : future_impl(kModuleInitializerCount), context(nullptr), init_fn_idx(0) {}
   ReferenceCountedFutureImpl future_impl;
-  // Handle to the Initialize() future.
   SafeFutureHandle<void> future_handle_init;
 
-  // Data we will pass to the user's callbacks.
-  App* app;
+  // Value handle keeps AppState alive across asynchronous GPS resolution.
+  App app;
   void* context;
 
-  // Initialization callbacks. These will each be called in order, but if any
-  // of them returns kInitResultFailedMissingDependency, we'll stop and update,
-  // then resume where we left off.
   std::vector<ModuleInitializer::InitializerFn> init_fns;
-
-  // Where we are in the initializer function list.
-  int init_fn_idx;
+  size_t init_fn_idx;
 };
 
 ModuleInitializer::ModuleInitializer() { data_ = new ModuleInitializerData; }
@@ -75,22 +68,17 @@ ModuleInitializer::~ModuleInitializer() {
 
 static void PerformInitialize(ModuleInitializerData* data) {
   while (data->init_fn_idx < data->init_fns.size()) {
-    InitResult init_result;
-    init_result = data->init_fns[data->init_fn_idx](data->app, data->context);
+    InitResult init_result =
+        data->init_fns[data->init_fn_idx](data->app, data->context);
 
 #if FIREBASE_PLATFORM_ANDROID
     if (init_result == kInitResultFailedMissingDependency) {
-      // Note: If Initialize here succeeds, google_play_services::Terminate
-      // is called in the OnCompletion handler below. Note that these
-      // are reference-counted so it's safe to init/terminate an extra time..
-      if (google_play_services::Initialize(data->app->GetJNIEnv(),
-                                           data->app->activity())) {
-        // On Android, we need to update or activate Google Play services
-        // before we can initialize this Firebase module.
+      if (google_play_services::Initialize(data->app.GetJNIEnv(),
+                                           data->app.activity())) {
         LogWarning("Google Play services unavailable, trying to fix.");
 
         Future<void> make_available = google_play_services::MakeAvailable(
-            data->app->GetJNIEnv(), data->app->activity());
+            data->app.GetJNIEnv(), data->app.activity());
 
         make_available.OnCompletion(
             [](const Future<void>& result, void* ptr) {
@@ -100,10 +88,11 @@ static void PerformInitialize(ModuleInitializerData* data) {
                 if (result.error() == 0) {
                   LogInfo("Google Play services now available, continuing.");
                   PerformInitialize(data);
-                  google_play_services::Terminate(data->app->GetJNIEnv());
+                  google_play_services::Terminate(data->app.GetJNIEnv());
                 } else {
                   LogError("Google Play services still unavailable.");
-                  int num_remaining = data->init_fns.size() - data->init_fn_idx;
+                  int num_remaining = static_cast<int>(data->init_fns.size() -
+                                                       data->init_fn_idx);
                   data->future_impl.Complete(data->future_handle_init,
                                              num_remaining,
                                              "Unable to initialize due to "
@@ -115,7 +104,8 @@ static void PerformInitialize(ModuleInitializerData* data) {
             },
             data);
       } else {
-        int num_remaining = data->init_fns.size() - data->init_fn_idx;
+        int num_remaining =
+            static_cast<int>(data->init_fns.size() - data->init_fn_idx);
         data->future_impl.Complete(
             data->future_handle_init, num_remaining,
             "Could not run Google Play services update due to app "
@@ -125,32 +115,29 @@ static void PerformInitialize(ModuleInitializerData* data) {
       }
     }
 #else   // !FIREBASE_PLATFORM_ANDROID
-    // Outside of Android, we shouldn't get kInitResultFailedMissingDependency.
     FIREBASE_ASSERT(init_result != kInitResultFailedMissingDependency);
 #endif  // FIREBASE_PLATFORM_ANDROID
     if (init_result == kInitResultSuccess) {
-      data->init_fn_idx++;  // This function succeeded, move on to the next one.
+      data->init_fn_idx++;
     } else {
-      return;  // If initialization failed, we will be trying again later, after
-      // the MakeAvailable() Future completes. (or, if that future fails, then
-      // we will just abort and return an error.)
+      return;
     }
   }
   data->future_impl.Complete(data->future_handle_init, 0);
 }
 
 Future<void> ModuleInitializer::Initialize(
-    App* app, void* context, ModuleInitializer::InitializerFn init_fn) {
-  FIREBASE_ASSERT(app != nullptr);
+    const App& app, void* context, ModuleInitializer::InitializerFn init_fn) {
+  FIREBASE_ASSERT(app.is_valid());
   FIREBASE_ASSERT(init_fn != nullptr);
 
   return Initialize(app, context, &init_fn, 1);
 }
 
 Future<void> ModuleInitializer::Initialize(
-    App* app, void* context, const ModuleInitializer::InitializerFn* init_fns,
-    size_t init_fns_count) {
-  FIREBASE_ASSERT(app != nullptr);
+    const App& app, void* context,
+    const ModuleInitializer::InitializerFn* init_fns, size_t init_fns_count) {
+  FIREBASE_ASSERT(app.is_valid());
   FIREBASE_ASSERT(init_fns != nullptr);
 
   if (!data_->future_impl.ValidFuture(data_->future_handle_init)) {
@@ -173,55 +160,59 @@ Future<void> ModuleInitializer::InitializeLastResult() {
       data_->future_impl.LastResult(kModuleInitializerInitialize));
 }
 
-std::map<std::string, AppCallback*>* AppCallback::callbacks_;
-Mutex* AppCallback::callbacks_mutex_ = new Mutex();
+namespace {
+
+struct AppCallbackRegistry {
+  Mutex mutex;
+  std::map<std::string, AppCallback*> callbacks;
+};
+
+AppCallbackRegistry& GetAppCallbackRegistry() {
+  static internal::NoDestructor<AppCallbackRegistry> registry;
+  return *registry;
+}
+
+struct StaticFutureRegistry {
+  Mutex mutex;
+  std::map<const void*, StaticFutureData*> datas;
+};
+
+StaticFutureRegistry& GetStaticFutureRegistry() {
+  static internal::NoDestructor<StaticFutureRegistry> registry;
+  return *registry;
+}
+
+}  // namespace
 
 void AppCallback::NotifyAllAppCreated(
-    firebase::App* app, std::map<std::string, InitResult>* results) {
+    const firebase::App& app, std::map<std::string, InitResult>* results) {
   if (results) results->clear();
-  MutexLock lock(*callbacks_mutex_);
-  if (!callbacks_) return;
-  for (std::map<std::string, AppCallback*>::const_iterator it =
-           callbacks_->begin();
-       it != callbacks_->end(); ++it) {
-    const AppCallback* callback = it->second;
+  AppCallbackRegistry& registry = GetAppCallbackRegistry();
+  MutexLock lock(registry.mutex);
+  for (const auto& entry : registry.callbacks) {
+    const AppCallback* callback = entry.second;
     if (callback->enabled()) {
       InitResult result = callback->NotifyAppCreated(app);
-      if (results) (*results)[it->first] = result;
+      if (results) (*results)[entry.first] = result;
     }
   }
 }
 
-void AppCallback::NotifyAllAppDestroyed(firebase::App* app) {
-  MutexLock lock(*callbacks_mutex_);
-  if (!callbacks_) return;
-  for (std::map<std::string, AppCallback*>::const_iterator it =
-           callbacks_->begin();
-       it != callbacks_->end(); ++it) {
-    const AppCallback* callback = it->second;
-    if (callback->enabled()) callback->NotifyAppDestroyed(app);
-  }
-}
-
-// Determine whether a module callback is enabled, by name.
 bool AppCallback::GetEnabledByName(const char* name) {
-  MutexLock lock(*callbacks_mutex_);
-  if (!callbacks_) return false;
-  std::map<std::string, AppCallback*>::const_iterator it =
-      callbacks_->find(std::string(name));
-  if (it == callbacks_->end()) {
+  AppCallbackRegistry& registry = GetAppCallbackRegistry();
+  MutexLock lock(registry.mutex);
+  auto it = registry.callbacks.find(std::string(name));
+  if (it == registry.callbacks.end()) {
     return false;
   }
   return it->second->enabled();
 }
 
-// Enable a module callback by name.
 void AppCallback::SetEnabledByName(const char* name, bool enable) {
-  MutexLock lock(*callbacks_mutex_);
-  if (!callbacks_) return;
-  std::map<std::string, AppCallback*>::const_iterator it =
-      callbacks_->find(std::string(name));
-  if (it == callbacks_->end()) {
+  AppCallbackRegistry& registry = GetAppCallbackRegistry();
+  MutexLock lock(registry.mutex);
+  auto it = registry.callbacks.find(std::string(name));
+  if (it == registry.callbacks.end()) {
     LogDebug("App initializer %s not found, failed to enable.", name);
     return;
   }
@@ -230,96 +221,77 @@ void AppCallback::SetEnabledByName(const char* name, bool enable) {
 }
 
 void AppCallback::SetEnabledAll(bool enable) {
-  MutexLock lock(*callbacks_mutex_);
-  if (!callbacks_) return;
+  AppCallbackRegistry& registry = GetAppCallbackRegistry();
+  MutexLock lock(registry.mutex);
   LogDebug("%s all app initializers", enable ? "Enabling" : "Disabling");
-  for (std::map<std::string, AppCallback*>::const_iterator it =
-           callbacks_->begin();
-       it != callbacks_->end(); ++it) {
-    LogDebug("%s %s", enable ? "Enable" : "Disable", it->second->module_name());
-    it->second->set_enabled(enable);
+  for (auto& entry : registry.callbacks) {
+    LogDebug("%s %s", enable ? "Enable" : "Disable",
+             entry.second->module_name());
+    entry.second->set_enabled(enable);
   }
 }
 
 void AppCallback::AddCallback(AppCallback* callback) {
-  if (!callbacks_) {
-    callbacks_ = new std::map<std::string, AppCallback*>();
-  }
+  AppCallbackRegistry& registry = GetAppCallbackRegistry();
   std::string name = callback->module_name();
-  if (callbacks_->find(name) != callbacks_->end()) {
+  if (registry.callbacks.find(name) != registry.callbacks.end()) {
     LogWarning(
-        "%s is already registered for callbacks on app initialization,  "
+        "%s is already registered for callbacks on app initialization, "
         "ignoring.",
         name.c_str());
   } else {
     LogDebug("Registered app initializer %s (enabled: %d)", name.c_str(),
              callback->enabled() ? 1 : 0);
-    (*callbacks_)[name] = callback;
+    registry.callbacks[name] = callback;
   }
 }
-
-Mutex* StaticFutureData::s_futures_mutex_ = new Mutex();
-std::map<const void*, StaticFutureData*>* StaticFutureData::s_future_datas_;
 
 // static
 void StaticFutureData::CleanupFutureDataForModule(
     const void* module_identifier) {
-  MutexLock lock(*s_futures_mutex_);
+  StaticFutureRegistry& registry = GetStaticFutureRegistry();
+  MutexLock lock(registry.mutex);
 
-  if (s_future_datas_ == nullptr) return;
-
-  auto it = s_future_datas_->find(module_identifier);
-  if (it != s_future_datas_->end()) {
-    StaticFutureData* existing_data = it->second;
-    if (existing_data != nullptr) delete existing_data;
-
-    s_future_datas_->erase(it);
+  auto it = registry.datas.find(module_identifier);
+  if (it != registry.datas.end()) {
+    delete it->second;
+    registry.datas.erase(it);
   }
 }
 
 // static
 StaticFutureData* StaticFutureData::GetFutureDataForModule(
     const void* module_identifier, int num_functions) {
-  MutexLock lock(*s_futures_mutex_);
+  StaticFutureRegistry& registry = GetStaticFutureRegistry();
+  MutexLock lock(registry.mutex);
 
-  if (s_future_datas_ == nullptr) {
-    s_future_datas_ = new std::map<const void*, StaticFutureData*>;
-  }
-
-  auto found_value = s_future_datas_->find(module_identifier);
-  if (found_value != s_future_datas_->end()) {
-    StaticFutureData* existing_data = found_value->second;
-    if (existing_data != nullptr) {
-      return existing_data;
-    }
+  auto it = registry.datas.find(module_identifier);
+  if (it != registry.datas.end() && it->second != nullptr) {
+    return it->second;
   }
 
   StaticFutureData* new_data = CreateNewData(module_identifier, num_functions);
-  (*s_future_datas_)[module_identifier] = new_data;
+  registry.datas[module_identifier] = new_data;
   return new_data;
 }
 
 // static
-StaticFutureData* StaticFutureData::CreateNewData(const void* module_identifier,
+StaticFutureData* StaticFutureData::CreateNewData(const void* /*module_id*/,
                                                   int num_functions) {
-  StaticFutureData* new_data = new StaticFutureData(num_functions);
-  return new_data;
+  return new StaticFutureData(num_functions);
 }
 
 std::vector<std::string> SplitString(const std::string& s,
                                      const char delimiter) {
   size_t pos = 0;
-  // This index is used as the starting index to search the delimiters from.
   size_t delimiter_search_start = 0;
-  // Skip any leading delimiters
-  while (s[delimiter_search_start] == delimiter) {
+  size_t len = s.size();
+  while (delimiter_search_start < len && s[delimiter_search_start] == delimiter) {
     delimiter_search_start++;
   }
 
   std::vector<std::string> split_parts;
-  size_t len = s.size();
-  // Can't proceed if input string consists of just delimiters
-  if (pos >= len) {
+  if (delimiter_search_start >= len) {
     return split_parts;
   }
 
@@ -328,14 +300,12 @@ std::vector<std::string> SplitString(const std::string& s,
     split_parts.push_back(
         s.substr(delimiter_search_start, pos - delimiter_search_start));
 
-    while (s[pos] == delimiter && pos < len) {
+    while (pos < len && s[pos] == delimiter) {
       pos++;
       delimiter_search_start = pos;
     }
   }
 
-  // If the input string doesn't end with a delimiter we need to push the last
-  // token into our return vector
   if (delimiter_search_start != len) {
     split_parts.push_back(
         s.substr(delimiter_search_start, len - delimiter_search_start));
@@ -343,19 +313,18 @@ std::vector<std::string> SplitString(const std::string& s,
   return split_parts;
 }
 
-// Id used as part of the logic to make unique api identifiers.
-static int g_api_identifier_count = 0;
+static std::atomic<int> g_api_identifier_count{0};
 
 std::string CreateApiIdentifier(const char* api_id, void* object) {
-  std::string created;
   const char* format = "%s0x%016llx_%d";
   unsigned long long object_ptr =       // NOLINT
       static_cast<unsigned long long>(  // NOLINT
           reinterpret_cast<intptr_t>(object));
-  int extra_id = g_api_identifier_count++;
-  int size = snprintf(nullptr, 0, format, api_id, object_ptr, extra_id) + 1;
-  created.reserve(size);
-  snprintf(&(created[0]), size, format, api_id, object_ptr, extra_id);
+  int extra_id = g_api_identifier_count.fetch_add(1, std::memory_order_relaxed);
+  int size = snprintf(nullptr, 0, format, api_id, object_ptr, extra_id);
+  std::string created(static_cast<size_t>(size), '\0');
+  snprintf(&created[0], created.size() + 1, format, api_id, object_ptr,
+           extra_id);
   return created;
 }
 
