@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/persistence/level_db_persistence_storage_engine.h"
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <streambuf>
@@ -21,8 +22,8 @@
 #include "app/src/logger.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/persistence/flatbuffer_conversions.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "testing/base/public/gmock.h"
 
 using testing::Eq;
 using testing::Pointwise;
@@ -249,6 +250,41 @@ TEST_F(LevelDbPersistenceStorageEngineTest, OverwriteServerCache) {
   });
 }
 
+TEST_F(LevelDbPersistenceStorageEngineTest,
+       OverwriteServerCacheMapWithPriorityAndLaterKeys) {
+  InitializeLevelDb(test_info_->name());
+
+  // ".priority" sorts lexicographically before child keys like "subkey" and
+  // "value". Reconstructing the map from LevelDB must not wrap the empty
+  // Variant::Null() placeholder into {".value": Null}.
+  // clang-format off
+  Variant data = std::map<Variant, Variant>{
+      std::make_pair("cranberry", std::map<Variant, Variant>{
+          std::make_pair(".priority", 100),
+          std::make_pair("subkey", 500),
+          std::make_pair("value", 9),
+      }),
+      std::make_pair("scalar_with_priority", std::map<Variant, Variant>{
+          std::make_pair(".value", "hello"),
+          std::make_pair(".priority", 42),
+      }),
+  };
+  // clang-format on
+
+  engine_->BeginTransaction();
+  engine_->OverwriteServerCache(Path(), data);
+  engine_->SetTransactionSuccessful();
+  engine_->EndTransaction();
+
+  RunTwice([this, &data]() {
+    EXPECT_EQ(engine_->ServerCache(Path()), data);
+    EXPECT_EQ(engine_->ServerCache(Path("cranberry")),
+              data.map().at("cranberry"));
+    EXPECT_EQ(engine_->ServerCache(Path("scalar_with_priority")),
+              data.map().at("scalar_with_priority"));
+  });
+}
+
 TEST_F(LevelDbPersistenceStorageEngineTest, OverwriteServerCache_Overwrite) {
   InitializeLevelDb(test_info_->name());
 
@@ -388,8 +424,8 @@ TEST_F(LevelDbPersistenceStorageEngineTest, ServerCacheEstimatedSizeInBytes) {
   engine_->EndTransaction();
 
   RunTwice([this]() {
-    uint64 result = engine_->ServerCacheEstimatedSizeInBytes();
-    uint64 expected = 1024 + strlen("aaa");
+    uint64_t result = engine_->ServerCacheEstimatedSizeInBytes();
+    uint64_t expected = 1024 + strlen("aaa");
 
     // This is only an estimate, so as long as we're within a few bytes it's
     // okay.

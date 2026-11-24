@@ -201,6 +201,16 @@ firebase_cpp_cc_test(
 )
 
 firebase_cpp_cc_test(
+  firebase_rtdb_desktop_level_db_persistence_storage_engine_test
+  SOURCES
+    desktop/persistence/level_db_persistence_storage_engine_test.cc
+  DEPENDS
+    firebase_database
+    firebase_testing
+    leveldb
+)
+
+firebase_cpp_cc_test(
   firebase_rtdb_desktop_flatbuffer_conversion_test
   SOURCES
     desktop/persistence/flatbuffer_conversions_test.cc
