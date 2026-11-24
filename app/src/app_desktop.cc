@@ -208,8 +208,7 @@ void App::RegisterLibrary(const char* library, const char* version,
 const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
 void App::SetDefaultConfigPath(const char* path) {
-  std::string& config_path = internal::DefaultConfigPath();
-  config_path = path;
+  internal::DefaultConfigPath() = path;
 
 #if defined(WIN32)
   const char kSeperator = '\\';
@@ -217,10 +216,10 @@ void App::SetDefaultConfigPath(const char* path) {
   const char kSeperator = '/';
 #endif
 
-  if (!config_path.empty()) {
-    char last_character = config_path.back();
+  if (!internal::DefaultConfigPath().empty()) {
+    char last_character = internal::DefaultConfigPath().back();
     if (last_character != '\\' && last_character != '/') {
-      config_path += kSeperator;
+      internal::DefaultConfigPath() += kSeperator;
     }
   }
 }

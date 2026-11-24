@@ -396,7 +396,6 @@ if(MSVC)
   )
 endif()
 
-
 firebase_cpp_cc_test(
   firebase_rtdb_static_destruction_test
   SOURCES

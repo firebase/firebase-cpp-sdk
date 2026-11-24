@@ -32,7 +32,6 @@
 #endif  // FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 
@@ -174,43 +173,17 @@ Future<void> ModuleInitializer::InitializeLastResult() {
       data_->future_impl.LastResult(kModuleInitializerInitialize));
 }
 
-namespace {
-
-using AppCallbackMap = std::map<std::string, AppCallback*>;
-using StaticFutureDataMap = std::map<const void*, StaticFutureData*>;
-
-// Guards Callbacks() after static registration completes.
-Mutex& CallbacksMutex() {
-  static NoDestructor<Mutex> callbacks_mutex;
-  return *callbacks_mutex;
-}
-
-AppCallbackMap& Callbacks() {
-  static NoDestructor<AppCallbackMap> callbacks;
-  return *callbacks;
-}
-
-// Guards FutureDatas(). Wrapped in NoDestructor so module teardown (such as
-// Auth::DeleteInternal -> CleanupCredentialFutureImpl) remains safe during
-// static destruction.
-Mutex& FuturesMutex() {
-  static NoDestructor<Mutex> futures_mutex;
-  return *futures_mutex;
-}
-
-StaticFutureDataMap& FutureDatas() {
-  static NoDestructor<StaticFutureDataMap> future_datas;
-  return *future_datas;
-}
-
-}  // namespace
+std::map<std::string, AppCallback*>* AppCallback::callbacks_;
+Mutex* AppCallback::callbacks_mutex_ = new Mutex();
 
 void AppCallback::NotifyAllAppCreated(
     firebase::App* app, std::map<std::string, InitResult>* results) {
   if (results) results->clear();
-  MutexLock lock(CallbacksMutex());
-  const auto& callbacks = Callbacks();
-  for (auto it = callbacks.begin(); it != callbacks.end(); ++it) {
+  MutexLock lock(*callbacks_mutex_);
+  if (!callbacks_) return;
+  for (std::map<std::string, AppCallback*>::const_iterator it =
+           callbacks_->begin();
+       it != callbacks_->end(); ++it) {
     const AppCallback* callback = it->second;
     if (callback->enabled()) {
       InitResult result = callback->NotifyAppCreated(app);
@@ -220,9 +193,11 @@ void AppCallback::NotifyAllAppCreated(
 }
 
 void AppCallback::NotifyAllAppDestroyed(firebase::App* app) {
-  MutexLock lock(CallbacksMutex());
-  const auto& callbacks = Callbacks();
-  for (auto it = callbacks.begin(); it != callbacks.end(); ++it) {
+  MutexLock lock(*callbacks_mutex_);
+  if (!callbacks_) return;
+  for (std::map<std::string, AppCallback*>::const_iterator it =
+           callbacks_->begin();
+       it != callbacks_->end(); ++it) {
     const AppCallback* callback = it->second;
     if (callback->enabled()) callback->NotifyAppDestroyed(app);
   }
@@ -230,10 +205,11 @@ void AppCallback::NotifyAllAppDestroyed(firebase::App* app) {
 
 // Determine whether a module callback is enabled, by name.
 bool AppCallback::GetEnabledByName(const char* name) {
-  MutexLock lock(CallbacksMutex());
-  const auto& callbacks = Callbacks();
-  auto it = callbacks.find(std::string(name));
-  if (it == callbacks.end()) {
+  MutexLock lock(*callbacks_mutex_);
+  if (!callbacks_) return false;
+  std::map<std::string, AppCallback*>::const_iterator it =
+      callbacks_->find(std::string(name));
+  if (it == callbacks_->end()) {
     return false;
   }
   return it->second->enabled();
@@ -241,10 +217,11 @@ bool AppCallback::GetEnabledByName(const char* name) {
 
 // Enable a module callback by name.
 void AppCallback::SetEnabledByName(const char* name, bool enable) {
-  MutexLock lock(CallbacksMutex());
-  const auto& callbacks = Callbacks();
-  auto it = callbacks.find(std::string(name));
-  if (it == callbacks.end()) {
+  MutexLock lock(*callbacks_mutex_);
+  if (!callbacks_) return;
+  std::map<std::string, AppCallback*>::const_iterator it =
+      callbacks_->find(std::string(name));
+  if (it == callbacks_->end()) {
     LogDebug("App initializer %s not found, failed to enable.", name);
     return;
   }
@@ -253,20 +230,23 @@ void AppCallback::SetEnabledByName(const char* name, bool enable) {
 }
 
 void AppCallback::SetEnabledAll(bool enable) {
-  MutexLock lock(CallbacksMutex());
-  const auto& callbacks = Callbacks();
-  if (callbacks.empty()) return;
+  MutexLock lock(*callbacks_mutex_);
+  if (!callbacks_) return;
   LogDebug("%s all app initializers", enable ? "Enabling" : "Disabling");
-  for (auto it = callbacks.begin(); it != callbacks.end(); ++it) {
+  for (std::map<std::string, AppCallback*>::const_iterator it =
+           callbacks_->begin();
+       it != callbacks_->end(); ++it) {
     LogDebug("%s %s", enable ? "Enable" : "Disable", it->second->module_name());
     it->second->set_enabled(enable);
   }
 }
 
 void AppCallback::AddCallback(AppCallback* callback) {
-  auto& callbacks = Callbacks();
+  if (!callbacks_) {
+    callbacks_ = new std::map<std::string, AppCallback*>();
+  }
   std::string name = callback->module_name();
-  if (callbacks.find(name) != callbacks.end()) {
+  if (callbacks_->find(name) != callbacks_->end()) {
     LogWarning(
         "%s is already registered for callbacks on app initialization,  "
         "ignoring.",
@@ -274,31 +254,40 @@ void AppCallback::AddCallback(AppCallback* callback) {
   } else {
     LogDebug("Registered app initializer %s (enabled: %d)", name.c_str(),
              callback->enabled() ? 1 : 0);
-    callbacks[name] = callback;
+    (*callbacks_)[name] = callback;
   }
 }
+
+Mutex* StaticFutureData::s_futures_mutex_ = new Mutex();
+std::map<const void*, StaticFutureData*>* StaticFutureData::s_future_datas_;
 
 // static
 void StaticFutureData::CleanupFutureDataForModule(
     const void* module_identifier) {
-  MutexLock lock(FuturesMutex());
-  auto& future_datas = FutureDatas();
-  auto it = future_datas.find(module_identifier);
-  if (it != future_datas.end()) {
+  MutexLock lock(*s_futures_mutex_);
+
+  if (s_future_datas_ == nullptr) return;
+
+  auto it = s_future_datas_->find(module_identifier);
+  if (it != s_future_datas_->end()) {
     StaticFutureData* existing_data = it->second;
     if (existing_data != nullptr) delete existing_data;
 
-    future_datas.erase(it);
+    s_future_datas_->erase(it);
   }
 }
 
 // static
 StaticFutureData* StaticFutureData::GetFutureDataForModule(
     const void* module_identifier, int num_functions) {
-  MutexLock lock(FuturesMutex());
-  auto& future_datas = FutureDatas();
-  auto found_value = future_datas.find(module_identifier);
-  if (found_value != future_datas.end()) {
+  MutexLock lock(*s_futures_mutex_);
+
+  if (s_future_datas_ == nullptr) {
+    s_future_datas_ = new std::map<const void*, StaticFutureData*>;
+  }
+
+  auto found_value = s_future_datas_->find(module_identifier);
+  if (found_value != s_future_datas_->end()) {
     StaticFutureData* existing_data = found_value->second;
     if (existing_data != nullptr) {
       return existing_data;
@@ -306,7 +295,7 @@ StaticFutureData* StaticFutureData::GetFutureDataForModule(
   }
 
   StaticFutureData* new_data = CreateNewData(module_identifier, num_functions);
-  future_datas[module_identifier] = new_data;
+  (*s_future_datas_)[module_identifier] = new_data;
   return new_data;
 }
 

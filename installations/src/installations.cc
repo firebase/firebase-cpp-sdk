@@ -24,19 +24,11 @@
 namespace firebase {
 namespace installations {
 
-using InstallationsMap = std::map<App*, Installations*>;
+std::map<App*, Installations*>* g_installations = nullptr;  // NOLINT
 
-// The map and its mutex are function-local statics wrapped in NoDestructor, so
-// they are constructed on first use and never destroyed. That keeps them out
-// of static initialization and destruction entirely: they are ready regardless
-// of translation-unit initialization order, and an Installations instance
-// owned by a static object can still lock the mutex and erase itself from its
-// destructor during process exit.
-static InstallationsMap& InstallationsByApp() {
-  static NoDestructor<InstallationsMap> installations;
-  return *installations;
-}
-
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; an Installations instance owned by a static object
+// can still lock it from its destructor during process exit.
 static Mutex& InstallationsMutex() {
   static NoDestructor<Mutex> mutex;
   return *mutex;
@@ -46,9 +38,11 @@ using internal::InstallationsInternal;
 
 // Must be called with InstallationsMutex() held.
 static Installations* FindInstallationsLocked(App* app) {
-  InstallationsMap& installations = InstallationsByApp();
-  InstallationsMap::iterator it = installations.find(app);
-  if (it != installations.end()) {
+  if (!g_installations) {
+    return nullptr;
+  }
+  std::map<App*, Installations*>::iterator it = g_installations->find(app);
+  if (it != g_installations->end()) {
     return it->second;
   }
   return nullptr;
@@ -86,7 +80,12 @@ Installations* Installations::GetInstance(App* app) {
       installations_local->DeleteInternal();
     });
 
-    InstallationsByApp()[app] = installations;
+    // Stick it in the global map so we remember it, and can delete it on
+    // shutdown.
+    if (!g_installations) {
+      g_installations = new std::map<App*, Installations*>();  // NOLINT
+    }
+    (*g_installations)[app] = installations;
     return installations;
   }
 
@@ -120,8 +119,8 @@ void Installations::DeleteInternal() {
   if (!installations_internal_) return;
 
   // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier, added to InstallationsByApp(), or left holding
-  // JNI/iOS class references.
+  // App's CleanupNotifier, added to g_installations, or left holding JNI/iOS
+  // class references.
   if (!installations_internal_->Initialized()) {
     delete installations_internal_;
     installations_internal_ = nullptr;
@@ -137,10 +136,16 @@ void Installations::DeleteInternal() {
   delete installations_internal_;
   installations_internal_ = nullptr;
 
-  // Remove `this` from InstallationsByApp() on both App-destruction cleanup and
-  // ~Installations() so a recreated App at the same address never finds a
-  // gutted Installations shell.
-  InstallationsByApp().erase(app_);
+  if (g_installations) {
+    // Remove installations from the g_installations map on both App-destruction
+    // cleanup and ~Installations() so a recreated App at the same address never
+    // finds a gutted Installations shell.
+    g_installations->erase(app_);
+    if (g_installations->empty()) {
+      delete g_installations;
+      g_installations = nullptr;
+    }
+  }
 }
 
 Future<std::string> Installations::GetId() {

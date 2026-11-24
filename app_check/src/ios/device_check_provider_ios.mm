@@ -106,9 +106,9 @@ DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
   // Heap-allocated function-local singleton (DeviceCheckProviderFactory has a
   // private constructor) so the factory is never destroyed during exit() while
   // AppCheckInternal still references it or its created providers.
-  static DeviceCheckProviderFactory* g_device_check_provider_factory =
+  static DeviceCheckProviderFactory* g_device_check_check_provider_factory =
       new DeviceCheckProviderFactory();
-  return g_device_check_provider_factory;
+  return g_device_check_check_provider_factory;
 }
 
 DeviceCheckProviderFactory::DeviceCheckProviderFactory()

@@ -53,23 +53,14 @@ namespace storage {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseStorage);
 
-using StorageMap = std::map<std::pair<App*, std::string>, Storage*>;
-
-// The map and its mutex are function-local statics wrapped in NoDestructor, so
-// they are constructed on first use and never destroyed. That keeps them out
-// of static initialization and destruction entirely: they are ready no matter
-// which translation unit's initializers run first, and a Storage owned by a
-// static object can still lock the mutex and erase itself from its destructor
-// during process exit.
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; a Storage owned by a static object can still lock it
+// from its destructor during process exit.
 static Mutex& StoragesLock() {
   static NoDestructor<Mutex> mutex;
   return *mutex;
 }
-
-static StorageMap& Storages() {
-  static NoDestructor<StorageMap> storages;
-  return *storages;
-}
+static std::map<std::pair<App*, std::string>, Storage*>* g_storages = nullptr;
 
 Storage* Storage::GetInstance(::firebase::App* app,
                               InitResult* init_result_out) {
@@ -79,6 +70,9 @@ Storage* Storage::GetInstance(::firebase::App* app,
 Storage* Storage::GetInstance(::firebase::App* app, const char* url,
                               InitResult* init_result_out) {
   MutexLock lock(StoragesLock());
+  if (!g_storages) {
+    g_storages = new std::map<std::pair<App*, std::string>, Storage*>();
+  }
   // URL we use for our global index of Storage instances.
   // If a null URL is given, we look up the App's default storage bucket.
   std::string url_idx;
@@ -109,9 +103,9 @@ Storage* Storage::GetInstance(::firebase::App* app, const char* url,
     return nullptr;
   }
 
-  StorageMap& storages = Storages();
-  StorageMap::iterator it = storages.find(std::make_pair(app, url_idx));
-  if (it != storages.end()) {
+  std::map<std::pair<App*, std::string>, Storage*>::iterator it =
+      g_storages->find(std::make_pair(app, url_idx));
+  if (it != g_storages->end()) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
@@ -122,7 +116,7 @@ Storage* Storage::GetInstance(::firebase::App* app, const char* url,
     delete storage;
     return nullptr;
   }
-  storages.insert(std::make_pair(std::make_pair(app, url_idx), storage));
+  g_storages->insert(std::make_pair(std::make_pair(app, url_idx), storage));
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return storage;
 }
@@ -150,7 +144,7 @@ void Storage::DeleteInternal() {
   if (!internal_) return;
 
   // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to Storages(), and app() may be null.
+  // App's CleanupNotifier or added to g_storages, and app() may be null.
   if (!internal_->initialized()) {
     delete internal_;
     internal_ = nullptr;
@@ -168,9 +162,14 @@ void Storage::DeleteInternal() {
                             ? std::string(internal::kCloudStorageScheme) +
                                   app()->options().storage_bucket()
                             : url();
-  Storages().erase(std::make_pair(app(), url_idx));
+  g_storages->erase(std::make_pair(app(), url_idx));
   delete internal_;
   internal_ = nullptr;
+  // If it's the last one, delete the map.
+  if (g_storages->empty()) {
+    delete g_storages;
+    g_storages = nullptr;
+  }
 }
 
 Storage::~Storage() { DeleteInternal(); }

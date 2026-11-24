@@ -104,9 +104,9 @@ void RecordPostMainCallback() { ++g_post_main_callback_runs; }
 
 // Defined BEFORE g_exit_time_sdk_holder in this translation unit so C++
 // constructs it first and destroys it AFTER ~ExitTimeSdkHolder() runs during
-// process exit ([basic.start.term]). Verifies that all NoDestructor-backed SDK
-// registries, mutexes, callbacks, futures, and loggers remain usable even for
-// the final static destructor in the binary.
+// process exit ([basic.start.term]). Verifies that the SDK's registries,
+// mutexes, callbacks, futures, and loggers remain usable even for the final
+// static destructor in the binary.
 struct FinalPostMainVerifier {
   bool armed = false;
 

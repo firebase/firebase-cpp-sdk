@@ -58,21 +58,14 @@ using internal::DatabaseInternal;
 
 using DatabaseMap = std::map<std::pair<std::string, std::string>, Database*>;
 
-// The map and its mutex are function-local statics wrapped in NoDestructor, so
-// they are constructed on first use and never destroyed. That keeps them out
-// of static initialization and destruction entirely: they are ready no matter
-// which translation unit's initializers run first, and a Database owned by a
-// static object can still lock the mutex and erase itself from its destructor
-// during process exit.
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; a Database owned by a static object can still lock
+// it from its destructor during process exit.
 static Mutex& DatabasesLock() {
   static NoDestructor<Mutex> mutex;
   return *mutex;
 }
-
-static DatabaseMap& Databases() {
-  static NoDestructor<DatabaseMap> databases;
-  return *databases;
-}
+static DatabaseMap* g_databases = nullptr;
 
 namespace internal {
 Mutex& DatabaseReferenceConstructorMutex() {
@@ -94,11 +87,13 @@ Database* Database::GetInstance(App* app, const char* url,
     return nullptr;
   }
   MutexLock lock(DatabasesLock());
+  if (!g_databases) {
+    g_databases = new DatabaseMap();
+  }
 
-  DatabaseMap& databases = Databases();
   DatabaseMap::key_type key = MakeKey(app, std::string(url ? url : ""));
-  DatabaseMap::iterator it = databases.find(key);
-  if (it != databases.end()) {
+  DatabaseMap::iterator it = g_databases->find(key);
+  if (it != g_databases->end()) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
@@ -110,7 +105,7 @@ Database* Database::GetInstance(App* app, const char* url,
     delete database;
     return nullptr;
   }
-  databases.insert(std::make_pair(key, database));
+  g_databases->insert(std::make_pair(key, database));
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return database;
 }
@@ -143,7 +138,7 @@ void Database::DeleteInternal() {
   if (!internal_) return;
 
   // An instance whose initialization failed was never registered with the
-  // App's CleanupNotifier or added to Databases(), and app() may be null.
+  // App's CleanupNotifier or added to g_databases, and app() may be null.
   if (!internal_->initialized()) {
     delete internal_;
     internal_ = nullptr;
@@ -165,7 +160,12 @@ void Database::DeleteInternal() {
   delete internal_;
   internal_ = nullptr;
   // If a Database is explicitly deleted, remove it from our cache.
-  Databases().erase(MakeKey(my_app, url));
+  g_databases->erase(MakeKey(my_app, url));
+  // If it's the last one, delete the map.
+  if (g_databases->empty()) {
+    delete g_databases;
+    g_databases = nullptr;
+  }
 }
 
 Database::~Database() { DeleteInternal(); }

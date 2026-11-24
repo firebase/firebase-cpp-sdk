@@ -54,30 +54,18 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAuth);
 // and an Auth requires an App. So, the user acquires the Auth via an App
 // reference.
 // TODO(jsanmiya): Ensure all the Auths are destroyed on shutdown.
-//
-// The map and its mutex are function-local statics wrapped in NoDestructor,
-// so they are constructed on first use and never destroyed. That keeps them
-// out of static initialization and destruction entirely: they are ready no
-// matter which translation unit's initializers run first, and an Auth owned
-// by a static (e.g. a static std::unique_ptr<Auth>) can still be destroyed
-// safely after this file's globals would otherwise have been torn down by the
-// C++ runtime. The mutex in particular could never be destroyed safely, since
-// another thread may be about to lock it.
-using AuthMap = std::map<App*, Auth*>;
-
-static AuthMap& Auths() {
-  static NoDestructor<AuthMap> auths;
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; an Auth owned by a static (e.g. a static
+// std::unique_ptr<Auth>) can still remove itself during process exit.
+static std::map<App*, Auth*>& Auths() {
+  static NoDestructor<std::map<App*, Auth*>> auths;
   return *auths;
 }
+Mutex* g_auths_mutex = new Mutex();
 
-static Mutex& AuthsMutex() {
-  static NoDestructor<Mutex> mutex;
-  return *mutex;
-}
-
-// Must be called with AuthsMutex() held.
+// Must be called with *g_auths_mutex held.
 static Auth* FindAuthLocked(App* app) {
-  AuthMap::iterator it = Auths().find(app);
+  std::map<App*, Auth*>::iterator it = Auths().find(app);
   if (it != Auths().end()) {
     return it->second;
   }
@@ -86,7 +74,7 @@ static Auth* FindAuthLocked(App* app) {
 
 // static
 Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
-  MutexLock lock(AuthsMutex());
+  MutexLock lock(*g_auths_mutex);
   // Return the Auth if it already exists.
   Auth* existing_auth = FindAuthLocked(app);
   if (existing_auth) {
@@ -115,7 +103,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 
 // static
 Auth* Auth::FindAuth(App* app) {
-  MutexLock lock(AuthsMutex());
+  MutexLock lock(*g_auths_mutex);
   return FindAuthLocked(app);
 }
 
@@ -146,7 +134,7 @@ Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
 }
 
 void Auth::DeleteInternal() {
-  MutexLock lock(AuthsMutex());
+  MutexLock lock(*g_auths_mutex);
 
   if (!auth_data_) return;
 
@@ -167,7 +155,7 @@ void Auth::DeleteInternal() {
   int num_auths_remaining = 0;
   {
     // Remove `this` from the Auths map by its owning App key.
-    AuthMap& auths = Auths();
+    std::map<App*, Auth*>& auths = Auths();
     auto it = auths.find(auth_data_->app);
     if (it != auths.end()) {
       LogDebug("Deleting Auth %p for App %p", this, it->first);

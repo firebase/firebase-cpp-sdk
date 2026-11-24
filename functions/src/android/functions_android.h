@@ -93,6 +93,7 @@ class FunctionsInternal {
   static bool InitializeEmbeddedClasses(App* app);
 
   static int initialize_count_;
+  static std::map<jint, Error> java_error_to_cpp_;
 
   App* app_;
   std::string region_;

@@ -22,8 +22,6 @@
 #include <string>
 
 #include "app/rest/curl/curl_handles.h"
-#include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/no_destructor.h"
 #include "app/src/variant_util.h"
 #include "curl/curl.h"
 #include "flatbuffers/flatbuffers.h"
@@ -48,10 +46,7 @@ const char kGet[] = "GET";
 const char kPost[] = "POST";
 
 // Mutex for utils initialization and distribution of CURL pointers.
-static ::firebase::Mutex& UtilCurlMutex() {
-  static NoDestructor<::firebase::Mutex> util_curl_mutex;
-  return *util_curl_mutex;
-}
+static ::firebase::Mutex* g_util_curl_mutex = new Mutex();
 
 CURL* g_curl_instance = nullptr;
 int g_init_ref_count = 0;
@@ -60,7 +55,7 @@ int g_init_ref_count = 0;
 // so public/internal headers that include util.h do not need <curl/curl.h> in
 // their include path.
 void* CreateCurlPtr() {  // NOLINT
-  MutexLock lock(UtilCurlMutex());
+  MutexLock lock(*g_util_curl_mutex);
   curl::AcquireCurlGlobal();
   CURL* curl = curl_easy_init();
   if (curl == nullptr) {
@@ -70,7 +65,7 @@ void* CreateCurlPtr() {  // NOLINT
 }
 
 void DestroyCurlPtr(void* curl_ptr) {
-  MutexLock lock(UtilCurlMutex());
+  MutexLock lock(*g_util_curl_mutex);
   if (curl_ptr != nullptr) {
     curl_easy_cleanup(static_cast<CURL*>(curl_ptr));
     curl::ReleaseCurlGlobal();
@@ -78,7 +73,7 @@ void DestroyCurlPtr(void* curl_ptr) {
 }
 
 void Initialize() {
-  MutexLock curl_lock(UtilCurlMutex());
+  MutexLock curl_lock(*g_util_curl_mutex);
   assert(g_init_ref_count >= 0);
   if (g_init_ref_count == 0) {
     g_curl_instance = reinterpret_cast<CURL*>(CreateCurlPtr());
@@ -87,7 +82,7 @@ void Initialize() {
 }
 
 void Terminate() {
-  MutexLock curl_lock(UtilCurlMutex());
+  MutexLock curl_lock(*g_util_curl_mutex);
   --g_init_ref_count;
   assert(g_init_ref_count >= 0);
   if (g_init_ref_count == 0) {

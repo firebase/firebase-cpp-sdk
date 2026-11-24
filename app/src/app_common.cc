@@ -278,29 +278,18 @@ class LibraryRegistry {
   static LibraryRegistry* library_registry_;
 };
 
-using AppMap = std::map<std::string, std::unique_ptr<AppData>>;
-
-// Guards Apps(), g_default_app, and LibraryRegistry. Wrapped in NoDestructor
-// so static initialization and exit-time App destruction never access an
-// uninitialized or destroyed mutex/map.
-static Mutex& AppMutex() {
-  static NoDestructor<Mutex> app_mutex;
-  return *app_mutex;
-}
-
-static AppMap& Apps() {
-  static NoDestructor<AppMap> apps;
-  return *apps;
-}
-
+// Guards g_apps and g_default_app.
+static Mutex* g_app_mutex = new Mutex();
+static std::map<std::string, std::unique_ptr<AppData>>* g_apps = nullptr;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
 
 App* AddApp(App* app, std::map<std::string, InitResult>* results) {
+  bool created_first_app = false;
   assert(app);
   App* existing_app = FindAppByName(app->name());
   FIREBASE_ASSERT_RETURN(nullptr, !existing_app);
-  MutexLock lock(AppMutex());
+  MutexLock lock(*g_app_mutex);
   if (IsDefaultAppName(app->name())) {
     assert(!g_default_app);
     g_default_app = app;
@@ -308,7 +297,12 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   std::unique_ptr<AppData> app_data = std::make_unique<AppData>();
   app_data->app = app;
   app_data->cleanup_notifier.RegisterOwner(app);
-  Apps()[std::string(app->name())] = std::move(app_data);
+  if (!g_apps) {
+    g_apps = new std::map<std::string, std::unique_ptr<AppData>>();
+    created_first_app = true;
+  }
+  (*g_apps)[std::string(app->name())] = std::move(app_data);
+  // Create a cleanup notifier for the app.
   {
     const AppOptions& app_options = app->options();
     LogDebug(
@@ -326,11 +320,13 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
 
 App* FindAppByName(const char* name) {
   assert(name);
-  MutexLock lock(AppMutex());
-  auto& apps = Apps();
-  auto it = apps.find(std::string(name));
-  if (it == apps.end()) return nullptr;
-  return it->second->app;
+  MutexLock lock(*g_app_mutex);
+  if (g_apps) {
+    auto it = g_apps->find(std::string(name));
+    if (it == g_apps->end()) return nullptr;
+    return it->second->app;
+  }
+  return nullptr;
 }
 
 App* GetDefaultApp() { return g_default_app; }
@@ -340,10 +336,9 @@ App* GetAnyApp() {
     return g_default_app;
   }
 
-  MutexLock lock(AppMutex());
-  auto& apps = Apps();
-  if (!apps.empty()) {
-    return apps.begin()->second->app;
+  MutexLock lock(*g_app_mutex);
+  if (g_apps && !g_apps->empty()) {
+    return g_apps->begin()->second->app;
   }
   return nullptr;
 }
@@ -351,10 +346,9 @@ App* GetAnyApp() {
 std::vector<App*> GetAllApps() {
   std::vector<App*> result;
   App* const default_app = GetDefaultApp();
-  MutexLock lock(AppMutex());
-  auto& apps = Apps();
-  if (!apps.empty()) {
-    for (auto it = apps.begin(); it != apps.end(); ++it) {
+  MutexLock lock(*g_app_mutex);
+  if (g_apps) {
+    for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
       if (it->second->app != default_app) result.push_back(it->second->app);
     }
     if (default_app) result.push_back(default_app);
@@ -364,27 +358,34 @@ std::vector<App*> GetAllApps() {
 
 void RemoveApp(App* app) {
   assert(app);
-  MutexLock lock(AppMutex());
-  auto& apps = Apps();
-  auto it = apps.find(std::string(app->name()));
-  // If app initialization failed AddApp() will not be called.
-  if (it != apps.end()) {
-    LogDebug("Deleting app %s (0x%08x)", app->name(),
-             static_cast<int>(reinterpret_cast<intptr_t>(app)));
-    // Notify app callbacks before removing the app from Apps() so callbacks
-    // can still look up apps by name during destruction.
-    it->second->cleanup_notifier.CleanupAll();
-    AppCallback::NotifyAllAppDestroyed(app);
-    // Remove the app entry from the map; from this point it is no longer
-    // accessible to other components.
-    apps.erase(it);
-    if (app == g_default_app) {
-      g_default_app = nullptr;
-    }
-    const bool last_app = apps.empty();
-    callback::Terminate(last_app);
-    if (last_app) {
-      LibraryRegistry::Terminate();
+  MutexLock lock(*g_app_mutex);
+  if (g_apps) {
+    auto it = g_apps->find(std::string(app->name()));
+    bool last_app = false;
+    // If app initialization failed AddApp() will not be called.
+    if (it != g_apps->end()) {
+      LogDebug("Deleting app %s (0x%08x)", app->name(),
+               static_cast<int>(reinterpret_cast<intptr_t>(app)));
+      // Notify app callbacks before removing the app from the g_apps
+      // dictionary, this makes it possible to look up apps by name on
+      // destruction.
+      it->second->cleanup_notifier.CleanupAll();
+      AppCallback::NotifyAllAppDestroyed(app);
+      // Remove the app entry from the map, from this point it is no longer
+      // accessible to other components.
+      g_apps->erase(it);
+      if (app == g_default_app) {
+        g_default_app = nullptr;
+      }
+      if (g_apps->empty()) {
+        last_app = true;
+        delete g_apps;
+        g_apps = nullptr;
+      }
+      callback::Terminate(last_app);
+      if (last_app) {
+        LibraryRegistry::Terminate();
+      }
     }
   }
 }
@@ -392,17 +393,17 @@ void RemoveApp(App* app) {
 void DestroyAllApps() {
   std::vector<App*> apps_to_delete;
   App* const default_app = GetDefaultApp();
-  MutexLock lock(AppMutex());
-  auto& apps = Apps();
-  if (!apps.empty()) {
-    for (auto it = apps.begin(); it != apps.end(); ++it) {
+  MutexLock lock(*g_app_mutex);
+  if (g_apps) {
+    for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
       if (it->second->app != default_app)
         apps_to_delete.push_back(it->second->app);
     }
     if (default_app) apps_to_delete.push_back(default_app);
     for (auto it = apps_to_delete.begin(); it != apps_to_delete.end(); ++it) {
-      // Deleting each App invokes RemoveApp() via ~App(), removing its entry
-      // from Apps().
+      // As each App is deleted, RemoveApp() is called by the destructor which
+      // removes the app from the global list of apps (g_apps).  When g_apps
+      // is empty it is deleted by RemoveApp().
       delete *it;
     }
   }
@@ -414,7 +415,7 @@ bool IsDefaultAppName(const char* name) {
 }
 
 void RegisterLibrary(const char* library, const char* version) {
-  MutexLock lock(AppMutex());
+  MutexLock lock(*g_app_mutex);
   LibraryRegistry* registry = LibraryRegistry::Initialize();
   if (registry->RegisterLibrary(library, version)) {
     registry->UpdateUserAgent();
@@ -422,7 +423,7 @@ void RegisterLibrary(const char* library, const char* version) {
 }
 
 void RegisterLibrariesFromUserAgent(const char* user_agent) {
-  MutexLock lock(AppMutex());
+  MutexLock lock(*g_app_mutex);
   LibraryRegistry* registry = LibraryRegistry::Initialize();
   // Copy the string into a vector so that we can safely mutate the string.
   std::vector<char> user_agent_vector(user_agent,
@@ -450,7 +451,7 @@ void RegisterLibrariesFromUserAgent(const char* user_agent) {
 }
 
 void RegisterSdkUsage(void* platform_resource) {
-  MutexLock lock(AppMutex());
+  MutexLock lock(*g_app_mutex);
 
   // Only register libraries when no C++ apps was created before.
   if (!LibraryRegistry::IsCommonLibraryRegistered()) {
@@ -472,12 +473,12 @@ void RegisterSdkUsage(void* platform_resource) {
 }
 
 const char* GetUserAgent() {
-  MutexLock lock(AppMutex());
+  MutexLock lock(*g_app_mutex);
   return LibraryRegistry::Initialize()->GetUserAgent();
 }
 
 std::string GetLibraryVersion(const char* library) {
-  MutexLock lock(AppMutex());
+  MutexLock lock(*g_app_mutex);
   return LibraryRegistry::Initialize()->GetLibraryVersion(library);
 }
 
@@ -487,7 +488,7 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
   sdk->clear();
   version->clear();
 
-  MutexLock lock(AppMutex());
+  MutexLock lock(*g_app_mutex);
   // Set of library versions to query in order of outer wrapper to inner.
   // We're only retrieving the outer-most SDK version here as we can only send
   // one component as part of the user agent string to the storage backend.
@@ -511,11 +512,13 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
 // Find a logger associated with an app by app name.
 Logger* FindAppLoggerByName(const char* name) {
   assert(name);
-  MutexLock lock(AppMutex());
-  auto& apps = Apps();
-  auto it = apps.find(std::string(name));
-  if (it == apps.end()) return nullptr;
-  return &it->second->logger;
+  MutexLock lock(*g_app_mutex);
+  if (g_apps) {
+    auto it = g_apps->find(std::string(name));
+    if (it == g_apps->end()) return nullptr;
+    return &it->second->logger;
+  }
+  return nullptr;
 }
 
 }  // namespace app_common

@@ -22,8 +22,8 @@ namespace firebase {
 namespace firestore {
 
 const std::string& EmptyString() {
-  static const NoDestructor<std::string> empty_string;
-  return *empty_string;
+  static const NoDestructor<std::string> kEmptyString;
+  return *kEmptyString;
 }
 
 }  // namespace firestore

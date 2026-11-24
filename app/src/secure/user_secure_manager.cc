@@ -20,7 +20,6 @@
 #include "app/src/base64.h"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/internal/platform.h"
-#include "app/src/no_destructor.h"
 #include "app/src/secure/user_secure_internal.h"
 
 // Only build this implementation on desktop. If building for iOS or Android,
@@ -54,16 +53,7 @@ namespace secure {
 
 using callback::NewCallback;
 
-namespace {
-
-// Guards UserSecureManager::s_scheduler_ and s_scheduler_ref_count_.
-Mutex& SchedulerMutex() {
-  static NoDestructor<Mutex> scheduler_mutex;
-  return *scheduler_mutex;
-}
-
-}  // namespace
-
+Mutex* UserSecureManager::s_scheduler_mutex_ = new Mutex();
 scheduler::Scheduler* UserSecureManager::s_scheduler_;
 int32_t UserSecureManager::s_scheduler_ref_count_;
 
@@ -197,7 +187,7 @@ Future<void> UserSecureManager::DeleteAllData() {
 }
 
 void UserSecureManager::CreateScheduler() {
-  MutexLock lock(SchedulerMutex());
+  MutexLock lock(*s_scheduler_mutex_);
   if (s_scheduler_ == nullptr) {
     s_scheduler_ = new scheduler::Scheduler();
     // reset count
@@ -207,7 +197,7 @@ void UserSecureManager::CreateScheduler() {
 }
 
 void UserSecureManager::DestroyScheduler() {
-  MutexLock lock(SchedulerMutex());
+  MutexLock lock(*s_scheduler_mutex_);
   if (s_scheduler_ == nullptr) {
     // reset count
     s_scheduler_ref_count_ = 0;
