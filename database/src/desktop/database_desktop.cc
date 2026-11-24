@@ -119,6 +119,8 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
   assert(url);
 
   {
+    // Restore persistence_enabled_ for this (App, URL) if it was configured
+    // on a prior Database instance.
     MutexLock lock(*g_persistence_enabled_mutex);
     auto* persistence_map = GetPersistenceEnabledMap();
     auto app_it = persistence_map->find(app_);
