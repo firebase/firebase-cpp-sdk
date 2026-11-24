@@ -58,15 +58,14 @@ struct AppPersistenceState {
 
 std::string NormalizeDatabaseUrl(const std::string& url) {
   ParseUrl parser;
-  if (parser.Parse(url) == ParseUrl::kParseOk) {
-    std::string normalized_host = parser.hostname;
-    std::transform(
-        normalized_host.begin(), normalized_host.end(), normalized_host.begin(),
-        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    return std::string(parser.secure ? "https://" : "http://") +
-           normalized_host;
+  if (parser.Parse(url) != ParseUrl::kParseOk) {
+    return url;
   }
-  return url;
+  std::string normalized_host = parser.hostname;
+  std::transform(
+      normalized_host.begin(), normalized_host.end(), normalized_host.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return std::string(parser.secure ? "https://" : "http://") + normalized_host;
 }
 
 // Leaf lock guarding GetPersistenceEnabledMap(). Never acquire another lock
