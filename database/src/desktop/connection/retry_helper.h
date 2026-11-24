@@ -79,14 +79,16 @@ class RetryHelper {
   // Cancels any pending scheduled retry and resets the current retry delay.
   void Cancel();
 
-  // Inspection helpers for unit tests.
+ private:
+  friend class RetryHelperTestPeer;
+
+  using ThisRef = firebase::internal::SafeReference<RetryHelper>;
+  using ThisRefLock = firebase::internal::SafeReferenceLock<RetryHelper>;
+
+  // Inspection helpers for unit tests via RetryHelperTestPeer.
   uint64_t current_retry_delay_ms() const;
   uint64_t last_scheduled_delay_ms() const;
   bool last_was_success() const;
-
- private:
-  using ThisRef = firebase::internal::SafeReference<RetryHelper>;
-  using ThisRefLock = firebase::internal::SafeReferenceLock<RetryHelper>;
 
   double NextRandom();
 
@@ -103,7 +105,7 @@ class RetryHelper {
   scheduler::RequestHandle scheduled_retry_;
   uint64_t scheduled_retry_id_;
   uint64_t next_task_id_;
-  uint64_t current_retry_delay_;
+  uint64_t current_retry_delay_ms_;
   uint64_t last_scheduled_delay_ms_;
   bool last_was_success_;
 };
