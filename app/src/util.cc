@@ -30,6 +30,9 @@
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/util_android.h"
 #endif  // FIREBASE_PLATFORM_ANDROID
+#if FIREBASE_PLATFORM_DESKTOP
+#include "app/src/include/firebase/app.h"
+#endif  // FIREBASE_PLATFORM_DESKTOP
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -185,11 +188,22 @@ void AppCallback::NotifyAllAppCreated(
            callbacks_->begin();
        it != callbacks_->end(); ++it) {
     const AppCallback* callback = it->second;
+    // Register libraries whether or not the callback is enabled, since most
+    // modules are not auto-initialized but should still be reported.
+    callback->RegisterLibrary();
     if (callback->enabled()) {
       InitResult result = callback->NotifyAppCreated(app);
       if (results) (*results)[it->first] = result;
     }
   }
+}
+
+void AppCallback::RegisterLibrary() const {
+#if FIREBASE_PLATFORM_DESKTOP
+  if (library_registration_enabled_ && library_name_ && library_version_) {
+    App::RegisterLibrary(library_name_, library_version_, nullptr);
+  }
+#endif  // FIREBASE_PLATFORM_DESKTOP
 }
 
 void AppCallback::NotifyAllAppDestroyed(firebase::App* app) {

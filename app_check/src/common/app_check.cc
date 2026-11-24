@@ -55,6 +55,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
     },
     // App Check wants to be turned on by default
     true);
+FIREBASE_APP_REGISTER_LIBRARY(app_check, "fire-app-check",
+                              FIREBASE_VERSION_NUMBER_STRING);
 
 namespace firebase {
 namespace app_check {
