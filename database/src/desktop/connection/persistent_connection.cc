@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <sstream>
 #include <utility>
@@ -186,7 +187,7 @@ void PersistentConnection::OnReady(int64_t timestamp,
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
   logger_->LogDebug("%s OnReady", log_id_.c_str());
-  last_connection_established_time_ms_ = ::firebase::internal::GetTimestamp();
+  last_connection_established_time_ = std::chrono::steady_clock::now();
 
   // Trigger OnServerInfoUpdate based on timestamp delta
   logger_->LogDebug("%s Handle timestamp: %lld in ms", log_id_.c_str(),
@@ -320,13 +321,15 @@ void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
 
   if (ShouldReconnect()) {
     bool last_connection_was_successful = false;
-    if (last_connection_established_time_ms_.has_value()) {
-      uint64_t now = ::firebase::internal::GetTimestamp();
-      uint64_t elapsed = (now >= *last_connection_established_time_ms_)
-                             ? (now - *last_connection_established_time_ms_)
-                             : 0;
+    if (last_connection_established_time_.has_value()) {
+      int64_t elapsed_ms =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::steady_clock::now() -
+              *last_connection_established_time_)
+              .count();
       last_connection_was_successful =
-          elapsed > kSuccessfulConnectionEstablishedDelayMs;
+          elapsed_ms >
+          static_cast<int64_t>(kSuccessfulConnectionEstablishedDelayMs);
     }
     if (reason == Connection::kDisconnectReasonServerReset ||
         last_connection_was_successful) {
@@ -334,7 +337,7 @@ void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
     }
     TryScheduleReconnect();
   }
-  last_connection_established_time_ms_.reset();
+  last_connection_established_time_.reset();
 
   // Trigger OnDisconnect event
   event_handler_->OnDisconnect();
@@ -587,11 +590,16 @@ void PersistentConnection::TryScheduleReconnect() {
       // Note: purposefully wait to add callbacks in case they are called
       // immediately.
       if (auth_succeeded) {
-        auth_future.OnCompletion(OnAuthTokenFutureComplete, connection);
+        auth_future.OnCompletion(
+            [safe_ref](const Future<std::string>& result_data) mutable {
+              OnAuthTokenFutureComplete(safe_ref, result_data);
+            });
       }
       if (app_check_succeeded) {
-        app_check_future.OnCompletion(OnAppCheckTokenFutureComplete,
-                                      connection);
+        app_check_future.OnCompletion(
+            [safe_ref](const Future<std::string>& result_data) mutable {
+              OnAppCheckTokenFutureComplete(safe_ref, result_data);
+            });
       }
     } else {
       // If both failed, assume neither are present, and start the
@@ -604,13 +612,11 @@ void PersistentConnection::TryScheduleReconnect() {
 }
 
 void PersistentConnection::OnAuthTokenFutureComplete(
-    const Future<std::string>& result_data, void* user_data) {
-  FIREBASE_DEV_ASSERT(user_data);
-  PersistentConnection* connection =
-      static_cast<PersistentConnection*>(user_data);
-  ThisRefLock lock(&connection->safe_this_);
+    ThisRef safe_ref, const Future<std::string>& result_data) {
+  ThisRefLock lock(&safe_ref);
+  auto* connection = lock.GetReference();
   // If the connection is destroyed or being destroyed, do nothing.
-  if (!lock.GetReference()) return;
+  if (!connection) return;
 
   uint64_t attempt = 0;
   {
@@ -641,13 +647,11 @@ void PersistentConnection::OnAuthTokenFutureComplete(
 }
 
 void PersistentConnection::OnAppCheckTokenFutureComplete(
-    const Future<std::string>& result_data, void* user_data) {
-  FIREBASE_DEV_ASSERT(user_data);
-  PersistentConnection* connection =
-      static_cast<PersistentConnection*>(user_data);
-  ThisRefLock lock(&connection->safe_this_);
+    ThisRef safe_ref, const Future<std::string>& result_data) {
+  ThisRefLock lock(&safe_ref);
+  auto* connection = lock.GetReference();
   // If the connection is destroyed or being destroyed, do nothing.
-  if (!lock.GetReference()) return;
+  if (!connection) return;
 
   uint64_t attempt = 0;
   {
@@ -685,34 +689,48 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
     return;
   }
 
-  FIREBASE_DEV_ASSERT(auth_token_future_status_ != kWaitingForTokenFuture);
-  FIREBASE_DEV_ASSERT(app_check_token_future_status_ != kWaitingForTokenFuture);
+  Future<std::string> auth_future;
+  TokenFutureStatus auth_status = kInvalidTokenFuture;
+  Future<std::string> app_check_future;
+  TokenFutureStatus app_check_status = kInvalidTokenFuture;
+  {
+    MutexLock lock(pending_token_future_mutex_);
+    auth_future = std::move(pending_auth_token_future_);
+    auth_status = auth_token_future_status_;
+    app_check_future = std::move(pending_app_check_token_future_);
+    app_check_status = app_check_token_future_status_;
+    auth_token_future_status_ = kInvalidTokenFuture;
+    app_check_token_future_status_ = kInvalidTokenFuture;
+    pending_get_token_attempt_ = 0;
+  }
 
-  bool auth_error = auth_token_future_status_ == kCompletedTokenFuture &&
-                    pending_auth_token_future_.error() != 0;
+  FIREBASE_DEV_ASSERT(auth_status != kWaitingForTokenFuture);
+  FIREBASE_DEV_ASSERT(app_check_status != kWaitingForTokenFuture);
+
+  bool auth_error =
+      auth_status == kCompletedTokenFuture && auth_future.error() != 0;
 
   if (auth_error) {
     // Only care about Auth errors, because App Check errors are handled by the
     // backend.
     connection_state_ = kDisconnected;
     logger_->LogDebug("%s Error fetching token: %s", log_id_.c_str(),
-                      pending_auth_token_future_.error_message());
+                      auth_future.error_message());
     TryScheduleReconnect();
   } else {
     if (connection_state_ == kGettingToken) {
       logger_->LogDebug("%s Successfully fetched token, opening connection",
                         log_id_.c_str());
-      if (auth_token_future_status_ == kCompletedTokenFuture &&
-          pending_auth_token_future_.error() == 0 &&
-          pending_auth_token_future_.result() != nullptr) {
-        auth_token_ = *pending_auth_token_future_.result();
+      if (auth_status == kCompletedTokenFuture && auth_future.error() == 0 &&
+          auth_future.result() != nullptr) {
+        auth_token_ = *auth_future.result();
       } else {
         auth_token_.clear();
       }
-      if (app_check_token_future_status_ == kCompletedTokenFuture &&
-          pending_app_check_token_future_.error() == 0 &&
-          pending_app_check_token_future_.result() != nullptr) {
-        app_check_token_ = *pending_app_check_token_future_.result();
+      if (app_check_status == kCompletedTokenFuture &&
+          app_check_future.error() == 0 &&
+          app_check_future.result() != nullptr) {
+        app_check_token_ = *app_check_future.result();
       } else {
         app_check_token_.clear();
       }

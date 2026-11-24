@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <queue>
@@ -328,12 +329,16 @@ class PersistentConnection : public ConnectionEventHandler {
   // Try to reconnect to RT DB server.
   void TryScheduleReconnect();
 
+  typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<PersistentConnection>
+      ThisRefLock;
+
   // Callback function when the Auth future to fetch token is complete.
-  static void OnAuthTokenFutureComplete(const Future<std::string>& auth_future,
-                                        void* user_data);
+  static void OnAuthTokenFutureComplete(ThisRef safe_ref,
+                                        const Future<std::string>& result_data);
   // Callback function when the App Check future to fetch token is complete.
   static void OnAppCheckTokenFutureComplete(
-      const Future<std::string>& app_check_future, void* user_data);
+      ThisRef safe_ref, const Future<std::string>& result_data);
   void HandleTokenFutures(uint64_t get_token_attempt);
   void ClearPendingTokenFutures();
 
@@ -510,9 +515,6 @@ class PersistentConnection : public ConnectionEventHandler {
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
-  typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
-  typedef firebase::internal::SafeReferenceLock<PersistentConnection>
-      ThisRefLock;
   ThisRef safe_this_;
 
   // Scheduler to make sure all Connection events are handled in worker
@@ -530,7 +532,8 @@ class PersistentConnection : public ConnectionEventHandler {
   // States
   ConnectionState connection_state_;
   bool is_first_connection_;
-  Optional<uint64_t> last_connection_established_time_ms_;
+  Optional<std::chrono::steady_clock::time_point>
+      last_connection_established_time_;
   uint64_t current_get_token_attempt_;
 
   // Session
