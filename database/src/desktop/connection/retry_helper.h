@@ -33,8 +33,7 @@ namespace connection {
 // Callbacks passed to Retry() execute on the Scheduler worker thread without
 // holding RetryHelper's internal lock and must guard any external lifetimes
 // (e.g., via SafeReference or std::shared_ptr).
-// Lifetime: |scheduler| must be non-null and outlive RetryHelper. |logger| is
-// nullable and, if non-null, must also outlive RetryHelper.
+// Lifetime: |scheduler| and |logger| must be non-null and outlive RetryHelper.
 class RetryHelper {
  public:
   // Returns a uniform random double in [0.0, 1.0).
@@ -58,10 +57,9 @@ class RetryHelper {
     RandomGenerator random_generator = nullptr;
   };
 
-  // |scheduler| must be non-null and outlive RetryHelper. |logger| may be
-  // nullptr; if non-null, it must outlive RetryHelper. Invalid |options|
-  // (min > max, non-finite or < 1.0 exponent, or jitter outside [0.0, 1.0])
-  // fail via release-active FIREBASE_ASSERT.
+  // |scheduler| and |logger| must be non-null and outlive RetryHelper.
+  // Invalid |options| (min > max, non-finite or < 1.0 exponent, or jitter
+  // outside [0.0, 1.0]) fail via release-active FIREBASE_ASSERT.
   RetryHelper(scheduler::Scheduler* scheduler, Logger* logger);
   RetryHelper(scheduler::Scheduler* scheduler, Logger* logger, Options options);
   ~RetryHelper();
@@ -112,8 +110,8 @@ class RetryHelper {
   const uint64_t max_retry_delay_ms_;
   const double retry_exponent_;
   const double jitter_factor_;
-  const RandomGenerator random_generator_;
   std::minstd_rand rng_;
+  const RandomGenerator random_generator_;
 
   mutable ThisRef safe_this_;
   scheduler::RequestHandle scheduled_retry_;

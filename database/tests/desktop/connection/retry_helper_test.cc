@@ -441,8 +441,8 @@ TEST_F(RetryHelperTest, SecondRetryRespectsScheduledDelay) {
   EXPECT_GE(elapsed_ms, 20);
 }
 
-TEST_F(RetryHelperTest, HandlesNullLoggerAndEmptyCallbackSafely) {
-  RetryHelper helper(&scheduler_, /*logger=*/nullptr,
+TEST_F(RetryHelperTest, HandlesEmptyCallbackSafely) {
+  RetryHelper helper(&scheduler_, &logger_,
                      MakeOptions(10, 100, 1.3, 0.0, []() { return 0.0; }));
 
   auto state = std::make_shared<SharedTestState>();
@@ -458,8 +458,7 @@ TEST_F(RetryHelperTest, HandlesNullLoggerAndEmptyCallbackSafely) {
   scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 10);
   ASSERT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
 
-  // Cancel() with nullptr logger should be safe both with no pending task and
-  // with a pending task.
+  // Cancel() should be safe both with no pending task and with a pending task.
   helper.Cancel();
   EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 0u);
 

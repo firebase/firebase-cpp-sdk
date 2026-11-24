@@ -31,6 +31,9 @@ namespace internal {
 namespace connection {
 namespace {
 
+// Mixes several non-blocking, non-throwing sources of entropy to seed the RNG
+// for jitter calculations, which does not require cryptographic-strength
+// randomness.
 std::minstd_rand::result_type SeedRng(const void* instance_addr) {
   static std::atomic<uint64_t> counter{0};
   const uint64_t time_ticks = static_cast<uint64_t>(
@@ -61,8 +64,15 @@ RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger,
       max_retry_delay_ms_(options.max_retry_delay_ms),
       retry_exponent_(options.retry_exponent),
       jitter_factor_(options.jitter_factor),
-      random_generator_(std::move(options.random_generator)),
-      rng_(random_generator_ ? std::minstd_rand::default_seed : SeedRng(this)),
+      rng_(options.random_generator ? std::minstd_rand::default_seed
+                                    : SeedRng(this)),
+      random_generator_(options.random_generator
+                            ? std::move(options.random_generator)
+                            : [this]() {
+                                std::uniform_real_distribution<double> dist(
+                                    0.0, 1.0);
+                                return dist(rng_);
+                              }),
       safe_this_(this),
       scheduled_retry_id_(0),
       next_task_id_(0),
@@ -70,6 +80,7 @@ RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger,
       last_scheduled_delay_ms_(0),
       last_was_success_(true) {
   FIREBASE_ASSERT(scheduler_ != nullptr);
+  FIREBASE_ASSERT(logger_ != nullptr);
   FIREBASE_ASSERT(min_retry_delay_after_failure_ms_ <= max_retry_delay_ms_);
   FIREBASE_ASSERT(std::isfinite(retry_exponent_) && retry_exponent_ >= 1.0);
   FIREBASE_ASSERT(jitter_factor_ >= 0.0 && jitter_factor_ <= 1.0);
@@ -90,10 +101,9 @@ void RetryHelper::Retry(std::function<void()> callback) {
   {
     ThisRefLock lock(&safe_this_);
 
+    // Cancel the in-progress or scheduled retry, if there is one.
     if (scheduled_retry_.IsValid()) {
-      if (logger_) {
-        logger_->LogDebug("[RetryHelper] Cancelling previous scheduled retry");
-      }
+      logger_->LogDebug("[RetryHelper] Cancelling previous scheduled retry");
       std::swap(previous_retry, scheduled_retry_);
       scheduled_retry_id_ = 0;
     }
@@ -107,7 +117,7 @@ void RetryHelper::Retry(std::function<void()> callback) {
       } else {
         const double new_delay_double =
             static_cast<double>(current_retry_delay_ms_) * retry_exponent_;
-        if (!(new_delay_double < static_cast<double>(max_retry_delay_ms_))) {
+        if (new_delay_double >= static_cast<double>(max_retry_delay_ms_)) {
           current_retry_delay_ms_ = max_retry_delay_ms_;
         } else {
           current_retry_delay_ms_ = static_cast<uint64_t>(new_delay_double);
@@ -132,10 +142,8 @@ void RetryHelper::Retry(std::function<void()> callback) {
 
     last_was_success_ = false;
     last_scheduled_delay_ms_ = delay_ms;
-    if (logger_) {
-      logger_->LogDebug("[RetryHelper] Scheduling retry in %" PRIu64 "ms",
-                        delay_ms);
-    }
+    logger_->LogDebug("[RetryHelper] Scheduling retry in %" PRIu64 "ms",
+                      delay_ms);
 
     const uint64_t task_id = ++next_task_id_;
     scheduled_retry_id_ = task_id;
@@ -185,12 +193,10 @@ void RetryHelper::Cancel() {
   {
     ThisRefLock lock(&safe_this_);
     if (scheduled_retry_.IsValid()) {
-      if (logger_) {
-        logger_->LogDebug("[RetryHelper] Cancelling existing retry attempt");
-      }
+      logger_->LogDebug("[RetryHelper] Cancelling existing retry attempt");
       std::swap(to_cancel, scheduled_retry_);
       scheduled_retry_id_ = 0;
-    } else if (logger_) {
+    } else {
       logger_->LogDebug("[RetryHelper] No existing retry attempt to cancel");
     }
     current_retry_delay_ms_ = 0;
@@ -217,16 +223,10 @@ bool RetryHelper::last_was_success() const {
 }
 
 double RetryHelper::NextRandom() {
-  double val = 0.0;
-  if (random_generator_) {
-    val = random_generator_();
-    // Allow a closed upper bound (<= 1.0) merely to accept buggy standard
-    // library implementations (e.g. LWG 2524) that occasionally return 1.0.
-    FIREBASE_DEV_ASSERT(std::isfinite(val) && val >= 0.0 && val <= 1.0);
-  } else {
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
-    val = dist(rng_);
-  }
+  const double val = random_generator_();
+  // Allow a closed upper bound (<= 1.0) merely to accept buggy standard
+  // library implementations (e.g. LWG 2524) that occasionally return 1.0.
+  FIREBASE_DEV_ASSERT(std::isfinite(val) && val >= 0.0 && val <= 1.0);
   if (!std::isfinite(val) || val < 0.0) {
     return 0.0;
   }
