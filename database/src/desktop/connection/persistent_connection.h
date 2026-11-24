@@ -344,7 +344,7 @@ class PersistentConnection : public ConnectionEventHandler {
   };
 
   static void OnTokenFutureComplete(
-      ThisRef safe_ref, PendingToken PersistentConnection::* token_member,
+      ThisRef safe_ref, PendingToken PersistentConnection::*token_member,
       const Future<std::string>& result_data);
   void HandleTokenFutures(uint64_t get_token_attempt);
   void ClearPendingTokenFutures();

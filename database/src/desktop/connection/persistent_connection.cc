@@ -618,7 +618,7 @@ void PersistentConnection::TryScheduleReconnect() {
 }
 
 void PersistentConnection::OnTokenFutureComplete(
-    ThisRef safe_ref, PendingToken PersistentConnection::* token_member,
+    ThisRef safe_ref, PendingToken PersistentConnection::*token_member,
     const Future<std::string>& result_data) {
   ThisRefLock outer_lock(&safe_ref);
   auto* connection = outer_lock.GetReference();
