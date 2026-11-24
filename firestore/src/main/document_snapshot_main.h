@@ -44,7 +44,7 @@ class DocumentSnapshotInternal {
  public:
   explicit DocumentSnapshotInternal(api::DocumentSnapshot&& snapshot);
 
-  Firestore* firestore();
+  Firestore firestore();
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;
 

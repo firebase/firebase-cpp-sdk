@@ -39,7 +39,7 @@ class DocumentSnapshotInternal : public Wrapper {
   ~DocumentSnapshotInternal() override {}
 
   /** Gets the Firestore instance associated with this document snapshot. */
-  Firestore* firestore() const;
+  Firestore firestore() const;
 
   /** Gets the document-id of this document. */
   const std::string& id() const;

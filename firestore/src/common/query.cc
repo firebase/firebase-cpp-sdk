@@ -24,6 +24,7 @@
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/util.h"
+#include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
@@ -99,12 +100,7 @@ Query& Query::operator=(Query&& query) {
   return *this;
 }
 
-const Firestore* Query::firestore() const {
-  if (!internal_) return {};
-  return internal_->firestore();
-}
-
-Firestore* Query::firestore() {
+Firestore Query::firestore() const {
   if (!internal_) return {};
   return internal_->firestore();
 }

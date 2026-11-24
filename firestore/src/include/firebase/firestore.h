@@ -18,6 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_H_
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "firebase/internal/common.h"
@@ -55,6 +56,10 @@
 #include "firebase/firestore/write_batch.h"
 
 namespace firebase {
+namespace internal {
+class AppState;
+}  // namespace internal
+
 /**
  * @brief Cloud Firestore API.
  *
@@ -91,6 +96,9 @@ static const char* kDefaultDatabase = "(default)";
  */
 class Firestore {
  public:
+  /** Default constructor creating an invalid Firestore handle. */
+  Firestore() = default;
+
   /**
    * @brief Returns an instance of Firestore corresponding to the given App
    * with default database ID.
@@ -111,8 +119,8 @@ class Firestore {
    * @return An instance of Firestore corresponding to the given App with
    * default database ID.
    */
-  static Firestore* GetInstance(::firebase::App* app,
-                                InitResult* init_result_out = nullptr);
+  static Firestore GetInstance(const ::firebase::App& app,
+                               InitResult* init_result_out = nullptr);
 
   /**
    * @brief Returns an instance of Firestore corresponding to the default App
@@ -131,7 +139,7 @@ class Firestore {
    * @return An instance of Firestore corresponding to the default App
    * with default database ID.
    */
-  static Firestore* GetInstance(InitResult* init_result_out = nullptr);
+  static Firestore GetInstance(InitResult* init_result_out = nullptr);
 
   /**
    * @brief Returns an instance of Firestore corresponding to the given App with
@@ -155,9 +163,9 @@ class Firestore {
    * @return An instance of Firestore corresponding to the given App with
    * the given database ID.
    */
-  static Firestore* GetInstance(::firebase::App* app,
-                                const char* db_name,
-                                InitResult* init_result_out = nullptr);
+  static Firestore GetInstance(const ::firebase::App& app,
+                               const char* db_name,
+                               InitResult* init_result_out = nullptr);
 
   /**
    * @brief Returns an instance of Firestore corresponding to the default App
@@ -179,8 +187,8 @@ class Firestore {
    * @return An instance of Firestore corresponding to the default App with
    * the given database ID.
    */
-  static Firestore* GetInstance(const char* db_name,
-                                InitResult* init_result_out = nullptr);
+  static Firestore GetInstance(const char* db_name,
+                               InitResult* init_result_out = nullptr);
 
   /**
    * @brief Destructor for the Firestore object.
@@ -191,31 +199,38 @@ class Firestore {
    */
   virtual ~Firestore();
 
-  /**
-   * Deleted copy constructor; Firestore must be created with
-   * Firestore::GetInstance().
-   */
-  Firestore(const Firestore& src) = delete;
+  /** Copy constructor sharing the underlying Firestore instance. */
+  Firestore(const Firestore& src) = default;
 
-  /**
-   * Deleted copy assignment operator; Firestore must be created with
-   * Firestore::GetInstance().
-   */
-  Firestore& operator=(const Firestore& src) = delete;
+  /** Move constructor transferring the Firestore handle. */
+  Firestore(Firestore&& src) noexcept = default;
+
+  /** Copy assignment sharing the underlying Firestore instance. */
+  Firestore& operator=(const Firestore& src) = default;
+
+  /** Move assignment transferring the Firestore handle. */
+  Firestore& operator=(Firestore&& src) noexcept = default;
+
+  /** Returns true if this handle refers to a valid Firestore instance. */
+  bool is_valid() const { return internal_ != nullptr; }
+
+  /** Returns true if this handle refers to a valid Firestore instance. */
+  explicit operator bool() const { return is_valid(); }
+
+  friend bool operator==(const Firestore& lhs, const Firestore& rhs) {
+    return lhs.internal_ == rhs.internal_;
+  }
+
+  friend bool operator!=(const Firestore& lhs, const Firestore& rhs) {
+    return !(lhs == rhs);
+  }
 
   /**
    * @brief Returns the firebase::App that this Firestore was created with.
    *
    * @return The firebase::App this Firestore was created with.
    */
-  virtual const App* app() const;
-
-  /**
-   * @brief Returns the firebase::App that this Firestore was created with.
-   *
-   * @return The firebase::App this Firestore was created with.
-   */
-  virtual App* app();
+  virtual App app() const;
 
   /**
    * @brief Returns a CollectionReference instance that refers to the
@@ -476,12 +491,6 @@ class Firestore {
    */
   virtual Future<Query> NamedQuery(const std::string& query_name);
 
- protected:
-  /**
-   * Default constructor, to be used only for mocking `Firestore`.
-   */
-  Firestore() = default;
-
  private:
   friend class FieldValueInternal;
   friend class FirestoreInternal;
@@ -495,22 +504,15 @@ class Firestore {
   friend class csharp::ApiHeaders;
   friend class csharp::TransactionManager;
 
-  explicit Firestore(::firebase::App* app,
-                     const std::string& database_id = kDefaultDatabase);
-  explicit Firestore(FirestoreInternal* internal);
-
-  static Firestore* CreateFirestore(::firebase::App* app,
-                                    FirestoreInternal* internal,
-                                    InitResult* init_result_out);
-  static Firestore* AddFirestoreToCache(Firestore* firestore,
-                                        InitResult* init_result_out);
+  Firestore(std::shared_ptr<::firebase::internal::AppState> app_state,
+            std::shared_ptr<FirestoreInternal> internal);
 
   static void SetClientLanguage(const std::string& language_token);
 
-  // Delete the internal_ data.
-  void DeleteInternal();
-
-  mutable FirestoreInternal* internal_ = nullptr;
+  // Declared before internal_ so internal_ is always destroyed while app_state_
+  // is still alive (including when detached after Terminate()).
+  std::shared_ptr<::firebase::internal::AppState> app_state_;
+  std::shared_ptr<FirestoreInternal> internal_;
 };
 
 }  // namespace firestore

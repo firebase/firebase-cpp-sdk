@@ -26,13 +26,14 @@
 #endif
 
 namespace firebase {
-
-class App;
+namespace internal {
+class AppState;
+}  // namespace internal
 
 namespace firestore {
 
 std::shared_ptr<credentials::AppCheckCredentialsProvider>
-CreateAppCheckCredentialsProvider(App& app);
+CreateAppCheckCredentialsProvider(::firebase::internal::AppState& app_state);
 
 }  // namespace firestore
 }  // namespace firebase

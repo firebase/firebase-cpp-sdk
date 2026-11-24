@@ -125,21 +125,9 @@ class DocumentReference {
    * @brief Returns the Firestore instance associated with this document
    * reference.
    *
-   * The pointer will remain valid indefinitely.
-   *
-   * @return Firebase Firestore instance that this DocumentReference refers to.
+   * @return Firebase Firestore handle that this DocumentReference refers to.
    */
-  virtual const Firestore* firestore() const;
-
-  /**
-   * @brief Returns the Firestore instance associated with this document
-   * reference.
-   *
-   * The pointer will remain valid indefinitely.
-   *
-   * @return Firebase Firestore instance that this DocumentReference refers to.
-   */
-  virtual Firestore* firestore();
+  virtual Firestore firestore() const;
 
   /**
    * @brief Returns the string ID of this document location.

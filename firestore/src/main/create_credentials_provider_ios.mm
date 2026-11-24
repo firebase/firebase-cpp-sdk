@@ -26,6 +26,7 @@
 #import "FirebaseCore.h"
 
 #include "Firestore/core/src/credentials/firebase_auth_credentials_provider_apple.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
@@ -34,7 +35,9 @@ namespace firestore {
 using credentials::AuthCredentialsProvider;
 using credentials::FirebaseAuthCredentialsProvider;
 
-std::shared_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
+std::shared_ptr<AuthCredentialsProvider> CreateCredentialsProvider(
+    ::firebase::internal::AppState& app_state) {
+  App app = app_state.MakeAppHandle();
   FIRApp* ios_app = app.GetPlatformApp();
   auto ios_auth = FIR_COMPONENT(FIRAuthInterop, ios_app.container);
   return std::make_shared<FirebaseAuthCredentialsProvider>(ios_app, ios_auth);

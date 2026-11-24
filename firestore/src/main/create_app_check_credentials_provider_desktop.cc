@@ -17,7 +17,7 @@
 #include <memory>
 
 #include "firestore/src/main/app_check_credentials_provider_desktop.h"
-#include "firestore/src/main/create_credentials_provider.h"
+#include "firestore/src/main/create_app_check_credentials_provider.h"
 
 namespace firebase {
 namespace firestore {
@@ -25,8 +25,8 @@ namespace firestore {
 using credentials::AppCheckCredentialsProvider;
 
 std::shared_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
-    App& app) {
-  return std::make_shared<CppAppCheckCredentialsProvider>(app);
+    ::firebase::internal::AppState& app_state) {
+  return std::make_shared<CppAppCheckCredentialsProvider>(app_state);
 }
 
 }  // namespace firestore

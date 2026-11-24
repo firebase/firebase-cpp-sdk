@@ -36,7 +36,8 @@ constexpr const char* StripProguardPrefix(const char* class_name) {
 
 }  // namespace
 
-Loader::Loader(App* app) : app_(app), env_(app->GetJNIEnv()) {
+Loader::Loader(JNIEnv* env, jobject activity)
+    : env_(env), activity_(activity) {
   Class::Initialize(*this);
 }
 
@@ -51,7 +52,7 @@ void Loader::AddEmbeddedFile(const char* name,
 void Loader::CacheEmbeddedFiles() {
   if (!ok_) return;
 
-  util::CacheEmbeddedFiles(env_, app_->activity(), embedded_files_);
+  util::CacheEmbeddedFiles(env_, activity_, embedded_files_);
 }
 
 void Loader::UsingExistingClass(const char* class_name, jclass existing_ref) {
@@ -66,7 +67,7 @@ jclass Loader::LoadClass(const char* class_name) {
 
   class_name = StripProguardPrefix(class_name);
   last_class_name_ = class_name;
-  last_class_ = util::FindClassGlobal(env_, app_->activity(), &embedded_files_,
+  last_class_ = util::FindClassGlobal(env_, activity_, &embedded_files_,
                                       class_name, util::kClassRequired);
   if (!last_class_) {
     ok_ = false;

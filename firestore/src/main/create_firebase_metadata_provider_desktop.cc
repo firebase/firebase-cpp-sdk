@@ -25,8 +25,8 @@ namespace firestore {
 using remote::FirebaseMetadataProvider;
 
 std::unique_ptr<FirebaseMetadataProvider> CreateFirebaseMetadataProvider(
-    App& app) {
-  return std::make_unique<FirebaseMetadataProviderCpp>(app);
+    ::firebase::internal::AppState& app_state) {
+  return std::make_unique<FirebaseMetadataProviderCpp>(app_state);
 }
 
 }  // namespace firestore

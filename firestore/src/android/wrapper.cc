@@ -44,21 +44,6 @@ Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
   obj_.reset(env, obj);
 }
 
-Wrapper::Wrapper() {
-  Firestore* firestore = Firestore::GetInstance();
-  FIREBASE_ASSERT(firestore != nullptr);
-  firestore_ = firestore->internal_;
-  FIREBASE_ASSERT(firestore_ != nullptr);
-}
-
-Wrapper::Wrapper(Wrapper* rhs) : Wrapper() {
-  if (rhs) {
-    firestore_ = rhs->firestore_;
-    FIREBASE_ASSERT(firestore_ != nullptr);
-    obj_ = rhs->obj_;
-  }
-}
-
 Wrapper::~Wrapper() = default;
 
 jni::Env Wrapper::GetEnv() const { return firestore_->GetEnv(); }

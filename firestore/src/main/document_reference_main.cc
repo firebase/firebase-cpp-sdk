@@ -39,7 +39,7 @@ DocumentReferenceInternal::DocumentReferenceInternal(
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)},
       user_data_converter_{&firestore_internal()->database_id()} {}
 
-Firestore* DocumentReferenceInternal::firestore() {
+Firestore DocumentReferenceInternal::firestore() {
   return GetFirestore(&reference_);
 }
 

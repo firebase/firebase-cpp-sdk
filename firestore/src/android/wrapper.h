@@ -48,13 +48,6 @@ class Wrapper {
   jni::Local<jni::Object> ToJava() const;
 
  protected:
-  // Default constructor. Subclass is expected to set the obj_ a meaningful
-  // value.
-  Wrapper();
-
-  // Similar to a copy constructor, but can handle the case where `rhs` is null.
-  explicit Wrapper(Wrapper* rhs);
-
   jni::Env GetEnv() const;
 
   FirestoreInternal* firestore_ = nullptr;  // not owning

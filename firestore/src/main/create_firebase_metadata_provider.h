@@ -26,13 +26,14 @@
 #endif
 
 namespace firebase {
-
-class App;
+namespace internal {
+class AppState;
+}  // namespace internal
 
 namespace firestore {
 
 std::unique_ptr<remote::FirebaseMetadataProvider>
-CreateFirebaseMetadataProvider(App& app);
+CreateFirebaseMetadataProvider(::firebase::internal::AppState& app_state);
 
 }  // namespace firestore
 }  // namespace firebase

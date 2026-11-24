@@ -26,6 +26,7 @@
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/util.h"
+#include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
@@ -98,17 +99,10 @@ DocumentReference& DocumentReference::operator=(DocumentReference&& reference) {
   return *this;
 }
 
-const Firestore* DocumentReference::firestore() const {
+Firestore DocumentReference::firestore() const {
   if (!internal_) return {};
 
-  const Firestore* firestore = internal_->firestore();
-  SIMPLE_HARD_ASSERT(firestore);
-  return firestore;
-}
-
-Firestore* DocumentReference::firestore() {
-  return const_cast<Firestore*>(
-      static_cast<const DocumentReference&>(*this).firestore());
+  return internal_->firestore();
 }
 
 const std::string& DocumentReference::id() const {

@@ -67,7 +67,7 @@ QueryInternal::QueryInternal(api::Query&& query)
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)},
       user_data_converter_{&firestore_internal()->database_id()} {}
 
-Firestore* QueryInternal::firestore() { return GetFirestore(&query_); }
+Firestore QueryInternal::firestore() { return GetFirestore(&query_); }
 
 FirestoreInternal* QueryInternal::firestore_internal() {
   return GetFirestoreInternal(&query_);

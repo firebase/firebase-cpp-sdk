@@ -48,7 +48,7 @@ class QueryInternal {
   explicit QueryInternal(api::Query&& query);
   virtual ~QueryInternal() = default;
 
-  Firestore* firestore();
+  Firestore firestore();
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;
 

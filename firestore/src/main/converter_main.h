@@ -85,6 +85,14 @@ struct ConverterImpl {
   static InternalT* GetInternal(PublicT* from) {
     return from->internal_;
   }
+
+  static FirestoreInternal* GetInternal(const Firestore* from) {
+    return from ? from->internal_.get() : nullptr;
+  }
+
+  static FirestoreInternal* GetInternal(Firestore* from) {
+    return from ? from->internal_.get() : nullptr;
+  }
 };
 
 // MakePublic

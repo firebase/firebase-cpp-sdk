@@ -128,20 +128,9 @@ class Query {
   /**
    * @brief Returns the Firestore instance associated with this query.
    *
-   * The pointer will remain valid indefinitely.
-   *
-   * @return Firebase Firestore instance that this Query refers to.
+   * @return Firebase Firestore handle that this Query refers to.
    */
-  virtual const Firestore* firestore() const;
-
-  /**
-   * @brief Returns the Firestore instance associated with this query.
-   *
-   * The pointer will remain valid indefinitely.
-   *
-   * @return Firebase Firestore instance that this Query refers to.
-   */
-  virtual Firestore* firestore();
+  virtual Firestore firestore() const;
 
   /**
    * @brief Returns a query that counts the documents in the result set of this

@@ -18,21 +18,23 @@
 
 #include <utility>
 
-#include "app/src/include/firebase/app.h"
+#include "app/src/app_desktop.h"
 
 namespace firebase {
 namespace firestore {
 
 const char* kHeartbeatCodeGlobal = "2";
 
-FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
-    : heartbeat_controller_(std::move(app.GetHeartbeatController())),
-      gmp_app_id_(app.options().app_id()) {}
+FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(
+    ::firebase::internal::AppState& app_state)
+    : heartbeat_controller_(app_state.platform_data()
+                                ? app_state.platform_data()->heartbeat_controller_
+                                : nullptr),
+      gmp_app_id_(app_state.options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
-  if (heartbeat_controller_) {
-    std::string payload =
-        heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
+  if (auto controller = heartbeat_controller_.lock()) {
+    std::string payload = controller->GetAndResetTodaysStoredHeartbeats();
     // The payload is either an empty string or a string of user agents to log.
     if (!payload.empty()) {
       context.AddMetadata(kXFirebaseClientLogTypeHeader, kHeartbeatCodeGlobal);

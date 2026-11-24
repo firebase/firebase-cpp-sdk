@@ -25,9 +25,11 @@
 #include <string>
 #include <unordered_set>
 
+#include "app/src/app_state.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/service_interfaces.h"
 #include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
@@ -57,7 +59,9 @@ extern const char kApiIdentifier[];
 // This is the Android implementation of Firestore. Cannot inherit WrapperFuture
 // as a valid FirestoreInternal is required to construct a WrapperFuture. So we
 // will implement the Future APIs on the fly.
-class FirestoreInternal {
+class FirestoreInternal
+    : public ::firebase::internal::Service,
+      public std::enable_shared_from_this<FirestoreInternal> {
  public:
   // Each API of Firestore that returns a Future needs to define an enum
   // value here. For example, a Future-returning method Foo() relies on the enum
@@ -75,14 +79,20 @@ class FirestoreInternal {
     kCount,  // Must be the last enum value.
   };
 
-  // Note: call `set_firestore_public` immediately after construction.
-  FirestoreInternal(App* app, const std::string& database_id);
-  ~FirestoreInternal();
+  FirestoreInternal(::firebase::internal::AppState& app_state,
+                    const std::string& database_id);
+  ~FirestoreInternal() override;
 
-  App* app() const { return app_; }
+  App app() const { return app_state_.TryMakeAppHandle(); }
+  ::firebase::internal::AppState& app_state() { return app_state_; }
+  const ::firebase::internal::AppState& app_state() const { return app_state_; }
+
+  // Creates a Firestore value handle referencing this instance and its
+  // AppState, or an invalid handle if either is being destroyed.
+  Firestore MakeFirestoreHandle();
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const { return initialized_; }
 
   // Manages all Future objects returned from Firestore API.
   FutureManager& future_manager() { return future_manager_; }
@@ -163,13 +173,6 @@ class FirestoreInternal {
   QuerySnapshot NewQuerySnapshot(jni::Env& env,
                                  const jni::Object& snapshot) const;
 
-  void set_firestore_public(Firestore* firestore_public) {
-    firestore_public_ = firestore_public;
-  }
-
-  Firestore* firestore_public() { return firestore_public_; }
-  const Firestore* firestore_public() const { return firestore_public_; }
-
   /**
    * Finds the FirestoreInternal instance for the given Java Firestore instance.
    */
@@ -191,14 +194,14 @@ class FirestoreInternal {
 
   void ShutdownUserCallbackExecutor(jni::Env& env);
 
-  static bool Initialize(App* app);
+  static bool Initialize(const App& app);
   static void ReleaseClassesLocked(jni::Env& env);
-  static void Terminate(App* app);
+  static void Terminate(JNIEnv* raw_env);
 
   jni::Global<jni::Object> user_callback_executor_;
 
-  App* app_ = nullptr;
-  Firestore* firestore_public_ = nullptr;
+  ::firebase::internal::AppState& app_state_;
+  bool initialized_ = false;
   // Java Firestore global ref.
   jni::Global<jni::Object> obj_;
 

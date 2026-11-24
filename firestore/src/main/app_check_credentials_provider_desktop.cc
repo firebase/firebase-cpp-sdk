@@ -20,8 +20,8 @@
 #include <utility>
 
 #include "Firestore/core/src/util/status.h"
-#include "app/src/function_registry.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/service_interfaces.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
@@ -32,8 +32,9 @@ namespace firestore {
 using credentials::CredentialChangeListener;
 using credentials::TokenListener;
 
-CppAppCheckCredentialsProvider::CppAppCheckCredentialsProvider(App& app)
-    : app_(app) {}
+CppAppCheckCredentialsProvider::CppAppCheckCredentialsProvider(
+    ::firebase::internal::AppState& app_state)
+    : app_state_(app_state) {}
 
 CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
   RemoveAppCheckStateListener();
@@ -42,59 +43,68 @@ CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
 void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<std::string> listener) {
   if (!listener) {
-    SIMPLE_HARD_ASSERT(change_listener_,
-                       "Change listener removed without being set!");
-    change_listener_ = {};
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      SIMPLE_HARD_ASSERT(change_listener_,
+                         "Change listener removed without being set!");
+      change_listener_ = {};
+    }
     RemoveAppCheckStateListener();
     return;
   }
 
-  SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
-  change_listener_ = std::move(listener);
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
+    change_listener_ = std::move(listener);
+  }
 
   AddAppCheckStateListener();
 }
 
 void CppAppCheckCredentialsProvider::GetToken(
     TokenListener<std::string> listener) {
-  // Get token, tell the listener
-  Future<std::string> app_check_future;
-  bool succeeded = app_.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckGetTokenAsync, &app_, nullptr,
-      &app_check_future);
-  if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-    app_check_future.OnCompletion(
-        [listener](const Future<std::string>& future_token) {
-          if (future_token.result()) {
-            listener(*future_token.result());
-          } else {
-            listener(std::string());
-          }
-        });
-  } else {
-    // Getting the Future failed, so assume there is no App Check token to use.
-    listener(std::string());
+  if (auto* app_check = app_state_.app_check_token_provider()) {
+    Future<std::string> app_check_future = app_check->GetTokenAsync();
+    if (app_check_future.status() != kFutureStatusInvalid) {
+      app_check_future.OnCompletion(
+          [listener = std::move(listener)](
+              const Future<std::string>& future_token) {
+            if (future_token.result()) {
+              listener(*future_token.result());
+            } else {
+              listener(std::string());
+            }
+          });
+      return;
+    }
   }
+  // App Check is unavailable, so assume there is no App Check token to use.
+  listener(std::string());
 }
 
 void CppAppCheckCredentialsProvider::AddAppCheckStateListener() {
-  auto callback = reinterpret_cast<void*>(OnAppCheckStateChanged);
-  app_.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckAddListener, &app_, callback, this);
+  if (auto* app_check = app_state_.app_check_token_provider()) {
+    app_check->AddTokenListener(OnAppCheckStateChanged, this);
+  }
 }
 
 void CppAppCheckCredentialsProvider::RemoveAppCheckStateListener() {
-  auto callback = reinterpret_cast<void*>(OnAppCheckStateChanged);
-  app_.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckRemoveListener, &app_, callback, this);
+  if (auto* app_check = app_state_.app_check_token_provider()) {
+    app_check->RemoveTokenListener(OnAppCheckStateChanged, this);
+  }
 }
 
 void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(
     const std::string& token, void* context) {
   auto provider = static_cast<CppAppCheckCredentialsProvider*>(context);
-
-  if (provider->change_listener_) {
-    provider->change_listener_(token);
+  CredentialChangeListener<std::string> listener;
+  {
+    std::lock_guard<std::mutex> lock(provider->mutex_);
+    listener = provider->change_listener_;
+  }
+  if (listener) {
+    listener(token);
   }
 }
 

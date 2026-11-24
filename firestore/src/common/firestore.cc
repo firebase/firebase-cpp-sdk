@@ -15,14 +15,14 @@
  */
 
 #include "firestore/src/include/firebase/firestore.h"
-#include <cstdint>
 
 #include <cassert>
+#include <cstdint>
 #include <cstring>
-#include <map>
+#include <memory>
 #include <utility>
 
-#include "app/src/cleanup_notifier.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
@@ -48,6 +48,8 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseFirestore);
 
 namespace {
 
+const char kFirestoreServiceTag = 0;
+
 const char* GetPlatform() {
 #if defined(__ANDROID__)
   return "gl-android/";
@@ -64,45 +66,6 @@ const char* GetPlatform() {
 #endif
 }
 
-// Use the combination of the App address and database ID to identify a
-// firestore instance in cache.
-using FirestoreMap = std::map<std::pair<App*, std::string>, Firestore*>;
-
-FirestoreMap::key_type MakeKey(App* app, std::string database_id) {
-  return std::make_pair(app, std::move(database_id));
-}
-
-Mutex* g_firestores_lock = new Mutex();
-FirestoreMap* g_firestores = nullptr;
-
-// Ensures that the cache is initialized.
-// Prerequisite: `g_firestores_lock` must be locked before calling this
-// function.
-FirestoreMap* FirestoreCache() {
-  if (!g_firestores) {
-    g_firestores = new FirestoreMap();
-  }
-  return g_firestores;
-}
-
-// Prerequisite: `g_firestores_lock` must be locked before calling this
-// function.
-Firestore* FindFirestoreInCache(App* app,
-                                const std::string& database_id,
-                                InitResult* init_result_out) {
-  auto* cache = FirestoreCache();
-
-  FirestoreMap::key_type key = MakeKey(app, database_id);
-  FirestoreMap::iterator found = g_firestores->find(key);
-
-  if (found != cache->end()) {
-    if (init_result_out) *init_result_out = kInitResultSuccess;
-    return found->second;
-  }
-
-  return nullptr;
-}
-
 InitResult CheckInitialized(const FirestoreInternal& firestore) {
   if (!firestore.initialized()) {
     return kInitResultFailedMissingDependency;
@@ -111,11 +74,11 @@ InitResult CheckInitialized(const FirestoreInternal& firestore) {
   return kInitResultSuccess;
 }
 
-void ValidateApp(App* app) {
-  if (!app) {
+void ValidateApp(const App& app) {
+  if (!app.is_valid()) {
     SimpleThrowInvalidArgument(
-        "firebase::App instance cannot be null. Use other "
-        "Firestore::GetInstance() if you'd like to use the default "
+        "firebase::App instance cannot be invalid. Use other "
+        "Firestore::GetInstance() if you'd like to use the registered default "
         "app instance.");
   }
 }
@@ -131,160 +94,77 @@ void ValidateDatabase(const char* database_id) {
 
 }  // namespace
 
-Firestore* Firestore::GetInstance(InitResult* init_result_out) {
-  App* app = App::GetInstance();
+Firestore Firestore::GetInstance(InitResult* init_result_out) {
+  auto app = App::GetInstance();
   if (!app) {
     SimpleThrowInvalidArgument(
         "Failed to get firebase::App instance. Please call "
-        "firebase::App::Create before using Firestore");
+        "firebase::App::CreateRegistered() or pass an App explicitly before "
+        "using Firestore.");
   }
+  return Firestore::GetInstance(*app, kDefaultDatabase, init_result_out);
+}
+
+Firestore Firestore::GetInstance(const App& app, InitResult* init_result_out) {
   return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
-  return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
-}
-
-Firestore* Firestore::GetInstance(const char* db_name,
-                                  InitResult* init_result_out) {
-  App* app = App::GetInstance();
+Firestore Firestore::GetInstance(const char* db_name,
+                                 InitResult* init_result_out) {
+  auto app = App::GetInstance();
   if (!app) {
     SimpleThrowInvalidArgument(
         "Failed to get firebase::App instance. Please call "
-        "firebase::App::Create before using Firestore");
+        "firebase::App::CreateRegistered() or pass an App explicitly before "
+        "using Firestore.");
   }
-  return Firestore::GetInstance(app, db_name, init_result_out);
+  return Firestore::GetInstance(*app, db_name, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(App* app,
-                                  const char* db_name,
-                                  InitResult* init_result_out) {
+Firestore Firestore::GetInstance(const App& app,
+                                 const char* db_name,
+                                 InitResult* init_result_out) {
   ValidateApp(app);
   ValidateDatabase(db_name);
 
-  MutexLock lock(*g_firestores_lock);
-  Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
-  if (from_cache) {
-    return from_cache;
-  }
-
-  return AddFirestoreToCache(new Firestore(app, db_name), init_result_out);
-}
-
-Firestore* Firestore::CreateFirestore(App* app,
-                                      FirestoreInternal* internal,
-                                      InitResult* init_result_out) {
-  ValidateApp(app);
-  SIMPLE_HARD_ASSERT(internal != nullptr,
-                     "Provided FirestoreInternal must not be null.");
-
-  MutexLock lock(*g_firestores_lock);
-
-  const std::string& database_id = internal->database_name();
-  Firestore* from_cache =
-      FindFirestoreInCache(app, database_id, init_result_out);
-  SIMPLE_HARD_ASSERT(from_cache == nullptr,
-                     "Firestore must not be created already");
-
-  return AddFirestoreToCache(new Firestore(internal), init_result_out);
-}
-
-Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
-                                          InitResult* init_result_out) {
-  InitResult init_result = CheckInitialized(*firestore->internal_);
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  InitResult init_result = kInitResultSuccess;
+  auto [owner_state, internal] =
+      state->GetOrCreateDetachableService<FirestoreInternal>(
+          &kFirestoreServiceTag, db_name,
+          [&](::firebase::internal::AppState& app_state)
+              -> std::shared_ptr<FirestoreInternal> {
+            auto created =
+                std::make_shared<FirestoreInternal>(app_state, db_name);
+            init_result = CheckInitialized(*created);
+            if (init_result != kInitResultSuccess) {
+              return nullptr;
+            }
+            // Note: because Firestore libraries are currently distributed in
+            // a precompiled form, `GetFullCompilerInfo` will reflect the
+            // compiler used to produce the binaries. Unfortunately, there is no
+            // clear way to avoid that without breaking ODR.
+            SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
+            return created;
+          });
   if (init_result_out) {
     *init_result_out = init_result;
   }
-  if (init_result != kInitResultSuccess) {
-    delete firestore;
-    return nullptr;
+  if (!internal) {
+    return Firestore{};
   }
-
-  FirestoreMap::key_type key =
-      MakeKey(firestore->app(), firestore->internal_->database_name());
-  FirestoreCache()->emplace(std::move(key), firestore);
-  return firestore;
+  return Firestore(std::move(owner_state), std::move(internal));
 }
 
-Firestore::Firestore(::firebase::App* app, const std::string& database_id)
-    : Firestore{new FirestoreInternal{app, database_id}} {}
+Firestore::Firestore(std::shared_ptr<::firebase::internal::AppState> app_state,
+                     std::shared_ptr<FirestoreInternal> internal)
+    : app_state_(std::move(app_state)), internal_(std::move(internal)) {}
 
-Firestore::Firestore(FirestoreInternal* internal)
-    // TODO(wuandy): use make_unique once it is supported for our build here.
-    : internal_(internal) {
-  internal_->set_firestore_public(this);
+Firestore::~Firestore() = default;
 
-  // Note: because Firestore libraries are currently distributed in
-  // a precompiled form, `GetFullCompilerInfo` will reflect the compiler used to
-  // produce the binaries. Unfortunately, there is no clear way to avoid that
-  // without breaking ODR.
-  SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
-
-  if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
-    assert(app_notifier);
-    app_notifier->RegisterObject(this, [](void* object) {
-      Firestore* firestore = reinterpret_cast<Firestore*>(object);
-      LogWarning(
-          "Firestore object 0x%08x should be deleted before the App 0x%08x it "
-          "depends upon.",
-          static_cast<int>(reinterpret_cast<intptr_t>(firestore)),
-          static_cast<int>(reinterpret_cast<intptr_t>(firestore->app())));
-      firestore->DeleteInternal();
-    });
-  }
-}
-
-Firestore::~Firestore() { DeleteInternal(); }
-
-void Firestore::DeleteInternal() {
-  MutexLock lock(*g_firestores_lock);
-
-  if (!internal_) return;
-
-  App* my_app = app();
-  // Store the database id before deleting the firestore instance.
-  const std::string database_id = internal_->database_name();
-
-  // Only need to unregister if internal_ is initialized.
-  if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
-    assert(app_notifier);
-    app_notifier->UnregisterObject(this);
-  }
-
-  // Make sure to clear the listeners _before_ triggering cleanup. This avoids
-  // a potential deadlock that can happen if the Firestore instance is destroyed
-  // in parallel with or shortly after a snapshot listener's invocation:
-  // - the thread on which cleanup is being executed holds the cleanup lock and
-  // tries to mute listeners, which requires the listeners' lock;
-  // - in parallel on the user callbacks' thread which holds the listeners'
-  // lock, one of the user callbacks is being destroyed, which leads to an
-  // attempt to unregister an object from cleanup, requiring the cleanup lock.
-  internal_->ClearListeners();
-
-  // Force cleanup to happen first.
-  internal_->cleanup().CleanupAll();
-  delete internal_;
-  internal_ = nullptr;
-  // If a Firestore is explicitly deleted, remove it from our cache.
-
-  FirestoreMap::key_type key = MakeKey(my_app, database_id);
-  FirestoreCache()->erase(key);
-  if (g_firestores->empty()) {
-    delete g_firestores;
-    g_firestores = nullptr;
-  }
-}
-
-const App* Firestore::app() const {
-  if (!internal_) return {};
-  return internal_->app();
-}
-
-App* Firestore::app() {
-  if (!internal_) return {};
-  return internal_->app();
+App Firestore::app() const {
+  if (!app_state_) return {};
+  return app_state_->TryMakeAppHandle();
 }
 
 CollectionReference Firestore::Collection(const char* collection_path) const {
@@ -381,9 +261,10 @@ Future<void> Firestore::EnableNetwork() {
 
 Future<void> Firestore::Terminate() {
   if (!internal_) return FailedFuture<void>();
-  FirestoreMap::key_type key = MakeKey(app(), internal_->database_name());
-
-  FirestoreCache()->erase(key);
+  if (app_state_) {
+    app_state_->DetachService(&kFirestoreServiceTag, internal_->database_name(),
+                              internal_.get());
+  }
   return internal_->Terminate();
 }
 

@@ -22,6 +22,7 @@
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/firestore_resources.h"
 #include "firestore/src/android/aggregate_query_android.h"
@@ -234,8 +235,11 @@ class JavaFirestoreMap {
   Global<HashMap> firestores_;
 };
 
-// init_mutex protects all the globals below.
-Mutex init_mutex;  // NOLINT
+// InitMutex() protects all the globals below.
+Mutex& InitMutex() {
+  static ::firebase::internal::NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 int initialize_count = 0;
 Loader* global_loader = nullptr;
 
@@ -264,14 +268,16 @@ Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
 
 const char kApiIdentifier[] = "Firestore";
 
-FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
-  FIREBASE_ASSERT(app != nullptr);
+FirestoreInternal::FirestoreInternal(::firebase::internal::AppState& app_state,
+                                     const std::string& database_id)
+    : app_state_(app_state) {
+  App app = app_state_.MakeAppHandle();
   if (!Initialize(app)) return;
-  app_ = app;
+  initialized_ = true;
   database_name_ = database_id;
 
   Env env = GetEnv();
-  Local<Object> platform_app(env.get(), app_->GetPlatformApp());
+  Local<Object> platform_app(env.get(), app.GetPlatformApp());
   Local<String> java_database_id = env.NewStringUtf(database_id);
   Local<Object> java_firestore =
       env.Call(kGetInstance, platform_app, java_database_id);
@@ -294,17 +300,24 @@ FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
   promises_ = std::make_unique<PromiseFactory<AsyncFn>>(this);
 }
 
+Firestore FirestoreInternal::MakeFirestoreHandle() {
+  auto state = app_state_.weak_from_this().lock();
+  auto self = weak_from_this().lock();
+  if (!state || !self) return Firestore{};
+  return Firestore(std::move(state), std::move(self));
+}
+
 /* static */
-bool FirestoreInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex);
+bool FirestoreInternal::Initialize(const App& app) {
+  MutexLock init_lock(InitMutex());
   if (initialize_count == 0) {
-    jni::Initialize(app->java_vm());
+    jni::Initialize(app.java_vm());
 
     FIREBASE_DEV_ASSERT(java_firestores == nullptr);
     java_firestores = new JavaFirestoreMap();
 
     Env env = GetEnv();
-    Loader loader(app);
+    Loader loader(app.GetJNIEnv(), app.activity());
     loader.AddEmbeddedFile(::firebase_firestore::firestore_resources_filename,
                            ::firebase_firestore::firestore_resources_data,
                            ::firebase_firestore::firestore_resources_size);
@@ -389,12 +402,12 @@ void FirestoreInternal::ReleaseClassesLocked(Env& env) {
 }
 
 /* static */
-void FirestoreInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex);
+void FirestoreInternal::Terminate(JNIEnv* raw_env) {
+  MutexLock init_lock(InitMutex());
   FIREBASE_ASSERT(initialize_count > 0);
   initialize_count--;
   if (initialize_count == 0) {
-    Env env(app->GetJNIEnv());
+    Env env(raw_env);
     ReleaseClassesLocked(env);
 
     delete java_firestores;
@@ -408,9 +421,10 @@ void FirestoreInternal::ShutdownUserCallbackExecutor(Env& env) {
 
 FirestoreInternal::~FirestoreInternal() {
   // If initialization failed, there is nothing to clean up.
-  if (app_ == nullptr) return;
+  if (!initialized_) return;
 
   ClearListeners();
+  cleanup_.CleanupAll();
 
   Env env = GetEnv();
 
@@ -426,8 +440,8 @@ FirestoreInternal::~FirestoreInternal() {
 
   java_firestores->Remove(env, obj_);
 
-  Terminate(app_);
-  app_ = nullptr;
+  Terminate(env.get());
+  initialized_ = false;
 }
 
 CollectionReference FirestoreInternal::Collection(
@@ -676,7 +690,7 @@ void Firestore::set_log_level(LogLevel log_level) {
   bool logging_enabled = log_level < LogLevel::kLogLevelInfo;
 
   {
-    MutexLock lock(init_mutex);
+    MutexLock lock(InitMutex());
 
     // Set the initial_log_state on every invocation, just in case Firestore
     // is terminated for long enough to unload the Firestore classes within

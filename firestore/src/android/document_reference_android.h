@@ -56,7 +56,7 @@ class DocumentReferenceInternal : public Wrapper {
       : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this document reference. */
-  Firestore* firestore();
+  Firestore firestore();
 
   /**
    * Gets the document-id of this document.

@@ -153,9 +153,8 @@ void QueryInternal::Initialize(jni::Loader& loader) {
       kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener, kHashCode, kWhere);
 }
 
-Firestore* QueryInternal::firestore() {
-  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
-  return firestore_->firestore_public();
+Firestore QueryInternal::firestore() {
+  return firestore_->MakeFirestoreHandle();
 }
 
 AggregateQuery QueryInternal::Count() const {

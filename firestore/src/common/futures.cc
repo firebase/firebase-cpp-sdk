@@ -16,14 +16,16 @@
 
 #include "firestore/src/common/futures.h"
 
+#include "app/src/no_destructor.h"
+
 namespace firebase {
 namespace firestore {
 namespace internal {
 
 ReferenceCountedFutureImpl* GetSharedReferenceCountedFutureImpl() {
-  static auto* futures =
-      new ReferenceCountedFutureImpl(/*last_result_count=*/0);
-  return futures;
+  static ::firebase::internal::NoDestructor<ReferenceCountedFutureImpl> futures(
+      /*last_result_count=*/0);
+  return futures.get();
 }
 
 }  // namespace internal

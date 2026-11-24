@@ -19,6 +19,7 @@
 
 #include <utility>
 #include "firestore/src/common/type_mapping.h"
+#include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
 
@@ -63,6 +64,14 @@ struct ConverterImpl {
     // class). Static casts of unrelated types will still fail so this will
     // still fail on mismatched public/internal types.
     return static_cast<InternalT*>(from.internal_);
+  }
+
+  static FirestoreInternal* GetInternal(const Firestore& from) {
+    return from.internal_.get();
+  }
+
+  static FirestoreInternal* GetInternal(Firestore& from) {
+    return from.internal_.get();
   }
 };
 

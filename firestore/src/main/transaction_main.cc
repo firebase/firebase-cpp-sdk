@@ -97,8 +97,8 @@ TransactionInternal::TransactionInternal(
       firestore_internal_{NOT_NULL(firestore_internal)},
       user_data_converter_{&firestore_internal->database_id()} {}
 
-Firestore* TransactionInternal::firestore() {
-  return firestore_internal_->firestore_public();
+Firestore TransactionInternal::firestore() {
+  return firestore_internal_->MakeFirestoreHandle();
 }
 
 FirestoreInternal* TransactionInternal::firestore_internal() {
@@ -182,7 +182,7 @@ void TransactionInternal::ValidateReference(const DocumentReference& document) {
   auto* internal_doc = GetInternal(&document);
   SIMPLE_HARD_ASSERT(internal_doc, "Invalid document reference provided.");
 
-  if (internal_doc->firestore() != firestore()) {
+  if (internal_doc->firestore_internal() != firestore_internal_) {
     SimpleThrowInvalidArgument(
         "Provided document reference is from a different Cloud Firestore "
         "instance.");

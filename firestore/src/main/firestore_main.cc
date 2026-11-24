@@ -103,17 +103,19 @@ void ValidateDoubleSlash(const char* path) {
 
 }  // namespace
 
-FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id)
-    : FirestoreInternal{app, database_id, CreateCredentialsProvider(*app),
-                        CreateAppCheckCredentialsProvider(*app)} {}
+FirestoreInternal::FirestoreInternal(::firebase::internal::AppState& app_state,
+                                     const std::string& database_id)
+    : FirestoreInternal{app_state, database_id,
+                        CreateCredentialsProvider(app_state),
+                        CreateAppCheckCredentialsProvider(app_state)} {}
 
 FirestoreInternal::FirestoreInternal(
-    App* app,
+    ::firebase::internal::AppState& app_state,
     const std::string& database_id,
     std::shared_ptr<AuthCredentialsProvider> auth_credentials,
     std::shared_ptr<AppCheckCredentialsProvider> app_check_credentials)
-    : app_(NOT_NULL(app)),
-      firestore_core_(CreateFirestore(app,
+    : app_state_(app_state),
+      firestore_core_(CreateFirestore(app_state,
                                       database_id,
                                       std::move(auth_credentials),
                                       std::move(app_check_credentials))),
@@ -122,29 +124,36 @@ FirestoreInternal::FirestoreInternal(
       database_name_(database_id) {
   ApplyDefaultSettings();
 
-#if FIREBASE_PLATFORM_ANDROID
-  App::RegisterLibrary("fire-fst", kFirestoreVersionString, app->GetJNIEnv());
-#else
   App::RegisterLibrary("fire-fst", kFirestoreVersionString, nullptr);
-#endif
 }
 
 FirestoreInternal::~FirestoreInternal() {
+  // Make sure to clear listeners _before_ triggering cleanup to avoid a lock
+  // inversion between listeners_mutex_ and cleanup_'s mutex if a listener
+  // callback destroys a Firestore sub-handle concurrently.
   ClearListeners();
+  cleanup_.CleanupAll();
   transaction_executor_->Dispose();
   firestore_core_->Dispose();
 }
 
+Firestore FirestoreInternal::MakeFirestoreHandle() {
+  auto state = app_state_.weak_from_this().lock();
+  auto self = weak_from_this().lock();
+  if (!state || !self) return Firestore{};
+  return Firestore(std::move(state), std::move(self));
+}
+
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
-    App* app,
+    ::firebase::internal::AppState& app_state,
     const std::string& database_id,
     std::shared_ptr<AuthCredentialsProvider> auth_credentials,
     std::shared_ptr<AppCheckCredentialsProvider> app_check_credentials) {
-  const AppOptions& opt = app->options();
+  const AppOptions& opt = app_state.options();
   return std::make_shared<api::Firestore>(
-      DatabaseId{opt.project_id(), database_id}, app->name(),
+      DatabaseId{opt.project_id(), database_id}, app_state.name(),
       std::move(auth_credentials), std::move(app_check_credentials),
-      CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
+      CreateWorkerQueue(), CreateFirebaseMetadataProvider(app_state), this);
 }
 
 CollectionReference FirestoreInternal::Collection(

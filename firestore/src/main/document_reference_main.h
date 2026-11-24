@@ -48,7 +48,7 @@ class DocumentReferenceInternal {
  public:
   explicit DocumentReferenceInternal(api::DocumentReference&& reference);
 
-  Firestore* firestore();
+  Firestore firestore();
   FirestoreInternal* firestore_internal();
 
   const std::string& id() const { return reference_.document_id(); }

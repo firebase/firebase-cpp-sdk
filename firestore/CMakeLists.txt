@@ -446,3 +446,7 @@ endif()
 
 cpp_pack_library(firebase_firestore "")
 cpp_pack_public_headers()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  add_subdirectory(tests)
+endif()

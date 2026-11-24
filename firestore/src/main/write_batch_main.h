@@ -36,7 +36,7 @@ class WriteBatchInternal {
  public:
   explicit WriteBatchInternal(api::WriteBatch&& batch);
 
-  Firestore* firestore();
+  Firestore firestore();
   FirestoreInternal* firestore_internal();
 
   void Set(const DocumentReference& document,

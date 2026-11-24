@@ -26,7 +26,7 @@
 #include "Firestore/core/src/credentials/credentials_provider.h"
 #include "Firestore/core/src/credentials/user.h"
 #include "Firestore/core/src/util/statusor.h"
-#include "app/src/include/firebase/app.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/future.h"
 
 #if defined(__ANDROID__)
@@ -44,7 +44,8 @@ namespace firestore {
 class FirebaseCppCredentialsProvider
     : public firestore::credentials::AuthCredentialsProvider {
  public:
-  explicit FirebaseCppCredentialsProvider(App& app);
+  explicit FirebaseCppCredentialsProvider(
+      ::firebase::internal::AppState& app_state);
   ~FirebaseCppCredentialsProvider() override;
 
   FirebaseCppCredentialsProvider(const FirebaseCppCredentialsProvider&) =
@@ -84,7 +85,8 @@ class FirebaseCppCredentialsProvider
   // the `GetToken` callback might be invoked after this credentials provider
   // has already been destroyed (Auth may outlive Firestore).
   struct Contents {
-    explicit Contents(App& app) : app(app) {}
+    explicit Contents(::firebase::internal::AppState& app_state)
+        : app_state(app_state) {}
 
     // FirebaseCppCredentialsProvider may be used by more than one thread. The
     // mutex is locked in all public member functions and none of the private
@@ -94,12 +96,9 @@ class FirebaseCppCredentialsProvider
     // mutex is always already locked. The mutex is recursive to avoid one
     // potential case of deadlock (attaching a continuation to a `Future` which
     // may be invoked immediately or asynchronously).
-    //
-    // TODO(b/148688333): make sure not to hold the mutex while calling methods
-    // on `app`.
     std::recursive_mutex mutex;
 
-    App& app;
+    ::firebase::internal::AppState& app_state;
 
     // Each time credentials change, the token "generation" is incremented.
     // Credentials commonly change when a different user signs in; comparing

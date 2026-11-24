@@ -27,9 +27,11 @@
 #include "Firestore/core/src/api/firestore.h"
 #include "Firestore/core/src/credentials/credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
+#include "app/src/app_state.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/service_interfaces.h"
 #include "firestore/src/common/event_listener.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -53,19 +55,27 @@ namespace util {
 class Executor;
 }
 
-class FirestoreInternal {
+class FirestoreInternal
+    : public ::firebase::internal::Service,
+      public std::enable_shared_from_this<FirestoreInternal> {
  public:
-  // Note: call `set_firestore_public` immediately after construction.
-  FirestoreInternal(App* app, const std::string& database_id);
-  ~FirestoreInternal();
+  FirestoreInternal(::firebase::internal::AppState& app_state,
+                    const std::string& database_id);
+  ~FirestoreInternal() override;
 
   FirestoreInternal(const FirestoreInternal&) = delete;
   FirestoreInternal& operator=(const FirestoreInternal&) = delete;
 
-  App* app() const { return app_; }
+  App app() const { return app_state_.TryMakeAppHandle(); }
+  ::firebase::internal::AppState& app_state() { return app_state_; }
+  const ::firebase::internal::AppState& app_state() const { return app_state_; }
+
+  // Creates a Firestore value handle referencing this instance and its
+  // AppState, or an invalid handle if either is being destroyed.
+  Firestore MakeFirestoreHandle();
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const { return firestore_core_ != nullptr; }
 
   // Manages all Future objects returned from Firestore API.
   FutureManager& future_manager() { return future_manager_; }
@@ -123,13 +133,6 @@ class FirestoreInternal {
       ListenerRegistrationInternal* registration);
   void ClearListeners();
 
-  void set_firestore_public(Firestore* firestore_public) {
-    firestore_public_ = firestore_public;
-  }
-
-  Firestore* firestore_public() { return firestore_public_; }
-  const Firestore* firestore_public() const { return firestore_public_; }
-
   const std::shared_ptr<api::Firestore>& firestore_core() const {
     return firestore_core_;
   }
@@ -152,14 +155,14 @@ class FirestoreInternal {
   };
 
   FirestoreInternal(
-      App* app,
+      ::firebase::internal::AppState& app_state,
       const std::string& database_id,
       std::shared_ptr<credentials::AuthCredentialsProvider> auth_credentials,
       std::shared_ptr<credentials::AppCheckCredentialsProvider>
           app_check_credentials);
 
   std::shared_ptr<api::Firestore> CreateFirestore(
-      App* app,
+      ::firebase::internal::AppState& app_state,
       const std::string& database_id,
       std::shared_ptr<credentials::AuthCredentialsProvider> auth_credentials,
       std::shared_ptr<credentials::AppCheckCredentialsProvider>
@@ -173,8 +176,7 @@ class FirestoreInternal {
 
   void ApplyDefaultSettings();
 
-  App* app_ = nullptr;
-  Firestore* firestore_public_ = nullptr;
+  ::firebase::internal::AppState& app_state_;
   std::shared_ptr<api::Firestore> firestore_core_;
 
   CleanupNotifier cleanup_;

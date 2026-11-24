@@ -33,8 +33,6 @@
 #define PROGUARD_KEEP_CLASS "%PG%"
 
 namespace firebase {
-class App;
-
 namespace firestore {
 namespace jni {
 
@@ -46,7 +44,7 @@ class Loader {
  public:
   using EmbeddedFile = firebase::internal::EmbeddedFile;
 
-  explicit Loader(App* app);
+  Loader(JNIEnv* env, jobject activity);
   ~Loader();
 
   // Loader is move-only
@@ -162,8 +160,8 @@ class Loader {
   JNIEnv* env() { return env_; }
 
  private:
-  App* app_ = nullptr;
   JNIEnv* env_ = nullptr;
+  jobject activity_ = nullptr;
 
   std::string last_class_name_;
   jclass last_class_ = nullptr;

@@ -466,7 +466,7 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseScalar(
       DocumentReference reference = value.reference_value();
 
       const DatabaseId& other =
-          GetInternal(reference.firestore())->database_id();
+          GetInternal(&reference)->firestore_internal()->database_id();
       if (other != *database_id_) {
         // TODO(b/147444199): use string formatting.
         // ThrowInvalidData(

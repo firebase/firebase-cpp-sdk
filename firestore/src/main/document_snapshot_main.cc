@@ -48,7 +48,7 @@ DocumentSnapshotInternal::DocumentSnapshotInternal(
     api::DocumentSnapshot&& snapshot)
     : snapshot_{std::move(snapshot)} {}
 
-Firestore* DocumentSnapshotInternal::firestore() {
+Firestore DocumentSnapshotInternal::firestore() {
   return GetFirestore(&snapshot_);
 }
 

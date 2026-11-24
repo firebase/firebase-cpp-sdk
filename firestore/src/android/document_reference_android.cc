@@ -101,9 +101,8 @@ DocumentReference DocumentReferenceInternal::Create(Env& env,
   return firestore->NewDocumentReference(env, reference);
 }
 
-Firestore* DocumentReferenceInternal::firestore() {
-  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
-  return firestore_->firestore_public();
+Firestore DocumentReferenceInternal::firestore() {
+  return firestore_->MakeFirestoreHandle();
 }
 
 const std::string& DocumentReferenceInternal::id() const {

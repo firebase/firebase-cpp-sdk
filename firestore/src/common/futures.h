@@ -19,6 +19,7 @@
 
 #include <utility>
 #include "app/src/include/firebase/future.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_errors.h"
 
@@ -68,7 +69,7 @@ Future<T> FailedFuture(Error error, const char* message) {
  */
 template <typename T>
 Future<T> FailedFuture() {
-  static auto* future = new Future<T>(FailedFuture<T>(
+  static ::firebase::internal::NoDestructor<Future<T>> future(FailedFuture<T>(
       Error::kErrorFailedPrecondition,
       "The object that issued this future is in an invalid state. This can be "
       "because the object was default-constructed and never reassigned, "

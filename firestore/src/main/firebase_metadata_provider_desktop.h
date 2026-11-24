@@ -21,8 +21,8 @@
 #include <string>
 
 #include "Firestore/core/src/remote/firebase_metadata_provider.h"
+#include "app/src/app_state.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
-#include "app/src/include/firebase/app.h"
 
 #if defined(__ANDROID__)
 #error "This header should not be used on Android."
@@ -34,12 +34,15 @@ namespace firestore {
 
 class FirebaseMetadataProviderCpp : public remote::FirebaseMetadataProvider {
  public:
-  explicit FirebaseMetadataProviderCpp(const App& app);
+  explicit FirebaseMetadataProviderCpp(
+      ::firebase::internal::AppState& app_state);
 
   void UpdateMetadata(grpc::ClientContext& context) override;
 
  private:
-  std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller_;
+  // Weak reference avoids an AppState -> FirestoreInternal ->
+  // FirebaseMetadataProviderCpp -> AppState ownership cycle.
+  std::weak_ptr<heartbeat::HeartbeatController> heartbeat_controller_;
   std::string gmp_app_id_;
 };
 

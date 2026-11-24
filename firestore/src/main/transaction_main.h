@@ -41,7 +41,7 @@ class TransactionInternal {
   TransactionInternal(std::shared_ptr<core::Transaction> transaction,
                       FirestoreInternal* firestore_internal);
 
-  Firestore* firestore();
+  Firestore firestore();
   FirestoreInternal* firestore_internal();
 
   void Set(const DocumentReference& document,

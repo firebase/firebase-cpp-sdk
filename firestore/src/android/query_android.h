@@ -53,7 +53,7 @@ class QueryInternal : public Wrapper {
       : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this query. */
-  Firestore* firestore();
+  Firestore firestore();
 
   /**
    * @brief Returns a query that counts the documents in the result set of this

@@ -16,7 +16,7 @@
 
 #include <memory>
 
-#include "firestore/src/main/create_credentials_provider.h"
+#include "firestore/src/main/create_app_check_credentials_provider.h"
 
 #import "FIRAppInternal.h"
 #import "FIRComponent.h"
@@ -26,6 +26,7 @@
 #import "FirebaseCore.h"
 
 #include "Firestore/core/src/credentials/firebase_app_check_credentials_provider_apple.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
@@ -35,7 +36,8 @@ using credentials::AppCheckCredentialsProvider;
 using credentials::FirebaseAppCheckCredentialsProvider;
 
 std::shared_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
-    App& app) {
+    ::firebase::internal::AppState& app_state) {
+  App app = app_state.MakeAppHandle();
   FIRApp* ios_app = app.GetPlatformApp();
   auto ios_app_check = FIR_COMPONENT(FIRAppCheckInterop, ios_app.container);
   return std::make_shared<FirebaseAppCheckCredentialsProvider>(ios_app,

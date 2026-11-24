@@ -69,9 +69,8 @@ void DocumentSnapshotInternal::Initialize(jni::Loader& loader) {
                    kGetData, kContains, kGet, kHashCode);
 }
 
-Firestore* DocumentSnapshotInternal::firestore() const {
-  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
-  return firestore_->firestore_public();
+Firestore DocumentSnapshotInternal::firestore() const {
+  return firestore_->MakeFirestoreHandle();
 }
 
 const std::string& DocumentSnapshotInternal::id() const {

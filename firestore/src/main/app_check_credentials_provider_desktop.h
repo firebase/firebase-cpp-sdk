@@ -17,13 +17,14 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_APP_CHECK_CREDENTIALS_PROVIDER_DESKTOP_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_APP_CHECK_CREDENTIALS_PROVIDER_DESKTOP_H_
 
+#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
 #include "Firestore/core/src/credentials/credentials_fwd.h"
 #include "Firestore/core/src/credentials/credentials_provider.h"
 #include "Firestore/core/src/credentials/user.h"
 #include "Firestore/core/src/util/statusor.h"
-#include "app/src/include/firebase/app.h"
+#include "app/src/app_state.h"
 #include "app/src/include/firebase/future.h"
 
 #if defined(__ANDROID__)
@@ -41,7 +42,8 @@ namespace firestore {
 class CppAppCheckCredentialsProvider
     : public firestore::credentials::AppCheckCredentialsProvider {
  public:
-  explicit CppAppCheckCredentialsProvider(App& app);
+  explicit CppAppCheckCredentialsProvider(
+      ::firebase::internal::AppState& app_state);
   ~CppAppCheckCredentialsProvider() override;
 
   CppAppCheckCredentialsProvider(const CppAppCheckCredentialsProvider&) =
@@ -60,11 +62,10 @@ class CppAppCheckCredentialsProvider
   void AddAppCheckStateListener();
   void RemoveAppCheckStateListener();
 
-  // Callback for the function registry-based pseudo-AuthStateListener
-  // interface.
   static void OnAppCheckStateChanged(const std::string& token, void* context);
 
-  App& app_;
+  std::mutex mutex_;
+  ::firebase::internal::AppState& app_state_;
 };
 
 }  // namespace firestore
