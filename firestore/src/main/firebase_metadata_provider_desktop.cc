@@ -30,15 +30,16 @@ FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
       gmp_app_id_(app.options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
-  if (heartbeat_controller_) {
-    std::string payload =
-        heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
-    // The payload is either an empty string or a string of user agents to log.
-    if (!payload.empty()) {
-      context.AddMetadata(kXFirebaseClientLogTypeHeader, kHeartbeatCodeGlobal);
-      context.AddMetadata(kXFirebaseClientHeader, payload);
-    }
+  // Flag at most one request per day as today's heartbeat. The stored payload
+  // is only used to decide whether today's heartbeat is still unsent.
+  if (heartbeat_controller_ &&
+      !heartbeat_controller_->GetAndResetTodaysStoredHeartbeats().empty()) {
+    context.AddMetadata(kXFirebaseClientLogTypeHeader, kHeartbeatCodeGlobal);
   }
+  // Always send the current user agent, as the Android and iOS SDKs do. The
+  // stored heartbeat is logged when the App is created, before Firestore
+  // registers its library, so it cannot be used to attribute Firestore usage.
+  context.AddMetadata(kXFirebaseClientHeader, App::GetUserAgent());
   if (!gmp_app_id_.empty()) {
     context.AddMetadata(kXFirebaseGmpIdHeader, gmp_app_id_);
   }
