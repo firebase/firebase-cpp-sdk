@@ -332,9 +332,9 @@ void DestroyPlatformAuth(AuthData* auth_data) {
         static_cast<jobject>(auth_data->id_token_listener_impl),
         jni_id_token_listener::GetMethodId(jni_id_token_listener::kDisconnect));
     assert(env->ExceptionCheck() == false);
-    env->CallVoidMethod(AuthImpl(auth_data),
-                        auth::GetMethodId(auth::kRemoveIdTokenListener),
-                        static_cast<jobject>(auth_data->id_token_listener_impl));
+    env->CallVoidMethod(
+        AuthImpl(auth_data), auth::GetMethodId(auth::kRemoveIdTokenListener),
+        static_cast<jobject>(auth_data->id_token_listener_impl));
     assert(env->ExceptionCheck() == false);
 
     // Deleting our global references should trigger the FirebaseAuth class and
@@ -473,10 +473,10 @@ Future<User> Auth::SignInWithCredential(const Credential& credential) {
     futures.Complete(handle, credential.error_code_,
                      credential.error_message_.c_str());
   } else {
-    jobject pending_result = env->CallObjectMethod(
-        AuthImpl(auth_data_.get()),
-        auth::GetMethodId(auth::kSignInWithCredential),
-        CredentialFromImpl(credential.impl_));
+    jobject pending_result =
+        env->CallObjectMethod(AuthImpl(auth_data_.get()),
+                              auth::GetMethodId(auth::kSignInWithCredential),
+                              CredentialFromImpl(credential.impl_));
 
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterCallback(pending_result, handle, auth_data_.get(),
@@ -500,10 +500,10 @@ Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(
     futures.Complete(handle, credential.error_code_,
                      credential.error_message_.c_str());
   } else {
-    jobject pending_result = env->CallObjectMethod(
-        AuthImpl(auth_data_.get()),
-        auth::GetMethodId(auth::kSignInWithCredential),
-        CredentialFromImpl(credential.impl_));
+    jobject pending_result =
+        env->CallObjectMethod(AuthImpl(auth_data_.get()),
+                              auth::GetMethodId(auth::kSignInWithCredential),
+                              CredentialFromImpl(credential.impl_));
 
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterCallback(pending_result, handle, auth_data_.get(),

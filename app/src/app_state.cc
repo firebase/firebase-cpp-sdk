@@ -68,7 +68,8 @@ void AppState::DestroyServices() {
       // Pick the service with the highest teardown_priority(); break ties by
       // reverse creation order (later entries in owned_services_ first).
       size_t best_idx = owned_services_.size() - 1;
-      int best_priority = owned_services_[best_idx].service->teardown_priority();
+      int best_priority =
+          owned_services_[best_idx].service->teardown_priority();
       for (size_t i = owned_services_.size() - 1; i > 0; --i) {
         size_t candidate = i - 1;
         int priority = owned_services_[candidate].service->teardown_priority();

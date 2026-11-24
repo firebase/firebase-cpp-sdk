@@ -256,8 +256,8 @@ bool FirebaseAuthTest::WaitForCompletion(
         // Expect no crash.
         // TODO(b/281590792): Properly validate AuthResult fields case-by-case.
         (void)future.result()->credential.is_valid();
-        succeeded = future.result()->user.is_valid() &&
-                    auth_.current_user().is_valid();
+        succeeded =
+            future.result()->user.is_valid() && auth_.current_user().is_valid();
       }
     }
   }

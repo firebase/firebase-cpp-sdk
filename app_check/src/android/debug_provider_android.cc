@@ -161,11 +161,11 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
           env->DeleteLocalRef(java_token);
         }
 
-        jobject j_android_provider_local = env->CallObjectMethod(
-            factory_ref,
-            debug_provider_factory::GetMethodId(
-                debug_provider_factory::kCreate),
-            platform_app);
+        jobject j_android_provider_local =
+            env->CallObjectMethod(factory_ref,
+                                  debug_provider_factory::GetMethodId(
+                                      debug_provider_factory::kCreate),
+                                  platform_app);
         FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
         env->DeleteLocalRef(platform_app);
 

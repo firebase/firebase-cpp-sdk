@@ -68,8 +68,8 @@ void CppAppCheckCredentialsProvider::GetToken(
     Future<std::string> app_check_future = app_check->GetTokenAsync();
     if (app_check_future.status() != kFutureStatusInvalid) {
       app_check_future.OnCompletion(
-          [listener = std::move(listener)](
-              const Future<std::string>& future_token) {
+          [listener =
+               std::move(listener)](const Future<std::string>& future_token) {
             if (future_token.result()) {
               listener(*future_token.result());
             } else {

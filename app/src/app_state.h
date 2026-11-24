@@ -259,7 +259,8 @@ class AppState : public std::enable_shared_from_this<AppState> {
 };
 
 // Convenience service adapter for attaching an arbitrary teardown callback
-// (e.g., analytics::Terminate / messaging::Terminate) directly onto an AppState.
+// (e.g., analytics::Terminate / messaging::Terminate) directly onto an
+// AppState.
 class TeardownGuardService : public Service {
  public:
   explicit TeardownGuardService(std::function<void()> on_destroy)

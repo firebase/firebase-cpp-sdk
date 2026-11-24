@@ -79,9 +79,8 @@ std::string AuthRequest::GetUrl(const char* server_url) {
   Auth auth = Auth::GetAuth(app_);
   std::string assigned_emulator_url;
   if (auth.auth_data_ && auth.auth_data_->auth_impl) {
-    assigned_emulator_url =
-        static_cast<AuthImpl*>(auth.auth_data_->auth_impl)
-            ->assigned_emulator_url;
+    assigned_emulator_url = static_cast<AuthImpl*>(auth.auth_data_->auth_impl)
+                                ->assigned_emulator_url;
   }
 
   if (assigned_emulator_url.empty()) {

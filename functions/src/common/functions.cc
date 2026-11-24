@@ -27,7 +27,8 @@
 #include "app/src/log.h"
 #include "app/src/util.h"
 
-// FunctionsInternal is defined in these 3 files, one implementation for each OS.
+// FunctionsInternal is defined in these 3 files, one implementation for each
+// OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "functions/src/android/functions_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS

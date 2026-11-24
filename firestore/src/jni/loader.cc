@@ -36,8 +36,7 @@ constexpr const char* StripProguardPrefix(const char* class_name) {
 
 }  // namespace
 
-Loader::Loader(JNIEnv* env, jobject activity)
-    : env_(env), activity_(activity) {
+Loader::Loader(JNIEnv* env, jobject activity) : env_(env), activity_(activity) {
   Class::Initialize(*this);
 }
 

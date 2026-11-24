@@ -88,13 +88,11 @@ void RegisterTerminateOnAppDestroy(const App& app) {
   UnregisterTerminateOnAppDestroy();
 
   const bool auto_init = AppCallback::GetEnabledByName(kAnalyticsModuleName);
-  auto [owner, guard] =
-      app_state->GetOrCreateDetachableService<
-          ::firebase::internal::TeardownGuardService>(
-          &kAnalyticsTeardownTag, {},
-          [auto_init](::firebase::internal::AppState&) {
-            return std::make_shared<
-                ::firebase::internal::TeardownGuardService>([auto_init]() {
+  auto [owner, guard] = app_state->GetOrCreateDetachableService<
+      ::firebase::internal::TeardownGuardService>(
+      &kAnalyticsTeardownTag, {}, [auto_init](::firebase::internal::AppState&) {
+        return std::make_shared<::firebase::internal::TeardownGuardService>(
+            [auto_init]() {
               if (!auto_init) {
                 LogError(
                     "analytics::Terminate() should be called before default "
@@ -104,7 +102,7 @@ void RegisterTerminateOnAppDestroy(const App& app) {
                 firebase::analytics::Terminate();
               }
             });
-          });
+      });
   if (!guard) return;
 
   auto& state = GetTeardownGuardState();

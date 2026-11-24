@@ -186,8 +186,8 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_WithEmptyPath) {
   ViewCache old_view_cache(initial_local_cache, initial_server_cache);
 
   // Create a server-initiated overwrite with an empty path to change a value.
-  Operation operation =
-      Operation::Overwrite(OperationSource::Server(), Path(), Variant("apples"));
+  Operation operation = Operation::Overwrite(OperationSource::Server(), Path(),
+                                             Variant("apples"));
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());
   Variant complete_cache;
@@ -355,7 +355,8 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
           .AddWrite(Path("aaa/bbb/ccc"), Variant("apples"))
           .AddWrite(Path("aaa/ddd"), Variant("bananas"))
           .AddWrite(Path("aaa/eee/fff"), Variant("vegetables"));
-  Operation operation = Operation::Merge(OperationSource::User(), Path(), write);
+  Operation operation =
+      Operation::Merge(OperationSource::User(), Path(), write);
   WriteTree writes_cache;
   WriteTreeRef writes_cache_ref = writes_cache.ChildWrites(Path());
   Variant complete_cache;

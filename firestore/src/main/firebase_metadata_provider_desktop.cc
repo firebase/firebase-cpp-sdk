@@ -27,9 +27,10 @@ const char* kHeartbeatCodeGlobal = "2";
 
 FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(
     ::firebase::internal::AppState& app_state)
-    : heartbeat_controller_(app_state.platform_data()
-                                ? app_state.platform_data()->heartbeat_controller_
-                                : nullptr),
+    : heartbeat_controller_(
+          app_state.platform_data()
+              ? app_state.platform_data()->heartbeat_controller_
+              : nullptr),
       gmp_app_id_(app_state.options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {

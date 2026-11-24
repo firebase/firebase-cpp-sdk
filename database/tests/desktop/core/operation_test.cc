@@ -168,8 +168,9 @@ TEST(OperationDeathTest, DISABLED_ListenCompleteWithWrongSource) {
 TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
 #endif
   // ListenCompletes must come from the server, not the user.
-  EXPECT_DEATH(Operation::ListenComplete(OperationSource::User(), Path("A/B/C")),
-               DEATHTEST_SIGABRT);
+  EXPECT_DEATH(
+      Operation::ListenComplete(OperationSource::User(), Path("A/B/C")),
+      DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildOverwriteEmptyPath) {

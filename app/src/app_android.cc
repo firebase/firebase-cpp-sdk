@@ -597,8 +597,9 @@ bool App::IsDataCollectionDefaultEnabled() const {
 }
 
 JavaVM* App::java_vm() const {
-  return (state_ && state_->platform_data()) ? state_->platform_data()->java_vm()
-                                             : nullptr;
+  return (state_ && state_->platform_data())
+             ? state_->platform_data()->java_vm()
+             : nullptr;
 }
 
 jobject App::GetPlatformApp() const {

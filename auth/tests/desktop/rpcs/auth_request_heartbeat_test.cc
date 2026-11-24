@@ -200,8 +200,8 @@ TEST_F(AuthRequestHeartbeatTest, TestSignUpNewUserRequestHasHeartbeat) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest,
        TestVerifyAssertionFromIdTokenRequestHasHeartbeat) {
-  auto request = VerifyAssertionRequest::FromIdToken(app_, "APIKEY",
-                                                     "provider", "id_token");
+  auto request = VerifyAssertionRequest::FromIdToken(app_, "APIKEY", "provider",
+                                                     "id_token");
 
   // The request headers should include both hearbeat payload and GMP App ID.
   EXPECT_NE("", request->options().header[app_common::kApiClientHeader]);

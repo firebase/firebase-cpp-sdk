@@ -73,8 +73,7 @@ class AppCallback {
  public:
   typedef InitResult (*Created)(const firebase::App& app);
 
-  AppCallback(const char* module_name, Created created,
-              bool enabled_by_default)
+  AppCallback(const char* module_name, Created created, bool enabled_by_default)
       : module_name_(module_name),
         created_(created),
         enabled_(enabled_by_default) {
@@ -107,16 +106,16 @@ class AppCallback {
 
 // Register an App creation callback for a module.
 // Teardown is owned by AppState via internal::Service destructors.
-#define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,            \
-                                        enabled_by_default)                   \
-  namespace firebase {                                                        \
-  static InitResult module_name##Created(const ::firebase::App& app) {        \
-    created_code;                                                             \
-  }                                                                           \
-  static ::firebase::AppCallback module_name##_app_callback(                  \
-      #module_name, module_name##Created, enabled_by_default);                \
-  void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)         \
-      FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;                 \
+#define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,     \
+                                        enabled_by_default)            \
+  namespace firebase {                                                 \
+  static InitResult module_name##Created(const ::firebase::App& app) { \
+    created_code;                                                      \
+  }                                                                    \
+  static ::firebase::AppCallback module_name##_app_callback(           \
+      #module_name, module_name##Created, enabled_by_default);         \
+  void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)  \
+      FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;          \
   } /* namespace firebase */
 
 // Helper class to provide easy management and static access of

@@ -174,8 +174,7 @@ TEST_F(RemoteConfigRESTTest, SetupRESTRequest) {
   EXPECT_EQ(request_options.header[app_common::kApiClientHeader],
             App::GetUserAgent());
 
-  EXPECT_EQ(rest.rc_request_.application_data_->appId,
-            app_.options().app_id());
+  EXPECT_EQ(rest.rc_request_.application_data_->appId, app_.options().app_id());
   EXPECT_EQ(rest.rc_request_.application_data_->packageName,
             app_.options().package_name());
   EXPECT_EQ(rest.rc_request_.application_data_->platformVersion, "2");

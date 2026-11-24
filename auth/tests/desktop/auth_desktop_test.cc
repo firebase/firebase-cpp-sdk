@@ -618,7 +618,7 @@ TEST_F(AuthDesktopTest, TestCreateUserWithEmailAndPassword) {
 
   const Future<AuthResult> future =
       firebase_auth_.CreateUserWithEmailAndPassword("testsignin@example.com",
-                                                     "testsignin");
+                                                    "testsignin");
   AuthResult result = WaitForFuture(future);
   EXPECT_FALSE(result.user.is_anonymous());
   VerifyUser(result.user);

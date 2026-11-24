@@ -225,9 +225,8 @@ DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
                          "DataSnapshot::GetReference() failed")) {
     return nullptr;
   }
-  DatabaseReferenceInternal* internal =
-      new DatabaseReferenceInternal(std::move(locked_db),
-                                    database_reference_obj);
+  DatabaseReferenceInternal* internal = new DatabaseReferenceInternal(
+      std::move(locked_db), database_reference_obj);
   env->DeleteLocalRef(database_reference_obj);
   return internal;
 }

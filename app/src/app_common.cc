@@ -60,8 +60,7 @@ void CheckCompilerString(const char* input) {
 
 const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
 
-App::App(std::shared_ptr<internal::AppState> state)
-    : state_(std::move(state)) {
+App::App(std::shared_ptr<internal::AppState> state) : state_(std::move(state)) {
 #ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
   if (state_) {
     CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);

@@ -275,8 +275,7 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
 
   // Ensure we only load these files once.
   {
-    MutexLock lock(
-        ::firebase::ump::internal::CachedUmpEmbeddedFilesMutex());
+    MutexLock lock(::firebase::ump::internal::CachedUmpEmbeddedFilesMutex());
     if (::firebase::ump::internal::g_cached_ump_embedded_files == nullptr) {
       ::firebase::ump::internal::g_cached_ump_embedded_files =
           new std::vector<firebase::internal::EmbeddedFile>();

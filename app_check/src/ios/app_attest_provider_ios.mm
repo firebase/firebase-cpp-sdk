@@ -116,8 +116,7 @@ AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(const App& ap
 }  // namespace internal
 
 AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
-  static ::firebase::internal::NoDestructor<AppAttestProviderFactory>
-      g_app_attest_provider_factory;
+  static ::firebase::internal::NoDestructor<AppAttestProviderFactory> g_app_attest_provider_factory;
   return g_app_attest_provider_factory.get();
 }
 

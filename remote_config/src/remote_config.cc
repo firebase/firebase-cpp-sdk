@@ -47,9 +47,7 @@ RemoteConfig::RemoteConfig(
 
 RemoteConfig::~RemoteConfig() = default;
 
-App RemoteConfig::app() const {
-  return internal_ ? internal_->app() : App();
-}
+App RemoteConfig::app() const { return internal_ ? internal_->app() : App(); }
 
 RemoteConfig RemoteConfig::GetInstance(const App& app) {
   if (!app.is_valid()) return {};

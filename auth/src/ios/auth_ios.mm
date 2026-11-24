@@ -224,7 +224,7 @@ void InitPlatformAuth(AuthData *auth_data) {
   CheckEmulator(auth_data);
 }
 
-void StartPlatformAuth(const std::shared_ptr<AuthData>& /*auth_data*/) {}
+void StartPlatformAuth(const std::shared_ptr<AuthData> & /*auth_data*/) {}
 
 // Platform-specific method to destroy the wrapped Auth class.
 void DestroyPlatformAuth(AuthData *auth_data) {
@@ -275,22 +275,22 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
       futures.SafeAlloc<FetchProvidersResult>(kAuthFn_FetchProvidersForEmail, initial_data);
   std::weak_ptr<AuthData> weak_auth = auth_data_;
 
-  [AuthImpl(auth_data_.get())
-      fetchSignInMethodsForEmail:@(email)
-                      completion:^(NSArray<NSString *> *_Nullable providers,
-                                   NSError *_Nullable error) {
-                        auto locked = weak_auth.lock();
-                        if (!locked) return;
-                        locked->future_impl.Complete<FetchProvidersResult>(
-                            handle, AuthErrorFromNSError(error),
-                            [error.localizedDescription UTF8String],
-                            [providers](FetchProvidersResult *data) {
-                              data->providers.resize(providers.count);
-                              for (size_t i = 0; i < providers.count; ++i) {
-                                data->providers[i] = util::StringFromNSString(providers[i]);
-                              }
-                            });
-                      }];
+  [AuthImpl(auth_data_.get()) fetchSignInMethodsForEmail:@(email)
+                                              completion:^(NSArray<NSString *> *_Nullable providers,
+                                                           NSError *_Nullable error) {
+                                                auto locked = weak_auth.lock();
+                                                if (!locked) return;
+                                                locked->future_impl.Complete<FetchProvidersResult>(
+                                                    handle, AuthErrorFromNSError(error),
+                                                    [error.localizedDescription UTF8String],
+                                                    [providers](FetchProvidersResult *data) {
+                                                      data->providers.resize(providers.count);
+                                                      for (size_t i = 0; i < providers.count; ++i) {
+                                                        data->providers[i] =
+                                                            util::StringFromNSString(providers[i]);
+                                                      }
+                                                    });
+                                              }];
 
   return MakeFuture(&futures, handle);
 }

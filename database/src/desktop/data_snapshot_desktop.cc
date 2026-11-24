@@ -43,10 +43,9 @@ DataSnapshotInternal::DataSnapshotInternal(
 DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
                                            const Variant& data,
                                            const QuerySpec& query_spec)
-    : DataSnapshotInternal(
-          database ? database->MakeWeakHandle()
-                   : std::weak_ptr<DatabaseInternal>(),
-          data, query_spec) {}
+    : DataSnapshotInternal(database ? database->MakeWeakHandle()
+                                    : std::weak_ptr<DatabaseInternal>(),
+                           data, query_spec) {}
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& internal)
     : database_(internal.database_),

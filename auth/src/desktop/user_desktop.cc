@@ -306,8 +306,7 @@ Future<ResultT> DoLinkWithEmailAndPassword(
   App app_handle = auth_data->app_state.TryMakeAppHandle();
   typedef SignUpRequest RequestT;
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
-      app_handle, GetApiKey(*auth_data),
-      email_credential->GetEmail().c_str(),
+      app_handle, GetApiKey(*auth_data), email_credential->GetEmail().c_str(),
       email_credential->GetPassword().c_str());
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
@@ -1052,9 +1051,8 @@ Future<AuthResult> User::ReauthenticateWithProvider(
     return Future<AuthResult>();
   }
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  SafeFutureHandle<AuthResult> handle =
-      data->future_impl.SafeAlloc<AuthResult>(
-          kUserFn_ReauthenticateWithProvider);
+  SafeFutureHandle<AuthResult> handle = data->future_impl.SafeAlloc<AuthResult>(
+      kUserFn_ReauthenticateWithProvider);
   data->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",

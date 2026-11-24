@@ -105,14 +105,13 @@ void FirebaseRemoteConfigTest::Initialize() {
   ::firebase::ModuleInitializer initializer;
 
   void* ptr = &rc_;
-  initializer.Initialize(app_, ptr,
-                         [](const ::firebase::App& app, void* target) {
-                           LogDebug("Try to initialize Firebase RemoteConfig");
-                           RemoteConfig* rc_ptr =
-                               reinterpret_cast<RemoteConfig*>(target);
-                           *rc_ptr = RemoteConfig::GetInstance(app);
-                           return firebase::kInitResultSuccess;
-                         });
+  initializer.Initialize(
+      app_, ptr, [](const ::firebase::App& app, void* target) {
+        LogDebug("Try to initialize Firebase RemoteConfig");
+        RemoteConfig* rc_ptr = reinterpret_cast<RemoteConfig*>(target);
+        *rc_ptr = RemoteConfig::GetInstance(app);
+        return firebase::kInitResultSuccess;
+      });
 
   WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
 

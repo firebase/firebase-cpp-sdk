@@ -50,7 +50,8 @@ static_assert(sizeof(FutureBase) == sizeof(Future<int>),
 typedef void DataDeleteFn(void* data_to_delete);
 typedef std::pair<FutureHandleId, FutureBackingData*> BackingPair;
 
-const FutureHandle& ReferenceCountedFutureImpl::kInvalidHandle = []() -> const FutureHandle& {
+const FutureHandle& ReferenceCountedFutureImpl::kInvalidHandle =
+    []() -> const FutureHandle& {
   static internal::NoDestructor<FutureHandle> handle(kInvalidFutureHandle);
   return *handle;
 }();

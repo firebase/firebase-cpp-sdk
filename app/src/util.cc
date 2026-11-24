@@ -47,7 +47,9 @@ enum ModuleInitializerFn {
 
 struct ModuleInitializerData {
   ModuleInitializerData()
-      : future_impl(kModuleInitializerCount), context(nullptr), init_fn_idx(0) {}
+      : future_impl(kModuleInitializerCount),
+        context(nullptr),
+        init_fn_idx(0) {}
   ReferenceCountedFutureImpl future_impl;
   SafeFutureHandle<void> future_handle_init;
 
@@ -286,7 +288,8 @@ std::vector<std::string> SplitString(const std::string& s,
   size_t pos = 0;
   size_t delimiter_search_start = 0;
   size_t len = s.size();
-  while (delimiter_search_start < len && s[delimiter_search_start] == delimiter) {
+  while (delimiter_search_start < len &&
+         s[delimiter_search_start] == delimiter) {
     delimiter_search_start++;
   }
 

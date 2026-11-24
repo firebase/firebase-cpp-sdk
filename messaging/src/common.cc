@@ -86,13 +86,11 @@ void RegisterTerminateOnAppDestroy(const App& app) {
   UnregisterTerminateOnAppDestroy();
 
   const bool auto_init = AppCallback::GetEnabledByName(kMessagingModuleName);
-  auto [owner, guard] =
-      app_state->GetOrCreateDetachableService<
-          ::firebase::internal::TeardownGuardService>(
-          &kMessagingTeardownTag, {},
-          [auto_init](::firebase::internal::AppState&) {
-            return std::make_shared<
-                ::firebase::internal::TeardownGuardService>([auto_init]() {
+  auto [owner, guard] = app_state->GetOrCreateDetachableService<
+      ::firebase::internal::TeardownGuardService>(
+      &kMessagingTeardownTag, {}, [auto_init](::firebase::internal::AppState&) {
+        return std::make_shared<::firebase::internal::TeardownGuardService>(
+            [auto_init]() {
               if (!auto_init) {
                 LogError(
                     "messaging::Terminate() should be called before default "
@@ -102,7 +100,7 @@ void RegisterTerminateOnAppDestroy(const App& app) {
                 firebase::messaging::Terminate();
               }
             });
-          });
+      });
   if (!guard) return;
 
   auto& state = GetTeardownGuardState();

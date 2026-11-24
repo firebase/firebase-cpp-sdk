@@ -312,8 +312,8 @@ void AppCheckInternal::RemoveTokenListener(TokenChangedCallback callback,
   if (!callback) return;
   MutexLock lock(mutex_);
   InternalListenerEntry entry{callback, context};
-  auto iter = std::find(internal_listeners_.begin(), internal_listeners_.end(),
-                        entry);
+  auto iter =
+      std::find(internal_listeners_.begin(), internal_listeners_.end(), entry);
   if (iter != internal_listeners_.end()) {
     internal_listeners_.erase(iter);
   }

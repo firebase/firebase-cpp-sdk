@@ -198,10 +198,10 @@ void HttpsCallableReferenceInternal::FutureCallback(
   if (result_code != util::kFutureResultSuccess) {
     // Failed, so the java_result is a FunctionsException.
     std::string message;
-    Error code = result_code == util::kFutureResultCancelled
-                     ? kErrorCancelled
-                     : functions->ErrorFromJavaFunctionsException(java_result,
-                                                                  &message);
+    Error code =
+        result_code == util::kFutureResultCancelled
+            ? kErrorCancelled
+            : functions->ErrorFromJavaFunctionsException(java_result, &message);
     data->impl->Complete(data->handle, code, message.c_str());
   } else {
     jmethodID getData = callable_result::GetMethodId(callable_result::kGetData);

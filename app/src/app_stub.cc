@@ -57,8 +57,9 @@ App App::CreateRegistered(const AppOptions& options) {
 
 App App::CreateRegistered(const AppOptions& options, std::string_view name) {
   if (auto existing = GetInstance(name)) {
-    LogError("firebase::App %.*s already registered, options will not be applied.",
-             static_cast<int>(name.size()), name.data());
+    LogError(
+        "firebase::App %.*s already registered, options will not be applied.",
+        static_cast<int>(name.size()), name.data());
     return App();
   }
   App app = Create(options, name);

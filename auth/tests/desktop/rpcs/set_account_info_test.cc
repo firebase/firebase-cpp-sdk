@@ -32,8 +32,7 @@ typedef SetAccountInfoResponse ResponseT;
 // Test SetAccountInfoRequest
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
   App app = testing::CreateApp();
-  auto request =
-      RequestT::CreateUpdateEmailRequest(app, "APIKEY", "fakeemail");
+  auto request = RequestT::CreateUpdateEmailRequest(app, "APIKEY", "fakeemail");
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -52,8 +51,7 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
 TEST(SetAccountInfoTest, TestSetAccountInfoRequestWithEmulator) {
   App app = testing::CreateApp();
   Auth::GetAuth(app).UseEmulator("localhost", 9099);
-  auto request =
-      RequestT::CreateUpdateEmailRequest(app, "APIKEY", "fakeemail");
+  auto request = RequestT::CreateUpdateEmailRequest(app, "APIKEY", "fakeemail");
   EXPECT_EQ(
       "http://localhost:9099/www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/setAccountInfo?key=APIKEY",
@@ -81,8 +79,8 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdatePassword) {
 
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Full) {
   App app = testing::CreateApp();
-  auto request = RequestT::CreateUpdateProfileRequest(app, "APIKEY",
-                                                      "New Name", "new_url");
+  auto request = RequestT::CreateUpdateProfileRequest(app, "APIKEY", "New Name",
+                                                      "new_url");
   request->SetIdToken("token");
 
   EXPECT_EQ(

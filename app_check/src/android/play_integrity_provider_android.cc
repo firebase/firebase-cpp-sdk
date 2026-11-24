@@ -124,11 +124,11 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
         }
 
         jobject platform_app = app.GetPlatformApp();
-        jobject j_android_provider_local = env->CallObjectMethod(
-            factory_ref,
-            play_integrity_provider_factory::GetMethodId(
-                play_integrity_provider_factory::kCreate),
-            platform_app);
+        jobject j_android_provider_local =
+            env->CallObjectMethod(factory_ref,
+                                  play_integrity_provider_factory::GetMethodId(
+                                      play_integrity_provider_factory::kCreate),
+                                  platform_app);
         FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
         env->DeleteLocalRef(platform_app);
 

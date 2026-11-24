@@ -98,8 +98,8 @@ App DatabaseInternal::GetApp() const { return app_state_.TryMakeAppHandle(); }
 std::shared_ptr<DatabaseInternal> DatabaseInternal::MakeSharedHandle() const {
   auto state = app_state_.weak_from_this().lock();
   if (!state) return {};
-  return std::shared_ptr<DatabaseInternal>(
-      std::move(state), const_cast<DatabaseInternal*>(this));
+  return std::shared_ptr<DatabaseInternal>(std::move(state),
+                                           const_cast<DatabaseInternal*>(this));
 }
 
 DatabaseReference DatabaseInternal::GetReference() {

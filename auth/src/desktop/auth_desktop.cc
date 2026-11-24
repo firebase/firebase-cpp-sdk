@@ -88,8 +88,7 @@ Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
 
 void InitializeInternalAuthStateListener(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->internal_listeners =
-      std::make_unique<InternalAuthStateListener>();
+  auth_impl->internal_listeners = std::make_unique<InternalAuthStateListener>();
   auth_data->AddInternalAuthStateListener(auth_impl->internal_listeners.get());
 }
 

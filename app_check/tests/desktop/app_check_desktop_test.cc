@@ -88,8 +88,8 @@ class FakeAppCheckProviderFactory : public AppCheckProviderFactory {
     std::lock_guard<std::mutex> lock(mu_);
     auto& provider = providers_[app.name()];
     if (!provider) {
-      provider = std::make_unique<FakeAppCheckProvider>(
-          std::string("tok-") + app.name());
+      provider = std::make_unique<FakeAppCheckProvider>(std::string("tok-") +
+                                                        app.name());
       provider->set_defer_completion(defer_completion_);
     }
     return provider.get();

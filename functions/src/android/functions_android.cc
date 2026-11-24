@@ -267,9 +267,8 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
                          name)) {
     return nullptr;
   }
-  HttpsCallableReferenceInternal* internal =
-      new HttpsCallableReferenceInternal(std::move(self),
-                                         callable_reference_obj);
+  HttpsCallableReferenceInternal* internal = new HttpsCallableReferenceInternal(
+      std::move(self), callable_reference_obj);
   env->DeleteLocalRef(callable_reference_obj);
   util::CheckAndClearJniExceptions(env);
   return internal;
@@ -316,9 +315,8 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
           "Functions::GetHttpsCallableFromURL() (url = %s) failed", url)) {
     return nullptr;
   }
-  HttpsCallableReferenceInternal* internal =
-      new HttpsCallableReferenceInternal(std::move(self),
-                                         callable_reference_obj);
+  HttpsCallableReferenceInternal* internal = new HttpsCallableReferenceInternal(
+      std::move(self), callable_reference_obj);
   env->DeleteLocalRef(callable_reference_obj);
   util::CheckAndClearJniExceptions(env);
   return internal;

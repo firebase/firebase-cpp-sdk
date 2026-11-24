@@ -76,8 +76,8 @@ Storage Storage::GetInstance(const ::firebase::App& app, const char* url,
     url_idx = url;
   } else {
     const char* bucket = app.options().storage_bucket();
-    url_idx = std::string(internal::kCloudStorageScheme) +
-              (bucket ? bucket : "");
+    url_idx =
+        std::string(internal::kCloudStorageScheme) + (bucket ? bucket : "");
   }
 
   // Validate storage URL.

@@ -259,8 +259,8 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
         EventRegistration* event_registration = nullptr;
         int callback_id = spec->callbackId();
         if (callback_id != 0 && registrations.count(callback_id) != 0) {
-          event_registration = new TestEventRegistration(
-              registrations[callback_id].query_spec);
+          event_registration =
+              new TestEventRegistration(registrations[callback_id].query_spec);
         } else {
           event_registration = new TestEventRegistration(query->query_spec());
           if (callback_id != 0) {

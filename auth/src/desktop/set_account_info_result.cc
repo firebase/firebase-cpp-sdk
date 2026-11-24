@@ -69,8 +69,7 @@ SetAccountInfoResult SetAccountInfoResult::FromResponse(
   return result;
 }
 
-User SetAccountInfoResult::MergeToCurrentUser(
-    AuthData* const auth_data) const {
+User SetAccountInfoResult::MergeToCurrentUser(AuthData* const auth_data) const {
   FIREBASE_ASSERT_RETURN(User(), auth_data);
   if (!IsValid()) {
     return User();

@@ -75,8 +75,9 @@ Database Database::GetInstance(const App& app, const char* url,
       &kDatabaseServiceTag, url_key,
       [&app, url](::firebase::internal::AppState& app_state)
           -> std::shared_ptr<DatabaseInternal> {
-        auto inst = url ? std::make_shared<DatabaseInternal>(app_state, app, url)
-                        : std::make_shared<DatabaseInternal>(app_state, app);
+        auto inst =
+            url ? std::make_shared<DatabaseInternal>(app_state, app, url)
+                : std::make_shared<DatabaseInternal>(app_state, app);
         if (!inst->initialized()) {
           return nullptr;
         }

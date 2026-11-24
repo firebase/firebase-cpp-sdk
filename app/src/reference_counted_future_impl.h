@@ -76,7 +76,8 @@ class SafeFutureHandle {
 // Type-safe version of kInvalidFutureHandle (backed by NoDestructor to avoid
 // exit-time destructors).
 template <typename T>
-const SafeFutureHandle<T>& SafeFutureHandle<T>::kInvalidHandle = []() -> const SafeFutureHandle<T>& {
+const SafeFutureHandle<T>& SafeFutureHandle<T>::kInvalidHandle =
+    []() -> const SafeFutureHandle<T>& {
   static internal::NoDestructor<SafeFutureHandle<T>> instance;
   return *instance;
 }();

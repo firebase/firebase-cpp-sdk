@@ -350,8 +350,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
                               auth_data_->phone_auth_provider_data != nullptr);
   const PhoneAuthProvider::ForceResendingToken invalid_resending_token;
   PhoneListenerDataObjC* objc_listener_data = listener->data_->objc;
-  auto* provider_data =
-      static_cast<PhoneAuthProviderData*>(auth_data_->phone_auth_provider_data);
+  auto* provider_data = static_cast<PhoneAuthProviderData*>(auth_data_->phone_auth_provider_data);
 
   [provider_data->objc_provider
       verifyPhoneNumber:@(options.phone_number.c_str())
@@ -402,10 +401,8 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(const char* verification_id
                                                      const char* verification_code) {
   FIREBASE_ASSERT_RETURN(PhoneAuthCredential(), verification_id && verification_code);
   FIREBASE_ASSERT_RETURN(PhoneAuthCredential(),
-                         auth_data_ != nullptr &&
-                             auth_data_->phone_auth_provider_data != nullptr);
-  auto* provider_data =
-      static_cast<PhoneAuthProviderData*>(auth_data_->phone_auth_provider_data);
+                         auth_data_ != nullptr && auth_data_->phone_auth_provider_data != nullptr);
+  auto* provider_data = static_cast<PhoneAuthProviderData*>(auth_data_->phone_auth_provider_data);
   FIRPhoneAuthCredential* credential =
       [provider_data->objc_provider credentialWithVerificationID:@(verification_id)
                                                 verificationCode:@(verification_code)];
@@ -435,8 +432,7 @@ PhoneAuthProvider PhoneAuthProvider::GetInstance(const Auth& auth) {
     if (auth.auth_data_->phone_auth_provider_data == nullptr) {
       FIRPhoneAuthProvider* objc_provider =
           [FIRPhoneAuthProvider providerWithAuth:AuthImpl(auth.auth_data_.get())];
-      auth.auth_data_->phone_auth_provider_data =
-          new PhoneAuthProviderData(objc_provider);
+      auth.auth_data_->phone_auth_provider_data = new PhoneAuthProviderData(objc_provider);
     }
   }
   return PhoneAuthProvider(auth.auth_data_);

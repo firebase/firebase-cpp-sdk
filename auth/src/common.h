@@ -57,12 +57,12 @@ void LogHeartbeat(const Auth& auth);
   }
 
 // Result functions on User lock the weak_ptr<AuthData> first.
-#define USER_RESULT_FN(class_name, fn_name, result_type)                 \
-  Future<result_type> class_name::fn_name##LastResult() const {          \
-    auto data = auth_data_.lock();                                       \
-    if (!data) return Future<result_type>();                             \
-    return static_cast<const Future<result_type>&>(                      \
-        data->future_impl.LastResult(k##class_name##Fn_##fn_name));      \
+#define USER_RESULT_FN(class_name, fn_name, result_type)            \
+  Future<result_type> class_name::fn_name##LastResult() const {     \
+    auto data = auth_data_.lock();                                  \
+    if (!data) return Future<result_type>();                        \
+    return static_cast<const Future<result_type>&>(                 \
+        data->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
   }
 
 // Returns true if `auth_data` has a user that's currently active.

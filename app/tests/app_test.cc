@@ -288,36 +288,31 @@ App CreateFirebaseApp() {
 }
 
 App CreateFirebaseApp(const char* name) {
-  return App::Create(
-      AppOptions(),
-      name
+  return App::Create(AppOptions(), name
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-      ,
-      firebase::testing::cppsdk::GetTestJniEnv(),
-      firebase::testing::cppsdk::GetTestActivity()
+                     ,
+                     firebase::testing::cppsdk::GetTestJniEnv(),
+                     firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   );
 }
 
 App CreateFirebaseApp(const AppOptions& options) {
-  return App::Create(
-      options
+  return App::Create(options
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-      ,
-      firebase::testing::cppsdk::GetTestJniEnv(),
-      firebase::testing::cppsdk::GetTestActivity()
+                     ,
+                     firebase::testing::cppsdk::GetTestJniEnv(),
+                     firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   );
 }
 
 App CreateFirebaseApp(const AppOptions& options, const char* name) {
-  return App::Create(
-      options,
-      name
+  return App::Create(options, name
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-      ,
-      firebase::testing::cppsdk::GetTestJniEnv(),
-      firebase::testing::cppsdk::GetTestActivity()
+                     ,
+                     firebase::testing::cppsdk::GetTestJniEnv(),
+                     firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
   );
 }

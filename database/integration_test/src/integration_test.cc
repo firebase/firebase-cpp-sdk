@@ -196,14 +196,14 @@ void FirebaseDatabaseTest::InitializeAppAndAuth() {
 
   // Initialize Firebase Auth.
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(
-      shared_app_, &shared_auth_, [](const ::firebase::App& app, void* target) {
-        LogDebug("Attempting to initialize Firebase Auth.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<firebase::auth::Auth*>(target) =
-            ::firebase::auth::Auth::GetAuth(app, &result);
-        return result;
-      });
+  initializer.Initialize(shared_app_, &shared_auth_,
+                         [](const ::firebase::App& app, void* target) {
+                           LogDebug("Attempting to initialize Firebase Auth.");
+                           ::firebase::InitResult result;
+                           *reinterpret_cast<firebase::auth::Auth*>(target) =
+                               ::firebase::auth::Auth::GetAuth(app, &result);
+                           return result;
+                         });
 
   WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 

@@ -70,8 +70,7 @@ Future<std::string> User::GetToken(bool force_refresh) {
                       if (!locked) return;
                       locked->future_impl.Complete(
                           handle, AuthErrorFromNSError(error),
-                          [error.localizedDescription UTF8String],
-                          [token](std::string *result) {
+                          [error.localizedDescription UTF8String], [token](std::string *result) {
                             result->assign(token == nullptr ? "" : [token UTF8String]);
                           });
                     }];
@@ -163,14 +162,13 @@ Future<void> User::UpdatePassword(const char *password) {
   ReferenceCountedFutureImpl &futures = data->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdatePassword);
   std::weak_ptr<AuthData> weak_auth = auth_data_;
-  [UserImpl(data.get())
-      updatePassword:@(password)
-          completion:^(NSError *_Nullable error) {
-            auto locked = weak_auth.lock();
-            if (!locked) return;
-            locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
-                                         [error.localizedDescription UTF8String]);
-          }];
+  [UserImpl(data.get()) updatePassword:@(password)
+                            completion:^(NSError *_Nullable error) {
+                              auto locked = weak_auth.lock();
+                              if (!locked) return;
+                              locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                                           [error.localizedDescription UTF8String]);
+                            }];
   return MakeFuture(&futures, handle);
 }
 
@@ -309,9 +307,8 @@ Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &creden
                        completion:^(NSError *_Nullable error) {
                          auto locked = weak_auth.lock();
                          if (!locked) return;
-                         locked->future_impl.Complete(
-                             handle, AuthErrorFromNSError(error),
-                             [error.localizedDescription UTF8String]);
+                         locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                                      [error.localizedDescription UTF8String]);
                        }];
 #else   // non iOS Apple platforms (eg: tvOS).
   futures.Complete(handle, kAuthErrorApiNotAvailable,
@@ -356,9 +353,8 @@ Future<void> User::Reauthenticate(const Credential &credential) {
                                      NSError *_Nullable error) {
                           auto locked = weak_auth.lock();
                           if (!locked) return;
-                          locked->future_impl.Complete(
-                              handle, AuthErrorFromNSError(error),
-                              [error.localizedDescription UTF8String]);
+                          locked->future_impl.Complete(handle, AuthErrorFromNSError(error),
+                                                       [error.localizedDescription UTF8String]);
                         }];
   return MakeFuture(&futures, handle);
 }
@@ -369,8 +365,8 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential &credent
     return Future<AuthResult>();
   }
   ReferenceCountedFutureImpl &futures = data->future_impl;
-  const auto handle = futures.SafeAlloc<AuthResult>(
-      kUserFn_ReauthenticateAndRetrieveData, AuthResult());
+  const auto handle =
+      futures.SafeAlloc<AuthResult>(kUserFn_ReauthenticateAndRetrieveData, AuthResult());
   if (!credential.is_valid()) {
     futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
     return MakeFuture(&futures, handle);

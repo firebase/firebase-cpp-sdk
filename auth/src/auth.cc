@@ -63,13 +63,12 @@ bool PushBackIfMissing(const T& entry, std::vector<T>* v) {
 
 void PruneAndRemoveWeak(const AuthData* target,
                         std::vector<std::weak_ptr<AuthData>>* auths) {
-  auths->erase(
-      std::remove_if(auths->begin(), auths->end(),
-                     [target](const std::weak_ptr<AuthData>& w) {
-                       auto locked = w.lock();
-                       return !locked || locked.get() == target;
-                     }),
-      auths->end());
+  auths->erase(std::remove_if(auths->begin(), auths->end(),
+                              [target](const std::weak_ptr<AuthData>& w) {
+                                auto locked = w.lock();
+                                return !locked || locked.get() == target;
+                              }),
+               auths->end());
 }
 
 bool AddWeakIfMissing(const std::shared_ptr<AuthData>& auth_data,

@@ -218,11 +218,10 @@ TEST_F(AppStateTest, ServiceTeardownRespectsPriorityAndReverseCreationOrder) {
 
     // Create consumer BEFORE provider to verify teardown_priority overrides
     // creation order and keeps providers alive while consumers tear down.
-    state->GetOrCreateService<RecordingService>(
-        &kTagA, "", [&](AppState&) {
-          return std::make_shared<RecordingService>(
-              "consumer_first", &destroyed, kDefaultServiceTeardownPriority);
-        });
+    state->GetOrCreateService<RecordingService>(&kTagA, "", [&](AppState&) {
+      return std::make_shared<RecordingService>(
+          "consumer_first", &destroyed, kDefaultServiceTeardownPriority);
+    });
     state->GetOrCreateService<ConsumerCheckingProviderOnDestroy>(
         &kTagConsumer, "", [&](AppState& s) {
           return std::make_shared<ConsumerCheckingProviderOnDestroy>(
@@ -233,11 +232,10 @@ TEST_F(AppStateTest, ServiceTeardownRespectsPriorityAndReverseCreationOrder) {
           return std::make_shared<RecordingService>(
               "provider", &destroyed, kProviderServiceTeardownPriority);
         });
-    state->GetOrCreateService<RecordingService>(
-        &kTagB, "", [&](AppState&) {
-          return std::make_shared<RecordingService>(
-              "consumer_second", &destroyed, kDefaultServiceTeardownPriority);
-        });
+    state->GetOrCreateService<RecordingService>(&kTagB, "", [&](AppState&) {
+      return std::make_shared<RecordingService>(
+          "consumer_second", &destroyed, kDefaultServiceTeardownPriority);
+    });
   }
 
   EXPECT_TRUE(consumer_saw_provider_alive);
@@ -260,7 +258,8 @@ TEST_F(AppStateTest, DetachableServiceAllowsReplacementWhileOldHandleLives) {
   ASSERT_NE(first.second, nullptr);
 
   // Detach from AppState cache (simulating Firestore::Terminate()).
-  EXPECT_TRUE(state->DetachService(&kDetachTag, "(default)", first.second.get()));
+  EXPECT_TRUE(
+      state->DetachService(&kDetachTag, "(default)", first.second.get()));
   // Old handle keeps the detached service alive!
   EXPECT_TRUE(destroyed.empty());
 
