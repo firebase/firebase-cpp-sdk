@@ -560,18 +560,16 @@ void HandleLoadedData(const Future<std::string>& future, AuthData* auth_data) {
     return;
   }
   AssignLoadedData(future, auth_data);
-  auto* weak_holder = new std::weak_ptr<AuthData>(auth_data->MakeWeakHandle());
   auto scheduler_callback = NewCallback(
-      [](std::weak_ptr<AuthData>* raw_weak_auth) {
-        std::unique_ptr<std::weak_ptr<AuthData>> weak_auth(raw_weak_auth);
-        std::shared_ptr<AuthData> pinned = weak_auth->lock();
+      [](std::weak_ptr<AuthData> weak_auth) {
+        std::shared_ptr<AuthData> pinned = weak_auth.lock();
         if (!pinned) return;
         // Don't trigger token listeners if token gets refreshed, since it will
         // get triggered inside LoadFinishTriggerListeners anyway.
         (void)EnsureFreshToken(pinned.get(), false, false);
         LoadFinishTriggerListeners(pinned.get());
       },
-      weak_holder);
+      auth_data->MakeWeakHandle());
 
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->scheduler_.Schedule(scheduler_callback);

@@ -173,8 +173,11 @@ void Terminate() {
 #if defined(_WIN32)
   if (g_analytics_module) {
     // Make sure to notify the SDK that the analytics is being terminated to
-    // upload any pending data.
-    NotifyAppLifecycleChange(AppLifecycleState::kTermination);
+    // upload any pending data. Call the dynamic C export directly because
+    // g_initialized has already been cleared above.
+    GoogleAnalytics_NotifyAppLifecycleChange(
+        static_cast<GoogleAnalytics_AppLifecycleState>(
+            AppLifecycleState::kTermination));
 
     FirebaseAnalytics_UnloadDynamicFunctions();
     FreeLibrary(g_analytics_module);
