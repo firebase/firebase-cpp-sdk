@@ -613,6 +613,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Changes
+    - General (Desktop): Fixed Auth and App Check staying registered with their
+      `App` after being deleted. Previously a deleted `AppCheck` instance could
+      be silently re-created by other products using the same `App`.
+
 ### 14.2.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.2.0.
