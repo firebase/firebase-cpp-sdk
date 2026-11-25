@@ -615,6 +615,9 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - General (Desktop): Fixed Auth and App Check staying registered with their
+      `App` after being deleted. Previously a deleted `AppCheck` instance could
+      be silently re-created by other products using the same `App`.
     - App Check (Desktop): Fixed requests from any `App` other than the first
       one created being sent without an App Check token.
 
