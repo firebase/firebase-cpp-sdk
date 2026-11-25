@@ -613,12 +613,6 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
-- Changes
-    - General (Desktop): Firebase products now register themselves in the
-      Firebase user agent when an `App` is created, so that desktop usage
-      is attributed to the products an application uses.
-
 ### 14.2.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.2.0.
