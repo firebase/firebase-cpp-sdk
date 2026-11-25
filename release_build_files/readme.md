@@ -618,6 +618,9 @@ code.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.
+    - Database (Desktop): Fixed a crash on the first write when the persistence
+      cache directory could not be created (such as against the Realtime
+      Database emulator on Windows), including when persistence is disabled.
 
 ### 14.2.0
 - Changes

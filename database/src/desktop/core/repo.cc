@@ -474,51 +474,49 @@ void Repo::DeferredInitialization() {
 
   // Set up server sync tree.
   {
-    // The path path to the on-disk persistence cache, relative to the
-    // per-application data directory.
-    std::string database_path;
-
-    const char* package_name = database_->GetApp()->options().package_name();
-    if (!package_name) {
-      logger_->LogError("Could not initialize persistence: No package_name.");
-      return;
-    }
-
-    if (url_.empty()) {
-      logger_->LogError("Could not initialize persistence: No database url.");
-      return;
-    }
-
-    // Skip past the https:// or http://
-    auto start = url_.find("//") + strlen("//");
-    std::string url_domain = url_.substr(start);
-
-    database_path += package_name;
-    database_path += "/";
-    database_path += url_domain;
-
-    std::string app_data_path_error;
-    std::string app_data_path =
-        AppDataDir(database_path.c_str(),
-                   /* should_create = */ true, &app_data_path_error);
-    if (app_data_path.empty()) {
-      logger_->LogError(
-          "Could not initialize persistence: App data directory error: %s",
-          app_data_path_error.c_str());
-      return;
-    }
-
-    logger_->LogDebug("app_data_path: %s", app_data_path.c_str());
-
     // Set up write tree.
     auto pending_write_tree = std::make_unique<WriteTree>();
 
-    // Set up persistence manager
+    // Set up persistence manager. Only resolve and create the on-disk cache
+    // directory when persistence is enabled, and fall back to a no-op
+    // persistence manager if the directory or LevelDB store cannot be created
+    // so `server_sync_tree_` and `info_sync_tree_` are always initialized.
     std::unique_ptr<PersistenceManagerInterface> persistence_manager;
     if (persistence_enabled_) {
-      persistence_manager =
-          CreatePersistenceManager(app_data_path.c_str(), logger_);
-    } else {
+      const char* package_name = database_->GetApp()->options().package_name();
+      if (!package_name || package_name[0] == '\0') {
+        logger_->LogError("Could not initialize persistence: No package_name.");
+      } else if (url_.empty()) {
+        logger_->LogError("Could not initialize persistence: No database url.");
+      } else {
+        // Skip past the https:// or http:// prefix if present.
+        const auto scheme_pos = url_.find("//");
+        const std::string url_domain =
+            (scheme_pos != std::string::npos)
+                ? url_.substr(scheme_pos + strlen("//"))
+                : url_;
+
+        std::string database_path;
+        database_path += package_name;
+        database_path += "/";
+        database_path += url_domain;
+
+        std::string app_data_path_error;
+        std::string app_data_path =
+            AppDataDir(database_path.c_str(),
+                       /* should_create = */ true, &app_data_path_error);
+        if (app_data_path.empty()) {
+          logger_->LogError(
+              "Could not initialize persistence: App data directory error: %s",
+              app_data_path_error.c_str());
+        } else {
+          logger_->LogDebug("app_data_path: %s", app_data_path.c_str());
+          persistence_manager =
+              CreatePersistenceManager(app_data_path.c_str(), logger_);
+        }
+      }
+    }
+    if (!persistence_manager) {
       persistence_manager = std::make_unique<NoopPersistenceManager>();
     }
 

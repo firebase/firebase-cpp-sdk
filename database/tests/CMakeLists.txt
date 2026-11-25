@@ -338,6 +338,16 @@ firebase_cpp_cc_test(
 )
 
 firebase_cpp_cc_test(
+  firebase_rtdb_desktop_core_repo_test
+  SOURCES
+    desktop/core/repo_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_database
+    firebase_testing
+)
+
+firebase_cpp_cc_test(
   firebase_rtdb_desktop_connection_web_socket_client_impl_test
   SOURCES
     desktop/connection/web_socket_client_impl_test.cc
