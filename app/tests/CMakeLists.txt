@@ -230,6 +230,13 @@ firebase_cpp_cc_test(firebase_app_path_test
     firebase_app
 )
 
+firebase_cpp_cc_test(firebase_app_function_registry_test
+  SOURCES
+    function_registry_test.cc
+  DEPENDS
+    firebase_app
+)
+
 if (MSVC)
   # On Windows, our locale library's GetTimezone() function requires the icu.dll
   # system library for converting from Windows time zones to IANA time zones.

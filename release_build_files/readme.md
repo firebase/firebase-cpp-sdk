@@ -621,6 +621,9 @@ code.
       `UMP`) is owned by a static object (for example a static
       `std::unique_ptr`) and destroyed after the SDK's own globals.
       ([#110](https://github.com/firebase/firebase-cpp-sdk/issues/110))
+    - General (Desktop): Fixed Auth and App Check staying registered with their
+      `App` after being deleted. Previously a deleted `AppCheck` instance could
+      be silently re-created by other products using the same `App`.
     - Installations: Fixed a crash when an `Installations` object is used
       after its `App` has been destroyed. Its methods now return an invalid
       `Future` in that state, and `Installations::GetInstance()` on a newly
