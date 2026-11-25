@@ -613,12 +613,6 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
-- Changes
-    - Firestore (Desktop): Firestore now sends the current Firebase user
-      agent with each request, as it does on Android and iOS, so that
-      desktop Firestore usage is reported.
-
 ### 14.2.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.2.0.
