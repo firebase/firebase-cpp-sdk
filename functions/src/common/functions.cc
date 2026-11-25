@@ -47,6 +47,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
         // Nothing to tear down.
     },
     false);
+FIREBASE_APP_REGISTER_LIBRARY(functions, "fire-fn",
+                              FIREBASE_VERSION_NUMBER_STRING);
 
 namespace firebase {
 namespace functions {
