@@ -15,7 +15,10 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 #define FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 
+#include <atomic>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "app/rest/transport_curl.h"
@@ -29,28 +32,44 @@ namespace firebase {
 namespace functions {
 namespace internal {
 
-class HttpsCallableRequest : public rest::Request {
+// Heap-allocated per-call operation state so Call() never captures `this` or
+// stack references, supports concurrent calls on the same reference, and
+// drains safely when FunctionsInternal tears down.
+class CallOperation {
  public:
-  // Mark the transfer completed.
-  void MarkCompleted() override;
+  CallOperation(std::shared_ptr<detail::FutureImplCore> future_core,
+                SafeFutureHandle<HttpsCallableResult> future_handle);
 
-  // Mark the transfer failed.
-  void MarkFailed() override;
+  rest::Request& request() { return request_; }
 
-  void set_future_impl(ReferenceCountedFutureImpl* impl) {
-    future_impl_ = impl;
+  // Launches the synchronous curl request on a detached worker thread unless
+  // CancelAndWait() has already been called.
+  void Launch(const std::shared_ptr<CallOperation>& self,
+              const std::string* app_check_token = nullptr);
+
+  // Marks the operation cancelled and blocks until any in-flight curl transfer
+  // has returned (without blocking if the worker has already moved on to user
+  // completion callbacks).
+  void CancelAndWait();
+
+  bool is_completed() const {
+    return completed_.load(std::memory_order_acquire);
   }
-
-  void set_future_handle(SafeFutureHandle<HttpsCallableResult> handle) {
-    future_handle_ = handle;
-  }
-
-  void set_response(rest::Response* response) { response_ = response; }
 
  private:
-  ReferenceCountedFutureImpl* future_impl_;
+  void RunOnWorker();
+
+  std::shared_ptr<detail::FutureImplCore> future_core_;
   SafeFutureHandle<HttpsCallableResult> future_handle_;
-  rest::Response* response_;
+  rest::TransportCurl transport_;
+  rest::Request request_;
+  rest::Response response_;
+
+  std::mutex state_mutex_;
+  std::condition_variable state_cv_;
+  bool cancelled_ = false;
+  bool in_flight_ = false;
+  std::atomic<bool> completed_{false};
 };
 
 class HttpsCallableReferenceInternal {
@@ -90,14 +109,21 @@ class HttpsCallableReferenceInternal {
   Future<HttpsCallableResult> Call(const Variant& data);
   Future<HttpsCallableResult> CallLastResult();
 
-  // This is a static method so that the Request can construct an
-  // HttpsCallableResult, since this is a friend class for it.
-  static void ResolveFuture(ReferenceCountedFutureImpl* future_impl,
-                            SafeFutureHandle<HttpsCallableResult> future_handle,
-                            rest::Response* response);
+  // Parses the response and completes `future_core` for `future_handle`.
+  // Static friend helper so CallOperation can construct HttpsCallableResult.
+  static void ResolveFuture(
+      const std::shared_ptr<detail::FutureImplCore>& future_core,
+      SafeFutureHandle<HttpsCallableResult> future_handle, Error error,
+      const std::string& error_description, Variant data);
 
   // Pointer to the FunctionsInternal instance we are a part of.
   FunctionsInternal* functions_internal() const { return functions_.get(); }
+
+  bool Equals(const HttpsCallableReferenceInternal& other) const {
+    return functions_ == other.functions_ && url_ == other.url_ &&
+           options_.limited_use_app_check_token ==
+               other.options_.limited_use_app_check_token;
+  }
 
  private:
   // Returns the auth token for the current user, if there is a current user,
@@ -117,13 +143,6 @@ class HttpsCallableReferenceInternal {
 
   // Options for the callable reference.
   HttpsCallableOptions options_;
-
-  rest::TransportCurl transport_;
-  // For now, we only allow one request per reference at a time in C++.
-  // TODO(klimt): Figure out the lifetime issues enough to allow multiple
-  // simultaneous requests.
-  HttpsCallableRequest request_;
-  rest::Response response_;
 };
 
 }  // namespace internal

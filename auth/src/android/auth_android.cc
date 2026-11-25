@@ -19,12 +19,14 @@
 
 #include <cstdint>
 #include <cstring>
+#include <mutex>
 #include <string>
 
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util_android.h"
 #include "auth/auth_resources.h"
 #include "auth/src/android/common_android.h"
@@ -118,7 +120,16 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/auth/internal/cpp/JniIdTokenListener",
     JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS)
 
-static int g_initialized_count = 0;
+struct AuthAndroidInitState {
+  std::mutex mutex;
+  int initialized_count = 0;
+};
+
+AuthAndroidInitState& GetAuthInitState() {
+  static ::firebase::internal::NoDestructor<AuthAndroidInitState> state;
+  return *state;
+}
+
 static const char* kErrorEmptyEmailPassword =
     "Empty email or password are not allowed.";
 
@@ -235,34 +246,52 @@ void* CreatePlatformAuth(const App& app) {
   jobject activity = app.activity();
 
   // Cache the JNI method ids so we only have to look them up by name once.
-  if (!g_initialized_count) {
-    if (!util::Initialize(env, activity)) return nullptr;
+  AuthAndroidInitState& init_state = GetAuthInitState();
+  {
+    std::lock_guard<std::mutex> lock(init_state.mutex);
+    if (init_state.initialized_count == 0) {
+      if (!util::Initialize(env, activity)) return nullptr;
 
-    // Cache embedded files and load embedded classes.
-    const std::vector<internal::EmbeddedFile> embedded_files =
-        util::CacheEmbeddedFiles(env, activity,
-                                 internal::EmbeddedFile::ToVector(
-                                     firebase_auth::auth_resources_filename,
-                                     firebase_auth::auth_resources_data,
-                                     firebase_auth::auth_resources_size));
+      // Cache embedded files and load embedded classes.
+      const std::vector<internal::EmbeddedFile> embedded_files =
+          util::CacheEmbeddedFiles(env, activity,
+                                   internal::EmbeddedFile::ToVector(
+                                       firebase_auth::auth_resources_filename,
+                                       firebase_auth::auth_resources_data,
+                                       firebase_auth::auth_resources_size));
 
-    if (!(CacheAuthMethodIds(env, activity, embedded_files) &&
-          CacheUserMethodIds(env, activity) &&
-          CacheCredentialMethodIds(env, activity, embedded_files) &&
-          CacheCommonMethodIds(env, activity))) {
-      ReleaseClasses(env);
-      util::Terminate(env);
-      return nullptr;
+      if (!(CacheAuthMethodIds(env, activity, embedded_files) &&
+            CacheUserMethodIds(env, activity) &&
+            CacheCredentialMethodIds(env, activity, embedded_files) &&
+            CacheCommonMethodIds(env, activity))) {
+        ReleaseClasses(env);
+        util::Terminate(env);
+        return nullptr;
+      }
     }
+    init_state.initialized_count++;
   }
-  g_initialized_count++;
 
   // Create the FirebaseAuth class in Java.
   jobject platform_app = app.GetPlatformApp();
   jobject j_auth_impl = env->CallStaticObjectMethod(
       auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
-  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+  const bool exception = util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(platform_app);
+  if (exception || j_auth_impl == nullptr) {
+    std::lock_guard<std::mutex> lock(init_state.mutex);
+    if (init_state.initialized_count > 0) {
+      init_state.initialized_count--;
+      if (init_state.initialized_count == 0) {
+        ReleaseClasses(env);
+        util::Terminate(env);
+      }
+    }
+    if (j_auth_impl != nullptr) {
+      env->DeleteLocalRef(j_auth_impl);
+    }
+    return nullptr;
+  }
 
   // Ensure the reference hangs around.
   void* auth_impl = nullptr;
@@ -345,9 +374,11 @@ void DestroyPlatformAuth(AuthData* auth_data) {
     SetImplFromLocalRef(env, nullptr, &auth_data->auth_impl);
   }
 
-  FIREBASE_ASSERT(g_initialized_count);
-  g_initialized_count--;
-  if (g_initialized_count == 0 && env != nullptr) {
+  AuthAndroidInitState& init_state = GetAuthInitState();
+  std::lock_guard<std::mutex> lock(init_state.mutex);
+  FIREBASE_ASSERT(init_state.initialized_count > 0);
+  init_state.initialized_count--;
+  if (init_state.initialized_count == 0 && env != nullptr) {
     ReleaseClasses(env);
     util::Terminate(env);
   }
@@ -604,7 +635,7 @@ Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char* email,
 
 User Auth::current_user() {
   if (!auth_data_) return User();
-  return auth_data_->MakeCurrentUserHandle();
+  return auth_data_->MakeStrongCurrentUserHandle();
 }
 
 std::string Auth::language_code() const {
@@ -691,10 +722,6 @@ Future<std::string> AuthData::GetTokenAsync(bool /*force_refresh*/) {
 std::string AuthData::GetCurrentUserUid() { return {}; }
 void AuthData::StartTokenListener() {}
 void AuthData::StopTokenListener() {}
-void AuthData::AddAuthStateListener(AuthStateCallback /*callback*/,
-                                    void* /*context*/) {}
-void AuthData::RemoveAuthStateListener(AuthStateCallback /*callback*/,
-                                       void* /*context*/) {}
 
 // Not implemented for Android.
 void EnableTokenAutoRefresh(AuthData* auth_data) {}

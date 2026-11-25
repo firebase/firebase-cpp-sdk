@@ -69,19 +69,19 @@ class Functions {
   ~Functions() = default;
 
   /// @brief Returns true if this Functions handle is valid.
-  bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
 
   /// @brief Returns true if this Functions handle is valid.
-  explicit operator bool() const { return is_valid(); }
+  explicit operator bool() const noexcept { return is_valid(); }
 
   /// @brief Equality comparison (checks whether two handles refer to the same
   /// underlying Functions instance).
-  bool operator==(const Functions& other) const {
+  bool operator==(const Functions& other) const noexcept {
     return internal_ == other.internal_;
   }
 
   /// @brief Inequality comparison.
-  bool operator!=(const Functions& other) const {
+  bool operator!=(const Functions& other) const noexcept {
     return internal_ != other.internal_;
   }
 

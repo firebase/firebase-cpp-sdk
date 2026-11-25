@@ -117,7 +117,6 @@ FunctionsInternal::FunctionsInternal(::firebase::internal::AppState& app_state,
                                      const App& app, const char* region)
     : app_state_(app_state), region_(region) {
   if (!Initialize(app)) return;
-  initialized_ = true;
   const char kApiIdentifier[] = "Functions";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
   JNIEnv* env = app.GetJNIEnv();
@@ -127,12 +126,25 @@ FunctionsInternal::FunctionsInternal(::firebase::internal::AppState& app_state,
       firebase_functions::GetClass(),
       firebase_functions::GetMethodId(firebase_functions::kGetInstance),
       platform_app, region_str);
-  util::CheckAndClearJniExceptions(env);
+  std::string exception = util::GetAndClearExceptionMessage(env);
   env->DeleteLocalRef(platform_app);
   env->DeleteLocalRef(region_str);
-  assert(functions_obj != nullptr);
+  if (functions_obj == nullptr || !exception.empty()) {
+    if (functions_obj != nullptr) {
+      env->DeleteLocalRef(functions_obj);
+    }
+    LogError("firebase::functions::Functions creation failed %s",
+             exception.c_str());
+    Terminate(env);
+    return;
+  }
   obj_ = env->NewGlobalRef(functions_obj);
   env->DeleteLocalRef(functions_obj);
+  if (obj_ == nullptr) {
+    Terminate(env);
+    return;
+  }
+  initialized_ = true;
 }
 
 FunctionsInternal::~FunctionsInternal() {

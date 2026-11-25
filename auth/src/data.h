@@ -17,7 +17,10 @@
 #ifndef FIREBASE_AUTH_SRC_DATA_H_
 #define FIREBASE_AUTH_SRC_DATA_H_
 
+#include <atomic>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -83,9 +86,18 @@ struct AuthData : public ::firebase::internal::AuthTokenProvider {
   // invalid Auth if AppState is already tearing down.
   Auth MakeAuthHandle();
 
-  // Creates a non-owning User handle referring to this AuthData, or an invalid
-  // User if no user is signed in or AppState is tearing down.
+  // Creates a non-owning User handle referring to this AuthData (for storage
+  // inside Future<AuthResult> / Future<User>), or an invalid User if no user is
+  // signed in or AppState is tearing down.
   User MakeCurrentUserHandle();
+
+  // Creates an owning User handle sharing AppState's control block (for
+  // Auth::current_user()), or an invalid User if no user is signed in.
+  User MakeStrongCurrentUserHandle();
+
+  // Clones a User as a non-owning weak handle for storage inside Future
+  // results.
+  static User CloneWeakUser(const User& user) { return User::CloneWeak(user); }
 
   // Internal listener registration used by Auth-owned helpers (no weak_ptr
   // back-registration needed since AuthData removes them before destroying
@@ -105,9 +117,6 @@ struct AuthData : public ::firebase::internal::AuthTokenProvider {
   std::string GetCurrentUserUid() override;
   void StartTokenListener() override;
   void StopTokenListener() override;
-  void AddAuthStateListener(AuthStateCallback callback, void* context) override;
-  void RemoveAuthStateListener(AuthStateCallback callback,
-                               void* context) override;
 
   /// Non-owning reference to the owning AppState (guaranteed to outlive this).
   ::firebase::internal::AppState& app_state;
@@ -160,6 +169,30 @@ struct AuthData : public ::firebase::internal::AuthTokenProvider {
 
   // Tracks if the persistent cache load is pending.
   bool persistent_cache_load_pending = true;
+
+  // Synchronization for Auth::current_user() callers waiting for initial
+  // persistent cache load without registering an AuthStateListener (preventing
+  // lock-order inversions with product mutexes during NotifyAllListeners).
+  std::atomic<bool> persistent_cache_loaded{false};
+  std::mutex persistent_cache_cv_mutex;
+  std::condition_variable persistent_cache_cv;
+
+  void MarkPersistentCacheLoaded() {
+    if (persistent_cache_loaded.load(std::memory_order_acquire)) return;
+    {
+      std::lock_guard<std::mutex> lock(persistent_cache_cv_mutex);
+      persistent_cache_loaded.store(true, std::memory_order_release);
+    }
+    persistent_cache_cv.notify_all();
+  }
+
+  void WaitForPersistentCacheLoad() {
+    if (persistent_cache_loaded.load(std::memory_order_acquire)) return;
+    std::unique_lock<std::mutex> lock(persistent_cache_cv_mutex);
+    persistent_cache_cv.wait(lock, [this]() {
+      return persistent_cache_loaded.load(std::memory_order_acquire);
+    });
+  }
 
   // Mutex protecting `expect_id_token_listener_callback`.
   Mutex expect_id_token_mutex;

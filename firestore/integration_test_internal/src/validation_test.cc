@@ -406,46 +406,28 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
                ErrorMessage(ErrorCase::kSettingsDisableSsl));
 }
 
-TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {
-  EXPECT_ERROR(Firestore::GetInstance(/*app=*/App(),
-                                      /*init_result=*/(InitResult*)nullptr),
-               "firebase::App instance cannot be invalid. Use other "
-               "Firestore::GetInstance() if you'd like to use the registered "
-               "default app instance.");
-}
-
-TEST_F(ValidationTest, FirestoreGetInstanceWithNullDatabaseNameFails) {
-  EXPECT_ERROR(Firestore::GetInstance(/*db_name=*/(char*)nullptr,
-                                      /*init_result=*/(InitResult*)nullptr),
-               "Provided database ID must not be null. Use other "
-               "Firestore::GetInstance() if you'd like to use the default "
-               "database ID.");
+TEST_F(ValidationTest, FirestoreGetInstanceWithInvalidAppReturnsInvalid) {
+  InitResult result = kInitResultSuccess;
+  Firestore instance = Firestore::GetInstance(/*app=*/App(), &result);
+  EXPECT_EQ(kInitResultFailedMissingDependency, result);
+  EXPECT_FALSE(instance.is_valid());
 }
 
 TEST_F(ValidationTest,
-       FirestoreGetInstanceWithNonNullDatabaseIdButNullAppFails) {
-  EXPECT_ERROR(Firestore::GetInstance(/*app=*/App(), "foo",
-                                      /*init_result=*/(InitResult*)nullptr),
-               "firebase::App instance cannot be invalid. Use other "
-               "Firestore::GetInstance() if you'd like to use the registered "
-               "default app instance.");
+       FirestoreGetInstanceWithNonNullDatabaseIdButInvalidAppReturnsInvalid) {
+  InitResult result = kInitResultSuccess;
+  Firestore instance = Firestore::GetInstance(/*app=*/App(), "foo", &result);
+  EXPECT_EQ(kInitResultFailedMissingDependency, result);
+  EXPECT_FALSE(instance.is_valid());
 }
 
 TEST_F(ValidationTest,
        FirestoreGetInstanceWithNonNullAppButNullDatabaseNameFails) {
   EXPECT_ERROR(Firestore::GetInstance(app(), /*db_name=*/(char*)nullptr,
                                       /*init_result=*/(InitResult*)nullptr),
-               "Provided database ID must not be null. Use other "
-               "Firestore::GetInstance() if you'd like to use the default "
+               "Provided database ID must not be null. Use "
+               "Firestore::GetInstance(app) if you'd like to use the default "
                "database ID.");
-}
-
-TEST_F(ValidationTest,
-       FirestoreGetInstanceWithNoArgumentsReturnsNonNullInstance) {
-  InitResult result;
-  Firestore instance = Firestore::GetInstance(&result);
-  EXPECT_EQ(kInitResultSuccess, result);
-  EXPECT_TRUE(instance.is_valid());
 }
 
 TEST_F(ValidationTest,
@@ -465,28 +447,10 @@ TEST_F(ValidationTest,
 }
 
 TEST_F(ValidationTest,
-       FirestoreGetInstanceWithDatabaseNameReturnsNonNullInstance) {
-  InitResult result;
-  Firestore instance = Firestore::GetInstance("foo", &result);
-  EXPECT_EQ(kInitResultSuccess, result);
-  EXPECT_TRUE(instance.is_valid());
-}
-
-TEST_F(ValidationTest,
        FirestoreGetInstanceCalledMultipleTimeReturnSameInstance) {
-  {
-    Firestore instance1 = Firestore::GetInstance();
-    Firestore instance2 = Firestore::GetInstance();
-    EXPECT_EQ(instance1, instance2);
-  }
   {
     Firestore instance1 = Firestore::GetInstance(app());
     Firestore instance2 = Firestore::GetInstance(app());
-    EXPECT_EQ(instance1, instance2);
-  }
-  {
-    Firestore instance1 = Firestore::GetInstance("foo");
-    Firestore instance2 = Firestore::GetInstance("foo");
     EXPECT_EQ(instance1, instance2);
   }
   {
@@ -498,21 +462,9 @@ TEST_F(ValidationTest,
 
 TEST_F(ValidationTest,
        DifferentFirestoreGetInstanceMethodCanGetSameDefaultFirestoreInstance) {
-  Firestore instance1 = Firestore::GetInstance();
-  Firestore instance2 = Firestore::GetInstance(app());
-  Firestore instance3 = Firestore::GetInstance("(default)");
-  Firestore instance4 = Firestore::GetInstance(app(), "(default)");
+  Firestore instance1 = Firestore::GetInstance(app());
+  Firestore instance2 = Firestore::GetInstance(app(), "(default)");
 
-  EXPECT_EQ(instance1, instance2);
-  EXPECT_EQ(instance1, instance3);
-  EXPECT_EQ(instance1, instance4);
-}
-
-TEST_F(
-    ValidationTest,
-    DifferentFirestoreGetInstanceWithSameDatabaseNameShouldGetSameFirestoreInstance) {
-  Firestore instance1 = Firestore::GetInstance("foo");
-  Firestore instance2 = Firestore::GetInstance(app(), "foo");
   EXPECT_EQ(instance1, instance2);
 }
 
@@ -520,22 +472,12 @@ TEST_F(
     ValidationTest,
     DifferentFirestoreGetInstanceWithDifferentDatabaseNameShouldGetDifferentFirestoreInstance) {
   {
-    Firestore instance1 = Firestore::GetInstance();
-    Firestore instance2 = Firestore::GetInstance("foo");
-    EXPECT_NE(instance1, instance2);
-  }
-  {
-    Firestore instance1 = Firestore::GetInstance("foo");
-    Firestore instance2 = Firestore::GetInstance("bar");
+    Firestore instance1 = Firestore::GetInstance(app());
+    Firestore instance2 = Firestore::GetInstance(app(), "foo");
     EXPECT_NE(instance1, instance2);
   }
   {
     Firestore instance1 = Firestore::GetInstance(app(), "foo");
-    Firestore instance2 = Firestore::GetInstance(app(), "bar");
-    EXPECT_NE(instance1, instance2);
-  }
-  {
-    Firestore instance1 = Firestore::GetInstance("foo");
     Firestore instance2 = Firestore::GetInstance(app(), "bar");
     EXPECT_NE(instance1, instance2);
   }

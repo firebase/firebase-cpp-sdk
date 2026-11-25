@@ -68,13 +68,12 @@ MetadataInternal::MetadataInternal(const StorageReference& storage_reference)
       updated_time_(-1),
       size_bytes_(-1) {
   if (storage_reference.internal_) {
-    storage_ = storage_reference.internal_->LockStorage();
-  }
-  if (storage_reference.is_valid()) {
-    StorageReference ref_copy = storage_reference;
-    bucket_ = ref_copy.bucket();
-    path_ = ref_copy.full_path();
-    name_ = ref_copy.name();
+    storage_ = storage_reference.internal_->weak_storage();
+    if (storage_reference.internal_->is_valid()) {
+      bucket_ = storage_reference.internal_->bucket();
+      path_ = storage_reference.internal_->full_path();
+      name_ = storage_reference.internal_->name();
+    }
   }
 }
 

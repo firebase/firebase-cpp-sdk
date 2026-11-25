@@ -59,11 +59,11 @@ Query& Query::operator=(const Query& src) {
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-Query::Query(Query&& query) : internal_(query.internal_) {
+Query::Query(Query&& query) noexcept : internal_(query.internal_) {
   query.internal_ = nullptr;
 }
 
-Query& Query::operator=(Query&& query) {
+Query& Query::operator=(Query&& query) noexcept {
   if (this == &query) return *this;
   QueryInternal* internal = query.internal_;
   query.internal_ = nullptr;
@@ -193,7 +193,7 @@ Query Query::LimitToLast(size_t limit) {
   return internal_ ? Query(internal_->LimitToLast(limit)) : Query(nullptr);
 }
 
-bool Query::is_valid() const { return internal_ != nullptr; }
+bool Query::is_valid() const noexcept { return internal_ != nullptr; }
 
 }  // namespace database
 }  // namespace firebase

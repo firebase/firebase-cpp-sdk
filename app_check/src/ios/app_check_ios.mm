@@ -29,26 +29,41 @@
 #include "firebase/app_check.h"
 
 // Defines an iOS AppCheckProvider that wraps a given C++ Provider.
-@interface CppAppCheckProvider : NSObject <FIRAppCheckProvider>
+// Holds a weak_ptr to AppState so that if C++ AppState is destroyed while the
+// native FIRApp/FIRAppCheck outlives it, token refreshes fail cleanly instead
+// of dereferencing a freed AppState-owned provider service.
+@interface CppAppCheckProvider : NSObject <FIRAppCheckProvider> {
+  std::weak_ptr<firebase::internal::AppState> _weakAppState;
+}
 
 @property(nonatomic, nullable) firebase::app_check::AppCheckProvider* cppProvider;
 
-- (id)initWithProvider:(firebase::app_check::AppCheckProvider* _Nonnull)provider;
+- (id)initWithProvider:(firebase::app_check::AppCheckProvider* _Nonnull)provider
+              appState:(std::weak_ptr<firebase::internal::AppState>)appState;
 
 @end
 
 @implementation CppAppCheckProvider
 
-- (id)initWithProvider:(firebase::app_check::AppCheckProvider* _Nonnull)provider {
+- (id)initWithProvider:(firebase::app_check::AppCheckProvider* _Nonnull)provider
+              appState:(std::weak_ptr<firebase::internal::AppState>)appState {
   self = [super init];
   if (self) {
     self.cppProvider = provider;
+    _weakAppState = std::move(appState);
   }
   return self;
 }
 
 - (void)getTokenWithCompletion:(nonnull void (^)(FIRAppCheckToken* _Nullable,
                                                  NSError* _Nullable))handler {
+  auto locked_state = _weakAppState.lock();
+  if (!locked_state || _cppProvider == nullptr) {
+    NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
+        firebase::app_check::kAppCheckErrorUnknown, "Firebase App has been destroyed.");
+    handler(nil, ios_error);
+    return;
+  }
   auto token_callback{[handler](firebase::app_check::AppCheckToken token, int error_code,
                                 const std::string& error_message) {
     NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
@@ -62,6 +77,13 @@
 
 - (void)getLimitedUseTokenWithCompletion:(nonnull void (^)(FIRAppCheckToken* _Nullable,
                                                            NSError* _Nullable))handler {
+  auto locked_state = _weakAppState.lock();
+  if (!locked_state || _cppProvider == nullptr) {
+    NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
+        firebase::app_check::kAppCheckErrorUnknown, "Firebase App has been destroyed.");
+    handler(nil, ios_error);
+    return;
+  }
   auto token_callback{[handler](firebase::app_check::AppCheckToken token, int error_code,
                                 const std::string& error_message) {
     NSError* ios_error = firebase::app_check::internal::AppCheckErrorToNSError(
@@ -100,12 +122,16 @@
   if (!cpp_app.has_value()) {
     return nil;
   }
+  auto app_state = firebase::internal::AppState::FromApp(*cpp_app);
+  if (!app_state) {
+    return nil;
+  }
   firebase::app_check::AppCheckProvider* cppProvider =
       _cppProviderFactory->CreateProvider(*cpp_app);
   if (cppProvider == nullptr) {
     return nil;
   }
-  return [[CppAppCheckProvider alloc] initWithProvider:cppProvider];
+  return [[CppAppCheckProvider alloc] initWithProvider:cppProvider appState:app_state];
 }
 
 @end

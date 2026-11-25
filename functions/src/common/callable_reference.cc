@@ -62,13 +62,14 @@ HttpsCallableReference& HttpsCallableReference::operator=(
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-HttpsCallableReference::HttpsCallableReference(HttpsCallableReference&& other)
+HttpsCallableReference::HttpsCallableReference(
+    HttpsCallableReference&& other) noexcept
     : internal_(other.internal_) {
   other.internal_ = nullptr;
 }
 
 HttpsCallableReference& HttpsCallableReference::operator=(
-    HttpsCallableReference&& other) {
+    HttpsCallableReference&& other) noexcept {
   if (this == &other) return *this;
   delete internal_;
   internal_ = other.internal_;
@@ -91,7 +92,16 @@ Future<HttpsCallableResult> HttpsCallableReference::Call(const Variant& data) {
   return internal_ ? internal_->Call(data) : Future<HttpsCallableResult>();
 }
 
-bool HttpsCallableReference::is_valid() const { return internal_ != nullptr; }
+bool HttpsCallableReference::is_valid() const noexcept {
+  return internal_ != nullptr;
+}
+
+bool operator==(const HttpsCallableReference& lhs,
+                const HttpsCallableReference& rhs) {
+  if (!lhs.internal_ && !rhs.internal_) return true;
+  if (!lhs.internal_ || !rhs.internal_) return false;
+  return lhs.internal_->Equals(*rhs.internal_);
+}
 
 }  // namespace functions
 }  // namespace firebase

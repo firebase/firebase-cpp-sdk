@@ -17,15 +17,19 @@
 
 #include <jni.h>
 
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 
 #include "app/src/app_state.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/native_handle_table.h"
 #include "app/src/util_android.h"
 #include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
@@ -126,6 +130,18 @@ class StorageInternal : public ::firebase::internal::Service {
   // firebase::util::RegisterCallbackOnTask for context.
   const char* jni_task_id() { return jni_task_id_.c_str(); }
 
+  // Opaque ABA-proof handle ID for Java CppStorageListener callbacks.
+  int64_t GetNativeHandleId() const { return native_handle_id_; }
+  static std::shared_ptr<StorageInternal> LockFromNativeHandle(int64_t id);
+
+  // Tracks active Java transfer bridge global refs (CppStorageListener,
+  // CppByteDownloader, CppByteUploader) so ~StorageInternal() can call
+  // discardPointers() and release them even when util::CancelCallbacks()
+  // suppresses FutureCallback.
+  enum class NativeBridgeKind { kListener, kByteDownloader, kByteUploader };
+  void RegisterNativeBridge(jobject global_ref, NativeBridgeKind kind);
+  bool TakeNativeBridge(jobject global_ref);
+
  private:
   // Initialize JNI for all classes.
   static bool Initialize(const App& app);
@@ -134,6 +150,9 @@ class StorageInternal : public ::firebase::internal::Service {
   // Initialize classes loaded from embedded files.
   static bool InitializeEmbeddedClasses(const App& app);
 
+  static ::firebase::internal::NativeHandleTable<StorageInternal>&
+  GetNativeHandleTable();
+
   static int initialize_count_;
   static std::map<jint, Error>* java_error_to_cpp_;
 
@@ -141,6 +160,10 @@ class StorageInternal : public ::firebase::internal::Service {
   bool initialized_ = false;
   // Java FirebaseStorage global ref.
   jobject obj_ = nullptr;
+  int64_t native_handle_id_ = 0;
+
+  std::mutex bridges_mutex_;
+  std::unordered_map<jobject, NativeBridgeKind> active_bridges_;
 
   FutureManager future_manager_;
 

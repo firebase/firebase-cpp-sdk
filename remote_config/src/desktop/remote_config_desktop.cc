@@ -52,17 +52,20 @@ static const char* kFilePathSuffix = "remote_config_data";
 template <typename T>
 struct RCDataHandle {
   RCDataHandle(
-      ReferenceCountedFutureImpl* _future_api,
+      std::shared_ptr<detail::FutureImplCore> _future_core,
       const SafeFutureHandle<T>& _future_handle,
       RemoteConfigInternal* _rc_internal,
+      std::weak_ptr<::firebase::internal::AppState> _weak_state,
       std::vector<std::string> _default_keys = std::vector<std::string>())
-      : future_api(_future_api),
+      : future_core(std::move(_future_core)),
         future_handle(_future_handle),
         rc_internal(_rc_internal),
-        default_keys(_default_keys) {}
-  ReferenceCountedFutureImpl* future_api;
+        weak_state(std::move(_weak_state)),
+        default_keys(std::move(_default_keys)) {}
+  std::shared_ptr<detail::FutureImplCore> future_core;
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
   std::vector<std::string> default_keys;
 };
 
@@ -143,58 +146,76 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   const auto future_handle =
       future_impl_.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
 
-  cache_expiration_in_seconds_ =
-      config_settings_.minimum_fetch_interval_in_milliseconds /
-      ::firebase::internal::kMillisecondsPerSecond;
+  bool scheduled = false;
+  {
+    MutexLock lock(internal_mutex_);
+    cache_expiration_in_seconds_ =
+        config_settings_.minimum_fetch_interval_in_milliseconds /
+        ::firebase::internal::kMillisecondsPerSecond;
 
-  uint64_t milliseconds_since_epoch =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::system_clock::now().time_since_epoch())
-          .count();
+    uint64_t milliseconds_since_epoch =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count();
 
-  uint64_t cache_expiration_timestamp =
-      configs_.fetched.timestamp() +
-      ::firebase::internal::kMillisecondsPerSecond *
-          cache_expiration_in_seconds_;
+    uint64_t cache_expiration_timestamp =
+        configs_.fetched.timestamp() +
+        ::firebase::internal::kMillisecondsPerSecond *
+            cache_expiration_in_seconds_;
 
-  // Need to fetch in two cases:
-  // - we are not fetching at this moment
-  // - cache_expiration_in_seconds is zero
-  // or
-  // - we are not fetching at this moment
-  // - cache (fetched) data is older than cache_expiration_in_seconds
-  if (!is_fetch_process_have_task_ &&
-      ((cache_expiration_in_seconds_ == 0) ||
-       (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle = std::make_shared<RCDataHandle<bool>>(
-        &future_impl_, future_handle, this);
+    // Need to fetch in two cases:
+    // - we are not fetching at this moment
+    // - cache_expiration_in_seconds is zero
+    // or
+    // - we are not fetching at this moment
+    // - cache (fetched) data is older than cache_expiration_in_seconds
+    if (!is_fetch_process_have_task_ &&
+        ((cache_expiration_in_seconds_ == 0) ||
+         (cache_expiration_timestamp < milliseconds_since_epoch))) {
+      auto data_handle = std::make_shared<RCDataHandle<bool>>(
+          future_impl_.core(), future_handle, this,
+          app_state_.weak_from_this());
 
-    auto callback = NewCallback(
-        [](ThisRef ref, std::shared_ptr<RCDataHandle<bool>> handle) {
-          ThisRefLock lock(&ref);
-          if (lock.GetReference() != nullptr) {
-            MutexLock lock(handle->rc_internal->internal_mutex_);
+      auto callback = NewCallback(
+          [](ThisRef ref, std::shared_ptr<RCDataHandle<bool>> handle) {
+            auto pinned_state = handle->weak_state.lock();
+            if (!pinned_state) return;
+            FutureStatus future_result = kFutureStatusFailure;
+            bool activated = false;
+            bool should_complete = false;
+            {
+              ThisRefLock ref_lock(&ref);
+              if (ref_lock.GetReference() != nullptr) {
+                MutexLock lock(handle->rc_internal->internal_mutex_);
 
-            handle->rc_internal->FetchInternal();
+                handle->rc_internal->FetchInternal();
 
-            FutureStatus futureResult =
-                (handle->rc_internal->GetInfo().last_fetch_status ==
-                 kLastFetchStatusSuccess)
-                    ? kFutureStatusSuccess
-                    : kFutureStatusFailure;
+                future_result =
+                    (handle->rc_internal->GetInfo().last_fetch_status ==
+                     kLastFetchStatusSuccess)
+                        ? kFutureStatusSuccess
+                        : kFutureStatusFailure;
 
-            bool activated = handle->rc_internal->ActivateFetched();
-            handle->future_api->CompleteWithResult(
-                handle->future_handle, futureResult, kFutureNoErrorMessage,
-                activated);
-          }
-        },
-        safe_this_, data_handle);
+                activated = handle->rc_internal->ActivateFetched();
+                should_complete = true;
+              }
+            }
+            pinned_state.reset();
+            if (should_complete) {
+              ReferenceCountedFutureImpl::CompleteCoreWithResult(
+                  handle->future_core, handle->future_handle, future_result,
+                  kFutureNoErrorMessage, activated);
+            }
+          },
+          safe_this_, data_handle);
 
-    scheduler_.Schedule(callback);
-    is_fetch_process_have_task_ = true;
-  } else {
-    // Do not fetch, complete future immediately.
+      scheduler_.Schedule(callback);
+      is_fetch_process_have_task_ = true;
+      scheduled = true;
+    }
+  }
+  if (!scheduled) {
+    // Do not fetch, complete future immediately outside `internal_mutex_`.
     future_impl_.CompleteWithResult(future_handle, kFutureStatusSuccess,
                                     kFutureNoErrorMessage, false);
   }
@@ -702,55 +723,72 @@ void RemoteConfigInternal::FetchInternal() {
 }
 
 Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
-  MutexLock lock(internal_mutex_);
   const auto future_handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnFetch);
 
-  cache_expiration_in_seconds_ = cache_expiration_in_seconds;
+  bool scheduled = false;
+  {
+    MutexLock lock(internal_mutex_);
+    cache_expiration_in_seconds_ = cache_expiration_in_seconds;
 
-  uint64_t milliseconds_since_epoch =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::system_clock::now().time_since_epoch())
-          .count();
+    uint64_t milliseconds_since_epoch =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count();
 
-  uint64_t cache_expiration_timestamp =
-      configs_.fetched.timestamp() +
-      ::firebase::internal::kMillisecondsPerSecond *
-          cache_expiration_in_seconds_;
+    uint64_t cache_expiration_timestamp =
+        configs_.fetched.timestamp() +
+        ::firebase::internal::kMillisecondsPerSecond *
+            cache_expiration_in_seconds_;
 
-  // Need to fetch in two cases:
-  // - we are not fetching at this moment
-  // - cache_expiration_in_seconds is zero
-  // or
-  // - we are not fetching at this moment
-  // - cache (fetched) data is older than cache_expiration_in_seconds
-  if (!is_fetch_process_have_task_ &&
-      ((cache_expiration_in_seconds_ == 0) ||
-       (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle = std::make_shared<RCDataHandle<void>>(
-        &future_impl_, future_handle, this);
+    // Need to fetch in two cases:
+    // - we are not fetching at this moment
+    // - cache_expiration_in_seconds is zero
+    // or
+    // - we are not fetching at this moment
+    // - cache (fetched) data is older than cache_expiration_in_seconds
+    if (!is_fetch_process_have_task_ &&
+        ((cache_expiration_in_seconds_ == 0) ||
+         (cache_expiration_timestamp < milliseconds_since_epoch))) {
+      auto data_handle = std::make_shared<RCDataHandle<void>>(
+          future_impl_.core(), future_handle, this,
+          app_state_.weak_from_this());
 
-    auto callback = NewCallback(
-        [](ThisRef ref, std::shared_ptr<RCDataHandle<void>> handle) {
-          ThisRefLock lock(&ref);
-          if (lock.GetReference() != nullptr) {
-            MutexLock lock(handle->rc_internal->internal_mutex_);
+      auto callback = NewCallback(
+          [](ThisRef ref, std::shared_ptr<RCDataHandle<void>> handle) {
+            auto pinned_state = handle->weak_state.lock();
+            if (!pinned_state) return;
+            FutureStatus future_result = kFutureStatusFailure;
+            bool should_complete = false;
+            {
+              ThisRefLock ref_lock(&ref);
+              if (ref_lock.GetReference() != nullptr) {
+                MutexLock lock(handle->rc_internal->internal_mutex_);
 
-            handle->rc_internal->FetchInternal();
+                handle->rc_internal->FetchInternal();
 
-            FutureStatus futureResult =
-                (handle->rc_internal->GetInfo().last_fetch_status ==
-                 kLastFetchStatusSuccess)
-                    ? kFutureStatusSuccess
-                    : kFutureStatusFailure;
-            handle->future_api->Complete(handle->future_handle, futureResult);
-          }
-        },
-        safe_this_, data_handle);
+                future_result =
+                    (handle->rc_internal->GetInfo().last_fetch_status ==
+                     kLastFetchStatusSuccess)
+                        ? kFutureStatusSuccess
+                        : kFutureStatusFailure;
+                should_complete = true;
+              }
+            }
+            pinned_state.reset();
+            if (should_complete) {
+              ReferenceCountedFutureImpl::CompleteCore(
+                  handle->future_core, handle->future_handle, future_result);
+            }
+          },
+          safe_this_, data_handle);
 
-    scheduler_.Schedule(callback);
-    is_fetch_process_have_task_ = true;
-  } else {
-    // Do not fetch, complete future immediately.
+      scheduler_.Schedule(callback);
+      is_fetch_process_have_task_ = true;
+      scheduled = true;
+    }
+  }
+  if (!scheduled) {
+    // Do not fetch, complete future immediately outside `internal_mutex_`.
     future_impl_.Complete(future_handle, kFutureStatusSuccess);
   }
   return MakeFuture<void>(&future_impl_, future_handle);

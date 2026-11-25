@@ -28,6 +28,7 @@
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
+#include "app/src/service_interfaces.h"
 #include "database/src/common/listener.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/host_info.h"
@@ -187,6 +188,10 @@ class DatabaseInternal : public ::firebase::internal::Service {
   Mutex repo_mutex_;
   // The local copy of the repository, for offline support and local caching.
   std::unique_ptr<Repo> repo_;
+
+  // Keeps Auth's background ID token refresher active whenever Auth is
+  // attached to `app_state_` (even if Database was created before Auth).
+  ::firebase::internal::TokenSubscription auth_refresh_subscription_;
 };
 
 }  // namespace internal

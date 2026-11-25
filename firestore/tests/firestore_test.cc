@@ -59,10 +59,19 @@ TEST(FirestoreLifecycleTest, DefaultHandleIsInvalid) {
   EXPECT_FALSE(db.batch().is_valid());
 }
 
-TEST(FirestoreLifecycleTest, InvalidAppAndNullDatabaseThrow) {
+TEST(FirestoreLifecycleTest, InvalidAppReturnsInvalidAndNullDatabaseThrows) {
   App invalid_app;
-  EXPECT_THROW(Firestore::GetInstance(invalid_app), std::invalid_argument);
-  EXPECT_THROW(Firestore::GetInstance(), std::invalid_argument);
+  InitResult init_result = kInitResultSuccess;
+  Firestore invalid_db = Firestore::GetInstance(invalid_app, &init_result);
+  EXPECT_FALSE(invalid_db.is_valid());
+  EXPECT_FALSE(static_cast<bool>(invalid_db));
+  EXPECT_EQ(init_result, kInitResultFailedMissingDependency);
+
+  init_result = kInitResultSuccess;
+  Firestore invalid_named =
+      Firestore::GetInstance(invalid_app, "secondary", &init_result);
+  EXPECT_FALSE(invalid_named.is_valid());
+  EXPECT_EQ(init_result, kInitResultFailedMissingDependency);
 
   App app = CreateTestApp("fs_throw_app", "proj-throw");
   EXPECT_THROW(Firestore::GetInstance(app, static_cast<const char*>(nullptr)),
@@ -148,12 +157,14 @@ TEST(FirestoreLifecycleTest, OptInRegisteredDefaultAppLookup) {
   App app = App::CreateRegistered(options);
   ASSERT_TRUE(app.is_valid());
 
-  Firestore db = Firestore::GetInstance();
+  auto found = App::GetInstance();
+  ASSERT_TRUE(found.has_value());
+  Firestore db = Firestore::GetInstance(*found);
   ASSERT_TRUE(db.is_valid());
   EXPECT_EQ(db.app(), app);
   EXPECT_EQ(db, Firestore::GetInstance(app));
 
-  Firestore custom_db = Firestore::GetInstance("custom-reg-db");
+  Firestore custom_db = Firestore::GetInstance(*found, "custom-reg-db");
   ASSERT_TRUE(custom_db.is_valid());
   EXPECT_NE(db, custom_db);
   EXPECT_EQ(custom_db, Firestore::GetInstance(app, "custom-reg-db"));
@@ -227,6 +238,135 @@ TEST(FirestoreLifecycleTest, CrossProductAuthAndAppCheckTeardownOrder) {
   // Firestore drops -> AppState destroys Firestore (priority 0) before Auth and
   // AppCheck (priority -10), with zero UAF or leaks.
   EXPECT_TRUE(weak_state.expired());
+}
+
+TEST(FirestoreLifecycleTest, CopyAndMoveAssignOverwritingLastAppStateOwner) {
+  std::weak_ptr<::firebase::internal::AppState> weak_state1;
+  std::weak_ptr<::firebase::internal::AppState> weak_state2;
+  {
+    Firestore db1;
+    Firestore db2;
+    {
+      App app1 = CreateTestApp("fs_assign_1", "proj-assign-1");
+      App app2 = CreateTestApp("fs_assign_2", "proj-assign-2");
+      weak_state1 = ::firebase::internal::AppState::FromApp(app1);
+      weak_state2 = ::firebase::internal::AppState::FromApp(app2);
+      db1 = Firestore::GetInstance(app1);
+      db2 = Firestore::GetInstance(app2);
+      Settings s1 = db1.settings();
+      s1.set_persistence_enabled(false);
+      db1.set_settings(s1);
+      Settings s2 = db2.settings();
+      s2.set_persistence_enabled(false);
+      db2.set_settings(s2);
+    }
+    // db1 is the sole remaining owner of app1's AppState. Copy-assigning db2
+    // over db1 must destroy app1 cleanly without UAF on app_state_ ordering.
+    db1 = db2;
+    EXPECT_TRUE(weak_state1.expired());
+    EXPECT_FALSE(weak_state2.expired());
+    EXPECT_EQ(db1, db2);
+
+    // Now test move-assignment overwriting the sole owner of a fresh AppState.
+    std::weak_ptr<::firebase::internal::AppState> weak_state3;
+    Firestore db3;
+    {
+      App app3 = CreateTestApp("fs_assign_3", "proj-assign-3");
+      weak_state3 = ::firebase::internal::AppState::FromApp(app3);
+      db3 = Firestore::GetInstance(app3);
+      Settings s3 = db3.settings();
+      s3.set_persistence_enabled(false);
+      db3.set_settings(s3);
+    }
+    db3 = std::move(db1);
+    EXPECT_TRUE(weak_state3.expired());
+    EXPECT_FALSE(db1.is_valid());  // NOLINT
+    EXPECT_EQ(db3, db2);
+  }
+  EXPECT_TRUE(weak_state2.expired());
+}
+
+TEST(FirestoreLifecycleTest,
+     ReverseOrderFirestoreCreatedBeforeAuthAndAppCheck) {
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
+  {
+    Firestore db;
+    {
+      App app = CreateTestApp("fs_reverse_app", "proj-reverse");
+      weak_state = ::firebase::internal::AppState::FromApp(app);
+
+      // Create Firestore BEFORE Auth and AppCheck to exercise teardown_priority
+      // AND reactive AppState token subscriptions.
+      db = Firestore::GetInstance(app);
+      ASSERT_TRUE(db.is_valid());
+      Settings settings = db.settings();
+      settings.set_persistence_enabled(false);
+      db.set_settings(settings);
+      WaitForFuture(db.DisableNetwork());
+
+      auth::Auth auth = auth::Auth::GetAuth(app);
+      app_check::AppCheck app_check = app_check::AppCheck::GetInstance(app);
+      ASSERT_TRUE(auth.is_valid());
+      ASSERT_TRUE(app_check.is_valid());
+    }
+    EXPECT_FALSE(weak_state.expired());
+  }
+  // Background Auth persistent-cache load may momentarily hold a transient
+  // Auth handle during NotifyAllListeners on its scheduler thread; wait
+  // briefly for that callback to finish and release AppState.
+  for (int i = 0; i < 500 && !weak_state.expired(); ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  EXPECT_TRUE(weak_state.expired());
+}
+
+TEST(FirestoreLifecycleTest, TerminateOnTemporaryHandleResolvesFuture) {
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
+  {
+    App app = CreateTestApp("fs_temp_term_app", "proj-temp-term");
+    weak_state = ::firebase::internal::AppState::FromApp(app);
+    {
+      Firestore db = Firestore::GetInstance(app);
+      Settings settings = db.settings();
+      settings.set_persistence_enabled(false);
+      db.set_settings(settings);
+    }
+    // Temporary Firestore handle is destroyed immediately after Terminate()
+    // returns, yet the returned Future<void> must still resolve cleanly.
+    Future<void> term_future = Firestore::GetInstance(app).Terminate();
+    WaitForFuture(term_future);
+    EXPECT_EQ(term_future.error(), kErrorOk);
+  }
+  EXPECT_TRUE(weak_state.expired());
+}
+
+TEST(FirestoreLifecycleTest, MovedFromHandleAndChildBoolOperators) {
+  App app = CreateTestApp("fs_moved_app", "proj-moved");
+  Firestore db = Firestore::GetInstance(app);
+  ASSERT_TRUE(static_cast<bool>(db));
+  Settings settings = db.settings();
+  settings.set_persistence_enabled(false);
+  db.set_settings(settings);
+
+  DocumentReference doc = db.Document("cities/SF");
+  CollectionReference col = db.Collection("cities");
+  EXPECT_TRUE(static_cast<bool>(doc));
+  EXPECT_TRUE(static_cast<bool>(col));
+
+  Firestore moved = std::move(db);
+  EXPECT_FALSE(db.is_valid());  // NOLINT
+  EXPECT_FALSE(static_cast<bool>(db));
+  EXPECT_FALSE(db.app().is_valid());
+  EXPECT_FALSE(db.Document("cities/LA").is_valid());
+  EXPECT_FALSE(db.Collection("cities").is_valid());
+  EXPECT_FALSE(db.batch().is_valid());
+  Future<void> moved_terminate = db.Terminate();
+  EXPECT_EQ(moved_terminate.status(), kFutureStatusComplete);
+  EXPECT_EQ(moved_terminate.error(), Error::kErrorFailedPrecondition);
+  Future<void> moved_clear = db.ClearPersistence();
+  EXPECT_EQ(moved_clear.status(), kFutureStatusComplete);
+  EXPECT_EQ(moved_clear.error(), Error::kErrorFailedPrecondition);
+  EXPECT_TRUE(moved.is_valid());
 }
 
 TEST(FirestoreLifecycleTest, StaticDurationFirestoreSurvivesExit) {

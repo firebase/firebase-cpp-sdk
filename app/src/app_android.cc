@@ -20,7 +20,10 @@
 #include <string.h>
 
 #include <cassert>
+#include <condition_variable>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -34,6 +37,7 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/jobject_reference.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 
@@ -155,47 +159,142 @@ METHOD_LOOKUP_DEFINITION(
 
 namespace {
 
-static int g_methods_cached_count = 0;
-static bool g_initialized_google_play_services = false;
+struct AndroidJniMethodCacheState {
+  std::mutex mutex;
+  int methods_cached_count = 0;
+  bool initialized_google_play_services = false;
+};
 
-void ReleaseClasses(JNIEnv* env);
+AndroidJniMethodCacheState& GetJniCacheState() {
+  static internal::NoDestructor<AndroidJniMethodCacheState> state;
+  return *state;
+}
+
+// Per-name native FirebaseApp lease table. Android's FirebaseApp maintains a
+// process-wide name-keyed singleton registry, so two live C++ Apps cannot
+// safely own or delete the same native FirebaseApp name concurrently.
+struct AndroidNativeLeaseTable {
+  struct Slot {
+    std::weak_ptr<internal::AppState> state;
+    bool creating = false;
+    bool active = false;
+  };
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::map<std::string, Slot, std::less<>> slots;
+};
+
+AndroidNativeLeaseTable& GetNativeLeaseTable() {
+  static internal::NoDestructor<AndroidNativeLeaseTable> table;
+  return *table;
+}
+
+bool AcquireNativeLease(const std::string& name) {
+  AndroidNativeLeaseTable& table = GetNativeLeaseTable();
+  std::shared_ptr<internal::AppState> live_owner;
+  std::unique_lock<std::mutex> lock(table.mutex);
+  for (;;) {
+    auto it = table.slots.find(name);
+    if (it == table.slots.end()) {
+      AndroidNativeLeaseTable::Slot slot;
+      slot.creating = true;
+      slot.active = true;
+      table.slots.emplace(name, std::move(slot));
+      return true;
+    }
+    if (it->second.creating) {
+      table.cv.wait(lock);
+      continue;
+    }
+    if (it->second.active) {
+      live_owner = it->second.state.lock();
+      if (live_owner) {
+        LogError(
+            "An active Firebase App named '%s' already holds the Android "
+            "native FirebaseApp lease. Drop existing handles or choose a "
+            "distinct App name.",
+            name.c_str());
+        return false;
+      }
+      // Existing AppState's strong refcount hit 0 and ~AppState() is finishing
+      // teardown; wait until DestroyPlatformData() releases the native lease.
+      table.cv.wait(lock);
+      continue;
+    }
+    it->second.creating = true;
+    it->second.active = true;
+    return true;
+  }
+}
+
+void BindNativeLease(const std::string& name,
+                     const std::shared_ptr<internal::AppState>& state) {
+  AndroidNativeLeaseTable& table = GetNativeLeaseTable();
+  {
+    std::lock_guard<std::mutex> lock(table.mutex);
+    auto it = table.slots.find(name);
+    if (it != table.slots.end()) {
+      it->second.state = state;
+      it->second.creating = false;
+      it->second.active = true;
+    }
+  }
+  table.cv.notify_all();
+}
+
+void ReleaseNativeLease(const std::string& name) {
+  AndroidNativeLeaseTable& table = GetNativeLeaseTable();
+  {
+    std::lock_guard<std::mutex> lock(table.mutex);
+    table.slots.erase(name);
+  }
+  table.cv.notify_all();
+}
+
+void ReleaseClassesLocked(AndroidJniMethodCacheState& cache, JNIEnv* env) {
+  FIREBASE_ASSERT(cache.methods_cached_count > 0);
+  cache.methods_cached_count--;
+  if (cache.methods_cached_count == 0) {
+    app::ReleaseClass(env);
+    options_builder::ReleaseClass(env);
+    options::ReleaseClass(env);
+    version_registrar::ReleaseClass(env);
+    if (cache.initialized_google_play_services) {
+      google_play_services::Terminate(env);
+      cache.initialized_google_play_services = false;
+    }
+    util::Terminate(env);
+  }
+}
 
 bool CacheMethods(JNIEnv* env, jobject activity) {
-  bool initialize = g_methods_cached_count == 0;
-  g_methods_cached_count++;
+  AndroidJniMethodCacheState& cache = GetJniCacheState();
+  std::lock_guard<std::mutex> lock(cache.mutex);
+  bool initialize = cache.methods_cached_count == 0;
+  cache.methods_cached_count++;
   if (initialize) {
     if (!util::Initialize(env, activity)) {
-      g_methods_cached_count = 0;
+      cache.methods_cached_count = 0;
       return false;
     }
     if (!(app::CacheMethodIds(env, activity) &&
           options_builder::CacheMethodIds(env, activity) &&
           options::CacheMethodIds(env, activity) &&
           version_registrar::CacheMethodIds(env, activity))) {
-      ReleaseClasses(env);
+      ReleaseClassesLocked(cache, env);
       return false;
     }
     if (google_play_services::Initialize(env, activity)) {
-      g_initialized_google_play_services = true;
+      cache.initialized_google_play_services = true;
     }
   }
   return true;
 }
 
 void ReleaseClasses(JNIEnv* env) {
-  FIREBASE_ASSERT(g_methods_cached_count);
-  g_methods_cached_count--;
-  if (g_methods_cached_count == 0) {
-    app::ReleaseClass(env);
-    options_builder::ReleaseClass(env);
-    options::ReleaseClass(env);
-    version_registrar::ReleaseClass(env);
-    if (g_initialized_google_play_services) {
-      google_play_services::Terminate(env);
-      g_initialized_google_play_services = false;
-    }
-    util::Terminate(env);
-  }
+  AndroidJniMethodCacheState& cache = GetJniCacheState();
+  std::lock_guard<std::mutex> lock(cache.mutex);
+  ReleaseClassesLocked(cache, env);
 }
 
 static void PlatformOptionsBuilderSetString(JNIEnv* jni_env, jobject builder,
@@ -388,10 +487,11 @@ namespace internal {
 
 void AppState::DestroyPlatformData() {
   JNIEnv* env = nullptr;
-  if (platform_data_) {
-    env = util::GetThreadsafeJNIEnv(platform_data_->java_vm());
-    delete platform_data_;
-    platform_data_ = nullptr;
+  AppInternal* platform =
+      platform_data_.exchange(nullptr, std::memory_order_acq_rel);
+  if (platform) {
+    env = util::GetThreadsafeJNIEnv(platform->java_vm());
+    delete platform;
   }
   if (!env) {
     env = util::GetJNIEnvFromApp();
@@ -403,6 +503,10 @@ void AppState::DestroyPlatformData() {
   if (owns_cached_classes_ && env) {
     owns_cached_classes_ = false;
     ReleaseClasses(env);
+  }
+  if (owns_native_lease_) {
+    owns_native_lease_ = false;
+    ReleaseNativeLease(name_);
   }
 }
 
@@ -464,6 +568,17 @@ App App::Create(const AppOptions& options, std::string_view name,
   std::string app_name(name);
   LogDebug("Creating Firebase App %s for %s", app_name.c_str(),
            kFirebaseVersionString);
+  if (!AcquireNativeLease(app_name)) {
+    return App();
+  }
+  struct LeaseGuard {
+    const std::string& lease_name;
+    bool active = true;
+    ~LeaseGuard() {
+      if (active) ReleaseNativeLease(lease_name);
+    }
+  } lease_guard{app_name};
+
   if (!CacheMethods(jni_env, activity)) {
     return App();
   }
@@ -481,11 +596,14 @@ App App::Create(const AppOptions& options, std::string_view name,
   GetAppOptionsFromPlatformApp(jni_env, platform_app, &resolved_options);
 
   auto state = std::make_shared<internal::AppState>(
-      std::move(app_name), std::move(resolved_options));
+      app_name, std::move(resolved_options));
   state->set_activity(jni_env->NewGlobalRef(activity));
   state->set_owns_cached_classes(true);
+  state->set_owns_native_lease(true);
   state->set_platform_data(new internal::AppInternal(
       internal::AppInternal::FromLocalReference(jni_env, platform_app)));
+  lease_guard.active = false;
+  BindNativeLease(app_name, state);
 
   App app = state->MakeAppHandle();
   AppCallback::NotifyAllAppCreated(app, &state->mutable_init_results());
@@ -516,16 +634,8 @@ App App::CreateRegistered(const AppOptions& options, JNIEnv* jni_env,
 
 App App::CreateRegistered(const AppOptions& options, std::string_view name,
                           JNIEnv* jni_env, jobject activity) {
-  if (auto existing = GetInstance(name)) {
-    LogError("App %.*s already registered, options will not be applied.",
-             static_cast<int>(name.size()), name.data());
-    return App();
-  }
-  App app = Create(options, name, jni_env, activity);
-  if (!app || !app.Register()) {
-    return App();
-  }
-  return app;
+  return app_common::CreateRegisteredApp(
+      name, [&]() { return Create(options, name, jni_env, activity); });
 }
 
 JNIEnv* App::GetJNIEnv() const {

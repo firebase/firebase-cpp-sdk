@@ -70,6 +70,8 @@ class HttpsCallableReferenceInternal {
   // FunctionsInternal instance we are associated with.
   FunctionsInternal* functions_internal() const { return functions_.get(); }
 
+  bool Equals(const HttpsCallableReferenceInternal& other) const;
+
  private:
   static void FutureCallback(JNIEnv* env, jobject result,
                              util::FutureResult result_code,

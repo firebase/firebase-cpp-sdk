@@ -17,8 +17,10 @@
 #include <assert.h>
 #include <jni.h>
 
+#include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <mutex>
 #include <vector>
 
 #include "analytics/src/analytics_common.h"
@@ -41,7 +43,7 @@ static jobject g_analytics_class_instance = nullptr;
 
 // Used to retrieve the JNI environment in order to call methods on the
 // Android Analytics class.
-static bool g_initialized = false;
+static std::atomic<bool> g_initialized{false};
 static JavaVM* g_java_vm = nullptr;
 
 static JNIEnv* GetJNIEnv() {
@@ -120,7 +122,13 @@ METHOD_LOOKUP_DEFINITION(
 
 // Initialize the Analytics API.
 void Initialize(const ::firebase::App& app) {
-  if (g_initialized) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!app.is_valid()) {
+    LogWarning("%s API cannot be initialized with an invalid App",
+               internal::kAnalyticsModuleName);
+    return;
+  }
+  if (g_initialized.load(std::memory_order_acquire)) {
     LogWarning("%s API already initialized", internal::kAnalyticsModuleName);
     return;
   }
@@ -151,7 +159,6 @@ void Initialize(const ::firebase::App& app) {
 
   internal::FutureData::Create();
   g_java_vm = app.java_vm();
-  g_initialized = true;
   // Get / create the Analytics singleton.
   jobject analytics_class_instance_local = env->CallStaticObjectMethod(
       analytics::GetClass(), analytics::GetMethodId(analytics::kGetInstance),
@@ -163,6 +170,7 @@ void Initialize(const ::firebase::App& app) {
   FIREBASE_ASSERT(g_analytics_class_instance);
 
   env->DeleteLocalRef(analytics_class_instance_local);
+  g_initialized.store(true, std::memory_order_release);
   internal::RegisterTerminateOnAppDestroy(app);
   LogInfo("%s API Initialized", internal::kAnalyticsModuleName);
 }
@@ -170,21 +178,22 @@ void Initialize(const ::firebase::App& app) {
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 }  // namespace internal
 
 // Clean up the API.
 void Terminate() {
-  if (!g_initialized) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!g_initialized.load(std::memory_order_acquire)) {
     LogWarning("%s API already shut down", internal::kAnalyticsModuleName);
     return;
   }
   JNIEnv* env = GetJNIEnv();
   util::CancelCallbacks(env, internal::kAnalyticsModuleName);
   internal::UnregisterTerminateOnAppDestroy();
+  g_initialized.store(false, std::memory_order_release);
   internal::FutureData::Destroy();
-  g_initialized = false;
   g_java_vm = nullptr;
   env->DeleteGlobalRef(g_analytics_class_instance);
   g_analytics_class_instance = nullptr;

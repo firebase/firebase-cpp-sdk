@@ -14,19 +14,25 @@
 
 #include <stdio.h>
 
+#include <atomic>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "app/rest/util.h"
 #include "app/src/app_state.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/service_interfaces.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "storage/src/common/list_result_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_path.h"
 #include "storage/src/desktop/storage_reference_desktop.h"
 #include "storage/src/include/firebase/storage.h"
+#include "storage/src/include/firebase/storage/list_result.h"
 #include "testing/json_util.h"
 
 namespace {
@@ -234,6 +240,131 @@ TEST_F(StorageDesktopUtilsTests, StaticDurationStorageSurvivesExit) {
     return firebase::storage::Storage::GetInstance(app, "gs://static-bucket");
   }();
   EXPECT_TRUE(static_storage.is_valid());
+}
+
+TEST_F(StorageDesktopUtilsTests,
+       StorageListResultWeakStorageButCopiedReferenceIsStrong) {
+  std::weak_ptr<firebase::internal::AppState> weak_state;
+  firebase::storage::StorageListResult list_result;
+  firebase::storage::StorageReference strong_item_copy;
+  {
+    App app = firebase::testing::CreateApp(firebase::testing::MockAppOptions(),
+                                           "storage_list_result_app");
+    weak_state = firebase::internal::AppState::FromApp(app);
+    firebase::storage::Storage storage =
+        firebase::storage::Storage::GetInstance(app, "gs://list-bucket");
+    ASSERT_TRUE(storage.is_valid());
+    firebase::storage::StorageReference item_ref =
+        storage.GetReference("folder/item.txt");
+    ASSERT_TRUE(item_ref.is_valid());
+
+    firebase::storage::StorageReference weak_ref =
+        StorageReferenceInternal::CloneWeakReference(item_ref);
+    std::vector<firebase::storage::StorageReference> items;
+    items.push_back(std::move(weak_ref));
+    auto* internal_list =
+        new firebase::storage::internal::StorageListResultInternal(
+            {}, std::move(items), "next_tok");
+    list_result = firebase::storage::internal::StorageListResultInternal::
+        AsStorageListResult(internal_list);
+
+    // Copying StorageListResult (as FutureManager::CompleteWithResult does)
+    // must keep internal references weak so no reference cycle can form.
+    firebase::storage::StorageListResult copied_list(list_result);
+    ASSERT_EQ(1u, copied_list.items().size());
+    EXPECT_EQ("next_tok", copied_list.next_page_token());
+    // Copying a StorageReference out of StorageListResult promotes it to
+    // strong so user handles keep AppState alive.
+    strong_item_copy = copied_list.items()[0];
+    EXPECT_TRUE(strong_item_copy.is_valid());
+  }
+
+  EXPECT_FALSE(weak_state.expired());
+  EXPECT_TRUE(strong_item_copy.is_valid());
+  EXPECT_TRUE(strong_item_copy.storage().is_valid());
+
+  // Dropping strong_item_copy must let AppState tear down even while
+  // list_result is still in scope.
+  strong_item_copy = firebase::storage::StorageReference();
+  EXPECT_TRUE(weak_state.expired());
+  ASSERT_EQ(1u, list_result.items().size());
+  EXPECT_FALSE(list_result.items()[0].is_valid());
+}
+
+TEST_F(StorageDesktopUtilsTests,
+       StorageCreatedBeforeAuthActivatesTokenRefresh) {
+  struct FakeAuthProvider : public firebase::internal::AuthTokenProvider {
+    std::string GetCurrentToken() override { return "tok"; }
+    firebase::Future<std::string> GetTokenAsync(bool) override { return {}; }
+    std::string GetCurrentUserUid() override { return "uid"; }
+    void StartTokenListener() override { start_count.fetch_add(1); }
+    void StopTokenListener() override { stop_count.fetch_add(1); }
+
+    std::atomic<int> start_count{0};
+    std::atomic<int> stop_count{0};
+  };
+
+  std::weak_ptr<firebase::internal::AppState> weak_state;
+  std::shared_ptr<FakeAuthProvider> raw_provider;
+  {
+    App app = firebase::testing::CreateApp(firebase::testing::MockAppOptions(),
+                                           "storage_before_auth_app");
+    auto state = firebase::internal::AppState::FromApp(app);
+    weak_state = state;
+    // Create Storage BEFORE AuthTokenProvider is attached.
+    firebase::storage::Storage storage =
+        firebase::storage::Storage::GetInstance(app, "gs://reverse-bucket");
+    ASSERT_TRUE(storage.is_valid());
+
+    auto provider_handle = state->GetOrCreateService<FakeAuthProvider>(
+        &firebase::internal::kAuthServiceTag, "",
+        [&raw_provider](firebase::internal::AppState&) {
+          raw_provider = std::make_shared<FakeAuthProvider>();
+          return raw_provider;
+        });
+    ASSERT_TRUE(provider_handle != nullptr);
+    EXPECT_EQ(1, raw_provider->start_count.load());
+    EXPECT_EQ(0, raw_provider->stop_count.load());
+  }
+  EXPECT_TRUE(weak_state.expired());
+  ASSERT_TRUE(raw_provider != nullptr);
+  EXPECT_EQ(1, raw_provider->start_count.load());
+  EXPECT_EQ(1, raw_provider->stop_count.load());
+}
+
+TEST_F(StorageDesktopUtilsTests,
+       UniformHandleOperatorsAndTemporaryReferenceAsyncCall) {
+  std::weak_ptr<firebase::internal::AppState> weak_state;
+  firebase::Future<firebase::storage::Metadata> metadata_future;
+  {
+    App app = firebase::testing::CreateApp(firebase::testing::MockAppOptions(),
+                                           "storage_temp_async_app");
+    weak_state = firebase::internal::AppState::FromApp(app);
+    firebase::storage::Storage storage =
+        firebase::storage::Storage::GetInstance(app, "gs://temp-bucket");
+    ASSERT_TRUE(static_cast<bool>(storage));
+    storage.UseEmulator("127.0.0.1", 1);
+    storage.set_max_operation_retry_time(0.05);
+
+    firebase::storage::StorageReference ref1 = storage.GetReference("a/b.txt");
+    firebase::storage::StorageReference ref2 = storage.GetReference("a/b.txt");
+    firebase::storage::StorageReference ref3 = storage.GetReference("a/c.txt");
+    EXPECT_TRUE(static_cast<bool>(ref1));
+    EXPECT_EQ(ref1, ref2);
+    EXPECT_NE(ref1, ref3);
+    firebase::storage::StorageReference ref_moved(std::move(ref2));
+    EXPECT_FALSE(static_cast<bool>(ref2));  // NOLINT
+    EXPECT_NE(ref_moved, ref2);             // NOLINT
+
+    // Invoke an async call on a temporary StorageReference and immediately
+    // drop both Storage and App handles while the request is in flight.
+    metadata_future = storage.GetReference("tmp/object.txt").GetMetadata();
+    EXPECT_NE(firebase::kFutureStatusInvalid, metadata_future.status());
+  }
+
+  EXPECT_TRUE(weak_state.expired());
+  metadata_future.Wait(firebase::FutureBase::kWaitTimeoutInfinite);
+  EXPECT_NE(firebase::kFutureStatusPending, metadata_future.status());
 }
 
 }  // namespace

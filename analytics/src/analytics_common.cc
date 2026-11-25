@@ -64,6 +64,11 @@ TeardownGuardState& GetTeardownGuardState() {
 
 const char* kAnalyticsModuleName = "analytics";
 
+std::mutex& GetLifecycleMutex() {
+  static ::firebase::internal::NoDestructor<std::mutex> mutex;
+  return *mutex;
+}
+
 FutureData* FutureData::s_future_data_;
 
 // Create FutureData singleton.

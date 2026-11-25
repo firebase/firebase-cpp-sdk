@@ -50,7 +50,7 @@ class IOSWrappedUserInfo : public UserInfoInterface {
   id<FIRUserInfo> user_info_;
 };
 
-bool User::is_valid() const {
+bool User::is_valid() const noexcept {
   auto data = auth_data_.lock();
   return ValidUser(data.get());
 }

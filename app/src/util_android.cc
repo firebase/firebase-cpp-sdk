@@ -26,10 +26,13 @@
 
 #include <algorithm>
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <list>
 #include <map>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -38,6 +41,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 
 namespace firebase {
 
@@ -232,6 +236,8 @@ struct CallbackData {
   jobject callback_reference;
   // User specified data for the callback.
   void* data;
+  // API identifier string key.
+  std::string api_key;
   // References CallbackData within the list.
   std::list<CallbackData>::iterator iterator;
   // Reference to the list containing this structure.
@@ -239,12 +245,22 @@ struct CallbackData {
   // Whether the callback is complete.
   bool complete;
 };
-// Tracks the set of global references to Java callback classes in flight.
-// This makes it possible to to remove references to the C++ objects when
-// util::Terminate() is called.
-static std::map<const char*, std::list<CallbackData>>* g_task_callbacks;
-// Mutex for g_task_callbacks.
-static pthread_mutex_t g_task_callbacks_mutex;
+
+struct TaskCallbackState {
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::map<std::string, std::list<CallbackData>, std::less<>> callbacks;
+  // Active threads currently executing JniResultCallback_nativeOnResult per
+  // api_key, so CancelCallbacks() waits for in-flight callbacks on other
+  // threads before returning.
+  std::map<std::string, std::vector<std::thread::id>, std::less<>>
+      in_flight_threads;
+};
+
+TaskCallbackState& GetTaskCallbackState() {
+  static internal::NoDestructor<TaskCallbackState> state;
+  return *state;
+}
 
 // Global references to class loaders used to find classes and load embedded
 // classes.
@@ -570,8 +586,6 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
   }
   CheckAndClearJniExceptions(env);
 
-  g_task_callbacks = new std::map<const char*, std::list<CallbackData>>();
-  g_task_callbacks_mutex = PTHREAD_MUTEX_INITIALIZER;
   cleanup.Cancel();
   return true;
 }
@@ -582,14 +596,7 @@ void Terminate(JNIEnv* env) {
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
   if (g_initialized_count == 0) {
-    if (g_task_callbacks) {
-      CancelCallbacks(env, nullptr);
-      pthread_mutex_lock(&g_task_callbacks_mutex);
-      delete g_task_callbacks;
-      g_task_callbacks = nullptr;
-      pthread_mutex_unlock(&g_task_callbacks_mutex);
-      pthread_mutex_destroy(&g_task_callbacks_mutex);
-    }
+    CancelCallbacks(env, nullptr);
 
     // Shutdown the log if it was initialized.
     jclass log_class = log::GetClass();
@@ -1278,24 +1285,26 @@ jobject ContinueBuilder(JNIEnv* env, jobject old_builder, jobject new_builder) {
 void RegisterCallbackOnTask(JNIEnv* env, jobject task,
                             TaskCallbackFn callback_fn, void* callback_data,
                             const char* api_identifier) {
-  // Need to add the CallbackData to the g_task_callbacks before creating the
+  // Need to add the CallbackData to TaskCallbackState before creating the
   // Java callback object as it could complete before we finish initializing
   // CallbackData.
+  TaskCallbackState& state = GetTaskCallbackState();
+  std::string api_key = api_identifier ? api_identifier : "";
   CallbackData* data;
-  pthread_mutex_lock(&g_task_callbacks_mutex);
   {
-    auto& callback_list = (*g_task_callbacks)[api_identifier];
+    std::lock_guard<std::mutex> lock(state.mutex);
+    auto& callback_list = state.callbacks[api_key];
     callback_list.push_back(CallbackData());
     auto list_it = callback_list.end();
     list_it--;
     data = &(*list_it);
     data->data = callback_data;
+    data->api_key = api_key;
     data->callback_reference = nullptr;
     data->iterator = list_it;
     data->list = &callback_list;
     data->complete = false;
   }
-  pthread_mutex_unlock(&g_task_callbacks_mutex);
 
   // Create JniResultCallback class to redirect the Java callback to C++.
   // Pointers are cast to jlongs, which are 64-bit integers.
@@ -1306,16 +1315,14 @@ void RegisterCallbackOnTask(JNIEnv* env, jobject task,
 
   // Store global reference to the callback so we can potentially cancel it in
   // Terminate().
-  pthread_mutex_lock(&g_task_callbacks_mutex);
-  // If the callback wasn't completed immediately
-  // (see JniResultCallback_nativeOnResult()), add a global reference to the
-  // callback so it can be completed otherwise, remove it from the list.
-  if (data->complete) {
-    data->list->erase(data->iterator);
-  } else {
-    data->callback_reference = env->NewGlobalRef(jni_result_callback);
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    if (data->complete) {
+      data->list->erase(data->iterator);
+    } else {
+      data->callback_reference = env->NewGlobalRef(jni_result_callback);
+    }
   }
-  pthread_mutex_unlock(&g_task_callbacks_mutex);
 
   // The jni_result_callback has registered itself with Task.
   // so it won't be garbage collected until the object has completed.
@@ -1326,28 +1333,50 @@ JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
     JNIEnv* env, jobject clazz, jobject result, jboolean success,
     jboolean cancelled, jstring status_message, jlong callback_fn_param,
     jlong callback_data) {
-  void* user_callback_data;
-  pthread_mutex_lock(&g_task_callbacks_mutex);
+  TaskCallbackState& state = GetTaskCallbackState();
+  void* user_callback_data = nullptr;
+  std::string api_key;
+  const std::thread::id self = std::this_thread::get_id();
   {
+    std::lock_guard<std::mutex> lock(state.mutex);
     CallbackData* data = reinterpret_cast<CallbackData*>(callback_data);
     user_callback_data = data->data;
-    // If a callback reference isn't present, the callback was completed before
-    // RegisterCallbackOnTask() finished adding it to a
-    // g_task_callbacks list.  In this case we leave it in the list and signal
-    // RegisterCallbackOnTask() that it is complete by setting
-    // complete to true.
+    api_key = data->api_key;
+    state.in_flight_threads[api_key].push_back(self);
     data->complete = true;
     if (data->callback_reference) {
       env->DeleteGlobalRef(data->callback_reference);
       data->list->erase(data->iterator);
     }
   }
-  pthread_mutex_unlock(&g_task_callbacks_mutex);
+
+  struct InFlightGuard {
+    TaskCallbackState& st;
+    const std::string& key;
+    std::thread::id tid;
+    ~InFlightGuard() {
+      {
+        std::lock_guard<std::mutex> lock(st.mutex);
+        auto it = st.in_flight_threads.find(key);
+        if (it != st.in_flight_threads.end()) {
+          auto& vec = it->second;
+          auto tid_it = std::find(vec.begin(), vec.end(), tid);
+          if (tid_it != vec.end()) {
+            vec.erase(tid_it);
+          }
+          if (vec.empty()) {
+            st.in_flight_threads.erase(it);
+          }
+        }
+      }
+      st.cv.notify_all();
+    }
+  } in_flight_guard{state, api_key, self};
 
   // Validate the assumption that it can't both succeed and be cancelled.
   assert(!(success && cancelled));
 
-  // Cast the jlongs to pointers and call the C++ callbaack.
+  // Cast the jlongs to pointers and call the C++ callback.
   std::string status_message_c = JStringToString(env, status_message);
   TaskCallbackFn* callback_fn =
       reinterpret_cast<TaskCallbackFn*>(callback_fn_param);
@@ -1503,44 +1532,74 @@ void RunOnBackgroundThread(JNIEnv* env,
 void CancelCallbacks(JNIEnv* env, const char* api_identifier) {
   LogDebug("Cancel pending callbacks for \"%s\"",
            api_identifier ? api_identifier : "<all>");
+  TaskCallbackState& state = GetTaskCallbackState();
   for (;;) {
     bool pending_callbacks = false;
     jobject callback_reference = nullptr;
-    pthread_mutex_lock(&g_task_callbacks_mutex);
-    if (api_identifier) {
-      auto& list = (*g_task_callbacks)[api_identifier];
-      if (!list.empty()) {
-        pending_callbacks = true;
-        callback_reference = list.front().callback_reference;
-      }
-    } else {
-      while (!g_task_callbacks->empty()) {
-        auto map_it = g_task_callbacks->begin();
-        auto& list = map_it->second;
-        if (list.empty()) {
-          g_task_callbacks->erase(map_it);
-        } else {
-          pending_callbacks = true;
-          callback_reference = list.front().callback_reference;
-          break;
+    {
+      std::lock_guard<std::mutex> lock(state.mutex);
+      if (api_identifier) {
+        auto map_it = state.callbacks.find(api_identifier);
+        if (map_it != state.callbacks.end()) {
+          auto& list = map_it->second;
+          if (!list.empty()) {
+            pending_callbacks = true;
+            callback_reference = list.front().callback_reference;
+          } else {
+            state.callbacks.erase(map_it);
+          }
+        }
+      } else {
+        while (!state.callbacks.empty()) {
+          auto map_it = state.callbacks.begin();
+          auto& list = map_it->second;
+          if (list.empty()) {
+            state.callbacks.erase(map_it);
+          } else {
+            pending_callbacks = true;
+            callback_reference = list.front().callback_reference;
+            break;
+          }
         }
       }
+      if (pending_callbacks && callback_reference != nullptr) {
+        callback_reference = env->NewGlobalRef(callback_reference);
+      }
     }
-    if (pending_callbacks) {
-      callback_reference = env->NewGlobalRef(callback_reference);
-    }
-    pthread_mutex_unlock(&g_task_callbacks_mutex);
     if (!pending_callbacks) break;
+    if (callback_reference == nullptr) {
+      std::this_thread::yield();
+      continue;
+    }
 
-    // We can't call this while holding g_task_callbacks_mutex as this
-    // could result in deadlock as cancel() and onCompletion() are both
-    // synchronized on the JniResultCallback object.
-    // This will remove the callback data entry from g_task_callbacks list.
+    // We can't call this while holding state.mutex as this could result in
+    // deadlock as cancel() and onCompletion() are both synchronized on the
+    // JniResultCallback object.
     env->CallVoidMethod(callback_reference, jniresultcallback::GetMethodId(
                                                 jniresultcallback::kCancel));
     CheckAndClearJniExceptions(env);
     env->DeleteGlobalRef(callback_reference);
   }
+
+  // Wait until any callback already executing on another thread finishes.
+  const std::thread::id self = std::this_thread::get_id();
+  std::unique_lock<std::mutex> lock(state.mutex);
+  state.cv.wait(lock, [&]() {
+    if (api_identifier) {
+      auto it = state.in_flight_threads.find(api_identifier);
+      if (it == state.in_flight_threads.end()) return true;
+      for (const std::thread::id& tid : it->second) {
+        if (tid != self) return false;
+      }
+      return true;
+    }
+    for (const auto& kv : state.in_flight_threads) {
+      for (const std::thread::id& tid : kv.second) {
+        if (tid != self) return false;
+      }
+    }
+    return true;
+  });
 }
 
 // Find a class and retrieve a global reference to it.

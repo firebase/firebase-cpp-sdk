@@ -15,6 +15,8 @@
 #ifndef FIREBASE_AUTH_TESTS_DESKTOP_TEST_UTILS_H_
 #define FIREBASE_AUTH_TESTS_DESKTOP_TEST_UTILS_H_
 
+#include <atomic>
+
 #include "app/src/include/firebase/future.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/include/firebase/auth.h"
@@ -42,7 +44,7 @@ class ListenerChangeCounter {
   void VerifyAndReset();
 
  protected:
-  int actual_changes_;
+  std::atomic<int> actual_changes_;
 
  private:
   void Verify();

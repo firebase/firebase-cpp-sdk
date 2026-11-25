@@ -73,7 +73,7 @@ class StorageReference {
   /// StorageReference instances.
   ///
   /// @param[in] other StorageReference to move data from.
-  StorageReference(StorageReference&& other);
+  StorageReference(StorageReference&& other) noexcept;
 
   /// @brief Move assignment operator. Moving is an efficient operation for
   /// StorageReference instances.
@@ -81,7 +81,7 @@ class StorageReference {
   /// @param[in] other StorageReference to move data from.
   ///
   /// @returns Reference to the destination StorageReference.
-  StorageReference& operator=(StorageReference&& other);
+  StorageReference& operator=(StorageReference&& other) noexcept;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief Gets the firebase::storage::Storage instance to which we refer.
@@ -359,7 +359,20 @@ class StorageReference {
   ///
   /// @returns true if this StorageReference is valid, false if this
   /// StorageReference is invalid.
-  bool is_valid() const;
+  bool is_valid() const noexcept;
+
+  /// @brief Returns true if this StorageReference is valid.
+  explicit operator bool() const noexcept { return is_valid(); }
+
+  /// @brief Equality comparison for StorageReference handles.
+  friend bool operator==(const StorageReference& lhs,
+                         const StorageReference& rhs);
+
+  /// @brief Inequality comparison for StorageReference handles.
+  friend bool operator!=(const StorageReference& lhs,
+                         const StorageReference& rhs) {
+    return !(lhs == rhs);
+  }
 
  private:
   /// @cond FIREBASE_APP_INTERNAL

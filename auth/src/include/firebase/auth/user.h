@@ -230,30 +230,34 @@ class User : public UserInfoInterface {
     const char* photo_url;
   };
 
-  /// Copy constructor.
-  User(const User&) = default;
+  /// Copy constructor. Promotes weak internal User handles (e.g. from
+  /// AuthResult) into strong handles keeping Auth / AppState alive.
+  User(const User& other);
 
   /// Assignment operator.
-  User& operator=(const User&) = default;
+  User& operator=(const User& other);
 
   /// Move constructor.
-  User(User&&) noexcept = default;
+  User(User&& other) noexcept;
 
   /// Move assignment operator.
-  User& operator=(User&&) noexcept = default;
+  User& operator=(User&& other) noexcept;
 
   /// Equality operator.
-  bool operator==(const User&) const;
+  bool operator==(const User&) const noexcept;
 
   /// Inequality operator.
-  bool operator!=(const User&) const;
+  bool operator!=(const User&) const noexcept;
 
-  ~User() = default;
+  ~User();
 
   /// Returns whether this User object represents a valid user. Could be false
   /// on Users contained with AuthResult structures from failed Auth
   /// operations.
-  bool is_valid() const;
+  bool is_valid() const noexcept;
+
+  /// Returns true if this User handle is valid.
+  explicit operator bool() const noexcept { return is_valid(); }
 
   /// The JSON Web Token (JWT) that can be used to identify the user to
   /// the backend.
@@ -564,9 +568,23 @@ class User : public UserInfoInterface {
  private:
   friend struct AuthData;
   friend class Auth;
-  // Constructed internally by Auth / AuthData. Access via Auth::current_user().
+  friend struct AuthResult;
+
+  // Non-owning constructor used internally for Future<AuthResult> /
+  // Future<User> results so AuthData::future_impl never forms a cycle.
   explicit User(std::weak_ptr<AuthData> auth_data)
       : auth_data_(std::move(auth_data)) {}
+
+  // Owning constructor used by Auth::current_user() and promoted copies.
+  explicit User(std::shared_ptr<AuthData> auth_data)
+      : strong_auth_data_(std::move(auth_data)),
+        auth_data_(strong_auth_data_) {}
+
+  std::shared_ptr<AuthData> LockAuthData() const noexcept {
+    return strong_auth_data_ ? strong_auth_data_ : auth_data_.lock();
+  }
+
+  static User CloneWeak(const User& other) { return User(other.auth_data_); }
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.
@@ -578,14 +596,32 @@ class User : public UserInfoInterface {
   /// @endcond
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
-  // Non-owning weak handle to AuthData so cached LastResult futures inside
-  // AuthData do not create a reference cycle, and User degrades safely to
-  // invalid if App/Auth handles are all dropped.
+  // Owning handle for user-held User copies and Auth::current_user(); left
+  // empty on weak User values cached inside AuthData::future_impl so cached
+  // futures never create a reference cycle with AuthData / AppState.
+  std::shared_ptr<AuthData> strong_auth_data_;
   std::weak_ptr<AuthData> auth_data_;
 };
 
 /// @brief The result of operations that can affect authentication state.
 struct AuthResult {
+  AuthResult() = default;
+  AuthResult(const AuthResult& other)
+      : additional_user_info(other.additional_user_info),
+        credential(other.credential),
+        user(User::CloneWeak(other.user)) {}
+  AuthResult& operator=(const AuthResult& other) {
+    if (this != &other) {
+      additional_user_info = other.additional_user_info;
+      credential = other.credential;
+      user = User::CloneWeak(other.user);
+    }
+    return *this;
+  }
+  AuthResult(AuthResult&&) noexcept = default;
+  AuthResult& operator=(AuthResult&&) noexcept = default;
+  ~AuthResult() = default;
+
   /// Identity-provider specific information for the user, if the provider is
   /// one of Facebook, GitHub, Google, or Twitter.
   AdditionalUserInfo additional_user_info;

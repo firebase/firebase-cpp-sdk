@@ -250,9 +250,16 @@ class FirestoreInternalWeakReference {
       const FirestoreInternalWeakReference& rhs) = delete;
 
   ~FirestoreInternalWeakReference() {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (firestore_) {
-      firestore_->cleanup().UnregisterObject(this);
+    FirestoreInternal* fs = nullptr;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      fs = firestore_;
+      firestore_ = nullptr;
+    }
+    // Unregister outside `mutex_` so concurrent CleanupNotifier::CleanupAll()
+    // running CleanUp(this) cannot invert lock order with `mutex_`.
+    if (fs) {
+      fs->cleanup().UnregisterObject(this);
     }
   }
 

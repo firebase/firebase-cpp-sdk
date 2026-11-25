@@ -14,8 +14,11 @@
 
 #include "functions/src/desktop/functions_desktop.h"
 
+#include <algorithm>
 #include <utility>
+#include <vector>
 
+#include "app/rest/transport_curl.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -27,9 +30,43 @@ namespace internal {
 
 FunctionsInternal::FunctionsInternal(::firebase::internal::AppState& app_state,
                                      const App& /*app*/, const char* region)
-    : app_state_(app_state), region_(region) {}
+    : app_state_(app_state), region_(region) {
+  rest::InitTransportCurl();
+}
 
-FunctionsInternal::~FunctionsInternal() = default;
+FunctionsInternal::~FunctionsInternal() {
+  std::vector<std::shared_ptr<CallOperation>> remaining;
+  {
+    std::lock_guard<std::mutex> lock(operations_mutex_);
+    remaining.swap(active_operations_);
+  }
+  for (auto& op : remaining) {
+    op->CancelAndWait();
+  }
+  remaining.clear();
+  rest::CleanupTransportCurl();
+}
+
+void FunctionsInternal::AddOperation(std::shared_ptr<CallOperation> op) {
+  std::vector<std::shared_ptr<CallOperation>> completed;
+  {
+    std::lock_guard<std::mutex> lock(operations_mutex_);
+    for (auto it = active_operations_.begin();
+         it != active_operations_.end();) {
+      if ((*it)->is_completed()) {
+        completed.push_back(std::move(*it));
+        it = active_operations_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    if (op) {
+      active_operations_.push_back(std::move(op));
+    }
+  }
+  // Destroy completed operations outside `operations_mutex_`.
+  completed.clear();
+}
 
 ::firebase::App FunctionsInternal::app() const {
   return app_state_.TryMakeAppHandle();

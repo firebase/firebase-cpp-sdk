@@ -71,12 +71,14 @@ class TransportCurl : public Transport {
       Request* request, Response* response,
       flatbuffers::unique_ptr<Controller>* controller_out) override;
 
+  // Cancels a queued or in-flight transfer associated with `response`.
+  void CancelRequest(Response* response);
+
  private:
   friend class ControllerCurl;
   friend class BackgroundTransportCurl;
+  friend class CurlThread;
 
-  // Used by the ControllerCurl to cancel a running transfer.
-  void CancelRequest(Response* response);
   // Used by the ControllerCurl to pause a running transfer.
   void PauseRequest(Response* response);
   // Used by the ControllerCurl to resumt a running transfer.

@@ -16,6 +16,10 @@
 
 #include "app/src/cleanup_notifier.h"
 
+#include <atomic>
+#include <memory>
+#include <thread>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -264,6 +268,64 @@ TEST_F(TypedCleanupNotifierTest,
     cleanup2.RegisterObject(&obj, TypedObject::IncrementCounter);
   }
   EXPECT_EQ(obj.counter, 2);
+}
+
+TEST_F(CleanupNotifierTest, ConcurrentCleanupAllAndUnregisterObjectStress) {
+  // Exercises concurrent CleanupAll() racing UnregisterObject() followed by
+  // immediate object destruction. Under ASan/TSan this catches any UAF if
+  // UnregisterObject returns while the object's cleanup callback is in flight.
+  struct HeapTarget {
+    std::atomic<int> touched{0};
+    static void Callback(void* ptr) {
+      auto* self = static_cast<HeapTarget*>(ptr);
+      self->touched.fetch_add(1, std::memory_order_relaxed);
+      std::this_thread::yield();
+      self->touched.fetch_add(1, std::memory_order_relaxed);
+    }
+  };
+
+  for (int iter = 0; iter < 150; ++iter) {
+    CleanupNotifier notifier;
+    auto target = std::make_unique<HeapTarget>();
+    notifier.RegisterObject(target.get(), HeapTarget::Callback);
+
+    std::atomic<bool> go{false};
+    std::thread cleaner([&]() {
+      while (!go.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+      }
+      notifier.CleanupAll();
+    });
+    std::thread unregistrar([&]() {
+      while (!go.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+      }
+      notifier.UnregisterObject(target.get());
+      // Must be safe to destroy target immediately once UnregisterObject
+      // returns.
+      target.reset();
+    });
+    go.store(true, std::memory_order_release);
+    cleaner.join();
+    unregistrar.join();
+  }
+}
+
+TEST_F(CleanupNotifierTest, ReentrantUnregisterFromCleanupCallback) {
+  struct ReentrantTarget {
+    CleanupNotifier* notifier;
+    int calls = 0;
+    static void Callback(void* ptr) {
+      auto* self = static_cast<ReentrantTarget*>(ptr);
+      ++self->calls;
+      self->notifier->UnregisterObject(self);
+    }
+  };
+  CleanupNotifier notifier;
+  ReentrantTarget target{&notifier, 0};
+  notifier.RegisterObject(&target, ReentrantTarget::Callback);
+  notifier.CleanupAll();
+  EXPECT_EQ(target.calls, 1);
 }
 
 }  // namespace testing

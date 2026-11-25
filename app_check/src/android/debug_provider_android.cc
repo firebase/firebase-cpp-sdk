@@ -95,7 +95,9 @@ class AndroidDebugProviderService : public ::firebase::internal::Service {
   explicit AndroidDebugProviderService(jobject local_provider)
       : provider_(local_provider) {}
 
-  int teardown_priority() const override { return -20; }
+  int teardown_priority() const override {
+    return ::firebase::internal::kProviderSubServiceTeardownPriority;
+  }
 
   AndroidAppCheckProvider* provider() { return &provider_; }
 

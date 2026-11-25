@@ -67,15 +67,15 @@ class Database {
   ~Database() = default;
 
   /// @brief Returns true if this handle refers to a valid Database instance.
-  bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
 
   /// @brief Returns true if this handle refers to a valid Database instance.
-  explicit operator bool() const { return is_valid(); }
+  explicit operator bool() const noexcept { return is_valid(); }
 
-  bool operator==(const Database& other) const {
+  bool operator==(const Database& other) const noexcept {
     return internal_ == other.internal_;
   }
-  bool operator!=(const Database& other) const {
+  bool operator!=(const Database& other) const noexcept {
     return internal_ != other.internal_;
   }
 

@@ -95,7 +95,7 @@ void ControllerInternal::Initialize(const StorageReference& reference,
   MutexLock lock(mutex_);
   bytes_transferred_ = 0;
   total_byte_count_ = -1;
-  reference_ = reference;
+  reference_ = StorageReferenceInternal::CloneWeakReference(reference);
   if (operation_) operation_->cleanup().UnregisterObject(this);
   operation_ = operation;
   if (operation_) {

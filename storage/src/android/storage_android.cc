@@ -152,7 +152,6 @@ StorageInternal::StorageInternal(::firebase::internal::AppState& app_state,
                                  const App& app, const char* url)
     : app_state_(app_state) {
   if (!Initialize(app)) return;
-  initialized_ = true;
   url_ = url ? url : "";
   const char kApiIdentifier[] = "Storage";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
@@ -175,19 +174,72 @@ StorageInternal::StorageInternal(::firebase::internal::AppState& app_state,
   env->DeleteLocalRef(platform_app);
   env->DeleteLocalRef(url_jstring);
   obj_ = nullptr;
-  FIREBASE_ASSERT_MESSAGE_RETURN_VOID(
-      storage_obj != nullptr && exception.empty(),
-      "firebase::Storage creation failed %s", exception.c_str());
+  if (storage_obj == nullptr || !exception.empty()) {
+    if (storage_obj != nullptr) {
+      env->DeleteLocalRef(storage_obj);
+    }
+    LogError("firebase::Storage creation failed %s", exception.c_str());
+    Terminate(env);
+    return;
+  }
   obj_ = env->NewGlobalRef(storage_obj);
   env->DeleteLocalRef(storage_obj);
+  if (obj_ == nullptr) {
+    Terminate(env);
+    return;
+  }
+  if (auto self = MakeSharedHandle()) {
+    native_handle_id_ = GetNativeHandleTable().Register(self);
+  }
+  initialized_ = true;
 }
 
 StorageInternal::~StorageInternal() {
   // If initialization failed, there is nothing to clean up.
   if (!initialized_) return;
 
+  if (native_handle_id_ != 0) {
+    GetNativeHandleTable().Unregister(native_handle_id_);
+    native_handle_id_ = 0;
+  }
+
+  std::unordered_map<jobject, NativeBridgeKind> remaining_bridges;
+  {
+    std::lock_guard<std::mutex> lock(bridges_mutex_);
+    remaining_bridges.swap(active_bridges_);
+  }
+
   JNIEnv* env = GetJNIEnv();
   if (env != nullptr) {
+    for (const auto& entry : remaining_bridges) {
+      jobject bridge = entry.first;
+      switch (entry.second) {
+        case NativeBridgeKind::kListener:
+          if (cpp_storage_listener::GetClass() != nullptr) {
+            env->CallVoidMethod(bridge,
+                                cpp_storage_listener::GetMethodId(
+                                    cpp_storage_listener::kDiscardPointers));
+          }
+          break;
+        case NativeBridgeKind::kByteDownloader:
+          if (cpp_byte_downloader::GetClass() != nullptr) {
+            env->CallVoidMethod(bridge,
+                                cpp_byte_downloader::GetMethodId(
+                                    cpp_byte_downloader::kDiscardPointers));
+          }
+          break;
+        case NativeBridgeKind::kByteUploader:
+          if (cpp_byte_uploader::GetClass() != nullptr) {
+            env->CallVoidMethod(bridge,
+                                cpp_byte_uploader::GetMethodId(
+                                    cpp_byte_uploader::kDiscardPointers));
+          }
+          break;
+      }
+      env->DeleteGlobalRef(bridge);
+    }
+    util::CheckAndClearJniExceptions(env);
+
     util::CancelCallbacks(env, jni_task_id_.c_str());
     if (obj_ != nullptr) {
       env->DeleteGlobalRef(obj_);
@@ -197,6 +249,34 @@ StorageInternal::~StorageInternal() {
     util::CheckAndClearJniExceptions(env);
   }
   initialized_ = false;
+}
+
+// static
+::firebase::internal::NativeHandleTable<StorageInternal>&
+StorageInternal::GetNativeHandleTable() {
+  static ::firebase::internal::NoDestructor<
+      ::firebase::internal::NativeHandleTable<StorageInternal>>
+      table;
+  return *table;
+}
+
+// static
+std::shared_ptr<StorageInternal> StorageInternal::LockFromNativeHandle(
+    int64_t id) {
+  return GetNativeHandleTable().Lock(id);
+}
+
+void StorageInternal::RegisterNativeBridge(jobject global_ref,
+                                           NativeBridgeKind kind) {
+  if (global_ref == nullptr) return;
+  std::lock_guard<std::mutex> lock(bridges_mutex_);
+  active_bridges_[global_ref] = kind;
+}
+
+bool StorageInternal::TakeNativeBridge(jobject global_ref) {
+  if (global_ref == nullptr) return false;
+  std::lock_guard<std::mutex> lock(bridges_mutex_);
+  return active_bridges_.erase(global_ref) > 0;
 }
 
 // Which StorageException Java fields correspond to which C++ Error enum values.

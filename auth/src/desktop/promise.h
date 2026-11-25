@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_PROMISE_H_
 
 #include <memory>
+#include <type_traits>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -48,7 +49,13 @@ class Promise {
   }
 
   void CompleteWithResult(const ResultT& result) {
-    future_manager_.CompleteWithResult(handle_, kAuthErrorNone, "", result);
+    if constexpr (std::is_same_v<ResultT, User>) {
+      future_manager_.Complete<User>(
+          handle_, kAuthErrorNone, "",
+          [&result](User* out) { *out = AuthData::CloneWeakUser(result); });
+    } else {
+      future_manager_.CompleteWithResult(handle_, kAuthErrorNone, "", result);
+    }
   }
 
   void Fail(AuthError error, const char* const message) {

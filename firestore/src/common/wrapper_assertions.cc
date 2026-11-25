@@ -29,7 +29,7 @@ namespace testutil {
 template <>
 FieldValueInternal* NewInternal<FieldValueInternal>() {
   InitResult init_result;
-  Firestore* firestore = Firestore::GetInstance(GetApp(), &init_result);
+  Firestore firestore = Firestore::GetInstance(GetApp(), &init_result);
   (void)firestore;
 
   EXPECT_EQ(kInitResultSuccess, init_result);

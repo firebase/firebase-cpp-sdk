@@ -20,12 +20,15 @@
 #include <string.h>
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <deque>
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -234,8 +237,10 @@ namespace {
 // App::GetApps(). Holds only weak_ptr<AppState> so it never owns AppState,
 // and expired entries are pruned lazily so ~AppState() never touches this.
 struct AppRegistry {
-  Mutex mutex;
+  std::mutex mutex;
+  std::condition_variable cv;
   std::map<std::string, std::weak_ptr<internal::AppState>, std::less<>> apps;
+  std::set<std::string, std::less<>> creating_names;
 };
 
 AppRegistry& GetAppRegistry() {
@@ -329,11 +334,23 @@ bool IsDefaultAppName(std::string_view name) { return name == kDefaultAppName; }
 bool RegisterApp(const std::shared_ptr<internal::AppState>& state) {
   if (!state) return false;
   AppRegistry& registry = GetAppRegistry();
-  MutexLock lock(registry.mutex);
+  // Declare `existing` BEFORE the lock so that if another thread drops the
+  // last external handle concurrently, ~AppState() runs outside registry.mutex.
+  std::shared_ptr<internal::AppState> existing;
+  std::lock_guard<std::mutex> lock(registry.mutex);
+
+  if (registry.creating_names.find(state->name()) !=
+      registry.creating_names.end()) {
+    LogError(
+        "App '%s' is currently being created in the global App registry; "
+        "ignoring duplicate registration.",
+        state->name().c_str());
+    return false;
+  }
 
   auto it = registry.apps.find(state->name());
   if (it != registry.apps.end()) {
-    auto existing = it->second.lock();
+    existing = it->second.lock();
     if (existing) {
       if (existing == state) {
         return true;  // Already registered (idempotent).
@@ -355,12 +372,15 @@ bool RegisterApp(const std::shared_ptr<internal::AppState>& state) {
 void UnregisterApp(const std::shared_ptr<internal::AppState>& state) {
   if (!state) return;
   AppRegistry& registry = GetAppRegistry();
-  MutexLock lock(registry.mutex);
+  // Declare `existing` BEFORE the lock so ~AppState() never runs inside
+  // registry.mutex.
+  std::shared_ptr<internal::AppState> existing;
+  std::lock_guard<std::mutex> lock(registry.mutex);
 
   auto it = registry.apps.find(state->name());
   if (it == registry.apps.end()) return;
 
-  auto existing = it->second.lock();
+  existing = it->second.lock();
   if (!existing || existing == state) {
     registry.apps.erase(it);
   }
@@ -368,7 +388,7 @@ void UnregisterApp(const std::shared_ptr<internal::AppState>& state) {
 
 std::shared_ptr<internal::AppState> FindRegisteredApp(std::string_view name) {
   AppRegistry& registry = GetAppRegistry();
-  MutexLock lock(registry.mutex);
+  std::lock_guard<std::mutex> lock(registry.mutex);
 
   auto it = registry.apps.find(name);
   if (it == registry.apps.end()) return nullptr;
@@ -384,7 +404,7 @@ std::shared_ptr<internal::AppState> FindRegisteredApp(std::string_view name) {
 
 std::vector<std::shared_ptr<internal::AppState>> GetRegisteredApps() {
   AppRegistry& registry = GetAppRegistry();
-  MutexLock lock(registry.mutex);
+  std::lock_guard<std::mutex> lock(registry.mutex);
 
   std::vector<std::shared_ptr<internal::AppState>> result;
   std::shared_ptr<internal::AppState> default_app;
@@ -407,9 +427,65 @@ std::vector<std::shared_ptr<internal::AppState>> GetRegisteredApps() {
   return result;
 }
 
+App CreateRegisteredApp(std::string_view name,
+                        const std::function<App()>& create_fn) {
+  AppRegistry& registry = GetAppRegistry();
+  std::string app_name(name);
+  // Keep `existing` outside lock scope so dropping it never executes
+  // ~AppState() while holding registry.mutex.
+  std::shared_ptr<internal::AppState> existing;
+  {
+    std::unique_lock<std::mutex> lock(registry.mutex);
+    registry.cv.wait(lock, [&]() {
+      return registry.creating_names.find(app_name) ==
+             registry.creating_names.end();
+    });
+    auto it = registry.apps.find(app_name);
+    if (it != registry.apps.end()) {
+      existing = it->second.lock();
+      if (existing) {
+        LogError("App %s already registered, options will not be applied.",
+                 app_name.c_str());
+        return App();
+      }
+      registry.apps.erase(it);
+    }
+    registry.creating_names.insert(app_name);
+  }
+
+  struct CreatingGuard {
+    AppRegistry& reg;
+    const std::string& key;
+    bool active = true;
+    ~CreatingGuard() {
+      if (active) {
+        {
+          std::lock_guard<std::mutex> lock(reg.mutex);
+          reg.creating_names.erase(key);
+        }
+        reg.cv.notify_all();
+      }
+    }
+  } guard{registry, app_name};
+
+  App app = create_fn();
+  if (!app) {
+    return App();
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(registry.mutex);
+    guard.active = false;
+    registry.creating_names.erase(app_name);
+    registry.apps[app_name] = internal::AppState::FromApp(app);
+  }
+  registry.cv.notify_all();
+  return app;
+}
+
 void ClearRegisteredAppsForTesting() {
   AppRegistry& registry = GetAppRegistry();
-  MutexLock lock(registry.mutex);
+  std::lock_guard<std::mutex> lock(registry.mutex);
   registry.apps.clear();
 }
 

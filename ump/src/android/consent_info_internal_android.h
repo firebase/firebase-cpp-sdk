@@ -19,6 +19,8 @@
 
 #include <jni.h>
 
+#include <cstdint>
+
 #include "app/src/util_android.h"
 #include "firebase/internal/mutex.h"
 #include "ump/src/common/consent_info_internal.h"
@@ -74,7 +76,10 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
 
   void Reset() override;
 
-  bool valid() { return (helper_ != nullptr); }
+  bool PostConstruct() override;
+
+  bool valid() const { return helper_ != nullptr; }
+  bool jni_initialized() const { return jni_initialized_; }
 
   JNIEnv* GetJNIEnv();
   jobject activity();
@@ -109,16 +114,9 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
   };
 
   // JNI native method callback for ConsentInfoHelper.completeFuture.
-  // Calls CompleteFutureFromJniCallback() below.
   static void JNI_ConsentInfoHelper_completeFuture(
-      JNIEnv* env, jclass clazz, jint future_fn,
-      jlong consent_info_internal_ptr, jlong future_handle, jint error_code,
-      jobject error_message_obj);
-
-  // Complete the given Future when called from JNI.
-  void CompleteFutureFromJniCallback(JNIEnv* env, jint future_fn,
-                                     FutureHandleId handle_id, int error_code,
-                                     const char* error_message);
+      JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_handle,
+      jlong future_handle, jint error_code, jobject error_message_obj);
 
   // Cache Java enum field values in the struct below.
   void CacheEnumValues(JNIEnv* env);
@@ -135,14 +133,13 @@ class ConsentInfoInternalAndroid : public ConsentInfoInternal {
 
   const EnumCache& enums() { return enums_; }
 
-  static ConsentInfoInternalAndroid* s_instance;
-  static firebase::Mutex& InstanceMutex();
-
   EnumCache enums_;
 
   JavaVM* java_vm_;
   jobject activity_;
   jobject helper_;
+  int64_t handle_id_ = 0;
+  bool jni_initialized_ = false;
 
   // Needed for GetConsentFormStatus to return Unknown.
   bool has_requested_consent_info_update_;

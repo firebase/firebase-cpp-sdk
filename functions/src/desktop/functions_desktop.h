@@ -16,7 +16,9 @@
 #define FIREBASE_FUNCTIONS_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
 
 #include <memory>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #include "app/src/app_state.h"
 #include "app/src/future_manager.h"
@@ -26,6 +28,8 @@
 namespace firebase {
 namespace functions {
 namespace internal {
+
+class CallOperation;
 
 class FunctionsInternal : public ::firebase::internal::Service {
  public:
@@ -68,12 +72,19 @@ class FunctionsInternal : public ::firebase::internal::Service {
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return true; }
 
+  // Tracks an in-flight callable operation so ~FunctionsInternal() can cancel
+  // and drain all curl transfers before tearing down TransportCurl.
+  void AddOperation(std::shared_ptr<CallOperation> op);
+
  private:
   ::firebase::internal::AppState& app_state_;
   std::string region_;
 
   // In non-empty, the origin to use for constructing emulator functions URLs.
   std::string emulator_origin_;
+
+  std::mutex operations_mutex_;
+  std::vector<std::shared_ptr<CallOperation>> active_operations_;
 
   FutureManager future_manager_;
 };

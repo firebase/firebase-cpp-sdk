@@ -58,17 +58,12 @@ class AppCheckInternal : public ::firebase::internal::AppCheckTokenProvider {
   // ::firebase::internal::AppCheckTokenProvider overrides:
   Future<std::string> GetTokenAsync() override;
   Future<std::string> GetLimitedUseTokenAsync() override;
-  void AddTokenListener(TokenChangedCallback callback, void* context) override;
-  void RemoveTokenListener(TokenChangedCallback callback,
-                           void* context) override;
 
   FutureManager& future_manager() { return future_manager_; }
 
   ReferenceCountedFutureImpl* future();
 
  private:
-  using InternalListenerEntry = std::pair<TokenChangedCallback, void*>;
-
   // Requires mutex_ to be held.
   bool HasValidCacheTokenLocked() const;
 
@@ -90,9 +85,6 @@ class AppCheckInternal : public ::firebase::internal::AppCheckTokenProvider {
   AppCheckToken cached_token_;
   // List of registered public listeners for token changes.
   std::list<AppCheckListener*> token_listeners_;
-  // List of internal cross-product listeners registered via
-  // AppCheckTokenProvider.
-  std::vector<InternalListenerEntry> internal_listeners_;
   // Should it automatically get an App Check token if there is not a valid
   // cached token.
   bool is_token_auto_refresh_enabled_ = true;

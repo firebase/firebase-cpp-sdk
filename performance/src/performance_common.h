@@ -8,6 +8,8 @@
 #ifndef FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_
 #define FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_
 
+#include <mutex>
+
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
@@ -15,6 +17,9 @@ namespace performance {
 namespace internal {
 
 extern const char* kPerformanceModuleName;
+
+// Serializes Initialize() / Terminate() against AppState teardown guards.
+std::mutex& GetLifecycleMutex();
 
 // Returns whether the performance module is initialized.
 // This is implemented per platform.

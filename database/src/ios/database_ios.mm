@@ -14,6 +14,9 @@
 
 #include "database/src/ios/database_ios.h"
 
+#include <utility>
+#include <vector>
+
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -55,23 +58,32 @@ DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
 }
 
 DatabaseInternal::~DatabaseInternal() {
-  // Detach all registered observers and delete pending transient listeners.
+  // Snapshot observers and transient listeners under `listener_mutex_`, then
+  // detach and delete them OUTSIDE `listener_mutex_` to avoid AB/BA lock
+  // inversion with `query_lock_` in `query_ios.mm`.
+  std::vector<FIRCPPDatabaseQueryCallbackStatePointer> states_to_detach;
+  std::vector<ValueListener*> single_listeners_to_delete;
   {
     MutexLock lock(listener_mutex_);
+    states_to_detach.reserve(cleanup_value_listener_lookup_.size() +
+                             cleanup_child_listener_lookup_.size());
     for (auto& entry : cleanup_value_listener_lookup_) {
-      [entry.second.get() removeAllObservers];
+      states_to_detach.push_back(std::move(entry.second));
     }
     cleanup_value_listener_lookup_.clear();
     for (auto& entry : cleanup_child_listener_lookup_) {
-      [entry.second.get() removeAllObservers];
+      states_to_detach.push_back(std::move(entry.second));
     }
     cleanup_child_listener_lookup_.clear();
-    while (single_value_listeners_.begin() != single_value_listeners_.end()) {
-      auto it = single_value_listeners_.begin();
-      auto* listener = *it;
-      single_value_listeners_.erase(it);
-      delete listener;
-    }
+    single_listeners_to_delete.assign(single_value_listeners_.begin(),
+                                      single_value_listeners_.end());
+    single_value_listeners_.clear();
+  }
+  for (auto& state : states_to_detach) {
+    [state.get() removeAllObservers];
+  }
+  for (ValueListener* listener : single_listeners_to_delete) {
+    delete listener;
   }
   impl_ = std::make_unique<FIRDatabasePointer>(nil);
 }

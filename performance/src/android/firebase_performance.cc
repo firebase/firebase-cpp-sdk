@@ -3,8 +3,10 @@
 #include <assert.h>
 #include <jni.h>
 
+#include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <mutex>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
@@ -24,12 +26,18 @@ static jobject g_performance_class_instance = nullptr;
 
 // Used to retrieve the JNI environment in order to call methods on the
 // Android Performance class.
-static bool g_initialized = false;
+static std::atomic<bool> g_initialized{false};
 static JavaVM* g_java_vm = nullptr;
 
 // Initialize the Performance API.
 InitResult Initialize(const ::firebase::App& app) {
-  if (g_initialized) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!app.is_valid()) {
+    LogWarning("%s API cannot be initialized with an invalid App",
+               internal::kPerformanceModuleName);
+    return kInitResultFailedMissingDependency;
+  }
+  if (g_initialized.load(std::memory_order_acquire)) {
     LogWarning("%s API already initialized", internal::kPerformanceModuleName);
     return kInitResultSuccess;
   }
@@ -60,7 +68,6 @@ InitResult Initialize(const ::firebase::App& app) {
   }
 
   g_java_vm = app.java_vm();
-  g_initialized = true;
   // Get / create the Performance singleton.
   jobject performance_class_instance_local =
       env->CallStaticObjectMethod(internal::performance_jni::GetClass(),
@@ -73,6 +80,7 @@ InitResult Initialize(const ::firebase::App& app) {
   FIREBASE_ASSERT(g_performance_class_instance);
 
   env->DeleteLocalRef(performance_class_instance_local);
+  g_initialized.store(true, std::memory_order_release);
   internal::RegisterTerminateOnAppDestroy(app);
   LogInfo("%s API Initialized", internal::kPerformanceModuleName);
   return kInitResultSuccess;
@@ -81,7 +89,7 @@ InitResult Initialize(const ::firebase::App& app) {
 namespace internal {
 
 // Determine whether the performance module is initialized.
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 jobject GetFirebasePerformanceClassInstance() {
   return g_performance_class_instance;
@@ -110,14 +118,15 @@ METHOD_LOOKUP_DEFINITION(trace_jni, "com/google/firebase/perf/metrics/Trace",
 
 // Clean up the API.
 void Terminate() {
-  if (!g_initialized) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!g_initialized.load(std::memory_order_acquire)) {
     LogWarning("%s API already shut down", internal::kPerformanceModuleName);
     return;
   }
   JNIEnv* env = internal::GetJNIEnv();
   util::CancelCallbacks(env, internal::kPerformanceModuleName);
   internal::UnregisterTerminateOnAppDestroy();
-  g_initialized = false;
+  g_initialized.store(false, std::memory_order_release);
   g_java_vm = nullptr;
   env->DeleteGlobalRef(g_performance_class_instance);
   g_performance_class_instance = nullptr;

@@ -235,6 +235,8 @@ class CurlThread {
   int CancelRequest(TransportCurl* transport_curl, Response* response,
                     CURL* curl);
 
+  Mutex* mutex() { return &mutex_; }
+
  private:
   // Pull the next request from the queue, optionally blocking if the queue
   // semaphore has no remaining grants.  Returns true if an action was returned,
@@ -251,8 +253,6 @@ class CurlThread {
 
   // Cancel all outstanding requests.
   void CancelAllTransfers();
-
-  Mutex* mutex() { return &mutex_; }
 
   // Process requests from action_data_ the see the function definition for the
   // complete documentation.
@@ -402,19 +402,12 @@ BackgroundTransportCurl::~BackgroundTransportCurl() {
     request_header_ = nullptr;
   }
 
-  // If this is an asynchronous operation, MarkFailed() or MarkCompleted()
-  // could end up attempting to tear down TransportCurl so we signal
-  // completion here.
-  if (transport_curl_->is_async()) {
-    transport_curl_->SignalTransferComplete();
-    CompleteOperation();
-  } else {
-    // Synchronous operations need all data present in the response before
-    // Perform() returns so signal complete after MarkFailed() or
-    // MarkCompleted().
-    CompleteOperation();
-    transport_curl_->SignalTransferComplete();
-  }
+  // Complete request/response callbacks before signaling transfer completion so
+  // TransportCurl::~TransportCurl() (WaitForAllTransfersToComplete) never
+  // destroys Request or Response while CompleteOperation() is still using them
+  // on the curl thread.
+  CompleteOperation();
+  transport_curl_->SignalTransferComplete();
 }
 
 void BackgroundTransportCurl::CompleteOperation() {
@@ -777,20 +770,31 @@ void CurlThread::ProcessRequests() {
       // Act on the data.
       switch (action_data.action) {
         case kRequestedActionPerform: {
-          BackgroundTransportCurl* transport;
+          BackgroundTransportCurl* transport = nullptr;
+          bool canceled_before_start = false;
           {
             MutexLock lock(mutex_);
-            transport = new BackgroundTransportCurl(
-                curl_multi, action_data.curl, action_data.request,
-                action_data.response, &mutex_, action_data.controller,
-                action_data.transport,
-                [](BackgroundTransportCurl* background_transport, void* data) {
-                  reinterpret_cast<CurlThread*>(data)->RemoveTransfer(
-                      background_transport->response());
-                },
-                this);
+            if (action_data.controller != nullptr &&
+                !action_data.controller->is_transferring()) {
+              canceled_before_start = true;
+            } else {
+              transport = new BackgroundTransportCurl(
+                  curl_multi, action_data.curl, action_data.request,
+                  action_data.response, &mutex_, action_data.controller,
+                  action_data.transport,
+                  [](BackgroundTransportCurl* background_transport,
+                     void* data) {
+                    reinterpret_cast<CurlThread*>(data)->RemoveTransfer(
+                        background_transport->response());
+                  },
+                  this);
+              AddTransfer(transport);
+            }
           }
-          AddTransfer(transport);
+          if (canceled_before_start) {
+            action_data.transport->SignalTransferComplete();
+            break;
+          }
           if (transport->PerformBackground(action_data.request)) {
             expected_running_handles++;
           } else {
@@ -937,7 +941,10 @@ void TransportCurl::PerformInternal(
                                    : kTransferDirectionUpload,
                                response)
           : nullptr;
-  if (controller) controller->set_transferring(true);
+  if (controller) {
+    controller->set_transferring(true);
+    controller->InitializeControllerHandle(nullptr, g_curl_thread->mutex());
+  }
   {
     MutexLock lock(running_transfers_mutex_);
     running_transfers_++;

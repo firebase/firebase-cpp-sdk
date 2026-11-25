@@ -61,12 +61,13 @@ StorageReference& StorageReference::operator=(const StorageReference& other) {
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-StorageReference::StorageReference(StorageReference&& other)
+StorageReference::StorageReference(StorageReference&& other) noexcept
     : internal_(other.internal_) {
   other.internal_ = nullptr;
 }
 
-StorageReference& StorageReference::operator=(StorageReference&& other) {
+StorageReference& StorageReference::operator=(
+    StorageReference&& other) noexcept {
   if (this == &other) return *this;
   delete internal_;
   internal_ = other.internal_;
@@ -216,8 +217,18 @@ Future<StorageListResult> StorageReference::ListLastResult() {
   return internal_ ? internal_->ListLastResult() : Future<StorageListResult>();
 }
 
-bool StorageReference::is_valid() const {
+bool StorageReference::is_valid() const noexcept {
   return internal_ != nullptr && internal_->is_valid();
+}
+
+bool operator==(const StorageReference& lhs, const StorageReference& rhs) {
+  const bool lhs_valid = lhs.is_valid();
+  const bool rhs_valid = rhs.is_valid();
+  if (lhs_valid != rhs_valid) return false;
+  if (!lhs_valid) return true;
+  return lhs.storage() == rhs.storage() &&
+         lhs.internal_->bucket() == rhs.internal_->bucket() &&
+         lhs.internal_->full_path() == rhs.internal_->full_path();
 }
 
 }  // namespace storage

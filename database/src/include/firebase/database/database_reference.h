@@ -74,7 +74,7 @@ class DatabaseReference : public Query {
   /// DatabaseReference instances.
   ///
   /// @param[in] reference DatabaseReference to move data from.
-  DatabaseReference(DatabaseReference&& reference);
+  DatabaseReference(DatabaseReference&& reference) noexcept;
 
   /// @brief Move assignment operator. Moving is an efficient operation for
   /// DatabaseReference instances.
@@ -82,7 +82,7 @@ class DatabaseReference : public Query {
   /// @param[in] reference DatabaseReference to move data from.
   ///
   /// @returns Reference to the destination DatabaseReference.
-  DatabaseReference& operator=(DatabaseReference&& reference);
+  DatabaseReference& operator=(DatabaseReference&& reference) noexcept;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief Gets the database to which we refer.
@@ -118,7 +118,7 @@ class DatabaseReference : public Query {
   ///
   /// @returns true if this reference is valid, false if this reference is
   /// invalid.
-  bool is_valid() const override;
+  bool is_valid() const noexcept override;
 
   /// @brief Gets the parent of this location, or get this location again if
   /// IsRoot().
@@ -424,6 +424,12 @@ class DatabaseReference : public Query {
 /// @returns True if the DatabaseReference instances have the same URL. False
 /// otherwise.
 bool operator==(const DatabaseReference& lhs, const DatabaseReference& rhs);
+
+/// @brief Inequality comparison for DatabaseReference instances.
+inline bool operator!=(const DatabaseReference& lhs,
+                       const DatabaseReference& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace database
 }  // namespace firebase

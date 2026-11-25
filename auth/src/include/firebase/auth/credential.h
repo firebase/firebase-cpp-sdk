@@ -587,8 +587,15 @@ class PhoneAuthProvider {
   PhoneAuthProvider& operator=(PhoneAuthProvider&&) noexcept = default;
   ~PhoneAuthProvider() = default;
 
-  bool is_valid() const { return auth_data_ != nullptr; }
-  explicit operator bool() const { return is_valid(); }
+  bool is_valid() const noexcept { return auth_data_ != nullptr; }
+  explicit operator bool() const noexcept { return is_valid(); }
+
+  bool operator==(const PhoneAuthProvider& other) const noexcept {
+    return auth_data_ == other.auth_data_;
+  }
+  bool operator!=(const PhoneAuthProvider& other) const noexcept {
+    return auth_data_ != other.auth_data_;
+  }
 
   /// Start the phone number authentication operation.
   ///

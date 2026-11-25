@@ -33,7 +33,7 @@ namespace firebase {
 namespace firestore {
 
 #if defined(__ANDROID__)
-App* GetApp();
+App GetApp();
 #endif  // defined(__ANDROID__)
 
 class ListenerRegistrationInternal;
@@ -45,7 +45,7 @@ namespace testutil {
 template <typename FirestoreTypeInternal>
 FirestoreTypeInternal* NewInternal() {
   InitResult init_result;
-  Firestore* firestore = Firestore::GetInstance(GetApp(), &init_result);
+  Firestore firestore = Firestore::GetInstance(GetApp(), &init_result);
   EXPECT_EQ(kInitResultSuccess, init_result);
   jni::Env env;
 

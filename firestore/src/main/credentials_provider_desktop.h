@@ -28,6 +28,7 @@
 #include "Firestore/core/src/util/statusor.h"
 #include "app/src/app_state.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/service_interfaces.h"
 
 #if defined(__ANDROID__)
 #error "This header should not be used on Android."
@@ -62,12 +63,7 @@ class FirebaseCppCredentialsProvider
           listener) override;
 
  private:
-  void AddAuthStateListener();
-  void RemoveAuthStateListener();
-
-  // Callback for the function registry-based pseudo-AuthStateListener
-  // interface.
-  static void OnAuthStateChanged(void* context);
+  void OnAuthStateChanged();
 
   // Requests an auth token for the currently signed-in user asynchronously; the
   // given `listener` will eventually be invoked with the token (or an error).
@@ -107,6 +103,9 @@ class FirebaseCppCredentialsProvider
     int token_generation = 0;
   };
   std::shared_ptr<Contents> contents_;
+  // Declared after `contents_` so the subscription is cancelled and
+  // synchronized before `contents_` is destroyed.
+  ::firebase::internal::TokenSubscription auth_subscription_;
 };
 
 }  // namespace firestore

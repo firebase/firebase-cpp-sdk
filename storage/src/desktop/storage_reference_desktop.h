@@ -15,6 +15,8 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_REFERENCE_DESKTOP_H_
 
+#include <atomic>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -70,7 +72,9 @@ class StorageReferenceInternal {
   static StorageReferenceInternal* CreateWeak(
       const StoragePath& storageUri, std::weak_ptr<StorageInternal> storage);
 
-  bool is_valid() const { return LockStorage() != nullptr; }
+  bool is_valid() const {
+    return strong_storage_ != nullptr || !weak_storage_.expired();
+  }
 
   // Gets the storage to which we refer.
   Storage storage() const;
@@ -168,6 +172,10 @@ class StorageReferenceInternal {
     return strong_storage_ ? strong_storage_ : weak_storage_.lock();
   }
 
+  // Returns the non-owning weak handle to the owning StorageInternal without
+  // temporarily locking a strong reference.
+  std::weak_ptr<StorageInternal> weak_storage() const { return weak_storage_; }
+
   // Non-owning raw pointer for internal callers that already hold a lock.
   StorageInternal* storage_internal() const { return LockStorage().get(); }
 
@@ -186,26 +194,46 @@ class StorageReferenceInternal {
   // nullptr if the underlying StorageInternal has expired.
   StorageReferenceInternal* CloneStrong() const;
 
+  // Creates a non-owning (weak) copy of this StorageReferenceInternal so
+  // internal copies (StorageListResultInternal, ControllerInternal) never
+  // create a reference cycle with StorageInternal / AppState.
+  StorageReferenceInternal* CloneWeak() const;
+
+  // Copies a StorageReference weakly without promoting to a strong handle.
+  static StorageReference CloneWeakReference(const StorageReference& ref);
+
  private:
   struct WeakTag {};
   StorageReferenceInternal(WeakTag, const StoragePath& storageUri,
                            std::weak_ptr<StorageInternal> storage);
 
-  // Function type that sends a Rest Request and returns the BlockingResponse.
-  typedef std::function<BlockingResponse*()> SendRequestFunct;
+  // Function type that sends a single REST attempt using an isolated
+  // per-attempt future API and atomic HTTP status slot. Must not capture
+  // `this` or any stack references.
+  typedef std::function<void(const std::shared_ptr<StorageInternal>&,
+                             const std::shared_ptr<ReferenceCountedFutureImpl>&,
+                             const std::shared_ptr<std::atomic<int>>&,
+                             Controller*)>
+      SendRequestFunct;
 
   template <typename FutureType>
-  void SendRequestWithRetry(StorageReferenceFn internal_function_reference,
-                            SendRequestFunct send_request_funct,
-                            SafeFutureHandle<FutureType> final_handle,
-                            double max_retry_time_seconds);
+  static void SendRequestWithRetry(
+      const std::shared_ptr<StorageInternal>& storage,
+      std::weak_ptr<StorageInternal> weak_storage,
+      SendRequestFunct send_request_funct,
+      std::shared_ptr<detail::FutureImplCore> final_future_core,
+      SafeFutureHandle<FutureType> final_handle, double max_retry_time_seconds,
+      Controller* first_attempt_controller_out = nullptr);
 
   template <typename FutureType>
-  void AsyncSendRequestWithRetry(StorageReferenceFn internal_function_reference,
-                                 SendRequestFunct send_request_funct,
-                                 SafeFutureHandle<FutureType> final_handle,
-                                 BlockingResponse* response,
-                                 double max_retry_time_seconds);
+  static void AsyncSendRequestWithRetry(
+      std::weak_ptr<StorageInternal> weak_storage,
+      SendRequestFunct send_request_funct,
+      std::shared_ptr<detail::FutureImplCore> final_future_core,
+      SafeFutureHandle<FutureType> final_handle,
+      std::shared_ptr<ReferenceCountedFutureImpl> attempt_api,
+      std::shared_ptr<std::atomic<int>> http_status,
+      double max_retry_time_seconds);
 
   // Returns whether or not an HTTP status or future error indicates a retryable
   // failure.
@@ -221,13 +249,17 @@ class StorageReferenceInternal {
                                    Controller* controller_out,
                                    const char* content_type = nullptr);
 
-  void RestCall(rest::Request* request, internal::Notifier* request_notifier,
-                BlockingResponse* response, FutureHandle handle,
-                Listener* listener, Controller* controller_out);
+  static void RestCall(const std::shared_ptr<StorageInternal>& storage,
+                       const StoragePath& storage_uri,
+                       const std::weak_ptr<StorageInternal>& weak_storage,
+                       rest::Request* request,
+                       internal::Notifier* request_notifier,
+                       BlockingResponse* response, FutureHandle handle,
+                       Listener* listener, Controller* controller_out);
 
-  void PrepareRequestBlocking(rest::Request* request, const char* url,
-                              const char* method,
-                              const char* content_type = nullptr);
+  static void PrepareRequestBlocking(
+      const std::shared_ptr<StorageInternal>& storage, rest::Request* request,
+      const char* url, const char* method, const char* content_type = nullptr);
 
   void SetupMetadataChain(Future<Metadata> starting_future,
                           MetadataChainData* data);
@@ -241,6 +273,7 @@ class StorageReferenceInternal {
   std::shared_ptr<StorageInternal> strong_storage_;
   std::weak_ptr<StorageInternal> weak_storage_;
   StoragePath storageUri_;
+  std::atomic<bool> has_future_api_{false};
 };
 
 }  // namespace internal

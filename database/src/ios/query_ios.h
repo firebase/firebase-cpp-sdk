@@ -233,7 +233,7 @@ class QueryInternal {
 class SingleValueListener : public ValueListener {
  public:
   SingleValueListener(
-      ReferenceCountedFutureImpl* _Nonnull future,
+      std::shared_ptr<detail::FutureImplCore> future_core,
       const SafeFutureHandle<DataSnapshot>& handle,
       const FIRCPPDatabaseQueryCallbackStatePointer& callback_state);
   // Unregister ourselves from the database.
@@ -243,7 +243,7 @@ class SingleValueListener : public ValueListener {
                            const char* _Nullable error_message);
 
  private:
-  ReferenceCountedFutureImpl* _Nonnull future_;
+  std::shared_ptr<detail::FutureImplCore> future_core_;
   SafeFutureHandle<DataSnapshot> handle_;
   std::unique_ptr<FIRCPPDatabaseQueryCallbackStatePointer> callback_state_;
 };

@@ -86,19 +86,6 @@ Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
   return promise.LastResult();
 }
 
-void InitializeInternalAuthStateListener(AuthData* auth_data) {
-  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->internal_listeners = std::make_unique<InternalAuthStateListener>();
-  auth_data->AddInternalAuthStateListener(auth_impl->internal_listeners.get());
-}
-
-void DestroyInternalAuthStateListener(AuthData* auth_data) {
-  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_data->RemoveInternalAuthStateListener(
-      auth_impl->internal_listeners.get());
-  auth_impl->internal_listeners.reset();
-}
-
 }  // namespace
 
 void* CreatePlatformAuth(const App& app) {
@@ -165,34 +152,6 @@ uint64_t IdTokenRefreshListener::GetTokenTimestamp() {
   return token_timestamp_;
 }
 
-void InternalAuthStateListener::AddListener(Callback callback, void* context) {
-  if (!callback) return;
-  MutexLock lock(mutex_);
-  callbacks_.emplace_back(callback, context);
-}
-
-void InternalAuthStateListener::RemoveListener(Callback callback,
-                                               void* context) {
-  if (!callback) return;
-  MutexLock lock(mutex_);
-  Entry entry = {callback, context};
-  auto iter = std::find(callbacks_.begin(), callbacks_.end(), entry);
-  if (iter != callbacks_.end()) {
-    callbacks_.erase(iter);
-  }
-}
-
-void InternalAuthStateListener::OnAuthStateChanged(Auth /*auth*/) {
-  std::vector<Entry> callbacks_copy;
-  {
-    MutexLock lock(mutex_);
-    callbacks_copy = callbacks_;
-  }
-  for (const Entry& entry : callbacks_copy) {
-    entry.first(entry.second);
-  }
-}
-
 // ::firebase::internal::AuthTokenProvider overrides on AuthData (Desktop):
 
 std::string AuthData::GetCurrentToken() {
@@ -225,26 +184,8 @@ void AuthData::StartTokenListener() { EnableTokenAutoRefresh(this); }
 
 void AuthData::StopTokenListener() { DisableTokenAutoRefresh(this); }
 
-void AuthData::AddAuthStateListener(AuthStateCallback callback, void* context) {
-  auto* impl = static_cast<AuthImpl*>(auth_impl);
-  if (impl && impl->internal_listeners) {
-    impl->internal_listeners->AddListener(callback, context);
-  }
-}
-
-void AuthData::RemoveAuthStateListener(AuthStateCallback callback,
-                                       void* context) {
-  auto* impl = static_cast<AuthImpl*>(auth_impl);
-  if (impl && impl->internal_listeners) {
-    impl->internal_listeners->RemoveListener(callback, context);
-  }
-}
-
 void InitPlatformAuth(AuthData* const auth_data) {
   firebase::rest::InitTransportCurl();
-
-  // Add internal listeners first so they run before user-supplied listeners.
-  InitializeInternalAuthStateListener(auth_data);
 
   // Load existing UserData.
   InitializeUserDataPersist(auth_data);
@@ -266,14 +207,15 @@ void DestroyPlatformAuth(AuthData* const auth_data) {
   if (!auth_impl) return;
 
   // Tear down persistence first so any in-flight LoadUserData completion
-  // finishes before we shut down auth_impl->scheduler_.
+  // finishes before stopping background refresh and scheduler threads.
   DestroyUserDataPersist(auth_data);
 
-  auth_impl->scheduler_.CancelAllAndShutdownWorkerThread();
-
-  DestroyInternalAuthStateListener(auth_data);
-
+  // Stop IdTokenRefreshThread BEFORE shutting down scheduler_ so an in-flight
+  // GetUserTokenInternal() scheduled by the refresh thread cannot block on a
+  // dead scheduler.
   DestroyTokenRefresher(auth_data);
+
+  auth_impl->scheduler_.CancelAllAndShutdownWorkerThread();
 
   UserView::ClearUser(auth_data);
 
@@ -465,34 +407,14 @@ void Auth::SignOut() {
   AuthenticationResult::SignOut(auth_data_.get());
 }
 
-// AuthStateListener to wait for current_user() until persistent
-// cache load is finished.
-class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
- public:
-  CurrentUserBlockListener() : semaphore_(0) {}
-  ~CurrentUserBlockListener() override {}
-
-  void OnAuthStateChanged(Auth /*auth*/) override { semaphore_.Post(); }
-
-  void WaitForEvent() { semaphore_.Wait(); }
-
- private:
-  Semaphore semaphore_;
-};
-
 User Auth::current_user() {
   if (!auth_data_) return User();
 
-  // Add a listener and wait for the first trigger.
-  CurrentUserBlockListener listener;
-  AddAuthStateListener(&listener);
-  // If the persistent cache has not been loaded, this waits until loading
-  // finishes and OnAuthStateChanged() triggers. Otherwise OnAuthStateChanged()
-  // fires synchronously inside AddAuthStateListener().
-  listener.WaitForEvent();
-  RemoveAuthStateListener(&listener);
+  // Wait for the initial persistent cache load to finish without registering
+  // an AuthStateListener (avoiding lock-order inversions with product mutexes).
+  auth_data_->WaitForPersistentCacheLoad();
 
-  return auth_data_->MakeCurrentUserHandle();
+  return auth_data_->MakeStrongCurrentUserHandle();
 }
 
 std::string Auth::language_code() const {
@@ -623,16 +545,16 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
               auth_data->future_impl.mutex().Release();
               refresh_thread->ref_count_mutex_.Release();
 
-              Semaphore future_sem(0);
-              future.OnCompletion(
-                  [](const firebase::Future<std::string>& result, void* data) {
-                    Semaphore* sem = static_cast<Semaphore*>(data);
-                    sem->Post();
-                  },
-                  &future_sem);
-              future_sem.Wait();
+              while (!refresh_thread->is_shutting_down() &&
+                     future.status() == kFutureStatusPending) {
+                future.Wait(100);
+              }
+              if (refresh_thread->is_shutting_down()) {
+                break;
+              }
 
-              if (future.error() != 0) {
+              if (future.status() != kFutureStatusComplete ||
+                  future.error() != 0) {
                 if (!refresh_thread->is_shutting_down()) {
                   refresh_thread->wakeup_sem_.TimedWait(backoff.NextDelayMs());
                 }
@@ -698,7 +620,9 @@ void IdTokenRefreshThread::EnableAuthRefresh() {
 
 void IdTokenRefreshThread::DisableAuthRefresh() {
   MutexLock lock(ref_count_mutex_);
-  ref_count_--;
+  if (ref_count_ > 0) {
+    ref_count_--;
+  }
 }
 
 }  // namespace auth

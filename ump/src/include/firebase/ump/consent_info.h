@@ -61,13 +61,15 @@ class ConsentInfo {
   ~ConsentInfo();
 
   /// Returns true if this handle refers to a live ConsentInfo instance.
-  bool is_valid() const { return internal_ != nullptr; }
-  explicit operator bool() const { return is_valid(); }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
+  explicit operator bool() const noexcept { return is_valid(); }
 
-  friend bool operator==(const ConsentInfo& lhs, const ConsentInfo& rhs) {
+  friend bool operator==(const ConsentInfo& lhs,
+                         const ConsentInfo& rhs) noexcept {
     return lhs.internal_.get() == rhs.internal_.get();
   }
-  friend bool operator!=(const ConsentInfo& lhs, const ConsentInfo& rhs) {
+  friend bool operator!=(const ConsentInfo& lhs,
+                         const ConsentInfo& rhs) noexcept {
     return !(lhs == rhs);
   }
 

@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <utility>
 #include "storage/src/ios/storage_reference_ios.h"
 
 #import "FirebaseStorage-Swift.h"
@@ -83,10 +84,10 @@ StorageReferenceInternal::~StorageReferenceInternal() {
 }
 
 StorageReferenceInternal::StorageReferenceInternal(const StorageReferenceInternal& other)
-    : strong_storage_(other.strong_storage_), weak_storage_(other.weak_storage_) {
+    : strong_storage_(other.LockStorage()), weak_storage_(other.weak_storage_) {
   impl_.reset(new FIRStorageReferencePointer(*other.impl_));
-  if (auto locked = LockStorage()) {
-    locked->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+  if (strong_storage_) {
+    strong_storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
   }
 }
 
@@ -96,13 +97,22 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   if (auto old_storage = LockStorage()) {
     old_storage->future_manager().ReleaseFutureApi(this);
   }
-  strong_storage_ = other.strong_storage_;
+  strong_storage_ = other.LockStorage();
   weak_storage_ = other.weak_storage_;
   impl_.reset(new FIRStorageReferencePointer(*other.impl_));
-  if (auto new_storage = LockStorage()) {
-    new_storage->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+  if (strong_storage_) {
+    strong_storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
   }
   return *this;
+}
+
+StorageReferenceInternal* StorageReferenceInternal::CloneWeak() const {
+  return CreateWeak(weak_storage_, std::make_unique<FIRStorageReferencePointer>(*impl_));
+}
+
+// static
+StorageReference StorageReferenceInternal::CloneWeakReference(const StorageReference& ref) {
+  return ref.internal_ ? StorageReference(ref.internal_->CloneWeak()) : StorageReference();
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
@@ -155,13 +165,18 @@ Future<void> StorageReferenceInternal::Delete() {
   ReferenceCountedFutureImpl* future_impl = future();
   if (!future_impl) return Future<void>();
   SafeFutureHandle<void> handle = future_impl->SafeAlloc<void>(kStorageReferenceFnDelete);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   FIRStorageVoidError completion = ^(NSError *error) {
-    auto locked_storage = weak_storage.lock();
-    if (!locked_storage) return;
-    Error error_code = NSErrorToErrorCode(error);
-    const char* error_string = GetErrorMessage(error_code);
-    future_impl->Complete(handle, error_code, error_string);
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    {
+      auto locked_storage = weak_storage.lock();
+      if (!locked_storage) return;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
+    }
+    ReferenceCountedFutureImpl::CompleteCore(future_core, handle, error_code, error_string);
   };
   [impl() deleteWithCompletion:completion];
   return DeleteLastResult();
@@ -174,11 +189,11 @@ Future<void> StorageReferenceInternal::DeleteLastResult() {
              : Future<void>();
 }
 
-std::string StorageReferenceInternal::bucket() {
+std::string StorageReferenceInternal::bucket() const {
   return impl() ? std::string(impl().bucket.UTF8String) : std::string();
 }
 
-std::string StorageReferenceInternal::full_path() {
+std::string StorageReferenceInternal::full_path() const {
   return impl() ? std::string("/") + std::string(impl().fullPath.UTF8String) : std::string();
 }
 
@@ -187,23 +202,36 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path, Listener* lis
   ReferenceCountedFutureImpl* future_impl = future();
   if (!future_impl) return Future<size_t>();
   SafeFutureHandle<size_t> handle = future_impl->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   auto controller_init_mutex = std::make_shared<Mutex>();
   ControllerInternal* local_controller = new ControllerInternal();
   FIRStorageVoidURLError completion = ^(NSURL *url, NSError *error) {
+    bool should_complete = false;
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    bool succeeded = false;
+    size_t bytes_transferred = 0;
     if (auto locked_storage = weak_storage.lock()) {
-      Error error_code = NSErrorToErrorCode(error);
-      const char* error_string = GetErrorMessage(error_code);
+      should_complete = true;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
       if (error == nil) {
-        size_t bytes_transferred = static_cast<size_t>(local_controller->bytes_transferred());
-        future_impl->CompleteWithResult(handle, error_code, error_string, bytes_transferred);
-      } else {
-        future_impl->Complete(handle, error_code, error_string);
+        succeeded = true;
+        bytes_transferred = static_cast<size_t>(local_controller->bytes_transferred());
       }
     }
     {
       MutexLock mutex(*controller_init_mutex);
       delete local_controller;
+    }
+    if (should_complete) {
+      if (succeeded) {
+        ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                           error_string, bytes_transferred);
+      } else {
+        ReferenceCountedFutureImpl::CompleteCore(future_core, handle, error_code, error_string);
+      }
     }
   };
   if (controller_out) {
@@ -262,6 +290,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer, size_t buffer_si
   ReferenceCountedFutureImpl* future_impl = future();
   if (!future_impl) return Future<size_t>();
   SafeFutureHandle<size_t> handle = future_impl->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   __block BOOL completed = NO;
   FIRStorageVoidDataError completion = ^(NSData* _Nullable data, NSError* _Nullable error) {
@@ -269,19 +298,31 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer, size_t buffer_si
       return;
     }
     completed = YES;
+    bool should_complete = false;
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    bool has_data = false;
+    size_t data_length = 0;
     if (auto locked_storage = weak_storage.lock()) {
-      Error error_code = NSErrorToErrorCode(error);
-      const char* error_string = GetErrorMessage(error_code);
+      should_complete = true;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
       if (data != nil) {
         assert(data.length <= buffer_size);
         memcpy(buffer, data.bytes, data.length);
-        future_impl->CompleteWithResult(handle, error_code, error_string,
-                                        static_cast<size_t>(data.length));
-      } else {
-        future_impl->Complete(handle, error_code, error_string);
+        has_data = true;
+        data_length = static_cast<size_t>(data.length);
       }
     }
     if (listener) listener->impl_->DetachTask();
+    if (should_complete) {
+      if (has_data) {
+        ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                           error_string, data_length);
+      } else {
+        ReferenceCountedFutureImpl::CompleteCore(future_core, handle, error_code, error_string);
+      }
+    }
   };
 
   if (controller_out) {
@@ -313,20 +354,31 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
   if (!future_impl) return Future<std::string>();
   SafeFutureHandle<std::string> handle =
       future_impl->SafeAlloc<std::string>(kStorageReferenceFnGetDownloadUrl);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   __block BOOL completed = NO;
   FIRStorageVoidURLError completion = ^(NSURL *url, NSError *error) {
     if (completed) return;
     completed = YES;
-    auto locked_storage = weak_storage.lock();
-    if (!locked_storage) return;
-    Error error_code = NSErrorToErrorCode(error);
-    const char* error_string = GetErrorMessage(error_code);
-    if (url != nil) {
-      future_impl->CompleteWithResult(handle, error_code, error_string,
-                                      std::string(url.absoluteString.UTF8String));
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    bool has_url = false;
+    std::string url_str;
+    {
+      auto locked_storage = weak_storage.lock();
+      if (!locked_storage) return;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
+      if (url != nil) {
+        has_url = true;
+        url_str = url.absoluteString.UTF8String;
+      }
+    }
+    if (has_url) {
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                         error_string, url_str);
     } else {
-      future_impl->Complete(handle, error_code, error_string);
+      ReferenceCountedFutureImpl::CompleteCore(future_core, handle, error_code, error_string);
     }
   };
   [impl() downloadURLWithCompletion:completion];
@@ -345,23 +397,27 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
   if (!future_impl) return Future<Metadata>();
   SafeFutureHandle<Metadata> handle =
       future_impl->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadata);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   __block BOOL completed = NO;
   FIRStorageVoidMetadataError completion = ^(FIRStorageMetadata *metadata, NSError *error) {
     if (completed) return;
     completed = YES;
-    auto locked_storage = weak_storage.lock();
-    if (!locked_storage) return;
-    Error error_code = NSErrorToErrorCode(error);
-    const char* error_string = GetErrorMessage(error_code);
-    if (metadata != nil) {
-      future_impl->CompleteWithResult(
-          handle, error_code, error_string,
-          Metadata(new MetadataInternal(weak_storage,
-                                        std::make_unique<FIRStorageMetadataPointer>(metadata))));
-    } else {
-      future_impl->CompleteWithResult(handle, error_code, error_string, Metadata(nullptr));
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    Metadata result_metadata(nullptr);
+    {
+      auto locked_storage = weak_storage.lock();
+      if (!locked_storage) return;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
+      if (metadata != nil) {
+        result_metadata = Metadata(new MetadataInternal(
+            weak_storage, std::make_unique<FIRStorageMetadataPointer>(metadata)));
+      }
     }
+    ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                       error_string, result_metadata);
   };
   [impl() metadataWithCompletion:completion];
   return GetMetadataLastResult();
@@ -379,24 +435,27 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(const Metadata* metada
   if (!future_impl) return Future<Metadata>();
   SafeFutureHandle<Metadata> handle =
       future_impl->SafeAlloc<Metadata>(kStorageReferenceFnUpdateMetadata);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   __block BOOL completed = NO;
   FIRStorageVoidMetadataError completion = ^(FIRStorageMetadata *metadata_impl, NSError *error) {
     if (completed) return;
     completed = YES;
-    auto locked_storage = weak_storage.lock();
-    if (!locked_storage) return;
-    Error error_code = NSErrorToErrorCode(error);
-    const char* error_string = GetErrorMessage(error_code);
-    if (metadata_impl != nil) {
-      future_impl->CompleteWithResult(
-          handle, error_code, error_string,
-          Metadata(new MetadataInternal(weak_storage,
-                                        std::make_unique<FIRStorageMetadataPointer>(metadata_impl))));
-    } else {
-      future_impl->CompleteWithResult(handle, error_code, error_string,
-                                      Metadata(nullptr));
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    Metadata result_metadata(nullptr);
+    {
+      auto locked_storage = weak_storage.lock();
+      if (!locked_storage) return;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
+      if (metadata_impl != nil) {
+        result_metadata = Metadata(new MetadataInternal(
+            weak_storage, std::make_unique<FIRStorageMetadataPointer>(metadata_impl)));
+      }
     }
+    ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                       error_string, result_metadata);
   };
   metadata->internal_->CommitCustomMetadata();
   [impl() updateMetadata:metadata->internal_->impl() completion:completion];
@@ -432,25 +491,31 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   ReferenceCountedFutureImpl* future_impl = future();
   if (!future_impl) return Future<Metadata>();
   SafeFutureHandle<Metadata> handle = future_impl->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   __block BOOL completed = NO;
   FIRStorageVoidMetadataError completion =
       ^(FIRStorageMetadata *resultant_metadata, NSError *error) {
     if (completed) return;
     completed = YES;
+    bool should_complete = false;
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    Metadata result_metadata(nullptr);
     if (auto locked_storage = weak_storage.lock()) {
-      Error error_code = NSErrorToErrorCode(error);
-      const char* error_string = GetErrorMessage(error_code);
+      should_complete = true;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
       if (error == nil) {
-        future_impl->CompleteWithResult(
-            handle, error_code, error_string,
-            Metadata(new MetadataInternal(
-                weak_storage, std::make_unique<FIRStorageMetadataPointer>(resultant_metadata))));
-      } else {
-        future_impl->CompleteWithResult(handle, error_code, error_string, Metadata(nullptr));
+        result_metadata = Metadata(new MetadataInternal(
+            weak_storage, std::make_unique<FIRStorageMetadataPointer>(resultant_metadata)));
       }
     }
     if (listener) listener->impl_->DetachTask();
+    if (should_complete) {
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                         error_string, result_metadata);
+    }
   };
   FIRStorageMetadata *metadata_impl = nil;
   Metadata local_metadata;
@@ -503,25 +568,31 @@ Future<Metadata> StorageReferenceInternal::PutFile(
   ReferenceCountedFutureImpl* future_impl = future();
   if (!future_impl) return Future<Metadata>();
   SafeFutureHandle<Metadata> handle = future_impl->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
   __block BOOL completed = NO;
   FIRStorageVoidMetadataError completion =
       ^(FIRStorageMetadata *resultant_metadata, NSError *error) {
     if (completed) return;
     completed = YES;
+    bool should_complete = false;
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    Metadata result_metadata(nullptr);
     if (auto locked_storage = weak_storage.lock()) {
-      Error error_code = NSErrorToErrorCode(error);
-      const char* error_string = GetErrorMessage(error_code);
+      should_complete = true;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
       if (error == nil) {
-        future_impl->CompleteWithResult(
-            handle, error_code, error_string,
-            Metadata(new MetadataInternal(
-                weak_storage, std::make_unique<FIRStorageMetadataPointer>(resultant_metadata))));
-      } else {
-        future_impl->CompleteWithResult(handle, error_code, error_string, Metadata(nullptr));
+        result_metadata = Metadata(new MetadataInternal(
+            weak_storage, std::make_unique<FIRStorageMetadataPointer>(resultant_metadata)));
       }
     }
     if (listener) listener->impl_->DetachTask();
+    if (should_complete) {
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                         error_string, result_metadata);
+    }
   };
   FIRStorageMetadata *metadata_impl = nil;
   Metadata local_metadata;
@@ -543,10 +614,17 @@ Future<Metadata> StorageReferenceInternal::PutFile(
       // exist so check for file existence here and abort if it's missing.
       NSError* file_url_exists_error;
       if (![local_file_url checkResourceIsReachableAndReturnError:&file_url_exists_error]) {
-        if (auto locked_storage = weak_storage.lock()) {
+        bool should_complete = false;
+        {
+          if (auto locked_storage = weak_storage.lock()) {
+            should_complete = true;
+          }
+        }
+        if (should_complete) {
           Error error_code = kErrorObjectNotFound;
           const char* error_string = GetErrorMessage(error_code);
-          future_impl->CompleteWithResult(handle, error_code, error_string, Metadata(nullptr));
+          ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                             error_string, Metadata(nullptr));
         }
         return;
       }
@@ -578,34 +656,43 @@ Future<StorageListResult> StorageReferenceInternal::List(int max_results_per_pag
   if (!future_impl) return Future<StorageListResult>();
   SafeFutureHandle<StorageListResult> handle =
       future_impl->SafeAlloc<StorageListResult>(kStorageReferenceFnList);
+  auto future_core = future_impl->core();
   std::weak_ptr<StorageInternal> weak_storage = weak_storage_;
 
   auto completion = ^(FIRStorageListResult* _Nullable result, NSError* _Nullable error) {
-    auto locked_storage = weak_storage.lock();
-    if (!locked_storage) return;
-    Error error_code = NSErrorToErrorCode(error);
-    const char* error_string = GetErrorMessage(error_code);
-    if (error == nil) {
-      std::vector<StorageReference> prefixes;
-      std::vector<StorageReference> items;
-      NSString* next_page_token = result.pageToken;
+    Error error_code = kErrorNone;
+    const char* error_string = "";
+    StorageListResult list_result;
+    {
+      auto locked_storage = weak_storage.lock();
+      if (!locked_storage) return;
+      error_code = NSErrorToErrorCode(error);
+      error_string = GetErrorMessage(error_code);
+      if (error == nil) {
+        std::vector<StorageReference> prefixes;
+        std::vector<StorageReference> items;
+        NSString* next_page_token = result.pageToken;
 
-      auto process_refs = [&](NSArray<FIRStorageReference*>* refs,
-                              std::vector<StorageReference>& out_vec) {
-        for (FIRStorageReference* ref in refs) {
-          out_vec.push_back(StorageReference(StorageReferenceInternal::CreateWeak(
-              weak_storage, std::make_unique<FIRStorageReferencePointer>(ref))));
-        }
-      };
-      process_refs(result.prefixes, prefixes);
-      process_refs(result.items, items);
+        auto process_refs = [&](NSArray<FIRStorageReference*>* refs,
+                                std::vector<StorageReference>& out_vec) {
+          for (FIRStorageReference* ref in refs) {
+            out_vec.push_back(StorageReference(StorageReferenceInternal::CreateWeak(
+                weak_storage, std::make_unique<FIRStorageReferencePointer>(ref))));
+          }
+        };
+        process_refs(result.prefixes, prefixes);
+        process_refs(result.items, items);
 
-      internal::StorageListResultInternal* list_result_internal = new internal::StorageListResultInternal(
-          prefixes, items, next_page_token ? [next_page_token UTF8String] : "");
-      future_impl->CompleteWithResult(handle, error_code, error_string, internal::StorageListResultInternal::AsStorageListResult(list_result_internal));
-    } else {
-      future_impl->CompleteWithResult(handle, error_code, error_string, StorageListResult());
+        internal::StorageListResultInternal* list_result_internal =
+            new internal::StorageListResultInternal(
+                std::move(prefixes), std::move(items),
+                next_page_token ? [next_page_token UTF8String] : "");
+        list_result =
+            internal::StorageListResultInternal::AsStorageListResult(list_result_internal);
+      }
     }
+    ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, error_code,
+                                                       error_string, list_result);
   };
 
   FIRStorageReference* my_impl = impl();

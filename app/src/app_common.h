@@ -19,6 +19,7 @@
 
 #include <stddef.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -60,6 +61,8 @@ bool RegisterApp(const std::shared_ptr<internal::AppState>& state);
 void UnregisterApp(const std::shared_ptr<internal::AppState>& state);
 std::shared_ptr<internal::AppState> FindRegisteredApp(std::string_view name);
 std::vector<std::shared_ptr<internal::AppState>> GetRegisteredApps();
+App CreateRegisteredApp(std::string_view name,
+                        const std::function<App()>& create_fn);
 void ClearRegisteredAppsForTesting();
 
 // Register a library which uses this SDK.

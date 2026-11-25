@@ -34,6 +34,7 @@
 #include "app/src/util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "messaging/src/common.h"
 #include "messaging/tests/messaging_test_util.h"
 #include "testing/config.h"
 #include "testing/reporter.h"
@@ -146,6 +147,19 @@ void MessagingTestListener::OnUnregistrationReceived(
 TEST_F(MessagingTest, TestInitializeTwice) {
   MessagingTestListener listener;
   EXPECT_EQ(Initialize(firebase_app_, &listener), kInitResultSuccess);
+}
+
+TEST_F(MessagingTest, TestAppDestroyAutoTerminatesMessaging) {
+  EXPECT_TRUE(internal::IsInitialized());
+  firebase_app_ = App();
+  EXPECT_FALSE(internal::IsInitialized());
+}
+
+TEST_F(MessagingTest, TestInitializeWithInvalidAppFails) {
+  Terminate();
+  EXPECT_FALSE(internal::IsInitialized());
+  EXPECT_EQ(Initialize(App(), &listener_), kInitResultFailedMissingDependency);
+  EXPECT_FALSE(internal::IsInitialized());
 }
 
 // The order of these matter because of the global flag

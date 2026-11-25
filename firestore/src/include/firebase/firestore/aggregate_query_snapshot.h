@@ -113,8 +113,10 @@ class AggregateQuerySnapshot {
    * is not valid. An invalid `AggregateQuerySnapshot` could be the result of:
    *   - Creating a `AggregateQuerySnapshot` using the default constructor.
    *   - Moving from the `AggregateQuerySnapshot`.
-   *   - Deleting your Firestore instance, which will invalidate all the
-   *     `AggregateQuerySnapshot` instances associated with it.
+   *   - Terminating the underlying Firestore service (via
+   *     `Firestore::Terminate()`) or dropping all `App` and `Firestore`
+   *     handles, which will invalidate all `AggregateQuerySnapshot` instances
+   *     associated with it.
    *
    * @return true if this `AggregateQuerySnapshot` is valid, false if this
    * `AggregateQuerySnapshot` is invalid.

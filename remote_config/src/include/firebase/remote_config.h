@@ -229,13 +229,15 @@ class RemoteConfig {
 
   /// @brief Returns true if this handle refers to a live RemoteConfig
   /// instance.
-  bool is_valid() const { return internal_ != nullptr; }
-  explicit operator bool() const { return is_valid(); }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
+  explicit operator bool() const noexcept { return is_valid(); }
 
-  friend bool operator==(const RemoteConfig& lhs, const RemoteConfig& rhs) {
+  friend bool operator==(const RemoteConfig& lhs,
+                         const RemoteConfig& rhs) noexcept {
     return lhs.internal_.get() == rhs.internal_.get();
   }
-  friend bool operator!=(const RemoteConfig& lhs, const RemoteConfig& rhs) {
+  friend bool operator!=(const RemoteConfig& lhs,
+                         const RemoteConfig& rhs) noexcept {
     return !(lhs == rhs);
   }
 
@@ -563,6 +565,10 @@ class RemoteConfig {
   /// @brief Starts listening for real-time config updates from the Remote
   /// Config backend and automatically fetches updates from the RC backend when
   /// they are available.
+  ///
+  /// @note If `config_update_listener` captures strong `App` or `RemoteConfig`
+  /// handles, the underlying `AppState` stays alive until
+  /// `ConfigUpdateListenerRegistration::Remove()` is called.
   /// @param config_update_listener An event handler callback that can be used
   /// to respond to config updates when they're fetched
   /// @return A registration object that allows the listener to remove the

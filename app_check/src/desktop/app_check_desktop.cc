@@ -45,7 +45,6 @@ AppCheckInternal::~AppCheckInternal() {
   MutexLock lock(mutex_);
   cached_token_.expire_time_millis = 0;
   token_listeners_.clear();
-  internal_listeners_.clear();
 }
 
 ::firebase::App AppCheckInternal::app() const {
@@ -65,19 +64,15 @@ bool AppCheckInternal::HasValidCacheTokenLocked() const {
 
 void AppCheckInternal::UpdateCachedToken(AppCheckToken token) {
   std::vector<AppCheckListener*> public_listeners;
-  std::vector<InternalListenerEntry> internal_listeners;
   {
     MutexLock lock(mutex_);
     cached_token_ = token;
     public_listeners.assign(token_listeners_.begin(), token_listeners_.end());
-    internal_listeners = internal_listeners_;
   }
   for (AppCheckListener* listener : public_listeners) {
     listener->OnAppCheckTokenChanged(token);
   }
-  for (const InternalListenerEntry& entry : internal_listeners) {
-    entry.first(token.token, entry.second);
-  }
+  app_state_.NotifyAppCheckTokenChanged(token.token);
 }
 
 AppCheckProvider* AppCheckInternal::GetProvider() {
@@ -287,36 +282,6 @@ void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
   if (!listener) return;
   MutexLock lock(mutex_);
   token_listeners_.remove(listener);
-}
-
-void AppCheckInternal::AddTokenListener(TokenChangedCallback callback,
-                                        void* context) {
-  if (!callback) return;
-  bool notify = false;
-  std::string token_copy;
-  {
-    MutexLock lock(mutex_);
-    internal_listeners_.emplace_back(callback, context);
-    if (HasValidCacheTokenLocked()) {
-      notify = true;
-      token_copy = cached_token_.token;
-    }
-  }
-  if (notify) {
-    callback(token_copy, context);
-  }
-}
-
-void AppCheckInternal::RemoveTokenListener(TokenChangedCallback callback,
-                                           void* context) {
-  if (!callback) return;
-  MutexLock lock(mutex_);
-  InternalListenerEntry entry{callback, context};
-  auto iter =
-      std::find(internal_listeners_.begin(), internal_listeners_.end(), entry);
-  if (iter != internal_listeners_.end()) {
-    internal_listeners_.erase(iter);
-  }
 }
 
 }  // namespace internal

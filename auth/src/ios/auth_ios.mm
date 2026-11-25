@@ -297,7 +297,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
 
 User Auth::current_user() {
   if (!auth_data_) return User();
-  return auth_data_->MakeCurrentUserHandle();
+  return auth_data_->MakeStrongCurrentUserHandle();
 }
 
 static User AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
@@ -391,7 +391,7 @@ void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
                         SafeFutureHandle<AuthResult> handle, AuthData *auth_data) {
   User current_user = AssignUser(user, auth_data);
   AuthResult auth_result;
-  if (current_user.is_valid()) auth_result.user = current_user;
+  if (current_user.is_valid()) auth_result.user = std::move(current_user);
 
   if (error != nullptr && error.userInfo != nullptr) {
     if (error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey] != nullptr) {
@@ -424,8 +424,9 @@ void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
     error_string += util::NSStringToString(error.userInfo[NSLocalizedFailureReasonErrorKey]);
   }
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  futures.CompleteWithResult(handle, AuthErrorFromNSError(error), error_string.c_str(),
-                             user_result);
+  futures.Complete<User>(
+      handle, AuthErrorFromNSError(error), error_string.c_str(),
+      [&user_result](User *out) { *out = AuthData::CloneWeakUser(user_result); });
 }
 
 void AuthResultWithProviderCallback(
@@ -614,8 +615,6 @@ Future<std::string> AuthData::GetTokenAsync(bool /*force_refresh*/) {
 std::string AuthData::GetCurrentUserUid() { return {}; }
 void AuthData::StartTokenListener() {}
 void AuthData::StopTokenListener() {}
-void AuthData::AddAuthStateListener(AuthStateCallback /*callback*/, void * /*context*/) {}
-void AuthData::RemoveAuthStateListener(AuthStateCallback /*callback*/, void * /*context*/) {}
 
 // Not implemented for iOS.
 void EnableTokenAutoRefresh(AuthData *auth_data) {}

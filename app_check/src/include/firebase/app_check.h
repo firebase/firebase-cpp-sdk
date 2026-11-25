@@ -135,13 +135,13 @@ class AppCheck {
   ~AppCheck() = default;
 
   /// Returns true if this handle refers to a valid AppCheck instance.
-  bool is_valid() const { return internal_ != nullptr; }
-  explicit operator bool() const { return is_valid(); }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
+  explicit operator bool() const noexcept { return is_valid(); }
 
-  bool operator==(const AppCheck& other) const {
+  bool operator==(const AppCheck& other) const noexcept {
     return internal_ == other.internal_;
   }
-  bool operator!=(const AppCheck& other) const {
+  bool operator!=(const AppCheck& other) const noexcept {
     return internal_ != other.internal_;
   }
 

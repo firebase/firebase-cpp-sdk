@@ -145,6 +145,9 @@ GetTokenResult EnsureFreshToken(AuthData* const auth_data,
   }
 
   App app_handle = auth_data->app_state.TryMakeAppHandle();
+  if (!app_handle.is_valid()) {
+    return GetTokenResult(kAuthErrorFailure);
+  }
   const SecureTokenRequest request(app_handle, GetApiKey(*auth_data),
                                    refresh_token.c_str());
   auto response = GetResponse<SecureTokenResponse>(request);
@@ -646,7 +649,7 @@ Future<void> UserDataPersist::DeleteUserData(AuthData* auth_data) {
       auth_data->app_state.name().c_str());
 }
 
-bool User::is_valid() const {
+bool User::is_valid() const noexcept {
   auto data = auth_data_.lock();
   return ValidUser(data.get()) && UserView::GetReader(data.get()).IsValid();
 }

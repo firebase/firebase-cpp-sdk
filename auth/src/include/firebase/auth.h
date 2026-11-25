@@ -100,12 +100,12 @@ class FederatedOAuthProvider;
 /// For example:
 /// @code{.cpp}
 ///
-/// // Get the Auth class for your App.
-/// firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app);
+/// // Get the Auth handle for your App.
+/// firebase::auth::Auth auth = firebase::auth::Auth::GetAuth(app);
 ///
 /// // Request anonymous sign-in and wait until asynchronous call completes.
 /// firebase::Future<firebase::auth::AuthResult> sign_in_future =
-///     auth->SignInAnonymously();
+///     auth.SignInAnonymously();
 /// while(sign_in_future.status() == firebase::kFutureStatusPending) {
 ///     // when polling, like this, make sure you service your platform's
 ///     // message loop
@@ -156,13 +156,13 @@ class Auth {
   ~Auth() = default;
 
   /// Returns true if this handle refers to a valid Auth instance.
-  bool is_valid() const { return auth_data_ != nullptr; }
-  explicit operator bool() const { return is_valid(); }
+  bool is_valid() const noexcept { return auth_data_ != nullptr; }
+  explicit operator bool() const noexcept { return is_valid(); }
 
-  bool operator==(const Auth& other) const {
+  bool operator==(const Auth& other) const noexcept {
     return auth_data_ == other.auth_data_;
   }
-  bool operator!=(const Auth& other) const {
+  bool operator!=(const Auth& other) const noexcept {
     return auth_data_ != other.auth_data_;
   }
 

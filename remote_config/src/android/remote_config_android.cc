@@ -18,13 +18,16 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <set>
 #include <string>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/native_handle_table.h"
 #include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/time.h"
@@ -614,27 +617,42 @@ static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
 template <typename T>
 struct RCDataHandle {
   RCDataHandle(
-      ReferenceCountedFutureImpl* _future_api,
+      std::shared_ptr<detail::FutureImplCore> _future_core,
       const SafeFutureHandle<T>& _future_handle,
       RemoteConfigInternal* _rc_internal,
+      std::weak_ptr<::firebase::internal::AppState> _weak_state,
       std::vector<std::string> _default_keys = std::vector<std::string>())
-      : future_api(_future_api),
+      : future_core(std::move(_future_core)),
         future_handle(_future_handle),
         rc_internal(_rc_internal),
-        default_keys(_default_keys) {}
-  ReferenceCountedFutureImpl* future_api;
+        weak_state(std::move(_weak_state)),
+        default_keys(std::move(_default_keys)) {}
+  std::shared_ptr<detail::FutureImplCore> future_core;
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
   std::vector<std::string> default_keys;
 };
 
 // An object wrapping a ConfigUpdateListener callback method
 struct ConfigUpdateListenerWrapper {
-  ConfigUpdateListenerWrapper(
+  explicit ConfigUpdateListenerWrapper(
       std::function<void(ConfigUpdate&&, RemoteConfigError)> listener_)
-      : listener(listener_) {}
+      : listener(std::move(listener_)) {}
   std::function<void(ConfigUpdate&&, RemoteConfigError)> listener;
 };
+
+namespace {
+
+::firebase::internal::OwnedNativeHandleTable<ConfigUpdateListenerWrapper>&
+GetConfigUpdateListenerTable() {
+  static ::firebase::internal::NoDestructor<
+      ::firebase::internal::OwnedNativeHandleTable<ConfigUpdateListenerWrapper>>
+      table;
+  return *table;
+}
+
+}  // namespace
 
 JNIEnv* RemoteConfigInternal::GetJNIEnv() const {
   return java_vm_ ? util::GetThreadsafeJNIEnv(java_vm_)
@@ -728,53 +746,69 @@ void EnsureInitializedCallback(JNIEnv* env, jobject result,
                                util::FutureResult result_code,
                                const char* status_message,
                                void* callback_data) {
+  std::unique_ptr<RCDataHandle<ConfigInfo>> data_handle(
+      reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data));
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) return;
+
   bool success = (result_code == util::kFutureResultSuccess);
   ConfigInfo info;
   if (success && result) {
     JConfigInfoToConfigInfo(env, result, &info);
   }
-  auto* data_handle =
-      reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
-
-  data_handle->future_api->CompleteWithResult(
-      data_handle->future_handle,
-      success ? kFutureStatusSuccess : kFutureStatusFailure, status_message,
-      info);
-
-  delete data_handle;
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCoreWithResult(
+      core, handle, success ? kFutureStatusSuccess : kFutureStatusFailure,
+      status_message, info);
 }
 
 void BoolResultCallback(JNIEnv* env, jobject result,
                         util::FutureResult result_code,
                         const char* status_message, void* callback_data) {
+  std::unique_ptr<RCDataHandle<bool>> data_handle(
+      reinterpret_cast<RCDataHandle<bool>*>(callback_data));
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) return;
+
   bool success = (result_code == util::kFutureResultSuccess);
   bool result_value = false;
   if (success && result) {
     result_value = util::JBooleanToBool(env, result);
   }
-
-  auto* data_handle = reinterpret_cast<RCDataHandle<bool>*>(callback_data);
-  data_handle->future_api->CompleteWithResult(
-      data_handle->future_handle,
-      success ? kFutureStatusSuccess : kFutureStatusFailure, status_message,
-      result_value);
-
-  delete data_handle;
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCoreWithResult(
+      core, handle, success ? kFutureStatusSuccess : kFutureStatusFailure,
+      status_message, result_value);
 }
 
 void CompleteVoidCallback(JNIEnv* env, jobject result,
                           util::FutureResult result_code,
                           const char* status_message, void* callback_data) {
-  auto* data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
-  data_handle->future_api->Complete(data_handle->future_handle,
-                                    result_code == util::kFutureResultSuccess
-                                        ? kFutureStatusSuccess
-                                        : kFutureStatusFailure);
-  delete data_handle;
+  std::unique_ptr<RCDataHandle<void>> data_handle(
+      reinterpret_cast<RCDataHandle<void>*>(callback_data));
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) return;
+
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCore(
+      core, handle,
+      result_code == util::kFutureResultSuccess ? kFutureStatusSuccess
+                                                : kFutureStatusFailure);
 }
 
 void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                    const char* status_message, void* callback_data) {
+  std::unique_ptr<RCDataHandle<void>> data_handle(
+      reinterpret_cast<RCDataHandle<void>*>(callback_data));
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) return;
+
   bool success = (result_code == util::kFutureResultSuccess);
   int64_t throttle_end_time = 0;
   if (!success && result) {
@@ -784,23 +818,37 @@ void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                       throttled_exception::kGetThrottleEndTimeMillis)));
     }
   }
-  auto data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
   if (throttle_end_time > 0) {
     data_handle->rc_internal->set_throttled_end_time(throttle_end_time);
   }
 
-  CompleteVoidCallback(env, result, result_code, status_message, callback_data);
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCore(
+      core, handle, success ? kFutureStatusSuccess : kFutureStatusFailure);
 }
 
 void SetDefaultsCallback(JNIEnv* env, jobject result,
                          util::FutureResult result_code,
                          const char* status_message, void* callback_data) {
-  auto data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
+  std::unique_ptr<RCDataHandle<void>> data_handle(
+      reinterpret_cast<RCDataHandle<void>*>(callback_data));
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) return;
+
   if (result_code == util::kFutureResultSuccess &&
       !data_handle->default_keys.empty()) {
-    data_handle->rc_internal->SaveTmpKeysToDefault(data_handle->default_keys);
+    data_handle->rc_internal->SaveTmpKeysToDefault(
+        std::move(data_handle->default_keys));
   }
-  CompleteVoidCallback(env, result, result_code, status_message, callback_data);
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCore(
+      core, handle,
+      result_code == util::kFutureResultSuccess ? kFutureStatusSuccess
+                                                : kFutureStatusFailure);
 }
 
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
@@ -814,8 +862,8 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "EnsureInitialized native function fails");
   } else {
-    auto data_handle =
-        new RCDataHandle<ConfigInfo>(&future_impl_, handle, this);
+    auto data_handle = new RCDataHandle<ConfigInfo>(
+        future_impl_.core(), handle, this, app_state_.weak_from_this());
 
     util::RegisterCallbackOnTask(env, task, EnsureInitializedCallback,
                                  reinterpret_cast<void*>(data_handle),
@@ -840,7 +888,8 @@ Future<bool> RemoteConfigInternal::Activate() {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "Activate native function fails");
   } else {
-    auto data_handle = new RCDataHandle<bool>(&future_impl_, handle, this);
+    auto data_handle = new RCDataHandle<bool>(future_impl_.core(), handle, this,
+                                              app_state_.weak_from_this());
     util::RegisterCallbackOnTask(env, task, BoolResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
@@ -866,7 +915,8 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "FetchAndActivate native function fails");
   } else {
-    auto data_handle = new RCDataHandle<bool>(&future_impl_, handle, this);
+    auto data_handle = new RCDataHandle<bool>(future_impl_.core(), handle, this,
+                                              app_state_.weak_from_this());
     util::RegisterCallbackOnTask(env, task, BoolResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
@@ -892,7 +942,8 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "Fetch native function fails");
   } else {
-    auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this);
+    auto data_handle = new RCDataHandle<void>(future_impl_.core(), handle, this,
+                                              app_state_.weak_from_this());
 
     util::RegisterCallbackOnTask(env, task, FetchCallback,
                                  reinterpret_cast<void*>(data_handle),
@@ -919,7 +970,8 @@ Future<void> RemoteConfigInternal::SetDefaults(int defaults_resource_id) {
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetDefaults native function fails");
   } else {
-    auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this);
+    auto data_handle = new RCDataHandle<void>(future_impl_.core(), handle, this,
+                                              app_state_.weak_from_this());
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
@@ -944,8 +996,9 @@ Future<void> RemoteConfigInternal::SetDefaults(
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetDefaults native function fails");
   } else {
-    auto data_handle =
-        new RCDataHandle<void>(&future_impl_, handle, this, tmp_keys);
+    auto data_handle = new RCDataHandle<void>(future_impl_.core(), handle, this,
+                                              app_state_.weak_from_this(),
+                                              std::move(tmp_keys));
 
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
@@ -972,8 +1025,9 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetDefaults native function fails");
   } else {
-    auto data_handle =
-        new RCDataHandle<void>(&future_impl_, handle, this, tmp_keys);
+    auto data_handle = new RCDataHandle<void>(future_impl_.core(), handle, this,
+                                              app_state_.weak_from_this(),
+                                              std::move(tmp_keys));
 
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
@@ -1036,7 +1090,8 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
       future_impl_.Complete(handle, kFutureStatusFailure,
                             "SetConfigSettings native function fails");
     } else {
-      auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this);
+      auto data_handle = new RCDataHandle<void>(
+          future_impl_.core(), handle, this, app_state_.weak_from_this());
 
       util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                    reinterpret_cast<void*>(data_handle),
@@ -1074,7 +1129,8 @@ Future<void> RemoteConfigInternal::SetCustomSignals(
     future_impl_.Complete(handle, kFutureStatusFailure,
                           "SetCustomSignals native function fails");
   } else {
-    auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this);
+    auto data_handle = new RCDataHandle<void>(future_impl_.core(), handle, this,
+                                              app_state_.weak_from_this());
     util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
@@ -1354,37 +1410,49 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
   JNIEnv* env = GetJNIEnv();
-  // Create a struct to wrap the listener function.
-  ConfigUpdateListenerWrapper* listener_wrapper =
-      new ConfigUpdateListenerWrapper(config_update_listener);
-  // Create a Java Listener and give it a pointer to the listener struct.
+  // Register the listener wrapper under an opaque handle ID so Java callbacks
+  // never dereference a raw pointer after removal or RemoteConfig teardown.
+  auto listener_wrapper = std::make_shared<ConfigUpdateListenerWrapper>(
+      std::move(config_update_listener));
+  const int64_t listener_handle =
+      GetConfigUpdateListenerTable().Register(std::move(listener_wrapper));
+
   jobject j_listener =
       env->NewObject(jni_config_update_listener::GetClass(),
                      jni_config_update_listener::GetMethodId(
                          jni_config_update_listener::kConstructor),
-                     reinterpret_cast<jlong>(listener_wrapper));
+                     static_cast<jlong>(listener_handle));
   FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
 
   jobject j_local_registration = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kAddOnConfigUpdateListener),
       j_listener);
+  env->DeleteLocalRef(j_listener);
   FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
 
   // Create a global reference to the registration
   jobject j_registration = env->NewGlobalRef(j_local_registration);
   env->DeleteLocalRef(j_local_registration);
 
+  JavaVM* java_vm = java_vm_;
   // Create a C++ registration to wrap the native registration
   ConfigUpdateListenerRegistrationInternal* registration_internal =
-      new ConfigUpdateListenerRegistrationInternal(this, [j_registration]() {
-        // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
-        JNIEnv* env = firebase::util::GetJNIEnvFromApp();
-        env->CallVoidMethod(j_registration,
-                            config_update_listener_registration::GetMethodId(
-                                config_update_listener_registration::kRemove));
-        FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-        env->DeleteGlobalRef(j_registration);
-      });
+      new ConfigUpdateListenerRegistrationInternal(
+          this, [j_registration, listener_handle, java_vm]() {
+            // Unregister first so late JNI callbacks become no-ops and the
+            // captured user listener is released immediately.
+            GetConfigUpdateListenerTable().Unregister(listener_handle);
+            JNIEnv* env = java_vm ? util::GetThreadsafeJNIEnv(java_vm)
+                                  : util::GetJNIEnvFromApp();
+            if (env && j_registration) {
+              env->CallVoidMethod(
+                  j_registration,
+                  config_update_listener_registration::GetMethodId(
+                      config_update_listener_registration::kRemove));
+              FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+              env->DeleteGlobalRef(j_registration);
+            }
+          });
   // Delete the internal registration when RemoteConfigInternal is cleaned up.
   cleanup_notifier().RegisterObject(
       registration_internal, [](void* registration) {
@@ -1399,7 +1467,8 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jobject j_config_update) {
   auto config_update_listener =
-      reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
+      GetConfigUpdateListenerTable().Get(static_cast<int64_t>(c_listener_ptr));
+  if (!config_update_listener) return;
   config_update_listener->listener(
       ConfigUpdateFromJavaConfigUpdate(env, j_config_update),
       kRemoteConfigErrorNone);
@@ -1408,7 +1477,8 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jint j_error_code) {
   auto config_update_listener =
-      reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
+      GetConfigUpdateListenerTable().Get(static_cast<int64_t>(c_listener_ptr));
+  if (!config_update_listener) return;
   config_update_listener->listener(
       {}, RemoteConfigErrorFromJavaErrorCode(static_cast<int>(j_error_code)));
 }

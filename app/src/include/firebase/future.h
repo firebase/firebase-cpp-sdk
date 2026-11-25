@@ -20,6 +20,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <memory>
 #include <utility>
 
 #include "firebase/internal/common.h"
@@ -85,7 +86,7 @@ class FutureHandle {
   }
 
   FutureHandleId id() const { return id_; }
-  detail::FutureApiInterface* api() const { return api_; }
+  detail::FutureApiInterface* api() const { return api_.get(); }
 
   // Detach from the FutureApi. This handle will no longer increment the
   // Future's reference count. This is mainly used for testing, so that you can
@@ -93,14 +94,12 @@ class FutureHandle {
   // reference count yourself.
   void Detach();
 
-  // Called by CleanupNotifier when the API is being deleted. At this point we
-  // can ignore all of the reference counts since all Future data is about to be
-  // deleted anyway.
-  void Cleanup() { api_ = nullptr; }
+  // Detaches this handle from its API without releasing its reference count.
+  void Cleanup() { api_.reset(); }
 
  private:
   FutureHandleId id_;
-  detail::FutureApiInterface* api_;
+  std::shared_ptr<detail::FutureApiInterface> api_;
   /// @endcond
 };
 
@@ -304,8 +303,22 @@ class FutureBase {
 
   /// Returns true if the two Futures reference the same result.
   bool operator==(const FutureBase& rhs) const {
-    MutexLock lock(mutex_);
-    return api_ == rhs.api_ && handle_ == rhs.handle_;
+    if (this == &rhs) return true;
+    detail::FutureApiInterface* lhs_api = nullptr;
+    FutureHandleId lhs_id = 0;
+    detail::FutureApiInterface* rhs_api = nullptr;
+    FutureHandleId rhs_id = 0;
+    {
+      MutexLock lock(mutex_);
+      lhs_api = api_.get();
+      lhs_id = handle_.id();
+    }
+    {
+      MutexLock lock(rhs.mutex_);
+      rhs_api = rhs.api_.get();
+      rhs_id = rhs.handle_.id();
+    }
+    return lhs_api == rhs_api && lhs_id == rhs_id;
   }
 
   /// Returns true if the two Futures reference different results.
@@ -324,9 +337,9 @@ class FutureBase {
 
   mutable Mutex mutex_;
 
-  /// Backpointer to the issuing API class.
-  /// Set to nullptr when Future is invalidated.
-  detail::FutureApiInterface* api_;
+  /// Shared control block for the issuing API's future state.
+  /// Null when the Future is invalid or released.
+  std::shared_ptr<detail::FutureApiInterface> api_;
 
   /// API-specified handle type.
   FutureHandle handle_;

@@ -19,12 +19,14 @@
 #include "app/src/include/firebase/app.h"
 
 #include <dispatch/dispatch.h>
+#include <condition_variable>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -82,30 +84,89 @@ DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
 namespace {
 
-// Non-owning weak map for iOS ObjC delegates (like FIRAppCheckProviderFactory)
-// that only receive a FIRApp* and need the corresponding C++ App handle even
-// during [FIRApp configureWithOptions:] or without App::Register().
-struct IosWeakAppTable {
-  Mutex mutex;
-  std::map<std::string, std::weak_ptr<internal::AppState>, std::less<>> by_name;
+// Per-name native FIRApp lease table and non-owning weak map for iOS ObjC
+// delegates (like FIRAppCheckProviderFactory) that only receive a FIRApp*.
+// Reconciles C++ multi-instance App creation with FIRApp's process-wide
+// name-keyed singleton registry.
+struct IosNativeLeaseTable {
+  struct Slot {
+    std::weak_ptr<internal::AppState> state;
+    bool creating = false;
+    bool active = false;
+  };
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::map<std::string, Slot, std::less<>> slots;
 };
 
-IosWeakAppTable& GetIosWeakAppTable() {
-  static internal::NoDestructor<IosWeakAppTable> table;
+IosNativeLeaseTable& GetIosNativeLeaseTable() {
+  static internal::NoDestructor<IosNativeLeaseTable> table;
   return *table;
 }
 
-void TrackIosAppWeakly(const std::shared_ptr<internal::AppState>& state) {
-  IosWeakAppTable& table = GetIosWeakAppTable();
-  MutexLock lock(table.mutex);
-  for (auto it = table.by_name.begin(); it != table.by_name.end();) {
-    if (it->second.expired()) {
-      it = table.by_name.erase(it);
-    } else {
-      ++it;
+bool AcquireIosNativeLease(const std::string& name) {
+  IosNativeLeaseTable& table = GetIosNativeLeaseTable();
+  std::shared_ptr<internal::AppState> live_owner;
+  std::unique_lock<std::mutex> lock(table.mutex);
+  for (;;) {
+    auto it = table.slots.find(name);
+    if (it == table.slots.end()) {
+      IosNativeLeaseTable::Slot slot;
+      slot.creating = true;
+      slot.active = true;
+      table.slots.emplace(name, std::move(slot));
+      return true;
+    }
+    if (it->second.creating) {
+      table.cv.wait(lock);
+      continue;
+    }
+    if (it->second.active) {
+      live_owner = it->second.state.lock();
+      if (live_owner) {
+        LogError("An active Firebase App named '%s' already holds the iOS "
+                 "native FIRApp lease. Drop existing handles or choose a "
+                 "distinct App name.",
+                 name.c_str());
+        return false;
+      }
+      // Wait for dying AppState to complete DestroyPlatformData().
+      table.cv.wait(lock);
+      continue;
+    }
+    it->second.creating = true;
+    it->second.active = true;
+    return true;
+  }
+}
+
+void PublishIosAppStateInLease(const std::string& name,
+                               const std::shared_ptr<internal::AppState>& state,
+                               bool finished_creating) {
+  IosNativeLeaseTable& table = GetIosNativeLeaseTable();
+  {
+    std::lock_guard<std::mutex> lock(table.mutex);
+    auto it = table.slots.find(name);
+    if (it != table.slots.end()) {
+      it->second.state = state;
+      if (finished_creating) {
+        it->second.creating = false;
+      }
+      it->second.active = true;
     }
   }
-  table.by_name[state->name()] = state;
+  if (finished_creating) {
+    table.cv.notify_all();
+  }
+}
+
+void ReleaseIosNativeLease(const std::string& name) {
+  IosNativeLeaseTable& table = GetIosNativeLeaseTable();
+  {
+    std::lock_guard<std::mutex> lock(table.mutex);
+    table.slots.erase(name);
+  }
+  table.cv.notify_all();
 }
 
 static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions* app_options) {
@@ -248,8 +309,12 @@ static FIRApp* CreateOrGetPlatformApp(const AppOptions& options, const char* nam
 namespace internal {
 
 void AppState::DestroyPlatformData() {
-  delete platform_data_;
-  platform_data_ = nullptr;
+  AppInternal* platform = platform_data_.exchange(nullptr, std::memory_order_acq_rel);
+  delete platform;
+  if (owns_native_lease_) {
+    owns_native_lease_ = false;
+    ReleaseIosNativeLease(name_);
+  }
 }
 
 }  // namespace internal
@@ -284,22 +349,55 @@ App App::Create(const AppOptions& options) { return Create(options, kDefaultAppN
 
 App App::Create(const AppOptions& options, std::string_view name) {
   std::string app_name(name);
+  if (!AcquireIosNativeLease(app_name)) {
+    return App();
+  }
+  struct LeaseGuard {
+    const std::string& lease_name;
+    bool active = true;
+    ~LeaseGuard() {
+      if (active) ReleaseIosNativeLease(lease_name);
+    }
+  } lease_guard{app_name};
 
   app_common::RegisterSdkUsage(nullptr);
 
   LogDebug("Creating Firebase App %s for %s", app_name.c_str(), kFirebaseVersionString);
-  auto state = std::make_shared<internal::AppState>(app_name, options);
 
-  // Track weakly before [FIRApp configureWithOptions:] so FIRAppCheck provider
-  // factory callbacks can retrieve this App during configuration.
-  TrackIosAppWeakly(state);
+  // Finalize AppOptions BEFORE constructing/publishing AppState so concurrent
+  // readers (e.g., FIRAppCheckProviderFactory via FindIosAppByName) never race
+  // with options mutation.
+  AppOptions resolved_options = options;
+  FIRApp* existing_platform_app = GetPlatformAppByName(app_name.c_str());
+  if (existing_platform_app) {
+    AppOptions existing_options;
+    PlatformOptionsToAppOptions(existing_platform_app.options, &existing_options);
+    if (options == existing_options) {
+      PlatformOptionsToAppOptions(existing_platform_app.options, &resolved_options);
+    }
+  }
+  resolved_options.PopulateRequiredWithDefaults();
+  if (!strlen(resolved_options.package_name())) {
+    NSString* bundle_id = [[NSBundle mainBundle] bundleIdentifier];
+    if (bundle_id.length) {
+      resolved_options.set_package_name(bundle_id.UTF8String);
+    }
+  }
+
+  auto state = std::make_shared<internal::AppState>(app_name, std::move(resolved_options));
+
+  // Publish weakly before [FIRApp configureWithOptions:] so FIRAppCheck
+  // provider factory callbacks can retrieve this App during configuration.
+  PublishIosAppStateInLease(app_name, state, /*finished_creating=*/false);
   FIRApp* platform_app = CreateOrGetPlatformApp(options, app_name.c_str());
   if (!platform_app) {
     return App();
   }
 
-  PlatformOptionsToAppOptions(platform_app.options, &state->mutable_options());
   state->set_platform_data(new internal::AppInternal(platform_app));
+  state->set_owns_native_lease(true);
+  lease_guard.active = false;
+  PublishIosAppStateInLease(app_name, state, /*finished_creating=*/true);
 
   App app = state->MakeAppHandle();
   AppCallback::NotifyAllAppCreated(app, &state->mutable_init_results());
@@ -316,16 +414,7 @@ App App::CreateRegistered(const AppOptions& options) {
 }
 
 App App::CreateRegistered(const AppOptions& options, std::string_view name) {
-  if (auto existing = GetInstance(name)) {
-    LogError("App %.*s already registered, options will not be applied.",
-             static_cast<int>(name.size()), name.data());
-    return App();
-  }
-  App app = Create(options, name);
-  if (!app || !app.Register()) {
-    return App();
-  }
-  return app;
+  return app_common::CreateRegisteredApp(name, [&]() { return Create(options, name); });
 }
 
 void App::RegisterLibrary(const char* library, const char* version, void* /* platform_resource */) {
@@ -370,15 +459,15 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
 }
 
 std::optional<App> FindIosAppByName(std::string_view name) {
-  IosWeakAppTable& table = GetIosWeakAppTable();
-  MutexLock lock(table.mutex);
-  auto it = table.by_name.find(name);
-  if (it == table.by_name.end()) return std::nullopt;
-  auto state = it->second.lock();
-  if (!state) {
-    table.by_name.erase(it);
-    return std::nullopt;
+  IosNativeLeaseTable& table = GetIosNativeLeaseTable();
+  std::shared_ptr<internal::AppState> state;
+  {
+    std::lock_guard<std::mutex> lock(table.mutex);
+    auto it = table.slots.find(name);
+    if (it == table.slots.end()) return std::nullopt;
+    state = it->second.state.lock();
   }
+  if (!state) return std::nullopt;
   return state->MakeAppHandle();
 }
 

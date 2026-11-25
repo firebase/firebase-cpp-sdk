@@ -57,7 +57,11 @@ HeartbeatController::HeartbeatController(const std::string& app_id,
       last_logged_date_(""),
       date_provider_(date_provider) {}
 
-HeartbeatController::~HeartbeatController() {}
+HeartbeatController::~HeartbeatController() {
+  // Stop the scheduler worker thread BEFORE member strings (`last_logged_date_`
+  // etc.) and `storage_` are destroyed.
+  scheduler_.CancelAllAndShutdownWorkerThread();
+}
 
 void HeartbeatController::LogHeartbeat() {
   std::function<void(void)> log_heartbeat_funct = [&]() {

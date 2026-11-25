@@ -234,8 +234,10 @@ class DocumentSnapshot {
    * not valid. An invalid `DocumentSnapshot` could be the result of:
    *   - Creating a `DocumentSnapshot` with the default constructor.
    *   - Moving from the `DocumentSnapshot`.
-   *   - Deleting your Firestore instance, which will invalidate all the
-   *     `DocumentSnapshot` instances associated with it.
+   *   - Terminating the underlying Firestore service (via
+   *     `Firestore::Terminate()`) or dropping all `App` and `Firestore`
+   *     handles, which will invalidate all `DocumentSnapshot` instances
+   *     associated with it.
    *
    * @return true if this `DocumentSnapshot` is valid, false if this
    * `DocumentSnapshot` is invalid.

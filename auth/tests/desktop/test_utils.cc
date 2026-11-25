@@ -30,23 +30,24 @@ void ListenerChangeCounter::ExpectChanges(const int num) {
 void ListenerChangeCounter::VerifyAndReset() {
   Verify();
   expected_changes_ = -1;
-  actual_changes_ = 0;
+  actual_changes_.store(0, std::memory_order_relaxed);
 }
 
 void ListenerChangeCounter::Verify() {
   if (expected_changes_ != -1) {
-    EXPECT_EQ(expected_changes_, actual_changes_);
+    EXPECT_EQ(expected_changes_,
+              actual_changes_.load(std::memory_order_relaxed));
   }
 }
 
 }  // namespace detail
 
 void IdTokenChangesCounter::OnIdTokenChanged(Auth /*unused*/) {
-  ++actual_changes_;
+  actual_changes_.fetch_add(1, std::memory_order_relaxed);
 }
 
 void AuthStateChangesCounter::OnAuthStateChanged(Auth /*unused*/) {
-  ++actual_changes_;
+  actual_changes_.fetch_add(1, std::memory_order_relaxed);
 }
 
 using ::testing::NotNull;

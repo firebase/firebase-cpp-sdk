@@ -17,7 +17,9 @@
 #ifndef FIREBASE_APP_SRC_SERVICE_INTERFACES_H_
 #define FIREBASE_APP_SRC_SERVICE_INTERFACES_H_
 
+#include <functional>
 #include <string>
+#include <utility>
 
 #include "app/src/include/firebase/future.h"
 
@@ -27,7 +29,55 @@ namespace internal {
 // Teardown priority constants for AppState::DestroyServices().
 // Higher values are destroyed first; ties are broken in reverse creation order.
 inline constexpr int kDefaultServiceTeardownPriority = 0;
+inline constexpr int kProviderSubServiceTeardownPriority = -5;
 inline constexpr int kProviderServiceTeardownPriority = -10;
+
+// Move-only RAII subscription handle returned by AppState::SubscribeAuthState
+// and AppState::SubscribeAppCheckToken.
+//
+// Destroying or calling Reset() on a TokenSubscription synchronously detaches
+// the listener, releases any associated token-refresh lease, and blocks until
+// any in-flight notification callback executing on another thread finishes.
+class TokenSubscription {
+ public:
+  TokenSubscription() = default;
+  explicit TokenSubscription(std::function<void()> unsubscribe)
+      : unsubscribe_(std::move(unsubscribe)) {}
+
+  ~TokenSubscription() { Reset(); }
+
+  TokenSubscription(const TokenSubscription&) = delete;
+  TokenSubscription& operator=(const TokenSubscription&) = delete;
+
+  TokenSubscription(TokenSubscription&& other) noexcept
+      : unsubscribe_(std::move(other.unsubscribe_)) {
+    other.unsubscribe_ = nullptr;
+  }
+
+  TokenSubscription& operator=(TokenSubscription&& other) noexcept {
+    if (this != &other) {
+      Reset();
+      unsubscribe_ = std::move(other.unsubscribe_);
+      other.unsubscribe_ = nullptr;
+    }
+    return *this;
+  }
+
+  void Reset() {
+    if (unsubscribe_) {
+      auto fn = std::move(unsubscribe_);
+      unsubscribe_ = nullptr;
+      fn();
+    }
+  }
+
+  explicit operator bool() const noexcept {
+    return static_cast<bool>(unsubscribe_);
+  }
+
+ private:
+  std::function<void()> unsubscribe_;
+};
 
 // Base class for all per-App product implementations and teardown guards owned
 // by AppState.
@@ -48,13 +98,18 @@ class Service {
 extern const char kAuthServiceTag;
 extern const char kAppCheckServiceTag;
 
+// Zero-RTTI type-safe service tag helper for single-module services.
+template <typename T>
+inline const void* ServiceTypeTag() {
+  static constexpr char kTag = 0;
+  return &kTag;
+}
+
 // Typed per-App interface exposed by Firebase Auth to other products on the
 // same App (Database, Storage, Functions, Firestore) without link dependencies
 // or void* casts.
 class AuthTokenProvider : public Service {
  public:
-  using AuthStateCallback = void (*)(void* context);
-
   int teardown_priority() const override {
     return kProviderServiceTeardownPriority;
   }
@@ -69,24 +124,16 @@ class AuthTokenProvider : public Service {
   // Returns the current user's UID, or empty if unauthenticated.
   virtual std::string GetCurrentUserUid() = 0;
 
-  // Ref-counted background token refresh thread management.
+  // Ref-counted background token refresh thread management (paired
+  // automatically by AppState::SubscribeAuthState).
   virtual void StartTokenListener() = 0;
   virtual void StopTokenListener() = 0;
-
-  // Internal auth-state change callbacks.
-  virtual void AddAuthStateListener(AuthStateCallback callback,
-                                    void* context) = 0;
-  virtual void RemoveAuthStateListener(AuthStateCallback callback,
-                                       void* context) = 0;
 };
 
 // Typed per-App interface exposed by Firebase App Check to other products on
 // the same App (Database, Storage, Functions, Firestore).
 class AppCheckTokenProvider : public Service {
  public:
-  using TokenChangedCallback = void (*)(const std::string& token,
-                                        void* context);
-
   int teardown_priority() const override {
     return kProviderServiceTeardownPriority;
   }
@@ -96,12 +143,6 @@ class AppCheckTokenProvider : public Service {
 
   // Asynchronously fetches a limited-use App Check token string.
   virtual Future<std::string> GetLimitedUseTokenAsync() = 0;
-
-  // Registers / removes an internal App Check token change listener.
-  virtual void AddTokenListener(TokenChangedCallback callback,
-                                void* context) = 0;
-  virtual void RemoveTokenListener(TokenChangedCallback callback,
-                                   void* context) = 0;
 };
 
 }  // namespace internal

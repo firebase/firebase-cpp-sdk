@@ -17,15 +17,15 @@
 #ifndef FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_
 #define FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_
 
+#include <condition_variable>
 #include <map>
-
-#include "app/src/include/firebase/internal/mutex.h"
+#include <mutex>
+#include <thread>
 
 namespace firebase {
 
-// Local per-instance callback list used internally (e.g., by
-// ReferenceCountedFutureImpl) to invalidate non-owning handles when their
-// backing object is destroyed. Contains no global state.
+// Local per-instance callback list used internally to invalidate non-owning
+// handles when their backing object is destroyed. Contains no global state.
 class CleanupNotifier {
  public:
   typedef void (*CleanupCallback)(void* object);
@@ -47,9 +47,12 @@ class CleanupNotifier {
     GenericFnPtr callback;
   };
 
-  Mutex mutex_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
   std::map<void*, CallbackEntry> callbacks_;
-  bool cleaned_up_;
+  void* in_flight_object_ = nullptr;
+  std::thread::id in_flight_thread_;
+  bool cleaned_up_ = false;
 };
 
 // Typed wrapper for CleanupNotifier.

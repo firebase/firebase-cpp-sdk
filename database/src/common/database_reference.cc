@@ -78,12 +78,13 @@ DatabaseReference& DatabaseReference::operator=(
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-DatabaseReference::DatabaseReference(DatabaseReference&& reference)
+DatabaseReference::DatabaseReference(DatabaseReference&& reference) noexcept
     : Query(std::move(reference)), internal_(reference.internal_) {
   reference.internal_ = nullptr;
 }
 
-DatabaseReference& DatabaseReference::operator=(DatabaseReference&& reference) {
+DatabaseReference& DatabaseReference::operator=(
+    DatabaseReference&& reference) noexcept {
   if (this == &reference) return *this;
   internal_ = reference.internal_;
   reference.internal_ = nullptr;
@@ -114,7 +115,9 @@ bool DatabaseReference::is_root() const {
   return internal_ ? internal_->IsRoot() : false;
 }
 
-bool DatabaseReference::is_valid() const { return internal_ != nullptr; }
+bool DatabaseReference::is_valid() const noexcept {
+  return internal_ != nullptr;
+}
 
 DatabaseReference DatabaseReference::GetParent() const {
   return internal_ ? DatabaseReference(internal_->GetParent())

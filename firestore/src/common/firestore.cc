@@ -74,60 +74,34 @@ InitResult CheckInitialized(const FirestoreInternal& firestore) {
   return kInitResultSuccess;
 }
 
-void ValidateApp(const App& app) {
-  if (!app.is_valid()) {
-    SimpleThrowInvalidArgument(
-        "firebase::App instance cannot be invalid. Use other "
-        "Firestore::GetInstance() if you'd like to use the registered default "
-        "app instance.");
-  }
-}
-
 void ValidateDatabase(const char* database_id) {
   if (!database_id) {
     SimpleThrowInvalidArgument(
-        "Provided database ID must not be null. Use other "
-        "Firestore::GetInstance() if you'd like to use the default "
+        "Provided database ID must not be null. Use "
+        "Firestore::GetInstance(app) if you'd like to use the default "
         "database ID.");
   }
 }
 
 }  // namespace
 
-Firestore Firestore::GetInstance(InitResult* init_result_out) {
-  auto app = App::GetInstance();
-  if (!app) {
-    SimpleThrowInvalidArgument(
-        "Failed to get firebase::App instance. Please call "
-        "firebase::App::CreateRegistered() or pass an App explicitly before "
-        "using Firestore.");
-  }
-  return Firestore::GetInstance(*app, kDefaultDatabase, init_result_out);
-}
-
 Firestore Firestore::GetInstance(const App& app, InitResult* init_result_out) {
   return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
-}
-
-Firestore Firestore::GetInstance(const char* db_name,
-                                 InitResult* init_result_out) {
-  auto app = App::GetInstance();
-  if (!app) {
-    SimpleThrowInvalidArgument(
-        "Failed to get firebase::App instance. Please call "
-        "firebase::App::CreateRegistered() or pass an App explicitly before "
-        "using Firestore.");
-  }
-  return Firestore::GetInstance(*app, db_name, init_result_out);
 }
 
 Firestore Firestore::GetInstance(const App& app,
                                  const char* db_name,
                                  InitResult* init_result_out) {
-  ValidateApp(app);
+  auto state = ::firebase::internal::AppState::FromApp(app);
+  if (!state) {
+    LogError("Firestore::GetInstance(): The app must be valid.");
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Firestore{};
+  }
   ValidateDatabase(db_name);
 
-  auto state = ::firebase::internal::AppState::FromApp(app);
   InitResult init_result = kInitResultSuccess;
   auto [owner_state, internal] =
       state->GetOrCreateDetachableService<FirestoreInternal>(
@@ -161,6 +135,24 @@ Firestore::Firestore(std::shared_ptr<::firebase::internal::AppState> app_state,
     : app_state_(std::move(app_state)), internal_(std::move(internal)) {}
 
 Firestore::~Firestore() = default;
+
+Firestore& Firestore::operator=(const Firestore& src) {
+  if (this == &src) return *this;
+  // Pin the previous AppState until any previous `internal_` is released so
+  // `~FirestoreInternal()` never dereferences a destroyed `AppState`.
+  auto old_app_state = std::move(app_state_);
+  internal_ = src.internal_;
+  app_state_ = src.app_state_;
+  return *this;
+}
+
+Firestore& Firestore::operator=(Firestore&& src) noexcept {
+  if (this == &src) return *this;
+  auto old_app_state = std::move(app_state_);
+  internal_ = std::move(src.internal_);
+  app_state_ = std::move(src.app_state_);
+  return *this;
+}
 
 App Firestore::app() const {
   if (!app_state_) return {};

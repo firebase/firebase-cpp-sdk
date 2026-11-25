@@ -151,6 +151,7 @@ class StorageInternal : public ::firebase::internal::Service {
   std::string scheme_ = "https";
   int port_ = 443;
   bool configured_ = false;
+  ::firebase::internal::TokenSubscription auth_refresh_subscription_;
 };
 
 }  // namespace internal

@@ -15,6 +15,7 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -84,6 +85,11 @@ class AppCheckInternal : public ::firebase::internal::Service {
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;
+
+  // Opaque handles in NativeHandleTables for safe JNI bridge callbacks.
+  int64_t app_state_handle_id_ = 0;
+  int64_t listener_handle_id_ = 0;
+  bool initialized_classes_ = false;
 };
 
 }  // namespace internal

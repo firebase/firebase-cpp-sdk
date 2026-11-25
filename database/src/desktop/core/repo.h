@@ -25,6 +25,7 @@
 #include "app/src/path.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
+#include "app/src/service_interfaces.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/sparse_snapshot_tree.h"
@@ -161,10 +162,6 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void UpdateInfo(const std::string& key, const Variant& value);
 
-  // Callback function used to listen for App Check token changes, and updating
-  // the connection with them.
-  static void OnAppCheckTokenChanged(const std::string& token, void* context);
-
   DatabaseInternal* database_;
 
   SparseSnapshotTree on_disconnect_;
@@ -200,6 +197,9 @@ class Repo : public connection::PersistentConnectionEventHandler {
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied to any thread.
   ThisRef safe_this_;
+
+  // RAII subscription to App Check token changes on AppState.
+  ::firebase::internal::TokenSubscription app_check_subscription_;
 
   Logger* logger_;
 };

@@ -77,19 +77,19 @@ class Storage {
   ~Storage() = default;
 
   /// @brief Returns true if this Storage handle is valid.
-  bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
 
   /// @brief Returns true if this Storage handle is valid.
-  explicit operator bool() const { return is_valid(); }
+  explicit operator bool() const noexcept { return is_valid(); }
 
   /// @brief Equality comparison (checks whether two handles refer to the same
   /// underlying Storage instance).
-  bool operator==(const Storage& other) const {
+  bool operator==(const Storage& other) const noexcept {
     return internal_ == other.internal_;
   }
 
   /// @brief Inequality comparison.
-  bool operator!=(const Storage& other) const {
+  bool operator!=(const Storage& other) const noexcept {
     return internal_ != other.internal_;
   }
 

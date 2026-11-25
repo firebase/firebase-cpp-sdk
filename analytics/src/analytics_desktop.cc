@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <atomic>
 #include <cstdint>
 #include <future>
 #include <map>
@@ -48,7 +49,7 @@ static HMODULE g_analytics_module = 0;
 
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
-static bool g_initialized = false;
+static std::atomic<bool> g_initialized{false};
 static int g_fake_instance_id = 0;
 static bool g_analytics_collection_enabled = true;
 
@@ -71,10 +72,20 @@ DesktopAnalyticsState& GetDesktopState() {
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
 void Initialize(const App& app) {
-  g_initialized = true;
-  internal::RegisterTerminateOnAppDestroy(app);
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!app.is_valid()) {
+    LogWarning("%s API cannot be initialized with an invalid App",
+               internal::kAnalyticsModuleName);
+    return;
+  }
+  if (g_initialized.load(std::memory_order_acquire)) {
+    LogWarning("%s API already initialized", internal::kAnalyticsModuleName);
+    return;
+  }
   internal::FutureData::Create();
   g_fake_instance_id = 0;
+  g_initialized.store(true, std::memory_order_release);
+  internal::RegisterTerminateOnAppDestroy(app);
 
 #if defined(_WIN32)
   if (!g_analytics_module) {
@@ -145,13 +156,17 @@ void Initialize(const App& app) {
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 }  // namespace internal
 
 // Terminates the Analytics desktop API.
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!g_initialized.load(std::memory_order_acquire)) {
+    return;
+  }
 #if defined(_WIN32)
   if (g_analytics_module) {
     // Make sure to notify the SDK that the analytics is being terminated to
@@ -164,9 +179,9 @@ void Terminate() {
   }
 #endif  // defined(_WIN32)
 
-  internal::FutureData::Destroy();
   internal::UnregisterTerminateOnAppDestroy();
-  g_initialized = false;
+  g_initialized.store(false, std::memory_order_release);
+  internal::FutureData::Destroy();
 }
 
 static void ConvertParametersToGAParams(

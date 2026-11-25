@@ -17,6 +17,8 @@
 #ifndef FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
 #define FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
 
+#include <mutex>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/reference_counted_future_impl.h"
 
@@ -60,6 +62,9 @@ void RegisterTerminateOnAppDestroy(const App& app);
 
 // Unregisters the cleanup task for this module.
 void UnregisterTerminateOnAppDestroy();
+
+// Serializes Initialize() / Terminate() against AppState teardown guards.
+std::mutex& GetLifecycleMutex();
 
 // Determine whether the analytics module is initialized.
 // This is implemented per platform.

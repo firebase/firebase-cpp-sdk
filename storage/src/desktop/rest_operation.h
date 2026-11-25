@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <memory>
 
 #include "app/rest/controller_interface.h"
@@ -109,11 +110,13 @@ class RestOperation {
   Listener* listener_;
   FutureHandle handle_;
   CleanupNotifier cleanup_;
-  rest::TransportCurl transport_;
+  // Declared before transport_ so ~TransportCurl() waits for the background
+  // transfer to finish and detach before rest_controller_ is destroyed.
   flatbuffers::unique_ptr<rest::Controller> rest_controller_;
+  rest::TransportCurl transport_;
   // Storage controller that delegates to this object.
   storage::Controller controller_;
-  bool is_complete_;
+  std::atomic<bool> is_complete_;
 };
 
 }  // namespace internal

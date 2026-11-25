@@ -114,6 +114,8 @@ void DataSnapshotInternal::Terminate(JNIEnv* env) {
 }
 
 bool DataSnapshotInternal::Exists() const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return false;
   JNIEnv* env = util::GetJNIEnvFromApp();
   jboolean result = env->CallBooleanMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kExists));
@@ -122,6 +124,8 @@ bool DataSnapshotInternal::Exists() const {
 }
 
 DataSnapshotInternal* DataSnapshotInternal::Child(const char* path) const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return nullptr;
   JNIEnv* env = util::GetJNIEnvFromApp();
   jstring path_string = env->NewStringUTF(path);
   jobject child_obj = env->CallObjectMethod(
@@ -138,8 +142,10 @@ DataSnapshotInternal* DataSnapshotInternal::Child(const char* path) const {
 }
 
 std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
-  JNIEnv* env = util::GetJNIEnvFromApp();
   std::vector<DataSnapshot> result;
+  auto locked_db = db_.lock();
+  if (!locked_db) return result;
+  JNIEnv* env = util::GetJNIEnvFromApp();
   result.reserve(GetChildrenCount());
   // iterable = snapshot.getChildren()
   jobject iterable = env->CallObjectMethod(
@@ -163,12 +169,16 @@ std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() const {
 }
 
 size_t DataSnapshotInternal::GetChildrenCount() const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return 0;
   JNIEnv* env = util::GetJNIEnvFromApp();
   return env->CallLongMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetChildrenCount));
 }
 
 bool DataSnapshotInternal::HasChildren() const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return false;
   JNIEnv* env = util::GetJNIEnvFromApp();
   return env->CallBooleanMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kHasChildren));
@@ -176,6 +186,8 @@ bool DataSnapshotInternal::HasChildren() const {
 
 const char* DataSnapshotInternal::GetKey() {
   if (cached_key_.is_null()) {
+    auto locked_db = db_.lock();
+    if (!locked_db) return nullptr;
     JNIEnv* env = util::GetJNIEnvFromApp();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, data_snapshot::GetMethodId(data_snapshot::kGetKey)));
@@ -198,6 +210,8 @@ std::string DataSnapshotInternal::GetKeyString() {
 }
 
 Variant DataSnapshotInternal::GetValue() const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return Variant::Null();
   JNIEnv* env = util::GetJNIEnvFromApp();
   jobject value_obj = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetValue));
@@ -207,6 +221,8 @@ Variant DataSnapshotInternal::GetValue() const {
 }
 
 Variant DataSnapshotInternal::GetPriority() const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return Variant::Null();
   JNIEnv* env = util::GetJNIEnvFromApp();
   jobject value_obj = env->CallObjectMethod(
       obj_, data_snapshot::GetMethodId(data_snapshot::kGetPriority));
@@ -232,6 +248,8 @@ DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
 }
 
 bool DataSnapshotInternal::HasChild(const char* path) const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return false;
   JNIEnv* env = util::GetJNIEnvFromApp();
   jstring path_string = env->NewStringUTF(path);
   jboolean has_child = env->CallBooleanMethod(

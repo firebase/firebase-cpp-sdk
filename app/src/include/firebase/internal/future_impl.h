@@ -41,9 +41,13 @@ class FutureApiInterface {
   // typedef void FutureCallbackFn(const FutureBase* future);
   virtual ~FutureApiInterface();
 
+  /// Returns the shared control block backing this FutureApiInterface.
+  virtual std::shared_ptr<FutureApiInterface> SharedFromApi() = 0;
+
   /// Increment the reference count on handle's asynchronous call.
-  /// Called when the Future is copied.
-  virtual void ReferenceFuture(const FutureHandle& handle) = 0;
+  /// Called when the Future is copied. Returns false if the handle is no
+  /// longer valid.
+  virtual bool ReferenceFuture(const FutureHandle& handle) = 0;
 
   /// Decrement the reference count on handle's asynchronous call.
   /// Called when the Future is destroyed or moved.
@@ -72,6 +76,11 @@ class FutureApiInterface {
   /// modify the result (especially on a callback thread), since the threads
   /// owning the Future can reference the result memory via this function.
   virtual const void* GetFutureResult(const FutureHandle& handle) const = 0;
+
+  /// Block until the future completes, becomes invalid/shut down, or times out.
+  /// Returns true if the future completed, false on timeout or invalidation.
+  virtual bool WaitForFuture(const FutureHandle& handle,
+                             int timeout_milliseconds) = 0;
 
   /// Register a callback that will be called when this future's status is set
   /// to Complete. If clear_existing_callbacks is true, then the new callback
@@ -110,25 +119,7 @@ class FutureApiInterface {
       std::function<void(const FutureBase&)> callback,
       bool clear_existing_callbacks) = 0;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
-
-  /// Register this Future instance to be cleaned up.
-  virtual void RegisterFutureForCleanup(FutureBase* future) = 0;
-
-  /// Unregister this Future instance from the cleanup list.
-  virtual void UnregisterFutureForCleanup(FutureBase* future) = 0;
 };
-
-inline void RegisterForCleanup(FutureApiInterface* api, FutureBase* future) {
-  if (api != NULL) {  // NOLINT
-    api->RegisterFutureForCleanup(future);
-  }
-}
-
-inline void UnregisterForCleanup(FutureApiInterface* api, FutureBase* future) {
-  if (api != NULL) {  // NOLINT
-    api->UnregisterFutureForCleanup(future);
-  }
-}
 
 class CompletionCallbackHandle {
  public:
@@ -141,6 +132,7 @@ class CompletionCallbackHandle {
  private:
   friend class ::firebase::FutureBase;
   friend class ::firebase::ReferenceCountedFutureImpl;
+  friend class FutureImplCore;
   CompletionCallbackHandle(FutureBase::CompletionCallback callback,
                            void* user_data, void (*user_data_delete_fn)(void*))
       : callback_(callback),
@@ -177,17 +169,23 @@ inline void DeleteTypedCompletionCallbackData(void* data_ptr) {
 template <class T>
 void Future<T>::OnCompletion(TypedCompletionCallback callback,
                              void* user_data) const {
-  MutexLock lock(mutex_);
-  if (api_ != nullptr) {
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  if (api) {
     if (callback == nullptr) {
-      api_->AddCompletionCallback(
-          handle_, [](const FutureBase&, void*) {}, nullptr, nullptr,
+      api->AddCompletionCallback(
+          handle, [](const FutureBase&, void*) {}, nullptr, nullptr,
           /*clear_existing_callbacks=*/true);
     } else {
       auto* data =
           new detail::TypedCompletionCallbackData<T>{callback, user_data};
-      api_->AddCompletionCallback(
-          handle_, detail::TypedCompletionCallbackTrampoline<T>, data,
+      api->AddCompletionCallback(
+          handle, detail::TypedCompletionCallbackTrampoline<T>, data,
           detail::DeleteTypedCompletionCallbackData<T>,
           /*clear_existing_callbacks=*/true);
     }
@@ -212,15 +210,21 @@ inline void Future<ResultType>::OnCompletion(
 template <class T>
 FutureBase::CompletionCallbackHandle Future<T>::AddOnCompletion(
     TypedCompletionCallback callback, void* user_data) const {
-  MutexLock lock(mutex_);
-  if (api_ != nullptr) {
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  if (api) {
     if (callback == nullptr) {
       return CompletionCallbackHandle();
     }
     auto* data =
         new detail::TypedCompletionCallbackData<T>{callback, user_data};
-    return api_->AddCompletionCallback(
-        handle_, detail::TypedCompletionCallbackTrampoline<T>, data,
+    return api->AddCompletionCallback(
+        handle, detail::TypedCompletionCallbackTrampoline<T>, data,
         detail::DeleteTypedCompletionCallbackData<T>,
         /*clear_existing_callbacks=*/false);
   }
@@ -243,32 +247,31 @@ inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
 inline FutureBase::FutureBase()
-    : mutex_(Mutex::Mode::kModeNonRecursive),
-      api_(NULL),
-      handle_(0) {}  // NOLINT
+    : mutex_(Mutex::Mode::kModeNonRecursive), api_(), handle_(0) {}
 
 inline FutureBase::FutureBase(detail::FutureApiInterface* api,
                               const FutureHandle& handle)
-    : mutex_(Mutex::Mode::kModeNonRecursive), api_(api), handle_(handle) {
-  api_->ReferenceFuture(handle_);
+    : mutex_(Mutex::Mode::kModeNonRecursive),
+      api_(api != nullptr ? api->SharedFromApi() : nullptr),
+      handle_(handle) {
+  if (api_ && !api_->ReferenceFuture(handle_)) {
+    api_.reset();
+  }
   // Once the FutureBase has reference, we don't need extra handle reference.
   handle_.Detach();
-  detail::RegisterForCleanup(api_, this);
 }
 
 inline FutureBase::~FutureBase() { Release(); }
 
 inline FutureBase::FutureBase(const FutureBase& rhs)
-    : mutex_(Mutex::Mode::kModeNonRecursive),
-      api_(NULL)  // NOLINT
-{                 // NOLINT
+    : mutex_(Mutex::Mode::kModeNonRecursive), api_() {
   *this = rhs;
 }
 
 inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
-  Release();
+  if (this == &rhs) return *this;
 
-  detail::FutureApiInterface* new_api;
+  std::shared_ptr<detail::FutureApiInterface> new_api;
   FutureHandle new_handle;
   {
     MutexLock lock(rhs.mutex_);
@@ -276,105 +279,161 @@ inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
     new_handle = rhs.handle_;
   }
 
-  {
-    MutexLock lock(mutex_);
-    api_ = new_api;
-    handle_ = new_handle;
-
-    if (api_ != NULL) {  // NOLINT
-      api_->ReferenceFuture(handle_);
-    }
-    detail::RegisterForCleanup(api_, this);
+  if (new_api && !new_api->ReferenceFuture(new_handle)) {
+    new_api.reset();
+    new_handle = FutureHandle();
   }
 
+  std::shared_ptr<detail::FutureApiInterface> old_api;
+  FutureHandle old_handle;
+  {
+    MutexLock lock(mutex_);
+    old_api = std::move(api_);
+    old_handle = std::move(handle_);
+    api_ = std::move(new_api);
+    handle_ = std::move(new_handle);
+  }
+
+  if (old_api) {
+    old_api->ReleaseFuture(old_handle);
+  }
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
 inline FutureBase::FutureBase(FutureBase&& rhs) noexcept
-    : mutex_(Mutex::Mode::kModeNonRecursive),
-      api_(NULL)  // NOLINT
-{
+    : mutex_(Mutex::Mode::kModeNonRecursive), api_() {
   *this = std::move(rhs);
 }
 
 inline FutureBase& FutureBase::operator=(FutureBase&& rhs) noexcept {
-  Release();
+  if (this == &rhs) return *this;
 
-  detail::FutureApiInterface* new_api;
+  std::shared_ptr<detail::FutureApiInterface> new_api;
   FutureHandle new_handle;
   {
     MutexLock lock(rhs.mutex_);
-    detail::UnregisterForCleanup(rhs.api_, &rhs);
-    new_api = rhs.api_;
-    new_handle = rhs.handle_;
-    rhs.api_ = NULL;  // NOLINT
+    new_api = std::move(rhs.api_);
+    new_handle = std::move(rhs.handle_);
   }
 
-  MutexLock lock(mutex_);
-  api_ = new_api;
-  handle_ = new_handle;
-  detail::RegisterForCleanup(api_, this);
+  std::shared_ptr<detail::FutureApiInterface> old_api;
+  FutureHandle old_handle;
+  {
+    MutexLock lock(mutex_);
+    old_api = std::move(api_);
+    old_handle = std::move(handle_);
+    api_ = std::move(new_api);
+    handle_ = std::move(new_handle);
+  }
+
+  if (old_api) {
+    old_api->ReleaseFuture(old_handle);
+  }
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 inline void FutureBase::Release() {
-  MutexLock lock(mutex_);
-  if (api_ != NULL) {  // NOLINT
-    detail::UnregisterForCleanup(api_, this);
-    api_->ReleaseFuture(handle_);
-    api_ = NULL;  // NOLINT
+  std::shared_ptr<detail::FutureApiInterface> old_api;
+  FutureHandle old_handle;
+  {
+    MutexLock lock(mutex_);
+    old_api = std::move(api_);
+    old_handle = std::move(handle_);
+  }
+  if (old_api) {
+    old_api->ReleaseFuture(old_handle);
   }
 }
 
 inline FutureStatus FutureBase::status() const {
-  MutexLock lock(mutex_);
-  return api_ == NULL ?  // NOLINT
-             kFutureStatusInvalid
-                      : api_->GetFutureStatus(handle_);
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  return !api ? kFutureStatusInvalid : api->GetFutureStatus(handle);
 }
 
 inline int FutureBase::error() const {
-  MutexLock lock(mutex_);
-  return api_ == NULL ? -1 : api_->GetFutureError(handle_);  // NOLINT
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  return !api ? -1 : api->GetFutureError(handle);
 }
 
 inline const char* FutureBase::error_message() const {
-  MutexLock lock(mutex_);
-  return api_ == NULL ? NULL : api_->GetFutureErrorMessage(handle_);  // NOLINT
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  return !api ? nullptr : api->GetFutureErrorMessage(handle);
 }
 
 inline const void* FutureBase::result_void() const {
-  MutexLock lock(mutex_);
-  return api_ == NULL ? NULL : api_->GetFutureResult(handle_);  // NOLINT
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  return !api ? nullptr : api->GetFutureResult(handle);
 }
 
 inline void FutureBase::OnCompletion(CompletionCallback callback,
                                      void* user_data) const {
-  MutexLock lock(mutex_);
-  if (api_ != NULL) {  // NOLINT
-    api_->AddCompletionCallback(handle_, callback, user_data, nullptr,
-                                /*clear_existing_callbacks=*/true);
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  if (api) {
+    api->AddCompletionCallback(handle, callback, user_data, nullptr,
+                               /*clear_existing_callbacks=*/true);
   }
 }
 
 #if defined(INTERNAL_EXPERIMENTAL)
 inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
     CompletionCallback callback, void* user_data) const {
-  MutexLock lock(mutex_);
-  if (api_ != NULL) {  // NOLINT
-    return api_->AddCompletionCallback(handle_, callback, user_data, nullptr,
-                                       /*clear_existing_callbacks=*/false);
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  if (api) {
+    return api->AddCompletionCallback(handle, callback, user_data, nullptr,
+                                      /*clear_existing_callbacks=*/false);
   }
   return CompletionCallbackHandle();
 }
 
 inline void FutureBase::RemoveOnCompletion(
     CompletionCallbackHandle completion_handle) const {
-  MutexLock lock(mutex_);
-  if (api_ != NULL) {  // NOLINT
-    api_->RemoveCompletionCallback(handle_, completion_handle);
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  if (api) {
+    api->RemoveCompletionCallback(handle, completion_handle);
   }
 }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
@@ -382,21 +441,32 @@ inline void FutureBase::RemoveOnCompletion(
 #if defined(FIREBASE_USE_STD_FUNCTION)
 inline void FutureBase::OnCompletion(
     std::function<void(const FutureBase&)> callback) const {
-  MutexLock lock(mutex_);
-  if (api_ != NULL) {  // NOLINT
-    api_->AddCompletionCallbackLambda(handle_, callback,
-                                      /*clear_existing_callbacks=*/true);
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  if (api) {
+    api->AddCompletionCallbackLambda(handle, std::move(callback),
+                                     /*clear_existing_callbacks=*/true);
   }
 }
 
 #if defined(INTERNAL_EXPERIMENTAL)
 inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
     std::function<void(const FutureBase&)> callback) const {
-  MutexLock lock(mutex_);
-  if (api_ != NULL) {  // NOLINT
-    return api_->AddCompletionCallbackLambda(
-        handle_, callback,
-        /*clear_existing_callbacks=*/false);
+  std::shared_ptr<detail::FutureApiInterface> api;
+  FutureHandle handle;
+  {
+    MutexLock lock(mutex_);
+    api = api_;
+    handle = handle_;
+  }
+  if (api) {
+    return api->AddCompletionCallbackLambda(handle, std::move(callback),
+                                            /*clear_existing_callbacks=*/false);
   }
   return CompletionCallbackHandle();
 }

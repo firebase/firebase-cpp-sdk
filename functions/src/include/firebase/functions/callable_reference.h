@@ -80,7 +80,7 @@ class HttpsCallableReference {
   /// HttpsCallableReference instances.
   ///
   /// @param[in] other HttpsCallableReference to move data from.
-  HttpsCallableReference(HttpsCallableReference&& other);
+  HttpsCallableReference(HttpsCallableReference&& other) noexcept;
 
   /// @brief Move assignment operator. Moving is an efficient operation for
   /// HttpsCallableReference instances.
@@ -88,7 +88,7 @@ class HttpsCallableReference {
   /// @param[in] other HttpsCallableReference to move data from.
   ///
   /// @returns Reference to the destination HttpsCallableReference.
-  HttpsCallableReference& operator=(HttpsCallableReference&& other);
+  HttpsCallableReference& operator=(HttpsCallableReference&& other) noexcept;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief Gets the firebase::functions::Functions instance to which we refer.
@@ -116,7 +116,20 @@ class HttpsCallableReference {
   ///
   /// @returns true if this HttpsCallableReference is valid, false if this
   /// HttpsCallableReference is invalid.
-  bool is_valid() const;
+  bool is_valid() const noexcept;
+
+  /// @brief Returns true if this HttpsCallableReference is valid.
+  explicit operator bool() const noexcept { return is_valid(); }
+
+  /// @brief Equality comparison for HttpsCallableReference handles.
+  friend bool operator==(const HttpsCallableReference& lhs,
+                         const HttpsCallableReference& rhs);
+
+  /// @brief Inequality comparison for HttpsCallableReference handles.
+  friend bool operator!=(const HttpsCallableReference& lhs,
+                         const HttpsCallableReference& rhs) {
+    return !(lhs == rhs);
+  }
 
  private:
   /// @cond FIREBASE_APP_INTERNAL

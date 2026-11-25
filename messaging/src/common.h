@@ -14,6 +14,8 @@
 #ifndef FIREBASE_MESSAGING_SRC_COMMON_H_
 #define FIREBASE_MESSAGING_SRC_COMMON_H_
 
+#include <mutex>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "messaging/src/include/firebase/messaging.h"
@@ -29,6 +31,9 @@ void RegisterTerminateOnAppDestroy(const App& app);
 
 // Unregisters the cleanup task for this module.
 void UnregisterTerminateOnAppDestroy();
+
+// Serializes Initialize() / Terminate() against AppState teardown guards.
+std::mutex& GetLifecycleMutex();
 
 // Returns whether the module is initialized, implemented for each platform.
 bool IsInitialized();

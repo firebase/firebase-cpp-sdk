@@ -29,7 +29,7 @@ void InvokeUntypedCallback(void* object,
 
 }  // namespace
 
-CleanupNotifier::CleanupNotifier() : cleaned_up_(false) {}
+CleanupNotifier::CleanupNotifier() = default;
 
 CleanupNotifier::~CleanupNotifier() { CleanupAll(); }
 
@@ -41,35 +41,52 @@ void CleanupNotifier::RegisterObject(void* object, CleanupCallback callback) {
 void CleanupNotifier::RegisterObject(void* object,
                                      TrampolineCallback trampoline,
                                      GenericFnPtr callback) {
-  MutexLock lock(mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (cleaned_up_) return;
   callbacks_[object] = CallbackEntry{trampoline, callback};
 }
 
 void CleanupNotifier::UnregisterObject(void* object) {
-  MutexLock lock(mutex_);
-  callbacks_.erase(object);
+  std::unique_lock<std::mutex> lock(mutex_);
+  auto it = callbacks_.find(object);
+  if (it != callbacks_.end()) {
+    callbacks_.erase(it);
+    return;
+  }
+  // If CleanupAll() is currently executing this object's cleanup callback on
+  // another thread, wait until that callback completes so the caller cannot
+  // destroy `object` while CleanupAll() is still dereferencing it.
+  // If called re-entrantly from the same thread inside the cleanup callback,
+  // return immediately to avoid self-deadlock.
+  const std::thread::id self = std::this_thread::get_id();
+  cv_.wait(lock, [this, object, self]() {
+    return in_flight_object_ != object || in_flight_thread_ == self;
+  });
 }
 
 void CleanupNotifier::CleanupAll() {
-  for (;;) {
-    void* object = nullptr;
-    CallbackEntry entry{nullptr, nullptr};
-    {
-      MutexLock lock(mutex_);
-      if (cleaned_up_) return;
-      if (callbacks_.empty()) {
-        cleaned_up_ = true;
-        return;
-      }
-      auto it = callbacks_.begin();
-      object = it->first;
-      entry = it->second;
-      callbacks_.erase(it);
-    }
-    // Invoke cleanup callbacks outside mutex_ so callbacks that acquire their
-    // own mutex (e.g., FutureBase::Release) and call UnregisterObject cannot
-    // invert lock order with mutex_.
+  std::unique_lock<std::mutex> lock(mutex_);
+  if (cleaned_up_) {
+    const std::thread::id self = std::this_thread::get_id();
+    cv_.wait(lock, [this, self]() {
+      return in_flight_object_ == nullptr || in_flight_thread_ == self;
+    });
+    return;
+  }
+  cleaned_up_ = true;
+  while (!callbacks_.empty()) {
+    auto it = callbacks_.begin();
+    void* object = it->first;
+    CallbackEntry entry = it->second;
+    callbacks_.erase(it);
+    in_flight_object_ = object;
+    in_flight_thread_ = std::this_thread::get_id();
+    lock.unlock();
     entry.trampoline(object, entry.callback);
+    lock.lock();
+    in_flight_object_ = nullptr;
+    in_flight_thread_ = std::thread::id{};
+    cv_.notify_all();
   }
 }
 

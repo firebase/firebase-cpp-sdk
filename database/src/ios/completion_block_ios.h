@@ -43,18 +43,20 @@ class DatabaseInternal;
 template <typename T>
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<T> handle_,
-                     ReferenceCountedFutureImpl *_Nonnull impl_,
+                     std::shared_ptr<detail::FutureImplCore> future_core_,
                      std::weak_ptr<DatabaseInternal> database_ = {})
-      : handle(handle_), impl(impl_), database(std::move(database_)) {}
+      : handle(handle_),
+        future_core(std::move(future_core_)),
+        database(std::move(database_)) {}
   SafeFutureHandle<T> handle;
-  ReferenceCountedFutureImpl *_Nonnull impl;
+  std::shared_ptr<detail::FutureImplCore> future_core;
   std::weak_ptr<DatabaseInternal> database;
 };
 
 typedef void (^CompletionBlock)(NSError *_Nullable, FIRDatabaseReference *_Nonnull);
 
 CompletionBlock _Nonnull CreateCompletionBlock(
-    SafeFutureHandle<void> handle, ReferenceCountedFutureImpl *_Nonnull future,
+    SafeFutureHandle<void> handle, std::shared_ptr<detail::FutureImplCore> future_core,
     std::weak_ptr<DatabaseInternal> database);
 
 }  // namespace internal

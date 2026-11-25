@@ -42,13 +42,13 @@ const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
 
 AuthRequest::AuthRequest(const ::firebase::App& app, const char* schema,
                          bool deliver_heartbeat)
-    : RequestJson(schema), app_(app) {
+    : RequestJson(schema) {
   if (deliver_heartbeat) {
     std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller =
-        app_.GetHeartbeatController();
+        app.GetHeartbeatController();
     if (heartbeat_controller) {
       std::string payload = heartbeat_controller->GetAndResetStoredHeartbeats();
-      std::string gmp_app_id = app_.options().app_id();
+      std::string gmp_app_id = app.options().app_id();
       if (!payload.empty()) {
         add_header(app_common::kApiClientHeader, payload.c_str());
         add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
@@ -56,9 +56,17 @@ AuthRequest::AuthRequest(const ::firebase::App& app, const char* schema,
     }
   }
 
-  // Add AppCheck attestation token if available.
-  // This is required when AppCheck enforcement is enabled on the project.
-  if (auto state = ::firebase::internal::AppState::FromApp(app_)) {
+  if (auto state = ::firebase::internal::AppState::FromApp(app)) {
+    if (auto* auth_data = state->FindService<AuthData>(
+            &::firebase::internal::kAuthServiceTag, "")) {
+      if (auth_data->auth_impl != nullptr) {
+        assigned_emulator_url_ =
+            static_cast<AuthImpl*>(auth_data->auth_impl)->assigned_emulator_url;
+      }
+    }
+
+    // Add AppCheck attestation token if available.
+    // This is required when AppCheck enforcement is enabled on the project.
     if (auto* app_check = state->app_check_token_provider()) {
       Future<std::string> app_check_future = app_check->GetTokenAsync();
       if (app_check_future.status() != kFutureStatusInvalid) {
@@ -76,20 +84,14 @@ std::string AuthRequest::GetUrl(const char* server_url) {
   if (server_url == nullptr) {
     return "";
   }
-  Auth auth = Auth::GetAuth(app_);
-  std::string assigned_emulator_url;
-  if (auth.auth_data_ && auth.auth_data_->auth_impl) {
-    assigned_emulator_url = static_cast<AuthImpl*>(auth.auth_data_->auth_impl)
-                                ->assigned_emulator_url;
-  }
 
-  if (assigned_emulator_url.empty()) {
+  if (assigned_emulator_url_.empty()) {
     std::string url(kHttps);
     url += server_url;
     return url;
   } else {
     std::string url(kHttp);
-    url += assigned_emulator_url;
+    url += assigned_emulator_url_;
     url += "/";
     url += server_url;
     return url;

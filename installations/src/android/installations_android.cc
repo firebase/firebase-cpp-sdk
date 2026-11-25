@@ -14,6 +14,9 @@
 
 #include "installations/src/android/installations_android.h"
 
+#include <memory>
+#include <utility>
+
 #include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
@@ -63,11 +66,15 @@ ReferenceCount& InstallationsInternal::Initializer() {
 
 template <typename T>
 struct FISDataHandle {
-  FISDataHandle(ReferenceCountedFutureImpl* _future_api,
-                const SafeFutureHandle<T>& _future_handle)
-      : future_api(_future_api), future_handle(_future_handle) {}
-  ReferenceCountedFutureImpl* future_api;
+  FISDataHandle(std::shared_ptr<detail::FutureImplCore> _future_core,
+                const SafeFutureHandle<T>& _future_handle,
+                std::weak_ptr<::firebase::internal::AppState> _weak_state)
+      : future_core(std::move(_future_core)),
+        future_handle(_future_handle),
+        weak_state(std::move(_weak_state)) {}
+  std::shared_ptr<detail::FutureImplCore> future_core;
   SafeFutureHandle<T> future_handle;
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
 };
 
 static bool CacheJNIMethodIds(JNIEnv* env, jobject activity) {
@@ -83,30 +90,46 @@ static void ReleaseClasses(JNIEnv* env) {
 void CompleteVoidCallback(JNIEnv* env, jobject result,
                           util::FutureResult result_code,
                           const char* status_message, void* callback_data) {
-  auto* data_handle = reinterpret_cast<FISDataHandle<void>*>(callback_data);
-  data_handle->future_api->Complete(data_handle->future_handle,
-                                    result_code == util::kFutureResultSuccess
-                                        ? kInstallationsErrorNone
-                                        : kInstallationsErrorFailure);
+  std::unique_ptr<FISDataHandle<void>> data_handle(
+      reinterpret_cast<FISDataHandle<void>*>(callback_data));
   if (result) env->DeleteLocalRef(result);
-  delete data_handle;
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) return;
+
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCore(
+      core, handle,
+      result_code == util::kFutureResultSuccess ? kInstallationsErrorNone
+                                                : kInstallationsErrorFailure);
 }
 
 void StringResultCallback(JNIEnv* env, jobject result,
                           util::FutureResult result_code,
                           const char* status_message, void* callback_data) {
+  std::unique_ptr<FISDataHandle<std::string>> data_handle(
+      reinterpret_cast<FISDataHandle<std::string>*>(callback_data));
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) {
+    if (result) env->DeleteLocalRef(result);
+    return;
+  }
+
   bool success = (result_code == util::kFutureResultSuccess);
   std::string result_value = "";
   if (success && result) {
     result_value = util::JniStringToString(env, result);
+  } else if (result) {
+    env->DeleteLocalRef(result);
   }
-  auto* data_handle =
-      reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
-  data_handle->future_api->CompleteWithResult(
-      data_handle->future_handle,
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCoreWithResult(
+      core, handle,
       success ? kInstallationsErrorNone : kInstallationsErrorFailure,
       status_message, result_value);
-  delete data_handle;
 }
 
 static std::string JTokenResultToString(JNIEnv* env, jobject jtoken) {
@@ -123,18 +146,28 @@ static std::string JTokenResultToString(JNIEnv* env, jobject jtoken) {
 void TokenResultCallback(JNIEnv* env, jobject result,
                          util::FutureResult result_code,
                          const char* status_message, void* callback_data) {
+  std::unique_ptr<FISDataHandle<std::string>> data_handle(
+      reinterpret_cast<FISDataHandle<std::string>*>(callback_data));
+  auto pinned_state = data_handle->weak_state.lock();
+  if (!pinned_state) {
+    if (result) env->DeleteLocalRef(result);
+    return;
+  }
+
   bool success = (result_code == util::kFutureResultSuccess);
   std::string result_value = "";
   if (success && result) {
     result_value = JTokenResultToString(env, result);
+  } else if (result) {
+    env->DeleteLocalRef(result);
   }
-  auto* data_handle =
-      reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
-  data_handle->future_api->CompleteWithResult(
-      data_handle->future_handle,
+  auto core = std::move(data_handle->future_core);
+  auto handle = data_handle->future_handle;
+  pinned_state.reset();
+  ReferenceCountedFutureImpl::CompleteCoreWithResult(
+      core, handle,
       success ? kInstallationsErrorNone : kInstallationsErrorFailure,
       status_message, result_value);
-  delete data_handle;
 }
 
 JNIEnv* InstallationsInternal::GetJNIEnv() const {
@@ -230,7 +263,8 @@ Future<std::string> InstallationsInternal::GetId() {
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kGetId));
 
-  auto data_handle = new FISDataHandle<std::string>(&future_impl_, handle);
+  auto data_handle = new FISDataHandle<std::string>(
+      future_impl_.core(), handle, app_state_.weak_from_this());
 
   util::RegisterCallbackOnTask(env, task, StringResultCallback,
                                reinterpret_cast<void*>(data_handle),
@@ -255,7 +289,8 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
       internal_obj_, installations::GetMethodId(installations::kGetToken),
       static_cast<jboolean>(forceRefresh));
 
-  auto data_handle = new FISDataHandle<std::string>(&future_impl_, handle);
+  auto data_handle = new FISDataHandle<std::string>(
+      future_impl_.core(), handle, app_state_.weak_from_this());
 
   util::RegisterCallbackOnTask(env, task, TokenResultCallback,
                                reinterpret_cast<void*>(data_handle),
@@ -277,7 +312,8 @@ Future<void> InstallationsInternal::Delete() {
   jobject task = env->CallObjectMethod(
       internal_obj_, installations::GetMethodId(installations::kDelete));
 
-  auto data_handle = new FISDataHandle<void>(&future_impl_, handle);
+  auto data_handle = new FISDataHandle<void>(future_impl_.core(), handle,
+                                             app_state_.weak_from_this());
 
   util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                reinterpret_cast<void*>(data_handle),

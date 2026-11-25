@@ -113,6 +113,9 @@ class DataSnapshotInternal {
   // Kept weak so Future<DataSnapshot> cached in DatabaseInternal's
   // FutureManager never forms a reference cycle with DatabaseInternal/AppState.
   std::weak_ptr<DatabaseInternal> database_;
+  // Non-dereferenced identity tag distinguishing multiple DatabaseInternal URLs
+  // that alias the same AppState control block.
+  const DatabaseInternal* db_identity_ = nullptr;
 
   Variant data_;
 

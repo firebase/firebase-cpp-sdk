@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_REST_CONTROLLER_CURL_H_
 #define FIREBASE_APP_REST_CONTROLLER_CURL_H_
 
+#include <atomic>
 #include <cstdint>
 
 #include "app/rest/controller_interface.h"
@@ -85,8 +86,13 @@ class ControllerCurl : public Controller {
 
   // The following methods are called by TransportCurl to set the status of this
   // object.
-  // Set whether a transfer is active.
+  // Set whether a transfer is active. Caller must hold the controller mutex
+  // once the controller has been shared with the transfer thread.
   void set_transferring(bool transferring) { transferring_ = transferring; }
+
+  // Returns whether a transfer is active. Caller must hold the controller
+  // mutex.
+  bool is_transferring() const { return transferring_; }
 
   // Set the current number of bytes transferred.
   void set_bytes_transferred(int64_t bytes_transferred);
@@ -94,10 +100,11 @@ class ControllerCurl : public Controller {
   // Set the total size of the transfer.
   void set_transfer_size(int64_t transfer_size);
 
-  // Set the controller handle and mutex.
+  // Set the controller handle and mutex. Caller must hold mutex (or call before
+  // sharing this controller with the transfer thread).
   void InitializeControllerHandle(ControllerCurl** handle, Mutex* mutex) {
     this_handle_ = handle;
-    this_handle_mutex_ = mutex;
+    this_handle_mutex_.store(mutex, std::memory_order_release);
   }
 
   // Direction of the transfer.
@@ -118,17 +125,19 @@ class ControllerCurl : public Controller {
   // The response that this controller is associated with.
   Response* response_;
 
-  // Whether the transfer is running.
+  // Whether the transfer is running (guarded by *this_handle_mutex_ once
+  // shared with the transfer thread).
   bool transferring_;
   // Number of bytes transferred.
-  int64_t bytes_transferred_;
+  std::atomic<int64_t> bytes_transferred_;
   // Total size of the transfer.
-  int64_t transfer_size_;
+  std::atomic<int64_t> transfer_size_;
 
-  // Handle to this controller which is updated when it's moved.
+  // Handle to this controller which is updated when it's moved (guarded by
+  // *this_handle_mutex_ once shared with the transfer thread).
   ControllerCurl** this_handle_;
-  // Guards this_handle.
-  Mutex* this_handle_mutex_;
+  // Guards this_handle_, transferring_, and is_paused_.
+  std::atomic<Mutex*> this_handle_mutex_;
 };
 
 }  // namespace rest

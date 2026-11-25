@@ -16,6 +16,9 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -23,6 +26,8 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/native_handle_table.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
@@ -147,7 +152,40 @@ static const JNINativeMethod kNativeJniAppCheckListenerMethods[] = {
 };
 
 static std::atomic<AppCheckProviderFactory*> g_provider_factory{nullptr};
-static int g_initialized_count = 0;
+
+struct AppCheckAndroidInitState {
+  std::mutex mutex;
+  int initialized_count = 0;
+};
+
+AppCheckAndroidInitState& GetAppCheckInitState() {
+  static ::firebase::internal::NoDestructor<AppCheckAndroidInitState> state;
+  return *state;
+}
+
+::firebase::internal::NativeHandleTable<::firebase::internal::AppState>&
+GetAppStateHandleTable() {
+  static ::firebase::internal::NoDestructor<
+      ::firebase::internal::NativeHandleTable<::firebase::internal::AppState>>
+      table;
+  return *table;
+}
+
+::firebase::internal::NativeHandleTable<AppCheckProvider>&
+GetProviderHandleTable() {
+  static ::firebase::internal::NoDestructor<
+      ::firebase::internal::NativeHandleTable<AppCheckProvider>>
+      table;
+  return *table;
+}
+
+::firebase::internal::NativeHandleTable<AppCheckInternal>&
+GetListenerHandleTable() {
+  static ::firebase::internal::NoDestructor<
+      ::firebase::internal::NativeHandleTable<AppCheckInternal>>
+      table;
+  return *table;
+}
 
 bool CacheAppCheckMethodIds(
     JNIEnv* env, jobject activity,
@@ -204,9 +242,13 @@ static void ReleaseClasses(JNIEnv* env) {
 // Anonymous namespace for code that is only relevant to this file.
 namespace {
 struct FutureDataHandle {
-  FutureDataHandle(ReferenceCountedFutureImpl* _future_api,
+  FutureDataHandle(std::weak_ptr<::firebase::internal::AppState> _weak_state,
+                   ReferenceCountedFutureImpl* _future_api,
                    const SafeFutureHandle<AppCheckToken>& _future_handle)
-      : future_api(_future_api), future_handle(_future_handle) {}
+      : weak_state(std::move(_weak_state)),
+        future_api(_future_api),
+        future_handle(_future_handle) {}
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<AppCheckToken> future_handle;
 };
@@ -214,10 +256,15 @@ struct FutureDataHandle {
 void TokenResultCallback(JNIEnv* env, jobject result,
                          util::FutureResult result_code,
                          const char* status_message, void* callback_data) {
+  std::unique_ptr<FutureDataHandle> data_handle(
+      reinterpret_cast<FutureDataHandle*>(callback_data));
+  auto locked_state = data_handle->weak_state.lock();
+  if (!locked_state) {
+    return;
+  }
   int result_error_code = kAppCheckErrorNone;
   AppCheckToken result_token;
   bool success = (result_code == util::kFutureResultSuccess);
-  std::string result_value = "";
   if (success && result) {
     result_token = CppTokenFromAndroidToken(env, result);
   } else {
@@ -226,29 +273,39 @@ void TokenResultCallback(JNIEnv* env, jobject result,
     result_error_code = kAppCheckErrorUnknown;
   }
   // Complete the provided future.
-  auto* data_handle = reinterpret_cast<FutureDataHandle*>(callback_data);
   data_handle->future_api->CompleteWithResult(data_handle->future_handle,
                                               result_error_code, status_message,
                                               result_token);
-  delete data_handle;
 }
 }  // anonymous namespace
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
     JNIEnv* env, jobject clazz, jlong c_factory, jlong c_app) {
-  auto* app_state = reinterpret_cast<::firebase::internal::AppState*>(c_app);
-  if (!app_state) return 0;
-  App cpp_app = app_state->TryMakeAppHandle();
+  auto locked_state =
+      GetAppStateHandleTable().Lock(static_cast<int64_t>(c_app));
+  if (!locked_state) return 0;
+  App cpp_app = locked_state->MakeAppHandle();
   if (!cpp_app.is_valid()) return 0;
   AppCheckProviderFactory* provider_factory =
       reinterpret_cast<AppCheckProviderFactory*>(c_factory);
+  if (!provider_factory) return 0;
   AppCheckProvider* provider = provider_factory->CreateProvider(cpp_app);
-  return reinterpret_cast<jlong>(provider);
+  if (!provider) return 0;
+  // Alias the provider pointer to AppState's control block so locking the
+  // handle keeps both AppState and the AppState-owned provider service alive.
+  std::shared_ptr<AppCheckProvider> aliasing_provider(locked_state, provider);
+  return static_cast<jlong>(
+      GetProviderHandleTable().Register(aliasing_provider));
 }
 
 JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
     JNIEnv* env, jobject j_provider, jlong c_provider,
     jobject task_completion_source) {
+  auto locked_provider =
+      GetProviderHandleTable().Lock(static_cast<int64_t>(c_provider));
+  if (!locked_provider) return;
+  std::weak_ptr<AppCheckProvider> weak_provider = locked_provider;
+
   // Create GlobalReferences to the provider and task. These references will be
   // deleted in the completion callback.
   jobject j_provider_global = env->NewGlobalRef(j_provider);
@@ -257,31 +314,41 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
 
   // Defines a C++ callback method to call
   // JniAppCheckProvider.HandleGetTokenResult with the resulting token
-  auto token_callback{[j_provider_global, task_completion_source_global](
-                          firebase::app_check::AppCheckToken token,
-                          int error_code, const std::string& error_message) {
-    // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
-    JNIEnv* env = firebase::util::GetJNIEnvFromApp();
-    jstring error_string = env->NewStringUTF(error_message.c_str());
-    jstring token_string = env->NewStringUTF(token.token.c_str());
-    env->CallVoidMethod(
-        j_provider_global,
-        jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
-        task_completion_source_global, token_string, token.expire_time_millis,
-        error_code, error_string);
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    env->DeleteLocalRef(token_string);
-    env->DeleteLocalRef(error_string);
-    env->DeleteGlobalRef(j_provider_global);
-    env->DeleteGlobalRef(task_completion_source_global);
-  }};
-  AppCheckProvider* provider = reinterpret_cast<AppCheckProvider*>(c_provider);
-  provider->GetToken(token_callback);
+  auto token_callback{
+      [weak_provider, j_provider_global, task_completion_source_global](
+          firebase::app_check::AppCheckToken token, int error_code,
+          const std::string& error_message) {
+        JNIEnv* cb_env = firebase::util::GetJNIEnvFromApp();
+        if (!cb_env) return;
+        // Pin AppState/AppCheckInternal while invoking cached jni_provider
+        // methods.
+        auto pinned = weak_provider.lock();
+        if (pinned) {
+          jstring error_string = cb_env->NewStringUTF(error_message.c_str());
+          jstring token_string = cb_env->NewStringUTF(token.token.c_str());
+          cb_env->CallVoidMethod(
+              j_provider_global,
+              jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
+              task_completion_source_global, token_string,
+              token.expire_time_millis, error_code, error_string);
+          FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(cb_env));
+          cb_env->DeleteLocalRef(token_string);
+          cb_env->DeleteLocalRef(error_string);
+        }
+        cb_env->DeleteGlobalRef(j_provider_global);
+        cb_env->DeleteGlobalRef(task_completion_source_global);
+      }};
+  locked_provider->GetToken(token_callback);
 }
 
 JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetLimitedUseToken(
     JNIEnv* env, jobject j_provider, jlong c_provider,
     jobject task_completion_source) {
+  auto locked_provider =
+      GetProviderHandleTable().Lock(static_cast<int64_t>(c_provider));
+  if (!locked_provider) return;
+  std::weak_ptr<AppCheckProvider> weak_provider = locked_provider;
+
   // Create GlobalReferences to the provider and task. These references will be
   // deleted in the completion callback.
   jobject j_provider_global = env->NewGlobalRef(j_provider);
@@ -290,31 +357,36 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetLimitedUseToken(
 
   // Defines a C++ callback method to call
   // JniAppCheckProvider.HandleGetTokenResult with the resulting token
-  auto token_callback{[j_provider_global, task_completion_source_global](
-                          firebase::app_check::AppCheckToken token,
-                          int error_code, const std::string& error_message) {
-    // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
-    JNIEnv* env = firebase::util::GetJNIEnvFromApp();
-    jstring error_string = env->NewStringUTF(error_message.c_str());
-    jstring token_string = env->NewStringUTF(token.token.c_str());
-    env->CallVoidMethod(
-        j_provider_global,
-        jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
-        task_completion_source_global, token_string, token.expire_time_millis,
-        error_code, error_string);
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    env->DeleteLocalRef(token_string);
-    env->DeleteLocalRef(error_string);
-    env->DeleteGlobalRef(j_provider_global);
-    env->DeleteGlobalRef(task_completion_source_global);
-  }};
-  AppCheckProvider* provider = reinterpret_cast<AppCheckProvider*>(c_provider);
-  provider->GetLimitedUseToken(token_callback);
+  auto token_callback{
+      [weak_provider, j_provider_global, task_completion_source_global](
+          firebase::app_check::AppCheckToken token, int error_code,
+          const std::string& error_message) {
+        JNIEnv* cb_env = firebase::util::GetJNIEnvFromApp();
+        if (!cb_env) return;
+        auto pinned = weak_provider.lock();
+        if (pinned) {
+          jstring error_string = cb_env->NewStringUTF(error_message.c_str());
+          jstring token_string = cb_env->NewStringUTF(token.token.c_str());
+          cb_env->CallVoidMethod(
+              j_provider_global,
+              jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
+              task_completion_source_global, token_string,
+              token.expire_time_millis, error_code, error_string);
+          FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(cb_env));
+          cb_env->DeleteLocalRef(token_string);
+          cb_env->DeleteLocalRef(error_string);
+        }
+        cb_env->DeleteGlobalRef(j_provider_global);
+        cb_env->DeleteGlobalRef(task_completion_source_global);
+      }};
+  locked_provider->GetLimitedUseToken(token_callback);
 }
 
 JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
     JNIEnv* env, jobject clazz, jlong c_app_check, jobject token) {
-  auto app_check_internal = reinterpret_cast<AppCheckInternal*>(c_app_check);
+  auto app_check_internal =
+      GetListenerHandleTable().Lock(static_cast<int64_t>(c_app_check));
+  if (!app_check_internal) return;
   AppCheckToken cpp_token = CppTokenFromAndroidToken(env, token);
   app_check_internal->NotifyTokenChanged(cpp_token);
 }
@@ -326,35 +398,45 @@ AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
   App app_handle = app_state_.MakeAppHandle();
   // Cache the JNI method ids so we only have to look them up by name once.
   JNIEnv* env = app_handle.GetJNIEnv();
-  if (!g_initialized_count) {
-    jobject activity = app_state_.activity();
-    if (util::Initialize(env, activity)) {
-      // Cache embedded files and load embedded classes.
-      const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-          util::CacheEmbeddedFiles(
-              env, activity,
-              firebase::internal::EmbeddedFile::ToVector(
-                  firebase_app_check::app_check_resources_filename,
-                  firebase_app_check::app_check_resources_data,
-                  firebase_app_check::app_check_resources_size));
-      // Terminate if unable to cache main classes
-      if (!(CacheAppCheckMethodIds(env, activity, embedded_files) &&
-            CacheCommonAndroidMethodIds(env, activity))) {
-        ReleaseClasses(env);
-        util::Terminate(env);
-      } else {
-        // Each provider is optional as a user may or may not use it.
-        CacheDebugProviderMethodIds(env, activity, embedded_files);
-        CachePlayIntegrityProviderMethodIds(env, activity);
-        g_initialized_count++;
+  {
+    AppCheckAndroidInitState& init_state = GetAppCheckInitState();
+    std::lock_guard<std::mutex> lock(init_state.mutex);
+    if (init_state.initialized_count == 0) {
+      jobject activity = app_state_.activity();
+      if (util::Initialize(env, activity)) {
+        // Cache embedded files and load embedded classes.
+        const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+            util::CacheEmbeddedFiles(
+                env, activity,
+                firebase::internal::EmbeddedFile::ToVector(
+                    firebase_app_check::app_check_resources_filename,
+                    firebase_app_check::app_check_resources_data,
+                    firebase_app_check::app_check_resources_size));
+        // Terminate if unable to cache main classes
+        if (!(CacheAppCheckMethodIds(env, activity, embedded_files) &&
+              CacheCommonAndroidMethodIds(env, activity))) {
+          ReleaseClasses(env);
+          util::Terminate(env);
+        } else {
+          // Each provider is optional as a user may or may not use it.
+          CacheDebugProviderMethodIds(env, activity, embedded_files);
+          CachePlayIntegrityProviderMethodIds(env, activity);
+          init_state.initialized_count++;
+          initialized_classes_ = true;
+        }
       }
+    } else {
+      init_state.initialized_count++;
+      initialized_classes_ = true;
     }
-  } else {
-    g_initialized_count++;
   }
 
   static const char* kApiIdentifier = "AppCheck";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
+
+  if (!initialized_classes_) {
+    return;
+  }
 
   // Create the FirebaseAppCheck class in Java.
   jobject platform_app = app_handle.GetPlatformApp();
@@ -370,6 +452,11 @@ AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
     app_check_impl_ = env->NewGlobalRef(j_app_check_local);
     env->DeleteLocalRef(j_app_check_local);
 
+    auto self_state = app_state_.shared_from_this();
+    app_state_handle_id_ = GetAppStateHandleTable().Register(self_state);
+    std::shared_ptr<AppCheckInternal> aliasing_self(self_state, this);
+    listener_handle_id_ = GetListenerHandleTable().Register(aliasing_self);
+
     // Install the AppCheckProviderFactory for this instance of AppCheck.
     AppCheckProviderFactory* factory = g_provider_factory.load();
     if (factory) {
@@ -380,7 +467,7 @@ AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
           jni_provider_factory::GetClass(),
           jni_provider_factory::GetMethodId(jni_provider_factory::kConstructor),
           reinterpret_cast<jlong>(factory),
-          reinterpret_cast<jlong>(&app_state_));
+          static_cast<jlong>(app_state_handle_id_));
       FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
       // Install the Java ProviderFactory in the java AppCheck class.
       env->CallVoidMethod(
@@ -391,12 +478,12 @@ AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
       env->DeleteLocalRef(j_factory);
     }
 
-    // Add a token-changed listener and give it a pointer to the C++ listeners.
+    // Add a token-changed listener and pass an opaque handle ID to Java.
     jobject j_listener =
         env->NewObject(jni_app_check_listener::GetClass(),
                        jni_app_check_listener::GetMethodId(
                            jni_app_check_listener::kConstructor),
-                       reinterpret_cast<jlong>(this));
+                       static_cast<jlong>(listener_handle_id_));
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
     env->CallVoidMethod(app_check_impl_,
                         app_check::GetMethodId(app_check::kAddAppCheckListener),
@@ -411,9 +498,13 @@ AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
 }
 
 AppCheckInternal::~AppCheckInternal() {
+  GetListenerHandleTable().Unregister(listener_handle_id_);
+  listener_handle_id_ = 0;
+  GetAppStateHandleTable().Unregister(app_state_handle_id_);
+  app_state_handle_id_ = 0;
+
   future_manager().ReleaseFutureApi(this);
   JNIEnv* env = firebase::util::GetJNIEnvFromApp();
-  listeners_.clear();
   if (env != nullptr) {
     util::CancelCallbacks(env, jni_task_id_.c_str());
 
@@ -424,6 +515,7 @@ AppCheckInternal::~AppCheckInternal() {
           j_app_check_listener_);
       FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
       env->DeleteGlobalRef(j_app_check_listener_);
+      j_app_check_listener_ = nullptr;
     }
     if (app_check_impl_ != nullptr) {
       env->CallVoidMethod(app_check_impl_,
@@ -432,14 +524,24 @@ AppCheckInternal::~AppCheckInternal() {
       FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
 
       env->DeleteGlobalRef(app_check_impl_);
+      app_check_impl_ = nullptr;
     }
   }
+  {
+    MutexLock lock(listeners_mutex_);
+    listeners_.clear();
+  }
 
-  FIREBASE_ASSERT(g_initialized_count);
-  g_initialized_count--;
-  if (g_initialized_count == 0 && env != nullptr) {
-    ReleaseClasses(env);
-    util::Terminate(env);
+  if (initialized_classes_) {
+    initialized_classes_ = false;
+    AppCheckAndroidInitState& init_state = GetAppCheckInitState();
+    std::lock_guard<std::mutex> lock(init_state.mutex);
+    FIREBASE_ASSERT(init_state.initialized_count > 0);
+    init_state.initialized_count--;
+    if (init_state.initialized_count == 0 && env != nullptr) {
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
   }
 }
 
@@ -478,7 +580,8 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
 
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
-    auto data_handle = new FutureDataHandle(future(), handle);
+    auto data_handle =
+        new FutureDataHandle(app_state_.weak_from_this(), future(), handle);
     util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
@@ -505,7 +608,8 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckToken() {
 
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
-    auto data_handle = new FutureDataHandle(future(), handle);
+    auto data_handle =
+        new FutureDataHandle(app_state_.weak_from_this(), future(), handle);
     util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
@@ -540,8 +644,12 @@ void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
 }
 
 void AppCheckInternal::NotifyTokenChanged(AppCheckToken token) {
-  MutexLock lock(listeners_mutex_);
-  for (AppCheckListener* listener : listeners_) {
+  std::vector<AppCheckListener*> listeners_copy;
+  {
+    MutexLock lock(listeners_mutex_);
+    listeners_copy = listeners_;
+  }
+  for (AppCheckListener* listener : listeners_copy) {
     listener->OnAppCheckTokenChanged(token);
   }
 }

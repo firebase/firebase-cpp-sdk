@@ -69,10 +69,10 @@ class StorageReferenceInternal {
   Future<void> DeleteLastResult();
 
   // Return the Google Cloud Storage bucket that holds this object.
-  std::string bucket();
+  std::string bucket() const;
 
   // Return the full path of this object.
-  std::string full_path();
+  std::string full_path() const;
 
   // Asynchronously downloads the object from this StorageReferenceInternal.
   Future<size_t> GetFile(const char* path, Listener* listener,
@@ -172,6 +172,14 @@ class StorageReferenceInternal {
 
   // StorageInternal instance we are associated with.
   StorageInternal* storage_internal() const { return LockStorage().get(); }
+
+  // Creates a non-owning (weak) copy of this StorageReferenceInternal so
+  // StorageListResultInternal copies never create a reference cycle with
+  // StorageInternal / AppState.
+  StorageReferenceInternal* CloneWeak() const;
+
+  // Copies a StorageReference weakly without promoting to a strong handle.
+  static StorageReference CloneWeakReference(const StorageReference& ref);
 
  private:
   struct WeakTag {};

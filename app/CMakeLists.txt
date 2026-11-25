@@ -249,6 +249,7 @@ set(utility_common_HDRS
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
+    src/native_handle_table.h
     src/no_destructor.h
     src/optional.h
     src/path.h

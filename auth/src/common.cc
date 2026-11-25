@@ -85,15 +85,34 @@ void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
 ///
 User::User() = default;
 
-bool User::operator==(const User& user) const {
+User::User(const User& other)
+    : strong_auth_data_(other.LockAuthData()), auth_data_(other.auth_data_) {}
+
+User& User::operator=(const User& other) {
+  if (this != &other) {
+    std::shared_ptr<AuthData> next_strong = other.LockAuthData();
+    std::weak_ptr<AuthData> next_weak = other.auth_data_;
+    strong_auth_data_ = std::move(next_strong);
+    auth_data_ = std::move(next_weak);
+  }
+  return *this;
+}
+
+User::User(User&& other) noexcept = default;
+User& User::operator=(User&& other) noexcept = default;
+User::~User() = default;
+
+bool User::operator==(const User& user) const noexcept {
   const bool valid_lhs = is_valid();
   const bool valid_rhs = user.is_valid();
   if (valid_lhs != valid_rhs) return false;
   if (!valid_lhs) return true;
-  return auth_data_.lock() == user.auth_data_.lock();
+  return LockAuthData() == user.LockAuthData();
 }
 
-bool User::operator!=(const User& user) const { return !(*this == user); }
+bool User::operator!=(const User& user) const noexcept {
+  return !(*this == user);
+}
 
 }  // namespace auth
 }  // namespace firebase

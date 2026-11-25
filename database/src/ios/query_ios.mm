@@ -151,21 +151,22 @@ QueryInternal::~QueryInternal() {
 }
 
 SingleValueListener::SingleValueListener(
-    ReferenceCountedFutureImpl* future, const SafeFutureHandle<DataSnapshot>& handle,
+    std::shared_ptr<detail::FutureImplCore> future_core,
+    const SafeFutureHandle<DataSnapshot>& handle,
     const FIRCPPDatabaseQueryCallbackStatePointer& callback_state)
-    : future_(future),
+    : future_core_(std::move(future_core)),
       handle_(handle),
       callback_state_(std::make_unique<FIRCPPDatabaseQueryCallbackStatePointer>(callback_state)) {}
 
 SingleValueListener::~SingleValueListener() { [callback_state_->get() removeAllObservers]; }
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
-  future_->Complete<DataSnapshot>(handle_, kErrorNone, "",
-                                  [&snapshot](DataSnapshot* data) { *data = snapshot; });
+  ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core_, handle_, kErrorNone, "",
+                                                     snapshot);
 }
 
 void SingleValueListener::OnCancelled(const Error& error_code, const char* error_message) {
-  future_->Complete(handle_, error_code, error_message);
+  ReferenceCountedFutureImpl::CompleteCore(future_core_, handle_, error_code, error_message);
 }
 
 typedef void (*NotifyValueListenerFunc)(DatabaseInternal* _Nonnull database,
@@ -214,7 +215,7 @@ Future<DataSnapshot> QueryInternal::GetValue() {
   SafeFutureHandle<DataSnapshot> future_handle =
       query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue, DataSnapshot(nullptr));
   SingleValueListener* single_listener = new SingleValueListener(
-      query_future(), future_handle, FIRCPPDatabaseQueryCallbackStatePointer(callback_state));
+      query_future()->core(), future_handle, FIRCPPDatabaseQueryCallbackStatePointer(callback_state));
   callback_state.valueListener = single_listener;
 
   void (^block)(FIRDataSnapshot* _Nonnull) = ^(FIRDataSnapshot* _Nonnull snapshot_impl) {

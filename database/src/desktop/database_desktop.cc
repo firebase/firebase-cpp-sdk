@@ -77,20 +77,17 @@ DatabaseInternal::DatabaseInternal(::firebase::internal::AppState& app_state,
       logger_(&app_state.logger()),
       repo_(nullptr) {
   (void)app;
-  // Spin up the token auto-update thread in Auth if Auth is active.
-  if (auto* auth = app_state_.auth_token_provider()) {
-    auth->StartTokenListener();
-  }
+  // Request Auth's token auto-update thread reactively: if Auth is created
+  // after Database, AppState automatically starts token refresh on attach.
+  auth_refresh_subscription_ = app_state_.SubscribeAuthState(
+      nullptr, /*keep_token_refresh_active=*/true);
 }
 
 DatabaseInternal::~DatabaseInternal() {
-  // Destroy Repo first so its scheduler/connection stop before token listeners
+  // Destroy Repo first so its scheduler/connection stop before token leases
   // and future_manager_ are torn down.
   repo_.reset();
-
-  if (auto* auth = app_state_.auth_token_provider()) {
-    auth->StopTokenListener();
-  }
+  auth_refresh_subscription_.Reset();
 }
 
 App DatabaseInternal::GetApp() const { return app_state_.TryMakeAppHandle(); }

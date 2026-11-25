@@ -54,10 +54,11 @@ StorageInternal::StorageInternal(::firebase::internal::AppState& app_state,
 
   firebase::rest::util::Initialize();
   firebase::rest::InitTransportCurl();
-  // Spin up the token auto-update thread in Auth if Auth is present.
-  if (auto* auth = app_state_.auth_token_provider()) {
-    auth->StartTokenListener();
-  }
+  // Keep Auth's token auto-update thread active while Storage is alive,
+  // regardless of whether Auth is created before or after Storage.
+  auth_refresh_subscription_ =
+      app_state_.SubscribeAuthState(nullptr,
+                                    /*keep_token_refresh_active=*/true);
 
   std::string sdk;
   std::string version;
@@ -68,6 +69,7 @@ StorageInternal::StorageInternal(::firebase::internal::AppState& app_state,
 }
 
 StorageInternal::~StorageInternal() {
+  auth_refresh_subscription_.Reset();
   std::vector<RestOperation*> remaining;
   {
     MutexLock lock(operations_mutex_);
@@ -78,10 +80,6 @@ StorageInternal::~StorageInternal() {
   }
   firebase::rest::CleanupTransportCurl();
   firebase::rest::util::Terminate();
-  // Stop the token auto-update thread in Auth if Auth is present.
-  if (auto* auth = app_state_.auth_token_provider()) {
-    auth->StopTokenListener();
-  }
 }
 
 // Get a StorageReference to the root of the database.

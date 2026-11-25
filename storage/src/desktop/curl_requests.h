@@ -15,6 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_DESKTOP_CURL_REQUESTS_H_
 #define FIREBASE_STORAGE_SRC_DESKTOP_CURL_REQUESTS_H_
 
+#include <atomic>
 #include <fstream>
 #include <memory>
 
@@ -57,6 +58,7 @@ class Notifier {
 
   // Set the callback to be notified about this object.
   void set_update_callback(UpdateCallback callback, void* callback_data) {
+    MutexLock lock(mutex_);
     update_callback_ = callback;
     update_callback_data_ = callback_data;
   }
@@ -65,29 +67,31 @@ class Notifier {
   // This should be the last thing a request calls.
   // This *must* be performed at a point where it's possible to delete this
   // object.
-  void NotifyComplete() {
-    if (update_callback_) {
-      update_callback_(kUpdateCallbackTypeComplete, update_callback_data_);
-    }
-  }
+  void NotifyComplete() { Notify(kUpdateCallbackTypeComplete); }
   // Report failure of this response.
   // This *must* be performed at a point where it's possible to delete this
   // object.
-  void NotifyFailed() {
-    if (update_callback_) {
-      update_callback_(kUpdateCallbackTypeFailed, update_callback_data_);
-    }
-  }
+  void NotifyFailed() { Notify(kUpdateCallbackTypeFailed); }
 
   // Convenience function to perform null checks and update the listener when
   // progress has happened.
-  void NotifyProgress() {
-    if (update_callback_) {
-      update_callback_(kUpdateCallbackTypeProgress, update_callback_data_);
+  void NotifyProgress() { Notify(kUpdateCallbackTypeProgress); }
+
+ private:
+  void Notify(UpdateCallbackType type) {
+    UpdateCallback callback = nullptr;
+    void* callback_data = nullptr;
+    {
+      MutexLock lock(mutex_);
+      callback = update_callback_;
+      callback_data = update_callback_data_;
+    }
+    if (callback) {
+      callback(type, callback_data);
     }
   }
 
- private:
+  Mutex mutex_;
   UpdateCallback update_callback_;
   void* update_callback_data_;
 };
@@ -147,9 +151,9 @@ class RequestFile : public rest::RequestFile {
 // b/68854714
 class BlockingResponse : public rest::Response {
  public:
-  // ref_future must be allocated using FutureManager to ensure ref_future
-  // remains valid while the future handle isn't complete.
-  BlockingResponse(FutureHandle handle, ReferenceCountedFutureImpl* ref_future);
+  BlockingResponse(FutureHandle handle,
+                   std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+                   std::shared_ptr<std::atomic<int>> http_status_out = nullptr);
   virtual ~BlockingResponse();
 
   // NOTE: This does *not* call the UpdateCallback.  Each subclass needs to
@@ -184,14 +188,17 @@ class BlockingResponse : public rest::Response {
 
  protected:
   FutureHandle handle_;
-  ReferenceCountedFutureImpl* ref_future_;
+  std::shared_ptr<ReferenceCountedFutureImpl> ref_future_;
+  std::shared_ptr<std::atomic<int>> http_status_out_;
+  bool completed_ = false;
 };
 
 // Response class for operations that don't return any data.  (i. e. delete.)
 class EmptyResponse : public BlockingResponse {
  public:
   EmptyResponse(SafeFutureHandle<void> handle,
-                ReferenceCountedFutureImpl* ref_future);
+                std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+                std::shared_ptr<std::atomic<int>> http_status_out = nullptr);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
 
@@ -207,7 +214,8 @@ class GetBytesResponse : public BlockingResponse {
  public:
   GetBytesResponse(void* buffer, size_t buffer_size,
                    SafeFutureHandle<size_t> handle,
-                   ReferenceCountedFutureImpl* ref_future);
+                   std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+                   std::shared_ptr<std::atomic<int>> http_status_out = nullptr);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
 
@@ -223,7 +231,8 @@ class GetBytesResponse : public BlockingResponse {
 class GetFileResponse : public BlockingResponse {
  public:
   GetFileResponse(const char* filename, SafeFutureHandle<size_t> handle,
-                  ReferenceCountedFutureImpl* ref_future);
+                  std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+                  std::shared_ptr<std::atomic<int>> http_status_out = nullptr);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
 
@@ -238,9 +247,11 @@ class GetFileResponse : public BlockingResponse {
 // to interpret as metadata.
 class ReturnedMetadataResponse : public BlockingResponse {
  public:
-  ReturnedMetadataResponse(SafeFutureHandle<Metadata> handle,
-                           ReferenceCountedFutureImpl* ref_future,
-                           const StorageReference& storage_reference);
+  ReturnedMetadataResponse(
+      SafeFutureHandle<Metadata> handle,
+      std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+      StorageReference storage_reference,
+      std::shared_ptr<std::atomic<int>> http_status_out = nullptr);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
 
@@ -253,14 +264,17 @@ class ReturnedMetadataResponse : public BlockingResponse {
 // to interpret as a list result.
 class ReturnedListResponse : public BlockingResponse {
  public:
-  ReturnedListResponse(SafeFutureHandle<StorageListResult> handle,
-                       ReferenceCountedFutureImpl* ref_future,
-                       std::weak_ptr<StorageInternal> storage);
+  ReturnedListResponse(
+      SafeFutureHandle<StorageListResult> handle,
+      std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+      StoragePath root_path, std::weak_ptr<StorageInternal> storage,
+      std::shared_ptr<std::atomic<int>> http_status_out = nullptr);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
 
  private:
   std::string buffer_;
+  StoragePath root_path_;
   std::weak_ptr<StorageInternal> storage_;
 };
 

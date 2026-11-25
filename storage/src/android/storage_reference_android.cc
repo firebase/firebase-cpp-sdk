@@ -167,11 +167,12 @@ StorageReferenceInternal* StorageReferenceInternal::CreateWeak(
 
 StorageReferenceInternal::StorageReferenceInternal(
     const StorageReferenceInternal& src)
-    : strong_storage_(src.strong_storage_), weak_storage_(src.weak_storage_) {
-  if (auto locked = LockStorage()) {
-    locked->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+    : strong_storage_(src.LockStorage()), weak_storage_(src.weak_storage_) {
+  if (strong_storage_) {
+    strong_storage_->future_manager().AllocFutureApi(this,
+                                                     kStorageReferenceFnCount);
     if (src.obj_ != nullptr) {
-      obj_ = locked->GetJNIEnv()->NewGlobalRef(src.obj_);
+      obj_ = strong_storage_->GetJNIEnv()->NewGlobalRef(src.obj_);
     }
   }
 }
@@ -188,15 +189,27 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   if (auto old_storage = LockStorage()) {
     old_storage->future_manager().ReleaseFutureApi(this);
   }
-  strong_storage_ = src.strong_storage_;
+  strong_storage_ = src.LockStorage();
   weak_storage_ = src.weak_storage_;
-  if (auto locked = LockStorage()) {
-    locked->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
+  if (strong_storage_) {
+    strong_storage_->future_manager().AllocFutureApi(this,
+                                                     kStorageReferenceFnCount);
     if (src.obj_ != nullptr) {
-      obj_ = locked->GetJNIEnv()->NewGlobalRef(src.obj_);
+      obj_ = strong_storage_->GetJNIEnv()->NewGlobalRef(src.obj_);
     }
   }
   return *this;
+}
+
+StorageReferenceInternal* StorageReferenceInternal::CloneWeak() const {
+  return CreateWeak(weak_storage_, obj_);
+}
+
+// static
+StorageReference StorageReferenceInternal::CloneWeakReference(
+    const StorageReference& ref) {
+  return ref.internal_ ? StorageReference(ref.internal_->CloneWeak())
+                       : StorageReference();
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
@@ -275,14 +288,15 @@ StorageReferenceInternal* StorageReferenceInternal::Child(
 namespace {
 
 struct FutureCallbackData {
-  FutureCallbackData(FutureHandle handle_, ReferenceCountedFutureImpl* impl_,
+  FutureCallbackData(FutureHandle handle_,
+                     std::shared_ptr<detail::FutureImplCore> future_core_,
                      std::weak_ptr<StorageInternal> storage_,
                      StorageReferenceFn func_, jobject listener_ = nullptr,
                      void* dest_ = nullptr, size_t size_ = 0,
                      jobject cpp_byte_downloader_ = nullptr,
                      jobject cpp_byte_uploader_ = nullptr)
       : handle(handle_),
-        impl(impl_),
+        future_core(std::move(future_core_)),
         storage(std::move(storage_)),
         func(func_),
         listener(listener_),
@@ -291,7 +305,7 @@ struct FutureCallbackData {
         cpp_byte_downloader(cpp_byte_downloader_),
         cpp_byte_uploader(cpp_byte_uploader_) {}
   FutureHandle handle;
-  ReferenceCountedFutureImpl* impl;
+  std::shared_ptr<detail::FutureImplCore> future_core;
   std::weak_ptr<StorageInternal> storage;
   StorageReferenceFn func;
   jobject listener;
@@ -315,20 +329,32 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     util::CheckAndClearJniExceptions(env);
     return;
   }
+
+  auto locked_storage = data->storage.lock();
+  if (!locked_storage) {
+    // ~StorageInternal() already detached and deleted all registered bridge
+    // global refs before releasing JNI class references.
+    util::CheckAndClearJniExceptions(env);
+    return;
+  }
+
   auto cleanup_refs = [&]() {
-    if (data->listener != nullptr) {
+    if (data->listener != nullptr &&
+        locked_storage->TakeNativeBridge(data->listener)) {
       env->CallVoidMethod(data->listener,
                           cpp_storage_listener::GetMethodId(
                               cpp_storage_listener::kDiscardPointers));
       env->DeleteGlobalRef(data->listener);
     }
-    if (data->cpp_byte_downloader != nullptr) {
+    if (data->cpp_byte_downloader != nullptr &&
+        locked_storage->TakeNativeBridge(data->cpp_byte_downloader)) {
       env->CallVoidMethod(data->cpp_byte_downloader,
                           cpp_byte_downloader::GetMethodId(
                               cpp_byte_downloader::kDiscardPointers));
       env->DeleteGlobalRef(data->cpp_byte_downloader);
     }
-    if (data->cpp_byte_uploader != nullptr) {
+    if (data->cpp_byte_uploader != nullptr &&
+        locked_storage->TakeNativeBridge(data->cpp_byte_uploader)) {
       env->CallVoidMethod(
           data->cpp_byte_uploader,
           cpp_byte_uploader::GetMethodId(cpp_byte_uploader::kDiscardPointers));
@@ -337,11 +363,9 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
     util::CheckAndClearJniExceptions(env);
   };
 
-  auto locked_storage = data->storage.lock();
-  if (!locked_storage) {
-    cleanup_refs();
-    return;
-  }
+  auto future_core = std::move(data->future_core);
+  FutureHandle handle = data->handle;
+  std::string status_msg = status_message ? status_message : "";
 
   if (result_code != util::kFutureResultSuccess) {
     // Failed, so the result is a StorageException.
@@ -350,81 +374,91 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
         (result_code == util::kFutureResultCancelled)
             ? kErrorCancelled
             : locked_storage->ErrorFromJavaStorageException(result, &message);
+    bool metadata_fn = (data->func == kStorageReferenceFnPutFile ||
+                        data->func == kStorageReferenceFnPutBytes ||
+                        data->func == kStorageReferenceFnGetMetadata ||
+                        data->func == kStorageReferenceFnUpdateMetadata);
     LogDebug("FutureCallback: Completing a Future with an error (%d).", code);
-    if (data->func == kStorageReferenceFnPutFile ||
-        data->func == kStorageReferenceFnPutBytes ||
-        data->func == kStorageReferenceFnGetMetadata ||
-        data->func == kStorageReferenceFnUpdateMetadata) {
+    cleanup_refs();
+    locked_storage.reset();
+    if (metadata_fn) {
       // If it's a Future<Metadata> that failed, ensure that an invalid metadata
       // is returned.
-      data->impl->CompleteWithResult(data->handle, code, message.c_str(),
-                                     Metadata(nullptr));
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(
+          future_core, SafeFutureHandle<Metadata>(handle), code,
+          message.c_str(), Metadata(nullptr));
     } else {
-      data->impl->Complete(data->handle, code, message.c_str());
+      ReferenceCountedFutureImpl::CompleteCore(future_core, handle, code,
+                                               message.c_str());
     }
-  } else if (result && env->IsInstanceOf(result, util::string::GetClass())) {
+    return;
+  }
+
+  if (result && env->IsInstanceOf(result, util::string::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a String.");
-    // Complete a Future<std::string> from a Java String object.
-    data->impl->CompleteWithResult<std::string>(
-        data->handle, kErrorNone, status_message,
-        util::JStringToString(env, result));
+    std::string value = util::JStringToString(env, result);
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult<std::string>(
+        future_core, SafeFutureHandle<std::string>(handle), kErrorNone,
+        status_msg.c_str(), value);
   } else if (result && env->IsInstanceOf(result, util::uri::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a URI.");
-    // Complete a Future<std::string> from a Java URI object.
-    data->impl->CompleteWithResult<std::string>(
-        data->handle, kErrorNone, status_message,
-        util::JniUriToString(env, env->NewLocalRef(result)));
+    std::string value = util::JniUriToString(env, env->NewLocalRef(result));
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult<std::string>(
+        future_core, SafeFutureHandle<std::string>(handle), kErrorNone,
+        status_msg.c_str(), value);
   } else if (result &&
              env->IsInstanceOf(
                  result, stream_download_task_task_snapshot::GetClass()) &&
              data->dest != nullptr) {
-    // Complete a Future<size_t>. We have previously also copied
-    // bytes from a Java byte[] array via CppByteDownloader.
     LogDebug("FutureCallback: Completing a Future from a byte array.");
-    jlong num_bytes = env->CallLongMethod(
+    size_t num_bytes = static_cast<size_t>(env->CallLongMethod(
         result, stream_download_task_task_snapshot::GetMethodId(
-                    stream_download_task_task_snapshot::kGetBytesTransferred));
-    data->impl->Complete<size_t>(
-        data->handle, kErrorNone, status_message,
-        [num_bytes](size_t* size) { *size = num_bytes; });
+                    stream_download_task_task_snapshot::kGetBytesTransferred)));
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult<size_t>(
+        future_core, SafeFutureHandle<size_t>(handle), kErrorNone,
+        status_msg.c_str(), num_bytes);
   } else if (result &&
              env->IsInstanceOf(result, storage_metadata::GetClass())) {
-    // Complete a Future<Metadata> from a Java StorageMetadata object.
     LogDebug("FutureCallback: Completing a Future from a StorageMetadata.");
-    std::weak_ptr<StorageInternal> weak_storage = data->storage;
-    data->impl->Complete<Metadata>(
-        data->handle, kErrorNone, status_message,
-        [weak_storage, result](Metadata* metadata) {
-          *metadata = Metadata(new MetadataInternal(weak_storage, result));
-        });
+    Metadata metadata(new MetadataInternal(data->storage, result));
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult<Metadata>(
+        future_core, SafeFutureHandle<Metadata>(handle), kErrorNone,
+        status_msg.c_str(), metadata);
   } else if (result &&
              env->IsInstanceOf(result, upload_task_task_snapshot::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from an UploadTask.");
-    // Complete a Future<Metadata> from a Java UploadTask.TaskSnapshot.
     jobject metadata_obj = env->CallObjectMethod(
         result, upload_task_task_snapshot::GetMethodId(
                     upload_task_task_snapshot::kGetMetadata));
-    std::weak_ptr<StorageInternal> weak_storage = data->storage;
-    data->impl->Complete<Metadata>(
-        data->handle, kErrorNone, status_message,
-        [weak_storage, metadata_obj](Metadata* metadata) {
-          *metadata =
-              Metadata(new MetadataInternal(weak_storage, metadata_obj));
-        });
+    Metadata metadata(new MetadataInternal(data->storage, metadata_obj));
     env->DeleteLocalRef(metadata_obj);
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult<Metadata>(
+        future_core, SafeFutureHandle<Metadata>(handle), kErrorNone,
+        status_msg.c_str(), metadata);
   } else if (result &&
              env->IsInstanceOf(result,
                                file_download_task_task_snapshot::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a FileDownloadTask.");
-    // Complete a Future<size_t> from a Java FileDownloadTask.TaskSnapshot.
-    jlong bytes = env->CallLongMethod(
+    size_t bytes = static_cast<size_t>(env->CallLongMethod(
         result, file_download_task_task_snapshot::GetMethodId(
-                    file_download_task_task_snapshot::kGetBytesTransferred));
-    data->impl->Complete<size_t>(data->handle, kErrorNone, status_message,
-                                 [bytes](size_t* size) { *size = bytes; });
+                    file_download_task_task_snapshot::kGetBytesTransferred)));
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult<size_t>(
+        future_core, SafeFutureHandle<size_t>(handle), kErrorNone,
+        status_msg.c_str(), bytes);
   } else if (result && env->IsInstanceOf(result, list_result::GetClass())) {
     LogDebug("FutureCallback: Completing a Future from a ListResult.");
-    // Complete a Future<StorageListResult> from a Java ListResult object.
     jobject prefixes_list = env->CallObjectMethod(
         result, list_result::GetMethodId(list_result::kGetPrefixes));
     jobject items_list = env->CallObjectMethod(
@@ -457,23 +491,24 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
 
     if (page_token_jstr) env->DeleteLocalRef(page_token_jstr);
 
-    data->impl->Complete<StorageListResult>(
-        data->handle, kErrorNone, status_message,
-        [prefixes, items, page_token](StorageListResult* list_result) {
-          internal::StorageListResultInternal* list_result_internal =
-              new internal::StorageListResultInternal(prefixes, items,
-                                                      page_token);
-          *list_result =
-              internal::StorageListResultInternal::AsStorageListResult(
-                  list_result_internal);
-        });
+    internal::StorageListResultInternal* list_result_internal =
+        new internal::StorageListResultInternal(
+            std::move(prefixes), std::move(items), std::move(page_token));
+    StorageListResult list_res =
+        internal::StorageListResultInternal::AsStorageListResult(
+            list_result_internal);
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult<StorageListResult>(
+        future_core, SafeFutureHandle<StorageListResult>(handle), kErrorNone,
+        status_msg.c_str(), list_res);
   } else {
     LogDebug("FutureCallback: Completing a Future from a default result.");
-    // Unknown or null result type, treat this as a Future<void> and just
-    // return success.
-    data->impl->Complete(data->handle, kErrorNone, status_message);
+    cleanup_refs();
+    locked_storage.reset();
+    ReferenceCountedFutureImpl::CompleteCore(future_core, handle, kErrorNone,
+                                             status_msg.c_str());
   }
-  cleanup_refs();
 }
 
 Future<void> StorageReferenceInternal::Delete() {
@@ -487,8 +522,9 @@ Future<void> StorageReferenceInternal::Delete() {
   util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
-      reinterpret_cast<void*>(new FutureCallbackData(
-          handle, future_impl, weak_storage_, kStorageReferenceFnDelete)),
+      reinterpret_cast<void*>(
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
+                                 kStorageReferenceFnDelete)),
       locked->jni_task_id());
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
@@ -502,7 +538,7 @@ Future<void> StorageReferenceInternal::DeleteLastResult() {
                     : Future<void>();
 }
 
-std::string StorageReferenceInternal::bucket() {
+std::string StorageReferenceInternal::bucket() const {
   auto locked = LockStorage();
   if (!locked || obj_ == nullptr) return std::string();
   JNIEnv* env = locked->GetJNIEnv();
@@ -511,7 +547,7 @@ std::string StorageReferenceInternal::bucket() {
   return util::JniStringToString(env, bucket_jstring);
 }
 
-std::string StorageReferenceInternal::full_path() {
+std::string StorageReferenceInternal::full_path() const {
   auto locked = LockStorage();
   if (!locked || obj_ == nullptr) return std::string();
   JNIEnv* env = locked->GetJNIEnv();
@@ -537,7 +573,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
-          new FutureCallbackData(handle, future_impl, weak_storage_,
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
                                  kStorageReferenceFnGetFile, java_listener)),
       locked->jni_task_id());
   if (controller_out) {
@@ -558,10 +594,12 @@ jobject StorageReferenceInternal::AssignListenerToTask(Listener* listener,
     jobject java_listener_local = env->NewObject(
         cpp_storage_listener::GetClass(),
         cpp_storage_listener::GetMethodId(cpp_storage_listener::kConstructor),
-        reinterpret_cast<jlong>(locked.get()),
+        static_cast<jlong>(locked->GetNativeHandleId()),
         reinterpret_cast<jlong>(listener));
     jobject java_listener = env->NewGlobalRef(java_listener_local);
     env->DeleteLocalRef(java_listener_local);
+    locked->RegisterNativeBridge(java_listener,
+                                 StorageInternal::NativeBridgeKind::kListener);
 
     env->DeleteLocalRef(env->CallObjectMethod(
         task, storage_task::GetMethodId(storage_task::kAddOnPausedListener),
@@ -597,6 +635,8 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
       reinterpret_cast<jlong>(buffer), static_cast<jlong>(buffer_size));
   jobject byte_downloader = env->NewGlobalRef(byte_downloader_local);
   env->DeleteLocalRef(byte_downloader_local);
+  locked->RegisterNativeBridge(
+      byte_downloader, StorageInternal::NativeBridgeKind::kByteDownloader);
 
   jobject task = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kGetStream),
@@ -606,9 +646,10 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData, and will
       // handle copying the data into the buffer.
-      reinterpret_cast<void*>(new FutureCallbackData(
-          handle, future_impl, weak_storage_, kStorageReferenceFnGetBytes,
-          java_listener, buffer, buffer_size, byte_downloader)),
+      reinterpret_cast<void*>(
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
+                                 kStorageReferenceFnGetBytes, java_listener,
+                                 buffer, buffer_size, byte_downloader)),
       locked->jni_task_id());
   if (controller_out) {
     controller_out->internal_->AssignTask(weak_storage_, task);
@@ -638,7 +679,7 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
-          new FutureCallbackData(handle, future_impl, weak_storage_,
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
                                  kStorageReferenceFnGetDownloadUrl)),
       locked->jni_task_id());
   env->DeleteLocalRef(task);
@@ -667,8 +708,9 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
   util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
-      reinterpret_cast<void*>(new FutureCallbackData(
-          handle, future_impl, weak_storage_, kStorageReferenceFnGetMetadata)),
+      reinterpret_cast<void*>(
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
+                                 kStorageReferenceFnGetMetadata)),
       locked->jni_task_id());
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
@@ -699,7 +741,7 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
-          new FutureCallbackData(handle, future_impl, weak_storage_,
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
                                  kStorageReferenceFnUpdateMetadata)),
       locked->jni_task_id());
   util::CheckAndClearJniExceptions(env);
@@ -743,11 +785,11 @@ Future<StorageListResult> StorageReferenceInternal::List(
                          "StorageReference::List(): Call to list() failed.")) {
     future_impl->Complete(handle, kErrorUnknown, "Call to list() failed.");
   } else {
-    util::RegisterCallbackOnTask(
-        env, task, FutureCallback,
-        reinterpret_cast<void*>(new FutureCallbackData(
-            handle, future_impl, weak_storage_, kStorageReferenceFnList)),
-        locked->jni_task_id());
+    util::RegisterCallbackOnTask(env, task, FutureCallback,
+                                 reinterpret_cast<void*>(new FutureCallbackData(
+                                     handle, future_impl->core(), weak_storage_,
+                                     kStorageReferenceFnList)),
+                                 locked->jni_task_id());
   }
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
@@ -828,12 +870,16 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
     exception_message = util::GetAndClearExceptionMessage(env);
     if (exception_message.empty()) {
       jobject java_listener = AssignListenerToTask(listener, task);
+      jobject uploader_global = env->NewGlobalRef(uploader);
+      locked->RegisterNativeBridge(
+          uploader_global, StorageInternal::NativeBridgeKind::kByteUploader);
       util::RegisterCallbackOnTask(
           env, task, FutureCallback,
           // FutureCallback will delete the newed FutureCallbackData.
-          reinterpret_cast<void*>(new FutureCallbackData(
-              handle, future_impl, weak_storage_, kStorageReferenceFnPutBytes,
-              java_listener, nullptr, 0, nullptr, env->NewGlobalRef(uploader))),
+          reinterpret_cast<void*>(
+              new FutureCallbackData(handle, future_impl->core(), weak_storage_,
+                                     kStorageReferenceFnPutBytes, java_listener,
+                                     nullptr, 0, nullptr, uploader_global)),
           locked->jni_task_id());
       if (controller_out) {
         controller_out->internal_->AssignTask(weak_storage_, task);
@@ -872,7 +918,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
-          new FutureCallbackData(handle, future_impl, weak_storage_,
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
                                  kStorageReferenceFnPutFile, java_listener)),
       locked->jni_task_id());
   if (controller_out) {
@@ -905,7 +951,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
-          new FutureCallbackData(handle, future_impl, weak_storage_,
+          new FutureCallbackData(handle, future_impl->core(), weak_storage_,
                                  kStorageReferenceFnPutFile, java_listener)),
       locked->jni_task_id());
   if (controller_out) {

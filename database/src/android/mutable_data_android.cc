@@ -74,6 +74,8 @@ void MutableDataInternal::Terminate(JNIEnv* env) {
 }
 
 MutableDataInternal* MutableDataInternal::Child(const char* path) {
+  auto locked_db = db_.lock();
+  if (!locked_db) return nullptr;
   JNIEnv* env = util::GetJNIEnvFromApp();
   jstring path_string = env->NewStringUTF(path);
   jobject child_obj = env->CallObjectMethod(
@@ -90,8 +92,10 @@ MutableDataInternal* MutableDataInternal::Child(const char* path) {
 }
 
 std::vector<MutableData> MutableDataInternal::GetChildren() {
-  JNIEnv* env = util::GetJNIEnvFromApp();
   std::vector<MutableData> result;
+  auto locked_db = db_.lock();
+  if (!locked_db) return result;
+  JNIEnv* env = util::GetJNIEnvFromApp();
   result.reserve(GetChildrenCount());
   // iterable = mutable_data.getChildren()
   jobject iterable = env->CallObjectMethod(
@@ -115,14 +119,18 @@ std::vector<MutableData> MutableDataInternal::GetChildren() {
 }
 
 size_t MutableDataInternal::GetChildrenCount() {
+  auto locked_db = db_.lock();
+  if (!locked_db) return 0;
   JNIEnv* env = util::GetJNIEnvFromApp();
   return env->CallLongMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetChildrenCount));
 }
 
 const char* MutableDataInternal::GetKey() {
-  JNIEnv* env = util::GetJNIEnvFromApp();
   if (cached_key_.is_null()) {
+    auto locked_db = db_.lock();
+    if (!locked_db) return nullptr;
+    JNIEnv* env = util::GetJNIEnvFromApp();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, mutable_data::GetMethodId(mutable_data::kGetKey)));
     if (util::LogException(env, kLogLevelError,
@@ -147,6 +155,8 @@ std::string MutableDataInternal::GetKeyString() {
 }
 
 Variant MutableDataInternal::GetValue() const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return Variant::Null();
   JNIEnv* env = util::GetJNIEnvFromApp();
   jobject value_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetValue));
@@ -156,6 +166,8 @@ Variant MutableDataInternal::GetValue() const {
 }
 
 Variant MutableDataInternal::GetPriority() const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return Variant::Null();
   JNIEnv* env = util::GetJNIEnvFromApp();
   jobject value_obj = env->CallObjectMethod(
       obj_, mutable_data::GetMethodId(mutable_data::kGetPriority));
@@ -165,6 +177,8 @@ Variant MutableDataInternal::GetPriority() const {
 }
 
 bool MutableDataInternal::HasChild(const char* path) const {
+  auto locked_db = db_.lock();
+  if (!locked_db) return false;
   JNIEnv* env = util::GetJNIEnvFromApp();
   jstring path_string = env->NewStringUTF(path);
   jboolean has_child = env->CallBooleanMethod(
@@ -178,6 +192,8 @@ bool MutableDataInternal::HasChild(const char* path) const {
 }
 
 void MutableDataInternal::SetValue(Variant value) {
+  auto locked_db = db_.lock();
+  if (!locked_db) return;
   JNIEnv* env = util::GetJNIEnvFromApp();
   jobject value_java = internal::VariantToJavaObject(env, value);
   env->CallVoidMethod(obj_, mutable_data::GetMethodId(mutable_data::kSetValue),
@@ -187,13 +203,13 @@ void MutableDataInternal::SetValue(Variant value) {
 }
 
 void MutableDataInternal::SetPriority(Variant priority) {
+  auto locked_db = db_.lock();
+  if (!locked_db) return;
   JNIEnv* env = util::GetJNIEnvFromApp();
   if (!IsValidPriority(priority)) {
-    if (auto locked_db = db_.lock()) {
-      locked_db->logger()->LogError(
-          "MutableData::SetPriority(): Invalid Variant type given for "
-          "priority. Container types (Vector/Map) are not allowed.");
-    }
+    locked_db->logger()->LogError(
+        "MutableData::SetPriority(): Invalid Variant type given for "
+        "priority. Container types (Vector/Map) are not allowed.");
   } else {
     jobject priority_java = internal::VariantToJavaObject(env, priority);
     env->CallVoidMethod(obj_,

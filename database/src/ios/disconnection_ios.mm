@@ -53,7 +53,7 @@ DisconnectionHandlerInternal::~DisconnectionHandlerInternal() {
 Future<void> DisconnectionHandlerInternal::Cancel() {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnCancel);
   [impl() cancelDisconnectOperationsWithCompletionBlock:CreateCompletionBlock(
-                                                            handle, future(), database_)];
+                                                            handle, future()->core(), database_)];
   return MakeFuture(future(), handle);
 }
 
@@ -64,7 +64,7 @@ Future<void> DisconnectionHandlerInternal::CancelLastResult() {
 Future<void> DisconnectionHandlerInternal::RemoveValue() {
   SafeFutureHandle<void> handle = future()->SafeAlloc<void>(kDisconnectionHandlerFnRemoveValue);
   [impl() onDisconnectRemoveValueWithCompletionBlock:CreateCompletionBlock(
-                                                         handle, future(), database_)];
+                                                         handle, future()->core(), database_)];
   return MakeFuture(future(), handle);
 }
 
@@ -78,7 +78,7 @@ Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
     future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
   } else {
     [impl() onDisconnectSetValue:VariantToId(value)
-             withCompletionBlock:CreateCompletionBlock(handle, future(), database_)];
+             withCompletionBlock:CreateCompletionBlock(handle, future()->core(), database_)];
   }
   return MakeFuture(future(), handle);
 }
@@ -97,7 +97,7 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(Variant value, Va
   } else {
     [impl() onDisconnectSetValue:VariantToId(value)
                      andPriority:VariantToId(priority)
-             withCompletionBlock:CreateCompletionBlock(handle, future(), database_)];
+             withCompletionBlock:CreateCompletionBlock(handle, future()->core(), database_)];
   }
   return MakeFuture(future(), handle);
 }
@@ -115,7 +115,8 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
     id values_id = VariantToId(values);
     NSDictionary *values_dict = (NSDictionary *)values_id;
     [impl() onDisconnectUpdateChildValues:values_dict
-                      withCompletionBlock:CreateCompletionBlock(handle, future(), database_)];
+                      withCompletionBlock:CreateCompletionBlock(handle, future()->core(),
+                                                                database_)];
   }
   return MakeFuture(future(), handle);
 }

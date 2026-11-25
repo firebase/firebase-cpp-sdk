@@ -15,8 +15,9 @@
  */
 
 #include "firestore/src/main/firestore_main.h"
-#include <cstdint>
 
+#include <atomic>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <sstream>
@@ -39,6 +40,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_version.h"
 #include "firestore/src/common/exception_common.h"
+#include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
@@ -296,10 +298,44 @@ Future<void> FirestoreInternal::EnableNetwork() {
 }
 
 Future<void> FirestoreInternal::Terminate() {
-  auto promise = promise_factory_.CreatePromise<void>(AsyncApi::kTerminate);
+  // Allocate from the shared process-lifetime FutureImpl so the returned Future
+  // stays valid and resolves cleanly even if the caller invoked Terminate() on
+  // a temporary Firestore handle that is immediately destroyed.
+  ReferenceCountedFutureImpl* api =
+      internal::GetSharedReferenceCountedFutureImpl();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>();
+  struct TerminateCompletionGuard {
+    TerminateCompletionGuard(std::shared_ptr<detail::FutureImplCore> c,
+                             SafeFutureHandle<void> h)
+        : core(std::move(c)), handle(h) {}
+    TerminateCompletionGuard(const TerminateCompletionGuard&) = delete;
+    TerminateCompletionGuard& operator=(const TerminateCompletionGuard&) =
+        delete;
+
+    std::shared_ptr<detail::FutureImplCore> core;
+    SafeFutureHandle<void> handle;
+    std::atomic<bool> completed{false};
+
+    ~TerminateCompletionGuard() {
+      if (!completed.exchange(true) && core) {
+        ReferenceCountedFutureImpl::CompleteCore(core, handle, Error::kErrorOk);
+      }
+    }
+  };
+  auto guard = std::make_shared<TerminateCompletionGuard>(api->core(), handle);
   ClearListeners();
-  firestore_core_->Terminate(StatusCallbackWithPromise(promise));
-  return promise.future();
+  firestore_core_->Terminate([guard = std::move(guard)](util::Status status) {
+    if (guard->completed.exchange(true)) return;
+    if (status.ok()) {
+      ReferenceCountedFutureImpl::CompleteCore(guard->core, guard->handle,
+                                               Error::kErrorOk);
+    } else {
+      ReferenceCountedFutureImpl::CompleteCore(guard->core, guard->handle,
+                                               status.code(),
+                                               status.error_message().c_str());
+    }
+  });
+  return MakeFuture<void>(api, handle);
 }
 
 Future<void> FirestoreInternal::WaitForPendingWrites() {

@@ -187,7 +187,7 @@ static std::string GetProviderId(AuthData* auth_data, jobject impl) {
   return GetUserProperty(auth_data, impl, userinfo::kGetProviderId);
 }
 
-bool User::is_valid() const {
+bool User::is_valid() const noexcept {
   auto data = auth_data_.lock();
   return ValidUser(data.get());
 }

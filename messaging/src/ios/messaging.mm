@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <mutex>
 #include "messaging/src/include/firebase/messaging.h"
 
 #import <Foundation/Foundation.h>
@@ -121,7 +123,7 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info);
 
 // Initialization state and cached FCM sender ID from the App passed to
 // Initialize().
-static bool g_initialized = false;
+static std::atomic<bool> g_initialized{false};
 
 static std::string& GetMessagingSenderId() {
   static ::firebase::internal::NoDestructor<std::string> sender_id;
@@ -152,27 +154,29 @@ InitResult Initialize(const ::firebase::App &app, Listener *listener) {
 
 InitResult Initialize(
     const ::firebase::App &app, Listener *listener, const MessagingOptions& options) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!app.is_valid()) return kInitResultFailedMissingDependency;
   if (!g_delegate) {
     g_delegate = [[FIRCppDelegate alloc] init];
     [FIRMessaging messaging].delegate = g_delegate;
   }
 
-  if (!g_initialized) {
+  if (!g_initialized.load(std::memory_order_acquire)) {
 #if !defined(NDEBUG)
     {
       MutexLock lock(GetDelegateMutex());
       assert(!g_delegate.isListenerSet);
     }
 #endif  // !defined(NDEBUG)
-    g_initialized = true;
     const char* sender_id = app.options().messaging_sender_id();
     GetMessagingSenderId() = sender_id ? sender_id : "";
+    FutureData::Create();
+    g_messaging_options = options;
+    g_initialized.store(true, std::memory_order_release);
   } else {
     LogError("Messaging already initialized.");
     return kInitResultSuccess;
   }
-  FutureData::Create();
-  g_messaging_options = options;
   SetListenerIfNotNull(listener);
   internal::RegisterTerminateOnAppDestroy(app);
   return kInitResultSuccess;
@@ -277,18 +281,20 @@ namespace internal {
 // As opposed to MessagingIsInitialized() which determines whether FIRMessaging is configured, this
 // returns whether the C++ has been initialized by the developer.
 bool IsInitialized() {
-  return g_initialized;
+  return g_initialized.load(std::memory_order_acquire);
 }
 
 }  // namespace internal
 
 void Terminate() {
-  if (!g_initialized) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!g_initialized.load(std::memory_order_acquire)) {
     LogError("Messaging already shut down.");
     return;
   }
-  FutureData::Destroy();
   internal::UnregisterTerminateOnAppDestroy();
+  g_initialized.store(false, std::memory_order_release);
+  FutureData::Destroy();
   // Ensure g_delegate still exists (it cannot be unallocated in case a token is received via a
   // different Firebase library e.g. Invites while Messaging is not enabled).
   {
@@ -300,7 +306,6 @@ void Terminate() {
   }
   SetListener(nullptr);
   GetMessagingSenderId().clear();
-  g_initialized = false;
 }
 
 // Reconnect to FCM when an app returns to the foreground.
@@ -741,12 +746,16 @@ Future<void> Subscribe(const char *topic) {
     api->Complete(handle, kErrorInvalidTopicName, error.c_str());
     return MakeFuture(api, handle);
   }
+  auto future_core = api->core();
   [[FIRMessaging messaging] subscribeToTopic:@(topic)
                                   completion:^void(NSError *error) {
         if (error) {
-          api->Complete(handle, kErrorInvalidTopicName, error.localizedDescription.UTF8String);
+          ReferenceCountedFutureImpl::CompleteCore(
+              future_core, handle, kErrorInvalidTopicName,
+              error.localizedDescription.UTF8String);
         } else {
-          api->Complete(handle, kErrorNone);
+          ReferenceCountedFutureImpl::CompleteCore(future_core, handle,
+                                                   kErrorNone);
         }
       }];
   return MakeFuture(api, handle);
@@ -780,12 +789,16 @@ Future<void> Unsubscribe(const char *topic) {
     api->Complete(handle, kErrorInvalidTopicName, error.c_str());
     return MakeFuture(api, handle);
   }
+  auto future_core = api->core();
   [[FIRMessaging messaging] unsubscribeFromTopic:@(topic)
                                       completion:^void(NSError *error) {
         if (error) {
-          api->Complete(handle, kErrorInvalidTopicName, error.localizedDescription.UTF8String);
+          ReferenceCountedFutureImpl::CompleteCore(
+              future_core, handle, kErrorInvalidTopicName,
+              error.localizedDescription.UTF8String);
         } else {
-          api->Complete(handle, kErrorNone);
+          ReferenceCountedFutureImpl::CompleteCore(future_core, handle,
+                                                   kErrorNone);
         }
       }];
   return MakeFuture(api, handle);
@@ -836,10 +849,11 @@ Future<void> Register() {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnRegister);
 
+  auto future_core = api->core();
   [[FIRMessaging messaging] registerWithCompletion:^(NSError *_Nullable error) {
-    api->Complete(handle,
-                  error == nullptr ? kErrorNone : kErrorUnknown,
-                  util::NSStringToString(error.localizedDescription).c_str());
+    ReferenceCountedFutureImpl::CompleteCore(
+        future_core, handle, error == nullptr ? kErrorNone : kErrorUnknown,
+        util::NSStringToString(error.localizedDescription).c_str());
   }];
 
   return MakeFuture(api, handle);
@@ -858,10 +872,11 @@ Future<void> Unregister() {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnregister);
 
+  auto future_core = api->core();
   [[FIRMessaging messaging] unregisterWithCompletion:^(NSError *_Nullable error) {
-    api->Complete(handle,
-                  error == nullptr ? kErrorNone : kErrorUnknown,
-                  util::NSStringToString(error.localizedDescription).c_str());
+    ReferenceCountedFutureImpl::CompleteCore(
+        future_core, handle, error == nullptr ? kErrorNone : kErrorUnknown,
+        util::NSStringToString(error.localizedDescription).c_str());
   }];
 
   return MakeFuture(api, handle);
@@ -881,14 +896,16 @@ Future<std::string> GetToken() {
   SafeFutureHandle<std::string> handle =
       api->SafeAlloc<std::string>(kMessagingFnGetToken);
 
+  auto future_core = api->core();
   [[FIRMessaging messaging] tokenWithCompletion:^(NSString *_Nullable token,
                                            NSError *_Nullable error) {
     if (error) {
-      api->Complete(handle, kErrorUnknown,
-                    util::NSStringToString(error.localizedDescription).c_str());
+      ReferenceCountedFutureImpl::CompleteCore(
+          future_core, handle, kErrorUnknown,
+          util::NSStringToString(error.localizedDescription).c_str());
     } else {
-      api->CompleteWithResult(handle, kErrorNone,
-                              "", util::NSStringToString(token));
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(
+          future_core, handle, kErrorNone, "", util::NSStringToString(token));
     }
   }];
 
@@ -908,10 +925,11 @@ Future<void> DeleteToken() {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
 
+  auto future_core = api->core();
   [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError *_Nullable error) {
-    api->Complete(handle,
-                  error == nullptr ? kErrorNone : kErrorUnknown,
-                  util::NSStringToString(error.localizedDescription).c_str());
+    ReferenceCountedFutureImpl::CompleteCore(
+        future_core, handle, error == nullptr ? kErrorNone : kErrorUnknown,
+        util::NSStringToString(error.localizedDescription).c_str());
   }];
 
   return MakeFuture(api, handle);

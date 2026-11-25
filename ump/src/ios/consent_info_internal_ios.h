@@ -49,14 +49,11 @@ class ConsentInfoInternalIos : public ConsentInfoInternal {
   void Reset() override;
 
  private:
-  static ConsentInfoInternalIos* s_instance;
-  static firebase::Mutex& InstanceMutex();
-  static unsigned int s_instance_tag;
-
   void SetLoadedForm(UMPConsentForm *form) {
     loaded_form_ = form;
   }
 
+  Mutex mutex_;
   UMPConsentForm *loaded_form_;
 };
 

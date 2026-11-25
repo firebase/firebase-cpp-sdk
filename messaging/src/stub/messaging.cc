@@ -14,8 +14,10 @@
 
 #include "messaging/src/include/firebase/messaging.h"
 
+#include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <mutex>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
@@ -45,7 +47,7 @@ namespace messaging {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseMessaging);
 
-static bool g_initialized = false;
+static std::atomic<bool> g_initialized{false};
 
 #if FIREBASE_MESSAGING_TEST_ENABLED
 static pthread_t g_message_thread;
@@ -102,6 +104,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener) {
 
 InitResult Initialize(const ::firebase::App& app, Listener* listener,
                       const MessagingOptions& /*options*/) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!app.is_valid()) return kInitResultFailedMissingDependency;
   if (internal::IsInitialized()) return kInitResultSuccess;
   SetListenerIfNotNull(listener);
   FutureData::Create();
@@ -117,18 +121,19 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
     FIREBASE_ASSERT(ret == 0);
   }
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
-  g_initialized = true;
+  g_initialized.store(true, std::memory_order_release);
   internal::RegisterTerminateOnAppDestroy(app);
   return kInitResultSuccess;
 }
 
 namespace internal {
 
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 }  // namespace internal
 
 void Terminate() {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
   if (!internal::IsInitialized()) return;
   internal::UnregisterTerminateOnAppDestroy();
 #if FIREBASE_MESSAGING_TEST_ENABLED
@@ -140,8 +145,8 @@ void Terminate() {
   int ret = pthread_join(g_message_thread, nullptr);
   FIREBASE_ASSERT(ret == 0);
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
+  g_initialized.store(false, std::memory_order_release);
   FutureData::Destroy();
-  g_initialized = false;
 }
 
 void NotifyListenerSet(Listener* /*listener*/) {}

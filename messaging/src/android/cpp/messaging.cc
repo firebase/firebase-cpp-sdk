@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <mutex>
 #include <set>
 #include <string>
 
@@ -597,6 +598,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener) {
 
 InitResult Initialize(const ::firebase::App& app, Listener* listener,
                       const MessagingOptions& options) {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!app.is_valid()) return kInitResultFailedMissingDependency;
   FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app);
   SetListenerIfNotNull(listener);
   if (internal::IsInitialized()) {
@@ -712,6 +715,7 @@ bool IsInitialized() {
 }  // namespace internal
 
 void Terminate() {
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
   if (!internal::IsInitialized()) {
     LogError("Messaging already shut down.");
     return;

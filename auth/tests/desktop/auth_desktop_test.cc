@@ -14,8 +14,12 @@
 
 #include "auth/src/desktop/auth_desktop.h"
 
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <cstddef>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <utility>
 
@@ -940,17 +944,27 @@ TEST_F(AuthDesktopTest, AuthHandleKeepsAppStateAliveAfterAppDropped) {
   EXPECT_TRUE(result.user.is_valid());
   EXPECT_TRUE(auth.current_user().is_valid());
 
-  // User must NOT create a reference cycle with AppState / FutureManager.
+  // User copies (from current_user() or AuthResult::user) promote to strong
+  // handles so user code can outlive App/Auth, while AuthResult stored in
+  // FutureManager keeps its internal User weak to avoid reference cycles.
   User user = auth.current_user();
+  User promoted_from_result = result.user;
   EXPECT_TRUE(user.is_valid());
-  auth.SignOut();
-  { SleepUponDestruction sleep_for_listeners; }
+  EXPECT_TRUE(promoted_from_result.is_valid());
   auth = Auth();
-  result = AuthResult();
+  EXPECT_FALSE(weak_state.expired());
+  EXPECT_TRUE(user.is_valid());
+  EXPECT_TRUE(promoted_from_result.is_valid());
+  EXPECT_FALSE(user.uid().empty());
+
+  user = User();
+  promoted_from_result = User();
+  // Even while `result` (holding a weak User) is still alive, AppState tears
+  // down cleanly with no cycle, and `result.user` reports invalid safely.
   EXPECT_TRUE(weak_state.expired());
-  EXPECT_FALSE(user.is_valid());
-  EXPECT_EQ("", user.uid());
-  EXPECT_EQ(kFutureStatusInvalid, user.GetToken(false).status());
+  EXPECT_FALSE(result.user.is_valid());
+  EXPECT_EQ("", result.user.uid());
+  EXPECT_EQ(kFutureStatusInvalid, result.user.GetToken(false).status());
 }
 
 TEST_F(AuthDesktopTest, MultiAppAuthIsolationAndTokenProvider) {
@@ -973,15 +987,17 @@ TEST_F(AuthDesktopTest, MultiAppAuthIsolationAndTokenProvider) {
   Auth auth2 = Auth::GetAuth(app2);
   EXPECT_NE(auth1, auth2);
 
-  auto* provider1 = internal::AppState::FromApp(app1)->auth_token_provider();
-  auto* provider2 = internal::AppState::FromApp(app2)->auth_token_provider();
+  auto state1 = internal::AppState::FromApp(app1);
+  auto state2 = internal::AppState::FromApp(app2);
+  auto* provider1 = state1->auth_token_provider();
+  auto* provider2 = state2->auth_token_provider();
   ASSERT_NE(nullptr, provider1);
   ASSERT_NE(nullptr, provider2);
   EXPECT_NE(provider1, provider2);
 
-  int callback_count = 0;
-  auto cb = [](void* ctx) { ++(*static_cast<int*>(ctx)); };
-  provider1->AddAuthStateListener(cb, &callback_count);
+  std::atomic<int> callback_count{0};
+  auto subscription = state1->SubscribeAuthState(
+      [&callback_count]() { callback_count.fetch_add(1); });
 
   WaitForFuture(auth1.SignInAnonymously());
   EXPECT_TRUE(auth1.current_user().is_valid());
@@ -989,11 +1005,96 @@ TEST_F(AuthDesktopTest, MultiAppAuthIsolationAndTokenProvider) {
   EXPECT_FALSE(provider1->GetCurrentUserUid().empty());
   EXPECT_TRUE(provider2->GetCurrentUserUid().empty());
   EXPECT_FALSE(provider1->GetCurrentToken().empty());
-  EXPECT_GT(callback_count, 0);
+  EXPECT_GT(callback_count.load(), 0);
 
-  provider1->RemoveAuthStateListener(cb, &callback_count);
+  subscription.Reset();
   auth1.SignOut();
   { SleepUponDestruction sleep_for_listeners; }
+}
+
+TEST_F(AuthDesktopTest, DropLastAuthHandleInsideOnCompletionDoesNotDeadlock) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "signupNewUser")] =
+      FakeSuccessfulResponse("SignupNewUserResponse",
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\","
+                             "\"localId\": \"localid123\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  AppOptions options = testing::MockAppOptions();
+  options.set_app_id("com.firebase.drop_in_cb");
+  options.set_api_key(API_KEY);
+
+  std::weak_ptr<internal::AppState> weak_state;
+  auto auth_holder = std::make_shared<Auth>();
+  {
+    App app = App::Create(options, "auth_drop_in_cb_app");
+    weak_state = internal::AppState::FromApp(app);
+    *auth_holder = Auth::GetAuth(app);
+    ASSERT_TRUE(auth_holder->is_valid());
+  }
+
+  std::mutex done_mutex;
+  std::condition_variable done_cv;
+  bool callback_ran = false;
+
+  Future<AuthResult> future = auth_holder->SignInAnonymously();
+  future.OnCompletion([auth_holder, &done_mutex, &done_cv,
+                       &callback_ran](const Future<AuthResult>& completed) {
+    EXPECT_EQ(kFutureStatusComplete, completed.status());
+    // Drop the last owner of AppState directly inside OnCompletion.
+    *auth_holder = Auth();
+    {
+      std::lock_guard<std::mutex> lock(done_mutex);
+      callback_ran = true;
+    }
+    done_cv.notify_one();
+  });
+  auth_holder.reset();
+
+  {
+    std::unique_lock<std::mutex> lock(done_mutex);
+    ASSERT_TRUE(done_cv.wait_for(lock, std::chrono::seconds(10),
+                                 [&callback_ran]() { return callback_ran; }));
+  }
+  EXPECT_TRUE(weak_state.expired());
+  EXPECT_NE(kFutureStatusPending, future.status());
+}
+
+TEST_F(AuthDesktopTest, MovedFromAndUniformHandleOperators) {
+  AppOptions options = testing::MockAppOptions();
+  options.set_app_id("com.firebase.auth_ops");
+  options.set_api_key(API_KEY);
+  App app = App::Create(options, "auth_ops_app");
+  Auth auth1 = Auth::GetAuth(app);
+  Auth auth2 = auth1;
+  EXPECT_TRUE(static_cast<bool>(auth1));
+  EXPECT_EQ(auth1, auth2);
+  EXPECT_FALSE(auth1 != auth2);
+
+  Auth moved_auth(std::move(auth2));
+  EXPECT_FALSE(static_cast<bool>(auth2));  // NOLINT
+  EXPECT_FALSE(auth2.is_valid());          // NOLINT
+  EXPECT_NE(moved_auth, auth2);            // NOLINT
+  EXPECT_FALSE(auth2.app().is_valid());    // NOLINT
+  EXPECT_FALSE(auth2.current_user());      // NOLINT
+
+  PhoneAuthProvider provider1 = PhoneAuthProvider::GetInstance(moved_auth);
+  PhoneAuthProvider provider2 = PhoneAuthProvider::GetInstance(moved_auth);
+  EXPECT_TRUE(static_cast<bool>(provider1));
+  EXPECT_EQ(provider1, provider2);
+  EXPECT_FALSE(provider1 != provider2);
+
+  PhoneAuthProvider default_provider;
+  EXPECT_FALSE(static_cast<bool>(default_provider));
+  EXPECT_NE(provider1, default_provider);
+
+  User default_user;
+  EXPECT_FALSE(static_cast<bool>(default_user));
+  EXPECT_FALSE(default_user.is_valid());
+  EXPECT_EQ(default_user, User());
 }
 
 TEST_F(AuthDesktopTest, StaticDurationAuthSurvivesProcessExit) {

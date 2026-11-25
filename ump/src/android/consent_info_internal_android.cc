@@ -19,10 +19,13 @@
 #include <jni.h>
 
 #include <cassert>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "app/src/assert.h"
+#include "app/src/native_handle_table.h"
 #include "app/src/no_destructor.h"
 #include "app/src/thread.h"
 #include "app/src/util_android.h"
@@ -33,11 +36,17 @@ namespace firebase {
 namespace ump {
 namespace internal {
 
-ConsentInfoInternalAndroid* ConsentInfoInternalAndroid::s_instance = nullptr;
-firebase::Mutex& ConsentInfoInternalAndroid::InstanceMutex() {
-  static ::firebase::internal::NoDestructor<firebase::Mutex> mutex;
-  return *mutex;
+namespace {
+
+::firebase::internal::NativeHandleTable<ConsentInfoInternalAndroid>&
+GetConsentInfoHandleTable() {
+  static ::firebase::internal::NoDestructor<
+      ::firebase::internal::NativeHandleTable<ConsentInfoInternalAndroid>>
+      table;
+  return *table;
 }
+
+}  // namespace
 
 ::firebase::Mutex& CachedUmpEmbeddedFilesMutex() {
   static ::firebase::internal::NoDestructor<::firebase::Mutex> mutex;
@@ -149,7 +158,7 @@ ConsentInfoInternal* ConsentInfoInternal::CreateInstance(JNIEnv* jni_env,
                                                          jobject activity) {
   ConsentInfoInternalAndroid* ptr =
       new ConsentInfoInternalAndroid(jni_env, activity);
-  if (!ptr->valid()) {
+  if (!ptr->jni_initialized()) {
     delete ptr;
     return nullptr;
   }
@@ -164,21 +173,30 @@ static void ReleaseClasses(JNIEnv* env) {
 }
 
 ConsentInfoInternalAndroid::~ConsentInfoInternalAndroid() {
-  JNIEnv* env = GetJNIEnv();
-  env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
-                                   consent_info_helper::kDisconnect));
+  if (handle_id_ != 0) {
+    GetConsentInfoHandleTable().Unregister(handle_id_);
+    handle_id_ = 0;
+  }
 
-  MutexLock lock(InstanceMutex());
-  s_instance = nullptr;
+  JNIEnv* env = java_vm_ ? GetJNIEnv() : nullptr;
+  if (helper_ && env) {
+    env->CallVoidMethod(helper_, consent_info_helper::GetMethodId(
+                                     consent_info_helper::kDisconnect));
+    util::CheckAndClearJniExceptions(env);
+    env->DeleteGlobalRef(helper_);
+    helper_ = nullptr;
+  }
 
-  env->DeleteGlobalRef(helper_);
-  helper_ = nullptr;
+  if (jni_initialized_ && env) {
+    ReleaseClasses(env);
+    util::Terminate(env);
+    jni_initialized_ = false;
+  }
 
-  ReleaseClasses(env);
-  util::Terminate(env);
-
-  env->DeleteGlobalRef(activity_);
-  activity_ = nullptr;
+  if (activity_ && env) {
+    env->DeleteGlobalRef(activity_);
+    activity_ = nullptr;
+  }
   java_vm_ = nullptr;
 }
 
@@ -235,29 +253,45 @@ void ConsentInfoInternalAndroid::CacheEnumValues(JNIEnv* env) {
 }
 
 void ConsentInfoInternalAndroid::JNI_ConsentInfoHelper_completeFuture(
-    JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_internal_ptr,
+    JNIEnv* env, jclass clazz, jint future_fn, jlong consent_info_handle,
     jlong future_handle, jint error_code, jobject error_message_obj) {
-  MutexLock lock(InstanceMutex());
-  if (consent_info_internal_ptr == 0 || s_instance == nullptr) {
-    // Calling this with a null pointer, or if there is no active
-    // instance, is a no-op, so just return.
-    return;
-  }
-  ConsentInfoInternalAndroid* instance =
-      reinterpret_cast<ConsentInfoInternalAndroid*>(consent_info_internal_ptr);
-  if (s_instance != instance) {
-    // If the instance we were called with does not match the current
-    // instance, a bad race condition has occurred (whereby while waiting for
-    // the operation to complete, ConsentInfo was deleted and then recreated).
-    // In that case, fully ignore this callback.
+  auto instance = GetConsentInfoHandleTable().Lock(
+      static_cast<int64_t>(consent_info_handle));
+  if (!instance) {
     return;
   }
   std::string error_message =
       error_message_obj ? util::JniStringToString(env, error_message_obj) : "";
-  instance->CompleteFutureFromJniCallback(
-      env, future_fn, static_cast<FutureHandleId>(future_handle),
-      static_cast<int>(error_code),
-      error_message.length() > 0 ? error_message.c_str() : nullptr);
+  const char* raw_msg = error_message.empty() ? nullptr : error_message.c_str();
+  const auto handle_id = static_cast<FutureHandleId>(future_handle);
+  if (!instance->futures()->ValidFuture(handle_id) || future_fn < 0 ||
+      future_fn >= instance->enums().function_count) {
+    return;
+  }
+
+  int cpp_error = 0;
+  std::string final_message;
+  if (future_fn == instance->enums().function_request_consent_info_update) {
+    ConsentRequestError req_err =
+        instance->CppConsentRequestErrorFromAndroidFormError(
+            static_cast<int>(error_code), raw_msg);
+    cpp_error = static_cast<int>(req_err);
+    final_message = raw_msg ? raw_msg : GetConsentRequestErrorMessage(req_err);
+  } else {
+    ConsentFormError form_err =
+        instance->CppConsentFormErrorFromAndroidFormError(
+            static_cast<int>(error_code), raw_msg);
+    cpp_error = static_cast<int>(form_err);
+    final_message = raw_msg ? raw_msg : GetConsentFormErrorMessage(form_err);
+  }
+  auto core = instance->future_core();
+  // Release `instance` before running completion callbacks so callbacks that
+  // drop the last `ConsentInfo` handle cannot deadlock or UAF `instance`.
+  instance.reset();
+  FutureHandle raw_handle(handle_id);
+  SafeFutureHandle<void> handle(raw_handle);
+  ReferenceCountedFutureImpl::CompleteCore(core, handle, cpp_error,
+                                           final_message.c_str());
 }
 
 ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
@@ -265,12 +299,12 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
     : java_vm_(nullptr),
       activity_(nullptr),
       helper_(nullptr),
+      handle_id_(0),
+      jni_initialized_(false),
       has_requested_consent_info_update_(false) {
-  MutexLock lock(InstanceMutex());
-  FIREBASE_ASSERT(s_instance == nullptr);
-  s_instance = this;
-
-  util::Initialize(env, activity);
+  if (!util::Initialize(env, activity)) {
+    return;
+  }
   env->GetJavaVM(&java_vm_);
 
   // Ensure we only load these files once.
@@ -313,28 +347,42 @@ ConsentInfoInternalAndroid::ConsentInfoInternalAndroid(JNIEnv* env,
     return;
   }
   util::CheckAndClearJniExceptions(env);
+
+  activity_ = env->NewGlobalRef(activity);
+  CacheEnumValues(env);
+  util::CheckAndClearJniExceptions(env);
+  jni_initialized_ = true;
+}
+
+bool ConsentInfoInternalAndroid::PostConstruct() {
+  if (!jni_initialized_ || !java_vm_ || !activity_) {
+    return false;
+  }
+  JNIEnv* env = GetJNIEnv();
+  if (!env) {
+    return false;
+  }
+
+  auto self =
+      std::static_pointer_cast<ConsentInfoInternalAndroid>(shared_from_this());
+  handle_id_ = GetConsentInfoHandleTable().Register(self);
+
   jobject helper_ref = env->NewObject(
       consent_info_helper::GetClass(),
       consent_info_helper::GetMethodId(consent_info_helper::kConstructor),
-      reinterpret_cast<jlong>(this), activity);
+      static_cast<jlong>(handle_id_), activity_);
   util::CheckAndClearJniExceptions(env);
   if (!helper_ref) {
-    ReleaseClasses(env);
-    util::Terminate(env);
-    return;
+    GetConsentInfoHandleTable().Unregister(handle_id_);
+    handle_id_ = 0;
+    return false;
   }
 
   helper_ = env->NewGlobalRef(helper_ref);
   FIREBASE_ASSERT(helper_);
   env->DeleteLocalRef(helper_ref);
-
-  activity_ = env->NewGlobalRef(activity);
-
   util::CheckAndClearJniExceptions(env);
-
-  CacheEnumValues(env);
-
-  util::CheckAndClearJniExceptions(env);
+  return helper_ != nullptr;
 }
 
 ConsentStatus ConsentInfoInternalAndroid::CppConsentStatusFromAndroid(
@@ -644,32 +692,6 @@ JNIEnv* ConsentInfoInternalAndroid::GetJNIEnv() {
   return firebase::util::GetThreadsafeJNIEnv(java_vm_);
 }
 jobject ConsentInfoInternalAndroid::activity() { return activity_; }
-
-void ConsentInfoInternalAndroid::CompleteFutureFromJniCallback(
-    JNIEnv* env, jint future_fn, FutureHandleId handle_id, int java_error_code,
-    const char* error_message) {
-  if (!futures()->ValidFuture(handle_id)) {
-    // This future is no longer valid, so no need to complete it.
-    return;
-  }
-  if (future_fn < 0 || future_fn >= enums().function_count) {
-    // Called with an invalid function ID, ignore this callback.
-    return;
-  }
-  FutureHandle raw_handle(handle_id);
-  SafeFutureHandle<void> handle(raw_handle);
-  if (future_fn == enums().function_request_consent_info_update) {
-    // RequestConsentInfoUpdate uses the ConsentRequestError enum.
-    ConsentRequestError error_code = CppConsentRequestErrorFromAndroidFormError(
-        java_error_code, error_message);
-    CompleteFuture(handle, error_code, error_message);
-  } else {
-    // All other methods use the ConsentFormError enum.
-    ConsentFormError error_code =
-        CppConsentFormErrorFromAndroidFormError(java_error_code, error_message);
-    CompleteFuture(handle, error_code, error_message);
-  }
-}
 
 }  // namespace internal
 }  // namespace ump

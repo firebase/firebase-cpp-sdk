@@ -64,14 +64,16 @@ class Installations {
 
   /// @brief Returns true if this handle refers to a live Installations
   /// instance.
-  bool is_valid() const { return installations_internal_ != nullptr; }
-  explicit operator bool() const { return is_valid(); }
+  bool is_valid() const noexcept { return installations_internal_ != nullptr; }
+  explicit operator bool() const noexcept { return is_valid(); }
 
-  friend bool operator==(const Installations& lhs, const Installations& rhs) {
+  friend bool operator==(const Installations& lhs,
+                         const Installations& rhs) noexcept {
     return lhs.installations_internal_.get() ==
            rhs.installations_internal_.get();
   }
-  friend bool operator!=(const Installations& lhs, const Installations& rhs) {
+  friend bool operator!=(const Installations& lhs,
+                         const Installations& rhs) noexcept {
     return !(lhs == rhs);
   }
 

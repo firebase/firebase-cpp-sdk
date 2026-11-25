@@ -16,6 +16,7 @@
 #define FIREBASE_STORAGE_SRC_COMMON_LIST_RESULT_INTERNAL_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "firebase/storage/list_result.h"
@@ -31,8 +32,19 @@ class StorageListResultInternal {
 
   StorageListResultInternal(const std::vector<StorageReference>& prefixes,
                             const std::vector<StorageReference>& items,
-                            const std::string& next_page_token)
-      : prefixes_(prefixes), items_(items), next_page_token_(next_page_token) {}
+                            const std::string& next_page_token);
+
+  StorageListResultInternal(std::vector<StorageReference>&& prefixes,
+                            std::vector<StorageReference>&& items,
+                            std::string next_page_token)
+      : prefixes_(std::move(prefixes)),
+        items_(std::move(items)),
+        next_page_token_(std::move(next_page_token)) {}
+
+  // Copies elements via CloneWeak() so storing or copying StorageListResult
+  // inside FutureManager does not promote weak StorageReferences into strong
+  // handles (avoiding a reference cycle with StorageInternal / AppState).
+  StorageListResultInternal(const StorageListResultInternal& other);
 
   static StorageListResult AsStorageListResult(
       StorageListResultInternal* internal) {

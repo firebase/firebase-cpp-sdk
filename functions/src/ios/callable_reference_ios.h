@@ -77,11 +77,14 @@ class HttpsCallableReferenceInternal {
   // FunctionsInternal instance we are associated with.
   FunctionsInternal* _Nullable functions_internal() const { return functions_.get(); }
 
+  bool Equals(const HttpsCallableReferenceInternal& other) const;
+
  private:
 #ifdef __OBJC__
-  static void CompleteFuture(ReferenceCountedFutureImpl* future_impl,
-                             SafeFutureHandle<HttpsCallableResult> handle,
-                             FIRHTTPSCallableResult* _Nullable result, NSError* error);
+  static void CompleteFuture(
+      const std::shared_ptr<detail::FutureImplCore>& future_core,
+      SafeFutureHandle<HttpsCallableResult> handle,
+      FIRHTTPSCallableResult* _Nullable result, NSError* _Nullable error);
 #endif  // __OBJC__
 
   // Get the Future for the HttpsCallableReferenceInternal.

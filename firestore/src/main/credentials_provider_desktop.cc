@@ -143,25 +143,36 @@ FirebaseCppCredentialsProvider::FirebaseCppCredentialsProvider(
     : contents_(std::make_shared<Contents>(app_state)) {}
 
 FirebaseCppCredentialsProvider::~FirebaseCppCredentialsProvider() {
-  RemoveAuthStateListener();
+  // Synchronously cancel and wait for any in-flight AuthState notification
+  // outside `contents_->mutex` before destroying `contents_`.
+  auth_subscription_.Reset();
 }
 
 void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<User> listener) {
-  {
-    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-
-    if (!listener) {
+  ::firebase::internal::TokenSubscription old_subscription;
+  if (!listener) {
+    {
+      std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
       SIMPLE_HARD_ASSERT(change_listener_,
                          "Change listener removed without being set!");
       change_listener_ = {};
-      RemoveAuthStateListener();
-      return;
+      old_subscription = std::move(auth_subscription_);
     }
+    // Cancel outside `contents_->mutex` so any in-flight `OnAuthStateChanged()`
+    // callback can finish without deadlocking.
+    old_subscription.Reset();
+    return;
+  }
 
+  // Fetch initial user outside `contents_->mutex` so blocking on Auth's
+  // initial persistent-cache load never holds `contents_->mutex`.
+  User initial_user = GetCurrentUser(contents_->app_state);
+  {
+    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
     SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
     change_listener_ = std::move(listener);
-    change_listener_(GetCurrentUser(contents_->app_state));
+    change_listener_(initial_user);
   }
 
   // Note: make sure to only register the Auth listener _after_ calling
@@ -169,7 +180,15 @@ void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
   // call only, `Auth::current_user` might block as it would asynchronously
   // notify Auth listeners; getting the Firestore listener notified while
   // `Auth::current_user` is pending can lead to a deadlock.
-  AddAuthStateListener();
+  auto new_subscription = contents_->app_state.SubscribeAuthState(
+      [this]() { OnAuthStateChanged(); },
+      /*keep_token_refresh_active=*/false);
+  {
+    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
+    old_subscription = std::move(auth_subscription_);
+    auth_subscription_ = std::move(new_subscription);
+  }
+  old_subscription.Reset();
 }
 
 void FirebaseCppCredentialsProvider::GetToken(
@@ -183,30 +202,18 @@ void FirebaseCppCredentialsProvider::GetToken(
   }
 }
 
-void FirebaseCppCredentialsProvider::AddAuthStateListener() {
-  if (auto* auth = contents_->app_state.auth_token_provider()) {
-    auth->AddAuthStateListener(OnAuthStateChanged, this);
-  }
-}
-
-void FirebaseCppCredentialsProvider::RemoveAuthStateListener() {
-  if (auto* auth = contents_->app_state.auth_token_provider()) {
-    auth->RemoveAuthStateListener(OnAuthStateChanged, this);
-  }
-}
-
-void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
-  auto provider = static_cast<FirebaseCppCredentialsProvider*>(context);
-  Contents* contents = provider->contents_.get();
-
-  std::lock_guard<std::recursive_mutex> lock(contents->mutex);
+void FirebaseCppCredentialsProvider::OnAuthStateChanged() {
+  // Fetch the current user outside `contents_->mutex` so blocking on Auth's
+  // initial persistent-cache load cannot contend with concurrent notifications.
+  User current_user = GetCurrentUser(contents_->app_state);
+  std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
 
   // The currently signed-in user may have changed, increase the token
   // generation to reflect that.
-  ++(contents->token_generation);
+  ++(contents_->token_generation);
 
-  if (provider->change_listener_) {
-    provider->change_listener_(GetCurrentUser(contents->app_state));
+  if (change_listener_) {
+    change_listener_(current_user);
   }
 }
 

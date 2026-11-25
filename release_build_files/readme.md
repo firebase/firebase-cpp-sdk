@@ -69,7 +69,7 @@ libs/windows              | Windows static libraries (desktop or stub
 
 ## C++ Language Standards
 
-The Firebase C++ SDK supports the C++14 language standard. For more information,
+The Firebase C++ SDK requires the C++17 language standard. For more information,
 please see our [C++ Language Standard Support
 Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
 
@@ -613,6 +613,26 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+- Breaking Changes
+    - General: The Firebase C++ SDK now requires C++17.
+    - General: Replaced raw-pointer ownership and per-product global registries
+      with copyable, reference-counted value handles (`App`, `Auth`, `AppCheck`,
+      `Database`, `Firestore`, `Functions`, `Installations`, `RemoteConfig`,
+      `Storage`, `ConsentInfo`, and child handles) sharing ownership of a
+      per-App `AppState`. Handles can be dropped in any order, including during
+      static destruction after `main()`, without use-after-free or exit-time
+      destructor crashes.
+    - App: `App::Create(...)` returns `App` by value and no longer registers
+      the app in a global registry by default. Pass `App` explicitly to product
+      `GetInstance(app)` / `GetAuth(app)` APIs, or opt into name-based lookup
+      via `app.Register()` / `App::CreateRegistered(...)` with
+      `std::optional<App> App::GetInstance(std::string_view name)` and
+      `App::GetApps()`.
+    - General: Removed zero-`App` `GetInstance()` overloads across all products
+      (including `Firestore`) and standardized `is_valid()`,
+      `explicit operator bool()`, `==`, and `!=` across product and child
+      handles.
 ### 14.2.0
 - Changes
     - General (Android): Update to Firebase Android BoM version 35.2.0.

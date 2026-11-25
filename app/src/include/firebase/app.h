@@ -63,7 +63,9 @@ enum InitResult {
   /// The given library failed to initialize due to a missing dependency.
   ///
   /// On Android, this typically means that Google Play services is not
-  /// available and the library requires it.
+  /// available and the library requires it. Also, on Android, this value can be
+  /// returned if the Java dependencies of a Firebase component are not included
+  /// in the application, causing initialization to fail.
   kInitResultFailedMissingDependency
 };
 
@@ -71,51 +73,136 @@ enum InitResult {
 extern const char* const kDefaultAppName;
 
 /// @brief Options that control the creation of a Firebase App.
+/// @see firebase::App
 class AppOptions {
   friend class App;
 
  public:
+  /// @brief Create AppOptions.
+  ///
+  /// To create a firebase::App object, the Firebase application identifier
+  /// and API key should be set using set_app_id() and set_api_key()
+  /// respectively.
+  ///
+  /// @see firebase::App::Create().
   AppOptions() = default;
 
+  /// Set the Firebase app ID used to uniquely identify an instance of an app.
+  ///
+  /// This is the mobilesdk_app_id in the Android google-services.json config
+  /// file or GOOGLE_APP_ID in the GoogleService-Info.plist.
+  ///
+  /// This only needs to be specified if your application does not include
+  /// google-services.json or GoogleService-Info.plist in its resources.
   void set_app_id(const char* id) { app_id_ = id; }
+
+  /// Retrieves the app ID.
+  /// @see set_app_id().
   const char* app_id() const { return app_id_.c_str(); }
 
+  /// API key used to authenticate requests from your app.
+  ///
+  /// For example, "AIzaSyDdVgKwhZl0sTTTLZ7iTmt1r3N2cJLnaDk" used to identify
+  /// your app to Google servers.
+  ///
+  /// This only needs to be specified if your application does not include
+  /// google-services.json or GoogleService-Info.plist in its resources.
   void set_api_key(const char* key) { api_key_ = key; }
+
+  /// Get the API key.
+  /// @see set_api_key().
   const char* api_key() const { return api_key_.c_str(); }
 
+  /// Set the Firebase Cloud Messaging sender ID.
+  ///
+  /// For example "012345678901", used to configure Firebase Cloud Messaging.
+  ///
+  /// This only needs to be specified if your application does not include
+  /// google-services.json or GoogleService-Info.plist in its resources.
   void set_messaging_sender_id(const char* sender_id) {
     fcm_sender_id_ = sender_id;
   }
+
+  /// Get the Firebase Cloud Messaging sender ID.
+  /// @see set_messaging_sender_id().
   const char* messaging_sender_id() const { return fcm_sender_id_.c_str(); }
 
+  /// Set the database root URL, e.g. "http://abc-xyz-123.firebaseio.com".
   void set_database_url(const char* url) { database_url_ = url; }
+
+  /// Get database root URL, e.g. "http://abc-xyz-123.firebaseio.com".
   const char* database_url() const { return database_url_.c_str(); }
 
   /// @cond FIREBASE_APP_INTERNAL
+  /// Set the tracking ID for Google Analytics, e.g. "UA-12345678-1".
   void set_ga_tracking_id(const char* id) { ga_tracking_id_ = id; }
+
+  /// Get the tracking ID for Google Analytics.
+  /// @see set_ga_tracking_id().
   const char* ga_tracking_id() const { return ga_tracking_id_.c_str(); }
   /// @endcond
 
+  /// Set the Google Cloud Storage bucket name,
+  /// e.g. "abc-xyz-123.storage.firebase.com".
   void set_storage_bucket(const char* bucket) { storage_bucket_ = bucket; }
+
+  /// Get the Google Cloud Storage bucket name.
+  /// @see set_storage_bucket().
   const char* storage_bucket() const { return storage_bucket_.c_str(); }
 
+  /// Set the Google Cloud project ID.
   void set_project_id(const char* project) { project_id_ = project; }
+
+  /// Get the Google Cloud project ID.
+  ///
+  /// This is the project_id in the Android google-services.json config
+  /// file or PROJECT_ID in the GoogleService-Info.plist.
   const char* project_id() const { return project_id_.c_str(); }
 
 #ifdef INTERNAL_EXPERIMENTAL
+  /// @brief Set the iOS client ID.
+  ///
+  /// This is the clientID in the GoogleService-Info.plist.
   void set_client_id(const char* client_id) { client_id_ = client_id; }
+
+  /// @brief Get the iOS client ID.
+  ///
+  /// This is the client_id in the GoogleService-Info.plist.
   const char* client_id() const { return client_id_.c_str(); }
 
+  /// @brief Set the Android or iOS client project name.
+  ///
+  /// This is the project_name in the Android google-services.json config
+  /// file or BUNDLE_ID in the GoogleService-Info.plist.
   void set_package_name(const char* package_name) {
     package_name_ = package_name;
   }
+
+  /// @brief Get the Android or iOS client project name.
+  ///
+  /// This is the project_name in the Android google-services.json config
+  /// file or BUNDLE_ID in the GoogleService-Info.plist.
   const char* package_name() const { return package_name_.c_str(); }
 #endif  // INTERNAL_EXPERIMENTAL
 
+  /// @brief Load options from a config string.
+  ///
+  /// @param[in] config A JSON string that contains Firebase configuration i.e.
+  /// the content of the downloaded google-services.json file.
+  /// @param[out] options Optional: If provided, load options into it.
+  ///
+  /// @returns An instance containing the loaded options if successful.
+  /// If the options argument to this function is null, this method returns an
+  /// AppOptions instance allocated from the heap.
   static AppOptions* LoadFromJsonConfig(const char* config,
                                         AppOptions* options = nullptr);
 
 #if INTERNAL_EXPERIMENTAL
+  /// @brief Determine whether the specified options match this set of options.
+  ///
+  /// Fields of this object that are empty are ignored in the comparison.
+  ///
+  /// @param[in] options Options to compare with.
   bool operator==(const AppOptions& options) const {
     return (package_name_.empty() || package_name_ == options.package_name_) &&
            (api_key_.empty() || api_key_ == options.api_key_) &&
@@ -260,35 +347,92 @@ class App {
 
 #ifndef SWIG
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+  /// Get Java virtual machine, retrieved from the initial JNI environment.
+  /// @note This method is specific to the Android implementation.
+  ///
+  /// @return JNI Java virtual machine object.
   JavaVM* java_vm() const;
+
+  /// Get JNI environment, needed for performing JNI calls, set on creation.
+  /// This is not trivial as the correct environment needs to be retrieved per
+  /// thread.
+  /// @note This method is specific to the Android implementation.
+  ///
+  /// @return JNI environment object.
   JNIEnv* GetJNIEnv() const;
+
+  /// Get a global reference to the Android activity provided to the App on
+  /// creation. Also serves as the Context needed for Firebase calls.
+  /// @note This method is specific to the Android implementation.
+  ///
+  /// @return Global JNI reference to the Android activity used to create
+  /// the App. The reference count of the returned object is not increased.
   jobject activity() const;
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
-  /// Get the name of this App instance, or "" if invalid.
+  /// Get the name of this App instance.
+  ///
+  /// @return The name of this App instance, or "" if invalid. If a name wasn't
+  /// provided via Create(), this returns @ref kDefaultAppName.
   const char* name() const;
 
   /// Get options the App was created with (empty options if invalid).
+  ///
+  /// @return Options used to create the App.
   const AppOptions& options() const;
 
 #if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+  /// Sets whether automatic data collection is enabled for all products.
+  ///
+  /// By default, automatic data collection is enabled. This value is persisted
+  /// across runs of the app so that it can be set once when users have
+  /// consented to collection.
+  ///
+  /// @param enabled Whether or not to enable automatic data collection.
   void SetDataCollectionDefaultEnabled(bool enabled);
+
+  /// Gets whether automatic data collection is enabled for all products.
+  /// Defaults to true unless disabled in the platform app configuration.
+  ///
+  /// @return Whether or not automatic data collection is enabled for all
+  /// products.
   bool IsDataCollectionDefaultEnabled() const;
 #endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
 #ifdef INTERNAL_EXPERIMENTAL
+  /// Get the initialization results of modules that were initialized when
+  /// creating this app.
+  ///
+  /// @return Initialization results of modules indexed by module name.
   const std::map<std::string, InitResult>& init_results() const;
 
+  /// @brief Register a library which utilizes the Firebase C++ SDK.
+  ///
+  /// @param library Name of the library to register as a user of the Firebase
+  /// C++ SDK.
+  /// @param version Version of the library being registered.
+  /// @param platform_resource Platform specific resource. Ex. for Android, this
+  /// is JNIEnv.
   static void RegisterLibrary(const char* library, const char* version,
                               void* platform_resource);
+
+  /// Internal method to retrieve the combined string of registered libraries.
   static const char* GetUserAgent();
+
+  /// On desktop, when App::Create() is invoked without parameters, it looks for
+  /// a file named 'google-services-desktop.json' to load parameters from.
+  /// This function sets the location to search in. Ensure the path ends with
+  /// the appropriate path separator.
   static void SetDefaultConfigPath(const char* path);
 #endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL
 #if FIREBASE_PLATFORM_DESKTOP
+  /// Logs a heartbeat using the internal HeartbeatController.
   void LogHeartbeat() const;
+
+  /// Get a pointer to the HeartbeatController associated with this app.
   std::shared_ptr<heartbeat::HeartbeatController> GetHeartbeatController()
       const;
 #endif  // FIREBASE_PLATFORM_DESKTOP

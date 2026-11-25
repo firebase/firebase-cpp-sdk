@@ -37,19 +37,21 @@ CppAppCheckCredentialsProvider::CppAppCheckCredentialsProvider(
     : app_state_(app_state) {}
 
 CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
-  RemoveAppCheckStateListener();
+  app_check_subscription_.Reset();
 }
 
 void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<std::string> listener) {
+  ::firebase::internal::TokenSubscription old_subscription;
   if (!listener) {
     {
       std::lock_guard<std::mutex> lock(mutex_);
       SIMPLE_HARD_ASSERT(change_listener_,
                          "Change listener removed without being set!");
       change_listener_ = {};
+      old_subscription = std::move(app_check_subscription_);
     }
-    RemoveAppCheckStateListener();
+    old_subscription.Reset();
     return;
   }
 
@@ -59,7 +61,14 @@ void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     change_listener_ = std::move(listener);
   }
 
-  AddAppCheckStateListener();
+  auto new_subscription = app_state_.SubscribeAppCheckToken(
+      [this](const std::string& token) { OnAppCheckStateChanged(token); });
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    old_subscription = std::move(app_check_subscription_);
+    app_check_subscription_ = std::move(new_subscription);
+  }
+  old_subscription.Reset();
 }
 
 void CppAppCheckCredentialsProvider::GetToken(
@@ -83,25 +92,12 @@ void CppAppCheckCredentialsProvider::GetToken(
   listener(std::string());
 }
 
-void CppAppCheckCredentialsProvider::AddAppCheckStateListener() {
-  if (auto* app_check = app_state_.app_check_token_provider()) {
-    app_check->AddTokenListener(OnAppCheckStateChanged, this);
-  }
-}
-
-void CppAppCheckCredentialsProvider::RemoveAppCheckStateListener() {
-  if (auto* app_check = app_state_.app_check_token_provider()) {
-    app_check->RemoveTokenListener(OnAppCheckStateChanged, this);
-  }
-}
-
 void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(
-    const std::string& token, void* context) {
-  auto provider = static_cast<CppAppCheckCredentialsProvider*>(context);
+    const std::string& token) {
   CredentialChangeListener<std::string> listener;
   {
-    std::lock_guard<std::mutex> lock(provider->mutex_);
-    listener = provider->change_listener_;
+    std::lock_guard<std::mutex> lock(mutex_);
+    listener = change_listener_;
   }
   if (listener) {
     listener(token);

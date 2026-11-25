@@ -50,9 +50,9 @@ class Query {
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// Move constructor.
-  Query(Query&& query);
+  Query(Query&& query) noexcept;
   /// Move assignment operator.
-  Query& operator=(Query&& query);
+  Query& operator=(Query&& query) noexcept;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief Required virtual destructor.
@@ -316,7 +316,10 @@ class Query {
   ///
   /// @returns true if this query is valid, false if this query is
   /// invalid.
-  virtual bool is_valid() const;
+  virtual bool is_valid() const noexcept;
+
+  /// @brief Returns true if this Query is valid.
+  explicit operator bool() const noexcept { return is_valid(); }
 
  protected:
   /// @cond FIREBASE_APP_INTERNAL
@@ -349,6 +352,11 @@ class Query {
 /// path, and the same parameters, determined by StartAt(), EndAt(),
 /// EqualTo(), and the OrderBy and LimitTo methods. False otherwise.
 bool operator==(const Query& lhs, const Query& rhs);
+
+/// @brief Inequality comparison for Query instances.
+inline bool operator!=(const Query& lhs, const Query& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace database
 }  // namespace firebase

@@ -46,6 +46,11 @@ TeardownGuardState& GetTeardownGuardState() {
 
 const char* kPerformanceModuleName = "performance";
 
+std::mutex& GetLifecycleMutex() {
+  static ::firebase::internal::NoDestructor<std::mutex> mutex;
+  return *mutex;
+}
+
 void RegisterTerminateOnAppDestroy(const App& app) {
   const auto& app_state = ::firebase::internal::AppState::FromApp(app);
   if (!app_state) return;

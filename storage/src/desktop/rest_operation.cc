@@ -55,7 +55,7 @@ RestOperation::RestOperation(StorageInternal* storage_internal,
           case Notifier::kUpdateCallbackTypeFailed:
             // The caller will set the response to completed which will allow
             // StorageInternal::CleanupOperations() to delete this operation.
-            operation->is_complete_ = true;
+            operation->is_complete_.store(true, std::memory_order_release);
             break;
         }
       },
@@ -132,8 +132,7 @@ int64_t RestOperation::total_byte_count() const {
 
 // Whether this operation is complete and can be deleted.
 bool RestOperation::is_complete() const {
-  MutexLock lock(mutex_);
-  return is_complete_;
+  return is_complete_.load(std::memory_order_acquire);
 }
 
 // Notify the listener of progress.

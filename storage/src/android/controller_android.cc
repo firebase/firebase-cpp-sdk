@@ -75,8 +75,11 @@ ControllerInternal::~ControllerInternal() {
 
 ControllerInternal::ControllerInternal(const ControllerInternal& other)
     : storage_(other.storage_), task_obj_(nullptr) {
-  if (!other.storage_.expired() && other.task_obj_ != nullptr) {
-    task_obj_ = util::GetJNIEnvFromApp()->NewGlobalRef(other.task_obj_);
+  auto locked_storage = other.storage_.lock();
+  if (locked_storage && other.task_obj_ != nullptr) {
+    if (JNIEnv* env = locked_storage->GetJNIEnv()) {
+      task_obj_ = env->NewGlobalRef(other.task_obj_);
+    }
   }
 }
 
@@ -90,8 +93,11 @@ ControllerInternal& ControllerInternal::operator=(
   }
   storage_ = other.storage_;
   task_obj_ = nullptr;
-  if (!other.storage_.expired() && other.task_obj_ != nullptr) {
-    task_obj_ = util::GetJNIEnvFromApp()->NewGlobalRef(other.task_obj_);
+  auto locked_storage = other.storage_.lock();
+  if (locked_storage && other.task_obj_ != nullptr) {
+    if (JNIEnv* env = locked_storage->GetJNIEnv()) {
+      task_obj_ = env->NewGlobalRef(other.task_obj_);
+    }
   }
   return *this;
 }
@@ -110,8 +116,10 @@ void ControllerInternal::AssignTask(std::weak_ptr<StorageInternal> storage,
 }
 
 bool ControllerInternal::Pause() {
-  if (storage_.expired() || task_obj_ == nullptr) return false;
-  JNIEnv* env = util::GetJNIEnvFromApp();
+  auto locked_storage = storage_.lock();
+  if (!locked_storage || task_obj_ == nullptr) return false;
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return false;
   env->CallBooleanMethod(task_obj_,
                          storage_task::GetMethodId(storage_task::kPause));
   if (util::LogException(env, kLogLevelError, "Controller::Pause() failed")) {
@@ -121,8 +129,10 @@ bool ControllerInternal::Pause() {
 }
 
 bool ControllerInternal::Resume() {
-  if (storage_.expired() || task_obj_ == nullptr) return false;
-  JNIEnv* env = util::GetJNIEnvFromApp();
+  auto locked_storage = storage_.lock();
+  if (!locked_storage || task_obj_ == nullptr) return false;
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return false;
   env->CallBooleanMethod(task_obj_,
                          storage_task::GetMethodId(storage_task::kResume));
   if (util::LogException(env, kLogLevelError, "Controller::Resume() failed")) {
@@ -132,8 +142,10 @@ bool ControllerInternal::Resume() {
 }
 
 bool ControllerInternal::Cancel() {
-  if (storage_.expired() || task_obj_ == nullptr) return false;
-  JNIEnv* env = util::GetJNIEnvFromApp();
+  auto locked_storage = storage_.lock();
+  if (!locked_storage || task_obj_ == nullptr) return false;
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return false;
   env->CallBooleanMethod(task_obj_,
                          storage_task::GetMethodId(storage_task::kCancel));
   if (util::LogException(env, kLogLevelError, "Controller::Cancel() failed")) {
@@ -143,16 +155,20 @@ bool ControllerInternal::Cancel() {
 }
 
 bool ControllerInternal::is_paused() const {
-  if (storage_.expired() || task_obj_ == nullptr) return false;
-  JNIEnv* env = util::GetJNIEnvFromApp();
+  auto locked_storage = storage_.lock();
+  if (!locked_storage || task_obj_ == nullptr) return false;
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return false;
   return env->CallBooleanMethod(
       task_obj_, storage_task::GetMethodId(storage_task::kIsPaused));
 }
 
 int64_t ControllerInternal::total_byte_count() const {
   int64_t result = 0;
-  if (storage_.expired() || task_obj_ == nullptr) return result;
-  JNIEnv* env = util::GetJNIEnvFromApp();
+  auto locked_storage = storage_.lock();
+  if (!locked_storage || task_obj_ == nullptr) return result;
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return result;
   jobject snapshot = env->CallObjectMethod(
       task_obj_, storage_task::GetMethodId(storage_task::kGetSnapshot));
   if (env->IsInstanceOf(snapshot, upload_task_task_snapshot::GetClass())) {
@@ -177,8 +193,10 @@ int64_t ControllerInternal::total_byte_count() const {
 
 int64_t ControllerInternal::bytes_transferred() const {
   int64_t result = 0;
-  if (storage_.expired() || task_obj_ == nullptr) return result;
-  JNIEnv* env = util::GetJNIEnvFromApp();
+  auto locked_storage = storage_.lock();
+  if (!locked_storage || task_obj_ == nullptr) return result;
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return result;
   jobject snapshot = env->CallObjectMethod(
       task_obj_, storage_task::GetMethodId(storage_task::kGetSnapshot));
   if (env->IsInstanceOf(snapshot, upload_task_task_snapshot::GetClass())) {
@@ -205,7 +223,8 @@ int64_t ControllerInternal::bytes_transferred() const {
 StorageReferenceInternal* ControllerInternal::GetReference() const {
   auto locked_storage = storage_.lock();
   if (!locked_storage || task_obj_ == nullptr) return nullptr;
-  JNIEnv* env = util::GetJNIEnvFromApp();
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return nullptr;
   jobject snapshot = env->CallObjectMethod(
       task_obj_, storage_task::GetMethodId(storage_task::kGetSnapshot));
   jobject obj = nullptr;
@@ -239,8 +258,8 @@ void ControllerInternal::CppStorageListenerCallback(JNIEnv* env, jclass clazz,
                                                     jobject snapshot,
                                                     jboolean is_on_paused) {
   if (!storage_ptr || !listener_ptr) return;
-  StorageInternal* storage = reinterpret_cast<StorageInternal*>(storage_ptr);
-  auto storage_handle = storage->MakeSharedHandle();
+  auto storage_handle =
+      StorageInternal::LockFromNativeHandle(static_cast<int64_t>(storage_ptr));
   if (!storage_handle) return;
   Listener* listener = reinterpret_cast<Listener*>(listener_ptr);
   jobject task_obj = nullptr;
@@ -262,6 +281,7 @@ void ControllerInternal::CppStorageListenerCallback(JNIEnv* env, jclass clazz,
   if (task_obj) {
     ControllerInternal* internal = new ControllerInternal();
     internal->AssignTask(storage_handle, task_obj);
+    env->DeleteLocalRef(task_obj);
     Controller controller(internal);
     if (is_on_paused) {
       listener->OnPaused(&controller);

@@ -109,6 +109,22 @@ TEST_F(AnalyticsTest, TestDestroyDefaultApp) {
   EXPECT_FALSE(internal::IsInitialized());
 }
 
+TEST_F(AnalyticsTest, TestInvalidAppAndRepeatedInitializeAreSafe) {
+  EXPECT_TRUE(internal::IsInitialized());
+  // Initializing with an invalid App or a second App while already initialized
+  // must be a safe no-op that does not leak or detach from firebase_app_.
+  analytics::Initialize(App());
+  EXPECT_TRUE(internal::IsInitialized());
+  {
+    App second_app =
+        testing::CreateApp(testing::MockAppOptions(), "analytics_second_app");
+    analytics::Initialize(second_app);
+    EXPECT_TRUE(internal::IsInitialized());
+  }
+  // Destroying second_app must not terminate Analytics bound to firebase_app_.
+  EXPECT_TRUE(internal::IsInitialized());
+}
+
 TEST_F(AnalyticsTest, TestSetAnalyticsCollectionEnabled) {
   AddExpectationAndroid("FirebaseAnalytics.setAnalyticsCollectionEnabled",
                         {"true"});

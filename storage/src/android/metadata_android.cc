@@ -42,21 +42,53 @@ METHOD_LOOKUP_DEFINITION(storage_metadata_builder,
                          "com/google/firebase/storage/StorageMetadata$Builder",
                          STORAGE_METADATA_BUILDER_METHODS)
 
+namespace {
+bool HasControlBlock(const std::weak_ptr<StorageInternal>& weak) {
+  std::weak_ptr<StorageInternal> empty;
+  return weak.owner_before(empty) || empty.owner_before(weak);
+}
+
+bool AreMetadataClassesValid() {
+  return storage_metadata::GetClass() != nullptr &&
+         storage_metadata_builder::GetClass() != nullptr;
+}
+}  // namespace
+
+std::shared_ptr<StorageInternal> MetadataInternal::LockStorageIfBound(
+    bool* ok) const {
+  if (has_storage_) {
+    auto locked = storage_.lock();
+    *ok = (locked != nullptr);
+    return locked;
+  }
+  *ok = true;
+  return {};
+}
+
 MetadataInternal::MetadataInternal()
     : MetadataInternal(std::weak_ptr<StorageInternal>(), nullptr) {}
 
 MetadataInternal::MetadataInternal(std::weak_ptr<StorageInternal> storage,
                                    jobject obj)
-    : storage_(std::move(storage)), custom_metadata_(nullptr) {
+    : storage_(std::move(storage)),
+      has_storage_(HasControlBlock(storage_)),
+      obj_(nullptr),
+      custom_metadata_(nullptr) {
   cache_.resize(kCacheStringCount, nullptr);
-  JNIEnv* env = GetJNIEnv();
+  bool ok = false;
+  auto locked_storage = LockStorageIfBound(&ok);
+  JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+  if (!ok || env == nullptr || !AreMetadataClassesValid()) {
+    return;
+  }
   if (obj == nullptr) {
-    obj_ = nullptr;
     jobject builder =
         env->NewObject(storage_metadata_builder::GetClass(),
                        storage_metadata_builder::GetMethodId(
                            storage_metadata_builder::kConstructor));
-    CommitBuilder(builder);
+    if (!util::CheckAndClearJniExceptions(env) && builder != nullptr) {
+      CommitBuilder(builder);
+    }
   } else {
     obj_ = env->NewGlobalRef(obj);
     // Cache read-only all properties that are lost when constructing a
@@ -97,8 +129,9 @@ static std::vector<std::string*> CopyVectorOfStringPointers(
 
 MetadataInternal::~MetadataInternal() {
   if (obj_ != nullptr) {
-    JNIEnv* env = GetJNIEnv();
-    env->DeleteGlobalRef(obj_);
+    if (JNIEnv* env = GetJNIEnv()) {
+      env->DeleteGlobalRef(obj_);
+    }
     obj_ = nullptr;
   }
   // Clear cached strings.
@@ -119,9 +152,17 @@ static std::map<std::string, std::string>* CreateMapCopy(
 }
 
 MetadataInternal::MetadataInternal(const MetadataInternal& src)
-    : storage_(src.storage_), obj_(nullptr), custom_metadata_(nullptr) {
-  JNIEnv* env = GetJNIEnv();
-  CopyJavaMetadataObject(env, src.obj_);
+    : storage_(src.storage_),
+      has_storage_(src.has_storage_),
+      obj_(nullptr),
+      custom_metadata_(nullptr) {
+  bool ok = false;
+  auto locked_storage = LockStorageIfBound(&ok);
+  JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+  if (ok && env != nullptr && src.obj_ != nullptr &&
+      AreMetadataClassesValid()) {
+    CopyJavaMetadataObject(env, src.obj_);
+  }
 
   custom_metadata_ = CreateMapCopy(src.custom_metadata_);
   cache_ = CopyVectorOfStringPointers(src.cache_);
@@ -129,14 +170,23 @@ MetadataInternal::MetadataInternal(const MetadataInternal& src)
 }
 
 MetadataInternal& MetadataInternal::operator=(const MetadataInternal& src) {
-  storage_ = src.storage_;
-  JNIEnv* env = GetJNIEnv();
+  if (this == &src) return *this;
   if (obj_ != nullptr) {
     // If there's already a Java object in the dest, delete it.
-    env->DeleteGlobalRef(obj_);
+    if (JNIEnv* env = GetJNIEnv()) {
+      env->DeleteGlobalRef(obj_);
+    }
     obj_ = nullptr;
   }
-  CopyJavaMetadataObject(env, src.obj_);
+  storage_ = src.storage_;
+  has_storage_ = src.has_storage_;
+  bool ok = false;
+  auto locked_storage = LockStorageIfBound(&ok);
+  JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+  if (ok && env != nullptr && src.obj_ != nullptr &&
+      AreMetadataClassesValid()) {
+    CopyJavaMetadataObject(env, src.obj_);
+  }
 
   if (custom_metadata_ != nullptr) {
     // If there's already a custom_metadata_ in the dest, delete it.
@@ -152,11 +202,12 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& src) {
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 MetadataInternal::MetadataInternal(MetadataInternal&& src)
-    : storage_(std::move(src.storage_)) {
+    : storage_(std::move(src.storage_)), has_storage_(src.has_storage_) {
   obj_ = src.obj_;
   custom_metadata_ = std::move(src.custom_metadata_);
   src.custom_metadata_ = nullptr;
   src.obj_ = nullptr;
+  src.has_storage_ = false;
   // Move the cache to its new owner, so the const char*'s are still valid.
   cache_ = src.cache_;
   // Clear the source cache.
@@ -166,9 +217,18 @@ MetadataInternal::MetadataInternal(MetadataInternal&& src)
 }
 
 MetadataInternal& MetadataInternal::operator=(MetadataInternal&& src) {
+  if (this == &src) return *this;
+  if (obj_ != nullptr) {
+    if (JNIEnv* env = GetJNIEnv()) {
+      env->DeleteGlobalRef(obj_);
+    }
+    obj_ = nullptr;
+  }
   storage_ = std::move(src.storage_);
+  has_storage_ = src.has_storage_;
   obj_ = src.obj_;
   src.obj_ = nullptr;
+  src.has_storage_ = false;
   if (custom_metadata_ != nullptr) {
     delete custom_metadata_;
     custom_metadata_ = nullptr;
@@ -188,13 +248,18 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& src) {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 void MetadataInternal::CopyJavaMetadataObject(JNIEnv* env, jobject src_obj) {
+  if (env == nullptr || src_obj == nullptr || !AreMetadataClassesValid()) {
+    return;
+  }
   // Use StorageMetadata.Builder to create a copy of the existing object.
   jobject builder =
       env->NewObject(storage_metadata_builder::GetClass(),
                      storage_metadata_builder::GetMethodId(
                          storage_metadata_builder::kConstructorFromMetadata),
                      src_obj);
-  CommitBuilder(builder);
+  if (!util::CheckAndClearJniExceptions(env) && builder != nullptr) {
+    CommitBuilder(builder);
+  }
 }
 
 bool MetadataInternal::Initialize(const App& app) {
@@ -215,11 +280,22 @@ const char* MetadataInternal::bucket() {
 }
 
 void MetadataInternal::CommitBuilder(jobject builder) {
-  JNIEnv* env = GetJNIEnv();
+  if (builder == nullptr) return;
+  bool ok = false;
+  auto locked_storage = LockStorageIfBound(&ok);
+  JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+  if (!ok || env == nullptr || !AreMetadataClassesValid()) {
+    if (env != nullptr) env->DeleteLocalRef(builder);
+    return;
+  }
   jobject new_metadata = env->CallObjectMethod(
       builder,
       storage_metadata_builder::GetMethodId(storage_metadata_builder::kBuild));
   env->DeleteLocalRef(builder);
+  if (util::CheckAndClearJniExceptions(env) || new_metadata == nullptr) {
+    if (new_metadata != nullptr) env->DeleteLocalRef(new_metadata);
+    return;
+  }
   if (obj_ != nullptr) env->DeleteGlobalRef(obj_);
   obj_ = env->NewGlobalRef(new_metadata);
   env->DeleteLocalRef(new_metadata);
@@ -290,16 +366,22 @@ std::map<std::string, std::string>* MetadataInternal::custom_metadata() {
 }
 
 void MetadataInternal::CommitCustomMetadata() {
+  bool ok = false;
+  auto locked_storage = LockStorageIfBound(&ok);
+  JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+  if (!ok || env == nullptr || obj_ == nullptr || !AreMetadataClassesValid()) {
+    return;
+  }
   std::map<std::string, std::string> old_metadata;
   ReadCustomMetadata(&old_metadata);
   // Set all new values, and if any old values are not present in new, then
   // clear them.
-  JNIEnv* env = GetJNIEnv();
   jobject builder =
       env->NewObject(storage_metadata_builder::GetClass(),
                      storage_metadata_builder::GetMethodId(
                          storage_metadata_builder::kConstructorFromMetadata),
                      obj_);
+  if (util::CheckAndClearJniExceptions(env) || builder == nullptr) return;
   if (custom_metadata_ != nullptr) {
     for (auto i = custom_metadata_->begin(); i != custom_metadata_->end();
          ++i) {
@@ -338,10 +420,16 @@ void MetadataInternal::CommitCustomMetadata() {
 
 void MetadataInternal::ReadCustomMetadata(
     std::map<std::string, std::string>* output_map) {
-  JNIEnv* env = GetJNIEnv();
+  bool ok = false;
+  auto locked_storage = LockStorageIfBound(&ok);
+  JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+  if (!ok || env == nullptr || obj_ == nullptr || !AreMetadataClassesValid()) {
+    return;
+  }
   jobject key_set = env->CallObjectMethod(
       obj_,
       storage_metadata::GetMethodId(storage_metadata::kGetCustomMetadataKeys));
+  if (util::CheckAndClearJniExceptions(env) || key_set == nullptr) return;
   // Iterator iter = key_set.iterator();
   jobject iter = env->CallObjectMethod(
       key_set,
@@ -394,11 +482,14 @@ const char* MetadataInternal::path() {
 StorageReferenceInternal* MetadataInternal::GetReference() {
   // If we don't have an associated Storage, we are not assigned to a reference.
   auto locked_storage = storage_.lock();
-  if (!locked_storage) return nullptr;
-  JNIEnv* env = GetJNIEnv();
+  if (!locked_storage || obj_ == nullptr || !AreMetadataClassesValid()) {
+    return nullptr;
+  }
+  JNIEnv* env = locked_storage->GetJNIEnv();
+  if (env == nullptr) return nullptr;
   jobject ref_obj = env->CallObjectMethod(
       obj_, storage_metadata::GetMethodId(storage_metadata::kGetReference));
-  if (util::CheckAndClearJniExceptions(env)) {
+  if (util::CheckAndClearJniExceptions(env) || ref_obj == nullptr) {
     // Failed to get the StorageReference Java object, thus the StorageReference
     // C++ object we are creating is invalid.
     return nullptr;
@@ -428,7 +519,13 @@ const char* MetadataInternal::GetStringProperty(
     storage_metadata::Method string_method, CacheString cache_string) {
   std::string** cached_string = &cache_[cache_string];
   if (*cached_string == nullptr) {
-    JNIEnv* env = GetJNIEnv();
+    bool ok = false;
+    auto locked_storage = LockStorageIfBound(&ok);
+    JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+    if (!ok || env == nullptr || obj_ == nullptr ||
+        !AreMetadataClassesValid()) {
+      return nullptr;
+    }
     jobject str = env->CallObjectMethod(
         obj_, storage_metadata::GetMethodId(string_method));
     if (util::CheckAndClearJniExceptions(env) || !str) {
@@ -448,13 +545,18 @@ void MetadataInternal::SetStringProperty(
     delete *cached_string;
     *cached_string = nullptr;
   }
-  JNIEnv* env = GetJNIEnv();
+  bool ok = false;
+  auto locked_storage = LockStorageIfBound(&ok);
+  JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+  if (!ok || env == nullptr || obj_ == nullptr || !AreMetadataClassesValid()) {
+    return;
+  }
   jobject base_builder =
       env->NewObject(storage_metadata_builder::GetClass(),
                      storage_metadata_builder::GetMethodId(
                          storage_metadata_builder::kConstructorFromMetadata),
                      obj_);
-  if (util::CheckAndClearJniExceptions(env)) return;
+  if (util::CheckAndClearJniExceptions(env) || base_builder == nullptr) return;
   jobject java_string = env->NewStringUTF(string_value);
   jobject updated_builder = env->CallObjectMethod(
       base_builder, storage_metadata_builder::GetMethodId(builder_method),
@@ -473,7 +575,13 @@ const char* MetadataInternal::GetUriPropertyAsString(
     storage_metadata::Method uri_method, CacheString cache_string) {
   std::string** cached_string = &cache_[cache_string];
   if (*cached_string == nullptr) {
-    JNIEnv* env = GetJNIEnv();
+    bool ok = false;
+    auto locked_storage = LockStorageIfBound(&ok);
+    JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+    if (!ok || env == nullptr || obj_ == nullptr ||
+        !AreMetadataClassesValid()) {
+      return nullptr;
+    }
     jobject uri =
         env->CallObjectMethod(obj_, storage_metadata::GetMethodId(uri_method));
     if (util::CheckAndClearJniExceptions(env) || !uri) {
@@ -488,7 +596,13 @@ const char* MetadataInternal::GetUriPropertyAsString(
 int64_t MetadataInternal::GetInt64Property(storage_metadata::Method long_method,
                                            int64_t* cached_value) {
   if (!(*cached_value)) {
-    JNIEnv* env = GetJNIEnv();
+    bool ok = false;
+    auto locked_storage = LockStorageIfBound(&ok);
+    JNIEnv* env = locked_storage ? locked_storage->GetJNIEnv() : GetJNIEnv();
+    if (!ok || env == nullptr || obj_ == nullptr ||
+        !AreMetadataClassesValid()) {
+      return 0;
+    }
     *cached_value = static_cast<int64_t>(
         env->CallLongMethod(obj_, storage_metadata::GetMethodId(long_method)));
     util::CheckAndClearJniExceptions(env);

@@ -471,7 +471,8 @@ Future<AuthResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
-    std::weak_ptr<::firebase::internal::AppState> weak_state = auth_data->app_state;
+    std::weak_ptr<::firebase::internal::AppState> weak_state =
+        auth_data->app_state.weak_from_this();
     [AuthImpl(auth_data)
         signInWithProvider:ios_provider
                 UIDelegate:nullptr
@@ -507,7 +508,8 @@ Future<AuthResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
-    std::weak_ptr<::firebase::internal::AppState> weak_state = auth_data->app_state;
+    std::weak_ptr<::firebase::internal::AppState> weak_state =
+        auth_data->app_state.weak_from_this();
     [UserImpl(auth_data)
         linkWithProvider:ios_provider
               UIDelegate:nullptr
@@ -542,7 +544,8 @@ Future<AuthResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
-    std::weak_ptr<::firebase::internal::AppState> weak_state = auth_data->app_state;
+    std::weak_ptr<::firebase::internal::AppState> weak_state =
+        auth_data->app_state.weak_from_this();
     [UserImpl(auth_data) reauthenticateWithProvider:ios_provider
                                          UIDelegate:nullptr
                                          completion:^(FIRAuthDataResult* _Nullable auth_result,

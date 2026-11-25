@@ -62,7 +62,6 @@ Installations Installations::GetInstance(const App& app) {
 
   if (!created) {
     // Log heartbeat data when instance getters are called.
-    // See go/firebase-platform-logging-design for more information.
     InstallationsInternal::LogHeartbeat(app);
   }
   return Installations(std::move(internal));

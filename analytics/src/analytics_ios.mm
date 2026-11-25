@@ -20,8 +20,10 @@
 #import "FIRAnalytics+OnDevice.h"
 #import "FIRAnalytics.h"
 
+#include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <mutex>
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
 
@@ -125,33 +127,48 @@ static Mutex& GetAnalyticsMutex() {
   static ::firebase::internal::NoDestructor<Mutex> mutex;
   return *mutex;
 }
-static bool g_initialized = false;
+static std::atomic<bool> g_initialized{false};
 static AnalyticsDataResetter* g_resetter = nullptr;
 
 // Initialize the API.
 void Initialize(const ::firebase::App& app) {
-  MutexLock lock(GetAnalyticsMutex());
-  g_initialized = true;
-  g_resetter = new AnalyticsDataResetter();
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!app.is_valid()) {
+    LogWarning("%s API cannot be initialized with an invalid App", internal::kAnalyticsModuleName);
+    return;
+  }
+  {
+    MutexLock lock(GetAnalyticsMutex());
+    if (g_initialized.load(std::memory_order_acquire)) {
+      LogWarning("%s API already initialized", internal::kAnalyticsModuleName);
+      return;
+    }
+    g_resetter = new AnalyticsDataResetter();
+    internal::FutureData::Create();
+    g_initialized.store(true, std::memory_order_release);
+  }
   internal::RegisterTerminateOnAppDestroy(app);
-  internal::FutureData::Create();
 }
 
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 }  // namespace internal
 
 // Terminate the API.
 void Terminate() {
-  MutexLock lock(GetAnalyticsMutex());
-  internal::FutureData::Destroy();
+  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  if (!g_initialized.load(std::memory_order_acquire)) {
+    return;
+  }
   internal::UnregisterTerminateOnAppDestroy();
+  MutexLock lock(GetAnalyticsMutex());
+  g_initialized.store(false, std::memory_order_release);
+  internal::FutureData::Destroy();
   delete g_resetter;
   g_resetter = nullptr;
-  g_initialized = false;
 }
 
 // Enable / disable measurement and reporting.

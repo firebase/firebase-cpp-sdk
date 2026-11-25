@@ -63,6 +63,7 @@
 #include "firestore/src/android/transaction_options_builder_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
+#include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/arena_ref.h"
@@ -528,7 +529,45 @@ Future<void> FirestoreInternal::EnableNetwork() {
 Future<void> FirestoreInternal::Terminate() {
   Env env = GetEnv();
   Local<Task> task = env.Call(obj_, kTerminate);
-  return promises_->NewFuture<void>(env, AsyncFn::kTerminate, task);
+  if (!env.ok()) return FailedFuture<void>();
+
+  // Allocate from the shared process-lifetime FutureImpl so the returned Future
+  // stays valid even if the caller invoked Terminate() on a temporary Firestore
+  // handle whose destructor synchronously awaits termination.
+  ReferenceCountedFutureImpl* api =
+      internal::GetSharedReferenceCountedFutureImpl();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>();
+  struct TerminateTaskData {
+    std::shared_ptr<detail::FutureImplCore> core;
+    SafeFutureHandle<void> handle;
+    std::weak_ptr<FirestoreInternal> weak_self;
+  };
+  auto* data = new TerminateTaskData{api->core(), handle, weak_from_this()};
+  ::firebase::util::RegisterCallbackOnTask(
+      env.get(), task.get(),
+      [](JNIEnv* raw_env, jobject result,
+         ::firebase::util::FutureResult result_code, const char* status_message,
+         void* callback_data) {
+        std::unique_ptr<TerminateTaskData> ctx(
+            static_cast<TerminateTaskData*>(callback_data));
+        Error error = Error::kErrorOk;
+        if (result_code == ::firebase::util::kFutureResultFailure) {
+          if (auto self = ctx->weak_self.lock()) {
+            jni::Env cb_env(raw_env);
+            jni::Object exception(result);
+            error = ExceptionInternal::GetErrorCode(cb_env, exception);
+          } else {
+            error = Error::kErrorUnknown;
+          }
+        } else if (result_code == ::firebase::util::kFutureResultCancelled) {
+          error = Error::kErrorCancelled;
+        }
+        ReferenceCountedFutureImpl::CompleteCore(
+            ctx->core, ctx->handle, static_cast<int>(error),
+            error == Error::kErrorOk ? "" : status_message);
+      },
+      data, kApiIdentifier);
+  return MakeFuture<void>(api, handle);
 }
 
 Future<void> FirestoreInternal::WaitForPendingWrites() {

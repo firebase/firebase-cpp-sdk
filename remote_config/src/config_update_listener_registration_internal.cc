@@ -33,7 +33,10 @@ ConfigUpdateListenerRegistrationInternal::
 void ConfigUpdateListenerRegistrationInternal::Remove() {
   if (!this->listener_removed_) {
     this->listener_removed_ = true;
-    this->listener_removal_function_();
+    auto removal_fn = std::move(this->listener_removal_function_);
+    if (removal_fn) {
+      removal_fn();
+    }
   }
 }
 

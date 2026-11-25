@@ -279,13 +279,18 @@ class DocumentReference {
    *   - Moving from the `DocumentReference`.
    *   - Calling `CollectionReference::Parent()` on a `CollectionReference` that
    *     is not a subcollection.
-   *   - Deleting your Firestore instance, which will invalidate all the
-   *     `DocumentReference` instances associated with it.
+   *   - Terminating the underlying Firestore service (via
+   *     `Firestore::Terminate()`) or dropping all `App` and `Firestore`
+   *     handles, which will invalidate all `DocumentReference` instances
+   *     associated with it.
    *
    * @return true if this `DocumentReference` is valid, false if this
    * `DocumentReference` is invalid.
    */
-  bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
+
+  /** Returns true if this `DocumentReference` is valid. */
+  explicit operator bool() const noexcept { return is_valid(); }
 
   /**
    * Returns a string representation of this `DocumentReference` for

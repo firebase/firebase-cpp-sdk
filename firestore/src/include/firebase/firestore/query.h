@@ -656,12 +656,17 @@ class Query {
    * invalid `Query` could be the result of:
    *   - Creating a `Query` using the default constructor.
    *   - Moving from the `Query`.
-   *   - Deleting your Firestore instance, which will invalidate all the `Query`
-   *     instances associated with it.
+   *   - Terminating the underlying Firestore service (via
+   *     `Firestore::Terminate()`) or dropping all `App` and `Firestore`
+   *     handles, which will invalidate all `Query` instances associated with
+   *     it.
    *
    * @return true if this `Query` is valid, false if this `Query` is invalid.
    */
-  bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
+
+  /** Returns true if this `Query` is valid. */
+  explicit operator bool() const noexcept { return is_valid(); }
 
  private:
   size_t Hash() const;

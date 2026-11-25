@@ -124,22 +124,6 @@ struct AuthResultCompletionHandle {
   AuthData* auth_data;
 };
 
-// An AuthStateListener used for managing internal cross-product auth state
-// listeners registered via AuthTokenProvider.
-class InternalAuthStateListener : public AuthStateListener {
- public:
-  using Callback = ::firebase::internal::AuthTokenProvider::AuthStateCallback;
-
-  void AddListener(Callback callback, void* context);
-  void RemoveListener(Callback callback, void* context);
-  void OnAuthStateChanged(Auth auth) override;
-
- private:
-  using Entry = std::pair<Callback, void*>;
-  Mutex mutex_;
-  std::vector<Entry> callbacks_;
-};
-
 // The desktop-specific Auth implementation.
 struct AuthImpl {
   AuthImpl() {}
@@ -155,11 +139,6 @@ struct AuthImpl {
   IdTokenRefreshThread token_refresh_thread;
   // Instance responsible for user data persistence.
   std::unique_ptr<UserDataPersist> user_data_persist;
-
-  // Firebase-internal auth state listeners added via AuthTokenProvider are
-  // tracked here. Added as the first AuthStateListener to match iOS/Android
-  // ordering (internal listeners called before user-supplied listeners).
-  std::unique_ptr<InternalAuthStateListener> internal_listeners;
 
   // Serializes all REST calls from this object.
   scheduler::Scheduler scheduler_;

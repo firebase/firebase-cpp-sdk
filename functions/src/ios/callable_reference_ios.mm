@@ -126,36 +126,50 @@ Functions HttpsCallableReferenceInternal::functions() const {
   return Functions(functions_);
 }
 
+bool HttpsCallableReferenceInternal::Equals(
+    const HttpsCallableReferenceInternal& other) const {
+  if (functions_ != other.functions_) return false;
+  FIRHTTPSCallable* lhs = impl_ ? impl_->get() : nil;
+  FIRHTTPSCallable* rhs = other.impl_ ? other.impl_->get() : nil;
+  if (lhs == rhs) return true;
+  if (lhs == nil || rhs == nil) return false;
+  return [lhs isEqual:rhs];
+}
+
 /* static */
-void HttpsCallableReferenceInternal::CompleteFuture(ReferenceCountedFutureImpl* future_impl,
-                                                    SafeFutureHandle<HttpsCallableResult> handle,
-                                                    FIRHTTPSCallableResult* _Nullable result,
-                                                    NSError* error) {
+void HttpsCallableReferenceInternal::CompleteFuture(
+    const std::shared_ptr<detail::FutureImplCore>& future_core,
+    SafeFutureHandle<HttpsCallableResult> handle,
+    FIRHTTPSCallableResult* _Nullable result,
+    NSError* _Nullable error) {
   Error error_code = NSErrorToErrorCode(error);
-  const char* error_string = GetErrorMessage(error_code);
+  std::string error_string = GetErrorMessage(error_code);
   if (error.localizedDescription) {
     error_string = error.localizedDescription.UTF8String;
   }
   if (result) {
     Variant result_data = util::IdToVariant(result.data);
     HttpsCallableResult callable_result(std::move(result_data));
-    future_impl->CompleteWithResult(handle, error_code, error_string, callable_result);
+    ReferenceCountedFutureImpl::CompleteCoreWithResult(
+        future_core, handle, error_code, error_string.c_str(), callable_result);
   } else {
-    future_impl->Complete(handle, error_code, error_string);
+    ReferenceCountedFutureImpl::CompleteCore(future_core, handle, error_code,
+                                             error_string.c_str());
   }
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
   ReferenceCountedFutureImpl* future_impl = future();
+  if (!functions_ || !future_impl) return Future<HttpsCallableResult>();
   HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
+  auto future_core = future_impl->core();
   std::weak_ptr<FunctionsInternal> weak_functions = functions_;
   void (^completion)(FIRHTTPSCallableResult* _Nullable, NSError* _Nullable) =
       ^(FIRHTTPSCallableResult* _Nullable result, NSError* error) {
-        auto locked = weak_functions.lock();
-        if (!locked) return;
-        CompleteFuture(future_impl, handle, result, error);
+        if (!weak_functions.lock()) return;
+        CompleteFuture(future_core, handle, result, error);
       };
 
   [impl_.get()->get() callWithCompletion:completion];
@@ -163,18 +177,19 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(const Variant& variant) {
+  ReferenceCountedFutureImpl* future_impl = future();
+  if (!functions_ || !future_impl) return Future<HttpsCallableResult>();
   id data = util::VariantToId(variant);
 
-  ReferenceCountedFutureImpl* future_impl = future();
   HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
+  auto future_core = future_impl->core();
   std::weak_ptr<FunctionsInternal> weak_functions = functions_;
   void (^completion)(FIRHTTPSCallableResult* _Nullable, NSError* _Nullable) =
       ^(FIRHTTPSCallableResult* _Nullable result, NSError* error) {
-        auto locked = weak_functions.lock();
-        if (!locked) return;
-        CompleteFuture(future_impl, handle, result, error);
+        if (!weak_functions.lock()) return;
+        CompleteFuture(future_core, handle, result, error);
       };
 
   [impl_.get()->get() callWithObject:data completion:completion];
@@ -182,12 +197,14 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(const Variant& 
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
-  return static_cast<const Future<HttpsCallableResult>&>(
-      future()->LastResult(kCallableReferenceFnCall));
+  ReferenceCountedFutureImpl* future_impl = future();
+  return future_impl ? static_cast<const Future<HttpsCallableResult>&>(
+                           future_impl->LastResult(kCallableReferenceFnCall))
+                     : Future<HttpsCallableResult>();
 }
 
 ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
-  return functions_->future_manager().GetFutureApi(this);
+  return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
 }
 
 }  // namespace internal

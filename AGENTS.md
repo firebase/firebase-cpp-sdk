@@ -204,16 +204,18 @@ Database).
         parameters if not relying on a `google-services.json` or
         `GoogleService-Info.plist` file.
 2.  **Service Instances**: Once `firebase::App` is initialized, you generally
-    obtain instances of specific Firebase services using a static
-    `GetInstance()` method on the service's class, passing the `firebase::App`
-    object.
+    obtain lightweight, copyable value handles to specific Firebase services
+    using a static `GetInstance()` (or `GetAuth()`) method on the service's
+    class, passing `const firebase::App&`. Every product handle (and child
+    handle) shares ownership of the underlying reference-counted `AppState`, so
+    dropping handles in any order is safe.
     *   Examples for services like Auth, Database, Storage, Firestore:
-        *   `firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app, &init_result);`
-        *   `firebase::database::Database* database = firebase::database::Database::GetInstance(app, &init_result);`
-        *   `firebase::storage::Storage* storage = firebase::storage::Storage::GetInstance(app, &init_result);`
-    *   Always check the `init_result` (an `InitResult` enum, often
-        `firebase::kInitResultSuccess` on success) to ensure these services
-        were initialized successfully.
+        *   `firebase::auth::Auth auth = firebase::auth::Auth::GetAuth(app, &init_result);`
+        *   `firebase::database::Database database = firebase::database::Database::GetInstance(app, &init_result);`
+        *   `firebase::storage::Storage storage = firebase::storage::Storage::GetInstance(app, &init_result);`
+    *   Always check `is_valid()` (or `operator bool()`) and `init_result` (an
+        `InitResult` enum, often `firebase::kInitResultSuccess` on success) to
+        ensure these services were initialized successfully.
     *   **Note on Analytics**: Some products, like Firebase Analytics, have a
         different pattern. Analytics is typically initialized with
         `firebase::analytics::Initialize(const firebase::App& app)` (often
@@ -270,10 +272,10 @@ examples illustrate common API patterns:
     *   Successful authentication operations (like
         `SignInWithEmailAndPassword()`) return a
         `Future<firebase::auth::AuthResult>`. The `firebase::auth::User`
-        object can then be obtained from this `AuthResult` (e.g.,
-        `auth_result.result()->user()` after `result()` is confirmed
-        successful and the pointer is checked).
-    *   Example: `firebase::auth::User* current_user = auth->current_user();`
+        value handle can then be obtained from this `AuthResult` (e.g.,
+        `firebase::auth::User user = auth_result.result()->user;` after
+        `result()` is confirmed successful and non-null).
+    *   Example: `firebase::auth::User current_user = auth.current_user();`
     *   Methods for user creation/authentication:
         `CreateUserWithEmailAndPassword()`, `SignInWithEmailAndPassword()`,
         `SignInWithCredential()`.
@@ -327,12 +329,12 @@ Many Firebase services support real-time data synchronization using listeners.
         `OnChildRemoved()`.
 *   **`firebase::auth::AuthStateListener`**: Implemented by the developer and
     registered with `firebase::auth::Auth`.
-    *   `AuthStateListener::OnAuthStateChanged(firebase::auth::Auth* auth)` is
+    *   `AuthStateListener::OnAuthStateChanged(firebase::auth::Auth auth)` is
         called when the user's sign-in state changes.
 *   **Removing Listeners**: Listeners are typically removed by passing the
     listener instance to a corresponding `Remove...Listener()` method (e.g.,
-    `reference->RemoveValueListener(my_listener);`,
-    `auth->RemoveAuthStateListener(my_auth_listener);`).
+    `reference.RemoveValueListener(my_listener);`,
+    `auth.RemoveAuthStateListener(my_auth_listener);`).
 
 This overview provides a general understanding. Always refer to the specific
 header files in `firebase/app/client/cpp/include/firebase/` and
@@ -576,12 +578,17 @@ prevent memory leaks, dangling pointers, or double deletions.
 *   Utility functions and helper classes are common within the `common/` or
     `util/` subdirectories of a product.
 
-## Singleton Usage (Limited)
+## Singleton Usage (Opt-In Only)
 
-*   The primary singleton is `firebase::App::GetInstance()`.
-*   Service entry points like `firebase::firestore::Firestore::GetInstance()`
-    also provide singleton-like access to service instances (scoped to an `App`
-    instance).
+*   `firebase::App::Create(...)` does not register instances in a global
+    registry by default; pass `App` handles explicitly to avoid global state.
+*   When name-based lookup is desired, apps can opt in via `app.Register()` or
+    `firebase::App::CreateRegistered(...)` and be retrieved via
+    `std::optional<firebase::App> firebase::App::GetInstance(name)` (backed by
+    a weak non-owning registry).
+*   Service entry points like `firebase::firestore::Firestore::GetInstance(app)`
+    return value handles to per-`App` services owned by `AppState` rather than
+    global product maps.
 *   Beyond these entry points, direct creation or use of singletons for core
     data objects or utility classes is not a dominant pattern. Dependencies are
     generally passed explicitly.

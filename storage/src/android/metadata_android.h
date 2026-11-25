@@ -254,8 +254,14 @@ class MetadataInternal {
   int64_t GetInt64Property(storage_metadata::Method long_method,
                            int64_t* cached_value);
 
+  // Locks `storage_` if this MetadataInternal was bound to a StorageInternal.
+  // Sets `*ok = true` iff JNI calls using Storage metadata classes are safe to
+  // attempt (storage is still alive when bound, or standalone metadata).
+  std::shared_ptr<StorageInternal> LockStorageIfBound(bool* ok) const;
+
   std::weak_ptr<StorageInternal> storage_;
-  jobject obj_;
+  bool has_storage_ = false;
+  jobject obj_ = nullptr;
 
   std::map<std::string, std::string>* custom_metadata_;
 

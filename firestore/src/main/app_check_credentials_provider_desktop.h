@@ -26,6 +26,7 @@
 #include "Firestore/core/src/util/statusor.h"
 #include "app/src/app_state.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/service_interfaces.h"
 
 #if defined(__ANDROID__)
 #error "This header should not be used on Android."
@@ -59,13 +60,11 @@ class CppAppCheckCredentialsProvider
       firestore::credentials::TokenListener<std::string> listener) override;
 
  private:
-  void AddAppCheckStateListener();
-  void RemoveAppCheckStateListener();
-
-  static void OnAppCheckStateChanged(const std::string& token, void* context);
+  void OnAppCheckStateChanged(const std::string& token);
 
   std::mutex mutex_;
   ::firebase::internal::AppState& app_state_;
+  ::firebase::internal::TokenSubscription app_check_subscription_;
 };
 
 }  // namespace firestore

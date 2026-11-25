@@ -63,23 +63,38 @@ Error HttpToErrorCode(int http_status) {
   }
 }
 
-// ref_future must be allocated using FutureManager to ensure ref_future
-// remains valid while the future handle isn't complete.
-BlockingResponse::BlockingResponse(FutureHandle handle,
-                                   ReferenceCountedFutureImpl* ref_future)
-    : handle_(handle), ref_future_(ref_future) {}
+BlockingResponse::BlockingResponse(
+    FutureHandle handle, std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+    std::shared_ptr<std::atomic<int>> http_status_out)
+    : handle_(handle),
+      ref_future_(std::move(ref_future)),
+      http_status_out_(std::move(http_status_out)) {}
 
 BlockingResponse::~BlockingResponse() {
-  // If the response isn't complete, cancel it.
-  if (status() == rest::util::HttpInvalid) {
-    set_status(rest::util::HttpNoContent);
+  // If the response hasn't been completed or failed yet (e.g. canceled while
+  // still queued before CurlThread started it), cancel the future now.
+  if (!completed_) {
+    if (status() == rest::util::HttpInvalid) {
+      set_status(rest::util::HttpNoContent);
+    }
     MarkFailed();
   }
 }
 
-void BlockingResponse::MarkCompleted() { rest::Response::MarkCompleted(); }
+void BlockingResponse::MarkCompleted() {
+  completed_ = true;
+  if (http_status_out_) {
+    http_status_out_->store(status(), std::memory_order_release);
+  }
+  rest::Response::MarkCompleted();
+}
 
 void BlockingResponse::MarkFailed() {
+  if (completed_) return;
+  completed_ = true;
+  if (http_status_out_) {
+    http_status_out_->store(status(), std::memory_order_release);
+  }
   rest::Response::MarkFailed();
   if (status() == rest::util::HttpRequestTimeout) {
     ref_future_->Complete(SafeFutureHandle<void>(handle_),
@@ -123,10 +138,12 @@ bool StorageNetworkError::Parse(const char* json_txt) {
   return true;
 }
 
-GetBytesResponse::GetBytesResponse(void* buffer, size_t buffer_size,
-                                   SafeFutureHandle<size_t> handle,
-                                   ReferenceCountedFutureImpl* ref_future)
-    : BlockingResponse(handle.get(), ref_future),
+GetBytesResponse::GetBytesResponse(
+    void* buffer, size_t buffer_size, SafeFutureHandle<size_t> handle,
+    std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+    std::shared_ptr<std::atomic<int>> http_status_out)
+    : BlockingResponse(handle.get(), std::move(ref_future),
+                       std::move(http_status_out)),
       output_buffer_(buffer),
       buffer_size_(buffer_size),
       buffer_index_(0) {}
@@ -166,9 +183,12 @@ void GetBytesResponse::MarkCompleted() {
   BlockingResponse::NotifyComplete();
 }
 
-EmptyResponse::EmptyResponse(SafeFutureHandle<void> handle,
-                             ReferenceCountedFutureImpl* ref_future)
-    : BlockingResponse(handle.get(), ref_future) {}
+EmptyResponse::EmptyResponse(
+    SafeFutureHandle<void> handle,
+    std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+    std::shared_ptr<std::atomic<int>> http_status_out)
+    : BlockingResponse(handle.get(), std::move(ref_future),
+                       std::move(http_status_out)) {}
 
 bool EmptyResponse::ProcessBody(const char* buffer, size_t length) {
   buffer_ += std::string(buffer, length);
@@ -195,10 +215,12 @@ void EmptyResponse::MarkCompleted() {
   BlockingResponse::NotifyComplete();
 }
 
-GetFileResponse::GetFileResponse(const char* filename,
-                                 SafeFutureHandle<size_t> handle,
-                                 ReferenceCountedFutureImpl* ref_future)
-    : BlockingResponse(handle.get(), ref_future),
+GetFileResponse::GetFileResponse(
+    const char* filename, SafeFutureHandle<size_t> handle,
+    std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+    std::shared_ptr<std::atomic<int>> http_status_out)
+    : BlockingResponse(handle.get(), std::move(ref_future),
+                       std::move(http_status_out)),
       filename_(filename),
       bytes_written_(0) {}
 
@@ -247,10 +269,13 @@ void GetFileResponse::MarkCompleted() {
 }
 
 ReturnedMetadataResponse::ReturnedMetadataResponse(
-    SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* ref_future,
-    const StorageReference& storage_reference)
-    : BlockingResponse(handle.get(), ref_future),
-      storage_reference_(storage_reference) {}
+    SafeFutureHandle<Metadata> handle,
+    std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+    StorageReference storage_reference,
+    std::shared_ptr<std::atomic<int>> http_status_out)
+    : BlockingResponse(handle.get(), std::move(ref_future),
+                       std::move(http_status_out)),
+      storage_reference_(std::move(storage_reference)) {}
 
 bool ReturnedMetadataResponse::ProcessBody(const char* buffer, size_t length) {
   buffer_ += std::string(buffer, length);
@@ -288,9 +313,12 @@ void ReturnedMetadataResponse::MarkCompleted() {
 
 ReturnedListResponse::ReturnedListResponse(
     SafeFutureHandle<StorageListResult> handle,
-    ReferenceCountedFutureImpl* ref_future,
-    std::weak_ptr<StorageInternal> storage)
-    : BlockingResponse(handle.get(), ref_future),
+    std::shared_ptr<ReferenceCountedFutureImpl> ref_future,
+    StoragePath root_path, std::weak_ptr<StorageInternal> storage,
+    std::shared_ptr<std::atomic<int>> http_status_out)
+    : BlockingResponse(handle.get(), std::move(ref_future),
+                       std::move(http_status_out)),
+      root_path_(std::move(root_path)),
       storage_(std::move(storage)) {}
 
 bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
@@ -302,8 +330,14 @@ bool ReturnedListResponse::ProcessBody(const char* buffer, size_t length) {
 void ReturnedListResponse::MarkCompleted() {
   BlockingResponse::MarkCompleted();
   SafeFutureHandle<StorageListResult> handle(handle_);
-  auto locked_storage = storage_.lock();
-  if (status() == rest::util::HttpSuccess && locked_storage) {
+  if (storage_.expired()) {
+    ref_future_->Complete(handle, kErrorCancelled,
+                          "Storage instance was destroyed.");
+    NotifyProgress();
+    BlockingResponse::NotifyComplete();
+    return;
+  }
+  if (status() == rest::util::HttpSuccess) {
     Variant response_variant = util::JsonToVariant(buffer_.c_str());
     if (response_variant.is_map()) {
       auto& map = response_variant.map();
@@ -322,7 +356,7 @@ void ReturnedListResponse::MarkCompleted() {
               prefix_str.pop_back();
             }
             prefixes.push_back(StorageReferenceInternal::CreateWeakReference(
-                locked_storage->GetChildPath(prefix_str), storage_));
+                root_path_.GetChild(prefix_str), storage_));
           }
         }
       }
@@ -335,7 +369,7 @@ void ReturnedListResponse::MarkCompleted() {
             if (item_map.find(Variant("name")) != item_map.end() &&
                 item_map.at(Variant("name")).is_string()) {
               items.push_back(StorageReferenceInternal::CreateWeakReference(
-                  locked_storage->GetChildPath(
+                  root_path_.GetChild(
                       item_map.at(Variant("name")).string_value()),
                   storage_));
             }
@@ -349,8 +383,9 @@ void ReturnedListResponse::MarkCompleted() {
       }
 
       internal::StorageListResultInternal* result_internal =
-          new internal::StorageListResultInternal(prefixes, items,
-                                                  next_page_token);
+          new internal::StorageListResultInternal(std::move(prefixes),
+                                                  std::move(items),
+                                                  std::move(next_page_token));
       ref_future_->CompleteWithResult(
           handle, kErrorNone, "",
           internal::StorageListResultInternal::AsStorageListResult(

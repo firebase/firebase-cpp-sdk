@@ -145,7 +145,8 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() {
 
 Future<void> DatabaseReferenceInternal::RemoveValue() {
   SafeFutureHandle<void> handle = ref_future()->SafeAlloc<void>(kDatabaseReferenceFnRemoveValue);
-  [impl() removeValueWithCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
+  [impl() removeValueWithCompletionBlock:CreateCompletionBlock(handle, ref_future()->core(),
+                                                               database_)];
   return MakeFuture(ref_future(), handle);
 }
 
@@ -171,8 +172,8 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
       };
   SafeFutureHandle<DataSnapshot> handle = ref_future()->SafeAlloc<DataSnapshot>(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
-  FutureCallbackData<DataSnapshot>* data =
-      new FutureCallbackData<DataSnapshot>(handle, ref_future(), weak_database);
+  auto data = std::make_shared<FutureCallbackData<DataSnapshot>>(
+      handle, ref_future()->core(), weak_database);
   void (^completion_block)(NSError *_Nullable, BOOL, FIRDataSnapshot *_Nullable) =
       ^(NSError *error, BOOL was_committed, FIRDataSnapshot *snapshot) {
         if (auto locked_db = data->database.lock()) {
@@ -181,27 +182,27 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
           if (error == nil) {
             if (was_committed) {
               // Succeeded.
-              data->impl->CompleteWithResult(
-                  data->handle, error_code, error_string,
+              ReferenceCountedFutureImpl::CompleteCoreWithResult(
+                  data->future_core, data->handle, error_code, error_string,
                   DataSnapshot(new DataSnapshotInternal(
                       data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
             } else {
               // Aborted.
-              data->impl->CompleteWithResult(
-                  data->handle, kErrorTransactionAbortedByUser,
+              ReferenceCountedFutureImpl::CompleteCoreWithResult(
+                  data->future_core, data->handle, kErrorTransactionAbortedByUser,
                   GetErrorMessage(kErrorTransactionAbortedByUser),
                   DataSnapshot(new DataSnapshotInternal(
                       data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
             }
           } else {
             // Error occurred.
-            data->impl->Complete(data->handle, error_code, error_string);
+            ReferenceCountedFutureImpl::CompleteCore(data->future_core, data->handle, error_code,
+                                                     error_string);
           }
         }
         if (delete_context) {
           delete_context(context);
         }
-        delete data;
       };
   [impl() runTransactionBlock:transaction_block andCompletionBlock:completion_block];
   return MakeFuture(ref_future(), handle);
@@ -221,7 +222,7 @@ Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
     ref_future()->Complete(handle, kErrorInvalidVariantType, kErrorMsgInvalidVariantForPriority);
   } else {
     [impl() setPriority:VariantToId(priority)
-        withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
+        withCompletionBlock:CreateCompletionBlock(handle, ref_future()->core(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -237,7 +238,7 @@ Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
     ref_future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
   } else {
     [impl() setValue:VariantToId(value)
-        withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
+        withCompletionBlock:CreateCompletionBlock(handle, ref_future()->core(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -260,7 +261,7 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(const Variant& value
   } else {
     [impl() setValue:VariantToId(value)
                 andPriority:VariantToId(priority)
-        withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
+        withCompletionBlock:CreateCompletionBlock(handle, ref_future()->core(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -280,7 +281,7 @@ Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
     id values_id = VariantToId(values);
     NSDictionary *values_dict = (NSDictionary *)values_id;
     [impl() updateChildValues:values_dict
-          withCompletionBlock:CreateCompletionBlock(handle, ref_future(), database_)];
+          withCompletionBlock:CreateCompletionBlock(handle, ref_future()->core(), database_)];
   }
   return MakeFuture(ref_future(), handle);
 }

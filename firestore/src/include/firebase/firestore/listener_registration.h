@@ -99,8 +99,10 @@ class ListenerRegistration {
    * not valid. An invalid `ListenerRegistration` could be the result of:
    *   - Creating a `ListenerRegistration` using the default constructor.
    *   - Moving from the `ListenerRegistration`.
-   *   - Deleting your Firestore instance, which will invalidate all the
-   *     `ListenerRegistration` instances associated with it.
+   *   - Terminating the underlying Firestore service (via
+   *     `Firestore::Terminate()`) or dropping all `App` and `Firestore`
+   *     handles, which will invalidate all `ListenerRegistration` instances
+   *     associated with it.
    *
    * @return true if this `ListenerRegistration` is valid, false if this
    * `ListenerRegistration` is invalid.

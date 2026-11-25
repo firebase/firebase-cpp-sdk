@@ -107,39 +107,22 @@ class Firestore {
    * Authentication to authenticate users to the Firestore server backend.
    *
    * If you call GetInstance() multiple times with the same App, you will get
-   * the same instance of Firestore.
+   * handles sharing the same underlying Firestore instance.
    *
    * @param[in] app Your instance of firebase::App. Firebase Firestore will use
    * this to communicate with Firebase Authentication.
    * @param[out] init_result_out If provided, the initialization result will be
    * written here. Will be set to firebase::kInitResultSuccess if initialization
-   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
-   * Google Play services is not available on the current device.
+   * succeeded, or firebase::kInitResultFailedMissingDependency if `app` is
+   * invalid or on Android if Google Play services is not available on the
+   * current device.
    *
    * @return An instance of Firestore corresponding to the given App with
-   * default database ID.
+   * default database ID, or an invalid handle if `app` is invalid or
+   * initialization failed.
    */
   static Firestore GetInstance(const ::firebase::App& app,
                                InitResult* init_result_out = nullptr);
-
-  /**
-   * @brief Returns an instance of Firestore corresponding to the default App
-   * with default database ID.
-   *
-   * Firebase Firestore uses the default App to communicate with Firebase
-   * Authentication to authenticate users to the Firestore server backend.
-   *
-   * If you call GetInstance() multiple times, you will get the same instance.
-   *
-   * @param[out] init_result_out If provided, the initialization result will be
-   * written here. Will be set to firebase::kInitResultSuccess if initialization
-   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
-   * Google Play services is not available on the current device.
-   *
-   * @return An instance of Firestore corresponding to the default App
-   * with default database ID.
-   */
-  static Firestore GetInstance(InitResult* init_result_out = nullptr);
 
   /**
    * @brief Returns an instance of Firestore corresponding to the given App with
@@ -148,8 +131,8 @@ class Firestore {
    * Firebase Firestore uses firebase::App to communicate with Firebase
    * Authentication to authenticate users to the Firestore server backend.
    *
-   * If you call GetInstance() multiple times with the same App, you will get
-   * the same instance of Firestore.
+   * If you call GetInstance() multiple times with the same App and database ID,
+   * you will get handles sharing the same underlying Firestore instance.
    *
    * @param[in] app Your instance of firebase::App. Firebase Firestore will use
    * this to communicate with Firebase Authentication.
@@ -157,45 +140,25 @@ class Firestore {
    * this to communicate with Firebase Authentication.
    * @param[out] init_result_out If provided, the initialization result will be
    * written here. Will be set to firebase::kInitResultSuccess if initialization
-   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
-   * Google Play services is not available on the current device.
+   * succeeded, or firebase::kInitResultFailedMissingDependency if `app` is
+   * invalid or on Android if Google Play services is not available on the
+   * current device.
    *
    * @return An instance of Firestore corresponding to the given App with
-   * the given database ID.
+   * the given database ID, or an invalid handle if `app` is invalid or
+   * initialization failed.
    */
   static Firestore GetInstance(const ::firebase::App& app,
                                const char* db_name,
                                InitResult* init_result_out = nullptr);
 
   /**
-   * @brief Returns an instance of Firestore corresponding to the default App
-   * with the given database ID.
+   * @brief Destructor for the Firestore handle.
    *
-   * Firebase Firestore uses firebase::App to communicate with Firebase
-   * Authentication to authenticate users to the Firestore server backend.
-   *
-   * If you call GetInstance() multiple times with the same App, you will get
-   * the same instance of Firestore.
-   *
-   * @param[in] db_name Name of the database. Firebase Firestore will use
-   * this to communicate with Firebase Authentication.
-   * @param[out] init_result_out If provided, the initialization result will be
-   * written here. Will be set to firebase::kInitResultSuccess if initialization
-   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
-   * Google Play services is not available on the current device.
-   *
-   * @return An instance of Firestore corresponding to the default App with
-   * the given database ID.
-   */
-  static Firestore GetInstance(const char* db_name,
-                               InitResult* init_result_out = nullptr);
-
-  /**
-   * @brief Destructor for the Firestore object.
-   *
-   * When deleted, this instance will be removed from the cache of Firestore
-   * objects. If you call GetInstance() in the future with the same App, a new
-   * Firestore instance will be created.
+   * Destroys this handle and releases its shared reference to the underlying
+   * Firestore instance and App. The underlying Firestore instance remains alive
+   * while the owning App or any other Firestore handle stays alive (unless
+   * detached via Terminate()).
    */
   virtual ~Firestore();
 
@@ -206,22 +169,22 @@ class Firestore {
   Firestore(Firestore&& src) noexcept = default;
 
   /** Copy assignment sharing the underlying Firestore instance. */
-  Firestore& operator=(const Firestore& src) = default;
+  Firestore& operator=(const Firestore& src);
 
   /** Move assignment transferring the Firestore handle. */
-  Firestore& operator=(Firestore&& src) noexcept = default;
+  Firestore& operator=(Firestore&& src) noexcept;
 
   /** Returns true if this handle refers to a valid Firestore instance. */
-  bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const noexcept { return internal_ != nullptr; }
 
   /** Returns true if this handle refers to a valid Firestore instance. */
-  explicit operator bool() const { return is_valid(); }
+  explicit operator bool() const noexcept { return is_valid(); }
 
-  friend bool operator==(const Firestore& lhs, const Firestore& rhs) {
+  friend bool operator==(const Firestore& lhs, const Firestore& rhs) noexcept {
     return lhs.internal_ == rhs.internal_;
   }
 
-  friend bool operator!=(const Firestore& lhs, const Firestore& rhs) {
+  friend bool operator!=(const Firestore& lhs, const Firestore& rhs) noexcept {
     return !(lhs == rhs);
   }
 

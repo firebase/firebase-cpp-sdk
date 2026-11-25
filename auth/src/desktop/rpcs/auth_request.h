@@ -54,7 +54,9 @@ class AuthRequest
   std::string GetUrl(const char* server_url = kServerURL);
 
  private:
-  ::firebase::App app_;
+  // Cached at construction time so AuthRequest queued on Auth's scheduler
+  // never holds a strong firebase::App / AppState reference cycle.
+  std::string assigned_emulator_url_;
 };
 
 }  // namespace auth

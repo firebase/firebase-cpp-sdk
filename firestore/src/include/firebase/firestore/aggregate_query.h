@@ -119,8 +119,10 @@ class AggregateQuery {
    * valid. An invalid `AggregateQuery` could be the result of:
    *   - Creating a `AggregateQuery` using the default constructor.
    *   - Moving from the `AggregateQuery`.
-   *   - Deleting your Firestore instance, which will invalidate all the
-   *     `AggregateQuery` instances associated with it.
+   *   - Terminating the underlying Firestore service (via
+   *     `Firestore::Terminate()`) or dropping all `App` and `Firestore`
+   *     handles, which will invalidate all `AggregateQuery` instances
+   *     associated with it.
    *
    * @return true if this `AggregateQuery` is valid, false if this
    * `AggregateQuery` is invalid.

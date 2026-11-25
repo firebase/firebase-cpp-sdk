@@ -17,6 +17,8 @@
 #ifndef FIREBASE_UMP_SRC_COMMON_CONSENT_INFO_INTERNAL_H_
 #define FIREBASE_UMP_SRC_COMMON_CONSENT_INFO_INTERNAL_H_
 
+#include <memory>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/future.h"
@@ -42,7 +44,8 @@ enum ConsentInfoFn {
   kConsentInfoFnCount
 };
 
-class ConsentInfoInternal {
+class ConsentInfoInternal
+    : public std::enable_shared_from_this<ConsentInfoInternal> {
  public:
   virtual ~ConsentInfoInternal();
 
@@ -53,6 +56,11 @@ class ConsentInfoInternal {
 #else
   static ConsentInfoInternal* CreateInstance();
 #endif
+
+  // Called immediately after the instance is wrapped in a `std::shared_ptr`.
+  // Subclasses may register weak handles or native callbacks that require
+  // `shared_from_this()` / `weak_from_this()`.
+  virtual bool PostConstruct() { return true; }
 
   virtual ConsentStatus GetConsentStatus() = 0;
   virtual ConsentFormStatus GetConsentFormStatus() = 0;
@@ -126,6 +134,9 @@ class ConsentInfoInternal {
   }
 
   ReferenceCountedFutureImpl* futures() { return &futures_; }
+  std::shared_ptr<detail::FutureImplCore> future_core() const {
+    return futures_.core();
+  }
   CleanupNotifier* cleanup() { return &cleanup_; }
 
  private:

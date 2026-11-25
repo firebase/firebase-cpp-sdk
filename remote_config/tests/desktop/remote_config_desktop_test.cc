@@ -15,6 +15,10 @@
 #include "remote_config/src/desktop/remote_config_desktop.h"
 
 #include <chrono>  // NOLINT
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <utility>
 
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "firebase/app.h"
@@ -623,6 +627,58 @@ TEST(RemoteConfigLifecycleTest, StaticDurationRemoteConfigSurvivesExit) {
   App app = testing::CreateApp(testing::MockAppOptions(), "rc_static_exit");
   static_rc = RemoteConfig::GetInstance(app);
   ASSERT_TRUE(static_rc.is_valid());
+}
+
+TEST(RemoteConfigLifecycleTest,
+     DropLastHandleInsideOnCompletionAndInvalidHandleCalls) {
+  RemoteConfig invalid;
+  EXPECT_FALSE(static_cast<bool>(invalid));
+  EXPECT_FALSE(invalid.is_valid());
+  EXPECT_FALSE(invalid.app().is_valid());
+  EXPECT_EQ("", invalid.GetString("missing"));
+  EXPECT_EQ(kFutureStatusInvalid, invalid.Fetch().status());
+
+  std::weak_ptr<::firebase::internal::AppState> weak_state;
+  auto rc_holder = std::make_shared<RemoteConfig>();
+  {
+    App app = testing::CreateApp(testing::MockAppOptions(), "rc_drop_in_cb");
+    weak_state = ::firebase::internal::AppState::FromApp(app);
+    *rc_holder = RemoteConfig::GetInstance(app);
+    ASSERT_TRUE(static_cast<bool>(*rc_holder));
+
+    RemoteConfig copy = *rc_holder;
+    EXPECT_EQ(copy, *rc_holder);
+    EXPECT_FALSE(copy != *rc_holder);
+    RemoteConfig moved(std::move(copy));
+    EXPECT_FALSE(static_cast<bool>(copy));  // NOLINT
+    EXPECT_NE(moved, copy);                 // NOLINT
+  }
+
+  std::mutex done_mutex;
+  std::condition_variable done_cv;
+  bool callback_ran = false;
+
+  Future<ConfigInfo> init_future = rc_holder->EnsureInitialized();
+  init_future.OnCompletion([rc_holder, &done_mutex, &done_cv,
+                            &callback_ran](const Future<ConfigInfo>& f) {
+    EXPECT_EQ(kFutureStatusComplete, f.status());
+    // Drop the last owner of AppState directly inside OnCompletion.
+    *rc_holder = RemoteConfig();
+    {
+      std::lock_guard<std::mutex> lock(done_mutex);
+      callback_ran = true;
+    }
+    done_cv.notify_one();
+  });
+  rc_holder.reset();
+
+  {
+    std::unique_lock<std::mutex> lock(done_mutex);
+    ASSERT_TRUE(done_cv.wait_for(lock, std::chrono::seconds(10),
+                                 [&callback_ran]() { return callback_ran; }));
+  }
+  EXPECT_TRUE(weak_state.expired());
+  EXPECT_NE(kFutureStatusPending, init_future.status());
 }
 
 }  // namespace internal

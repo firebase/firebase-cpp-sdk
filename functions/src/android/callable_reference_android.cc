@@ -164,19 +164,28 @@ Functions HttpsCallableReferenceInternal::functions() const {
   return Functions(functions_);
 }
 
+bool HttpsCallableReferenceInternal::Equals(
+    const HttpsCallableReferenceInternal& other) const {
+  if (functions_ != other.functions_) return false;
+  if (obj_ == other.obj_) return true;
+  if (obj_ == nullptr || other.obj_ == nullptr || !functions_) return false;
+  JNIEnv* env = functions_->GetJNIEnv();
+  return env != nullptr && env->IsSameObject(obj_, other.obj_) == JNI_TRUE;
+}
+
 namespace {
 
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<HttpsCallableResult> handle_,
-                     ReferenceCountedFutureImpl* impl_,
+                     std::shared_ptr<detail::FutureImplCore> future_core_,
                      std::weak_ptr<FunctionsInternal> functions_,
                      CallableReferenceFn func_)
       : handle(handle_),
-        impl(impl_),
+        future_core(std::move(future_core_)),
         functions(std::move(functions_)),
         func(func_) {}
   SafeFutureHandle<HttpsCallableResult> handle;
-  ReferenceCountedFutureImpl* impl;
+  std::shared_ptr<detail::FutureImplCore> future_core;
   std::weak_ptr<FunctionsInternal> functions;
   CallableReferenceFn func;
 };
@@ -195,6 +204,10 @@ void HttpsCallableReferenceInternal::FutureCallback(
     util::CheckAndClearJniExceptions(env);
     return;
   }
+  auto future_core = std::move(data->future_core);
+  SafeFutureHandle<HttpsCallableResult> handle = data->handle;
+  std::string status_msg = status_message ? status_message : "";
+
   if (result_code != util::kFutureResultSuccess) {
     // Failed, so the java_result is a FunctionsException.
     std::string message;
@@ -202,27 +215,33 @@ void HttpsCallableReferenceInternal::FutureCallback(
         result_code == util::kFutureResultCancelled
             ? kErrorCancelled
             : functions->ErrorFromJavaFunctionsException(java_result, &message);
-    data->impl->Complete(data->handle, code, message.c_str());
+    util::CheckAndClearJniExceptions(env);
+    functions.reset();
+    ReferenceCountedFutureImpl::CompleteCore(future_core, handle, code,
+                                             message.c_str());
   } else {
     jmethodID getData = callable_result::GetMethodId(callable_result::kGetData);
     jobject java_result_data = env->CallObjectMethod(java_result, getData);
     Variant result_data = util::JavaObjectToVariant(env, java_result_data);
     env->DeleteLocalRef(java_result_data);
+    util::CheckAndClearJniExceptions(env);
     HttpsCallableResult result(result_data);
-    data->impl->CompleteWithResult(data->handle, kErrorNone, status_message,
-                                   result);
+    functions.reset();
+    ReferenceCountedFutureImpl::CompleteCoreWithResult(
+        future_core, handle, kErrorNone, status_msg.c_str(), result);
   }
-
-  util::CheckAndClearJniExceptions(env);
 }
 
 ReferenceCountedFutureImpl* HttpsCallableReferenceInternal::future() {
-  return functions_->future_manager().GetFutureApi(this);
+  return functions_ ? functions_->future_manager().GetFutureApi(this) : nullptr;
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
-  JNIEnv* env = functions_->GetJNIEnv();
   ReferenceCountedFutureImpl* future_impl = future();
+  if (!functions_ || !future_impl || obj_ == nullptr) {
+    return Future<HttpsCallableResult>();
+  }
+  JNIEnv* env = functions_->GetJNIEnv();
   HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
@@ -234,7 +253,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
-          handle, future(), functions_, kCallableReferenceFnCall)),
+          handle, future_impl->core(), functions_, kCallableReferenceFnCall)),
       functions_->jni_task_id());
 
   util::CheckAndClearJniExceptions(env);
@@ -243,14 +262,19 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::CallLastResult() {
-  return static_cast<const Future<HttpsCallableResult>&>(
-      future()->LastResult(kCallableReferenceFnCall));
+  ReferenceCountedFutureImpl* future_impl = future();
+  return future_impl ? static_cast<const Future<HttpsCallableResult>&>(
+                           future_impl->LastResult(kCallableReferenceFnCall))
+                     : Future<HttpsCallableResult>();
 }
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     const Variant& data) {
-  JNIEnv* env = functions_->GetJNIEnv();
   ReferenceCountedFutureImpl* future_impl = future();
+  if (!functions_ || !future_impl || obj_ == nullptr) {
+    return Future<HttpsCallableResult>();
+  }
+  JNIEnv* env = functions_->GetJNIEnv();
   HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
@@ -265,7 +289,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
-          handle, future(), functions_, kCallableReferenceFnCall)),
+          handle, future_impl->core(), functions_, kCallableReferenceFnCall)),
       functions_->jni_task_id());
 
   util::CheckAndClearJniExceptions(env);

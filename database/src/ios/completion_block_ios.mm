@@ -21,17 +21,17 @@ namespace database {
 namespace internal {
 
 CompletionBlock CreateCompletionBlock(SafeFutureHandle<void> handle,
-                                      ReferenceCountedFutureImpl* future,
+                                      std::shared_ptr<detail::FutureImplCore> future_core,
                                       std::weak_ptr<DatabaseInternal> database) {
-  FutureCallbackData<void>* data =
-      new FutureCallbackData<void>(handle, future, std::move(database));
+  auto data = std::make_shared<FutureCallbackData<void>>(handle, std::move(future_core),
+                                                         std::move(database));
   return ^void(NSError *_Nullable error, FIRDatabaseReference *_Nonnull /*ref*/) {
     if (auto locked_db = data->database.lock()) {
       Error error_code = NSErrorToErrorCode(error);
       const char* error_string = GetErrorMessage(error_code);
-      data->impl->Complete(data->handle, error_code, error_string);
+      ReferenceCountedFutureImpl::CompleteCore(data->future_core, data->handle, error_code,
+                                               error_string);
     }
-    delete data;
   };
 }
 

@@ -136,15 +136,13 @@ Repo::Repo(::firebase::internal::AppState& app_state,
 }
 
 Repo::~Repo() {
-  // Remove the App Check token listener before tearing down safe_this_ and
-  // connection_, so no concurrent App Check callback can touch this Repo.
-  if (auto* app_check = database_->app_state().app_check_token_provider()) {
-    app_check->RemoveTokenListener(OnAppCheckTokenChanged, this);
-  }
-
-  // Terminate the connection immediately to prevent messages from arriving
-  // while the SyncTree is being torn down.
+  // Clear safe_this_ first: waits for any in-flight DeferredInitialization or
+  // App Check token callback holding ThisRefLock to exit, and prevents new
+  // callbacks from dereferencing `this` or `connection_`.
   safe_this_.ClearReference();
+  // Synchronously cancel and drain any in-flight App Check callback before
+  // destroying `connection_` and `Repo` members.
+  app_check_subscription_.Reset();
   connection_.reset(nullptr);
   {
     MutexLock lock(SchedulerMutex());
@@ -472,10 +470,16 @@ static std::unique_ptr<PersistenceManagerInterface> CreatePersistenceManager(
 
 // Defers any initialization that is potentially expensive (e.g. disk access).
 void Repo::DeferredInitialization() {
-  // Add App Check state listener
-  if (auto* app_check = database_->app_state().app_check_token_provider()) {
-    app_check->AddTokenListener(OnAppCheckTokenChanged, this);
-  }
+  // Subscribe to App Check token changes on AppState (works reactively even if
+  // App Check is initialized after Database).
+  ThisRef safe_ref = safe_this_;
+  app_check_subscription_ = database_->app_state().SubscribeAppCheckToken(
+      [safe_ref](const std::string& token) mutable {
+        ThisRefLock lock(&safe_ref);
+        if (lock.GetReference() != nullptr) {
+          lock.GetReference()->connection_->RefreshAppCheckToken(token);
+        }
+      });
 
   // Set up server sync tree.
   {
@@ -1215,17 +1219,6 @@ void Repo::UpdateInfo(const std::string& key, const Variant& value) {
   Path path = Path(kDotInfo).GetChild(key);
   VariantUpdateChild(&info_data_, path, value);
   PostEvents(info_sync_tree_->ApplyServerOverwrite(path, value));
-}
-
-// static
-void Repo::OnAppCheckTokenChanged(const std::string& token, void* context) {
-  auto repo = static_cast<Repo*>(context);
-  if (repo) {
-    ThisRefLock lock(&repo->this_ref());
-    if (lock.GetReference() != nullptr) {
-      lock.GetReference()->connection_->RefreshAppCheckToken(token);
-    }
-  }
 }
 
 }  // namespace internal
