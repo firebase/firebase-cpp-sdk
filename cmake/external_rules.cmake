@@ -12,22 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Builds a sanitized environment prefix for nested CMake invocations so target
+# toolchain variables do not leak into host/subproject builds, while preserving
+# PATH, HOME (required by tools like Homebrew/CocoaPods on macOS), and
+# CMAKE_POLICY_VERSION_MINIMUM (required by CMake 4 for older subprojects).
+function(firebase_build_clean_env_command OUT_VAR)
+  set(_policy_version_minimum "")
+  if(DEFINED CMAKE_POLICY_VERSION_MINIMUM AND
+     NOT "${CMAKE_POLICY_VERSION_MINIMUM}" STREQUAL "")
+    set(_policy_version_minimum "${CMAKE_POLICY_VERSION_MINIMUM}")
+  elseif(DEFINED ENV{CMAKE_POLICY_VERSION_MINIMUM} AND
+         NOT "$ENV{CMAKE_POLICY_VERSION_MINIMUM}" STREQUAL "")
+    set(_policy_version_minimum "$ENV{CMAKE_POLICY_VERSION_MINIMUM}")
+  endif()
+
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    if(NOT "${_policy_version_minimum}" STREQUAL "")
+      set(${OUT_VAR}
+        "${CMAKE_COMMAND}" -E env
+        "CMAKE_POLICY_VERSION_MINIMUM=${_policy_version_minimum}"
+        PARENT_SCOPE)
+    else()
+      set(${OUT_VAR} "" PARENT_SCOPE)
+    endif()
+    return()
+  endif()
+
+  set(_env_cmd env -i "PATH=$ENV{PATH}")
+  if(DEFINED ENV{HOME})
+    list(APPEND _env_cmd "HOME=$ENV{HOME}")
+  endif()
+  if(NOT "${_policy_version_minimum}" STREQUAL "")
+    list(APPEND _env_cmd
+      "CMAKE_POLICY_VERSION_MINIMUM=${_policy_version_minimum}")
+  endif()
+  set(${OUT_VAR} "${_env_cmd}" PARENT_SCOPE)
+endfunction()
+
 # Executes a CMake build of the external dependencies, which will pull them
 # as ExternalProjects, under an "external" subdirectory.
 function(download_external_sources)
   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/external)
 
   # Setup cmake environment.
-  # These commands are executed from within the currect context, which has set
-  # variables for the target platform. We use "env -i" to clear these
-  # variables, and manually keep the PATH to regular bash path.
-  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-    # Windows doesn't have an 'env' command
-    set(ENV_COMMAND "")
-  else()
-    set(firebase_command_line_path "$ENV{PATH}")
-    set(ENV_COMMAND env -i PATH=${firebase_command_line_path})
-  endif()
+  firebase_build_clean_env_command(ENV_COMMAND)
 
   if(IOS)
     set(external_platform "IOS")
@@ -128,17 +156,7 @@ endfunction()
 # Builds a subset of external dependencies that need to be built before everything else.
 function(build_external_dependencies)
   # Setup cmake environment.
-  # These commands are executed from within the currect context, which has set
-  # variables for the target platform. We use "env -i" to clear these
-  # variables, and manually keep the PATH to regular bash path.
-  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-    # Windows doesn't have an 'env' command
-    set(ENV_COMMAND "")
-  else()
-    set(firebase_command_line_path "$ENV{PATH}")
-    set(firebase_command_line_home "$ENV{HOME}")
-    set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
-  endif()
+  firebase_build_clean_env_command(ENV_COMMAND)
 
   message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
   message(STATUS "CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")

@@ -176,9 +176,14 @@ if(APPLE)
 endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
-  # Linux-specific option.
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+  # Linux-specific option. -Wno-maybe-uninitialized is GCC-only and rejected
+  # by Clang when warnings are treated as errors.
+  if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
+  endif()
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+  endif()
   if (FIREBASE_LINUX_USE_CXX11_ABI)
     add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
@@ -573,18 +578,13 @@ else()
   # If we didn't do this, we'd end up building flatc for the target platform
   # instead of the building platform, and thus couldn't use flatc on the
   # building platform.
-  set(firebase_command_line_path "$ENV{PATH}")
-
   if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
     # OS - Specific Command Joiner
     set(COMMAND_CONCAT &)
-
-    #Windows doesn't have an 'env' command
-    set(ENV_COMMAND "")
   else()
     set(COMMAND_CONCAT &&)
-    set(ENV_COMMAND env -i PATH=${firebase_command_line_path})
   endif()
+  firebase_build_clean_env_command(ENV_COMMAND)
 
   # The cmake executable to use when compiling flatc. Normally, the default
   # value (finding cmake in the PATH) is fine; however, in cases where cmake is
