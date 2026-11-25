@@ -42,5 +42,5 @@ ExternalProject_Add(
   INSTALL_COMMAND   ""
   TEST_COMMAND      ""
   HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
-  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
+  PATCH_COMMAND git apply ${patch_file}
 )
