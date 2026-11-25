@@ -17,6 +17,7 @@
 #include <assert.h>
 
 #include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
@@ -31,6 +32,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
         // Nothing to do.
     },
     false);
+FIREBASE_APP_REGISTER_LIBRARY(remote_config, "fire-rc",
+                              FIREBASE_VERSION_NUMBER_STRING);
 
 namespace firebase {
 namespace remote_config {

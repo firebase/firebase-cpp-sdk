@@ -615,6 +615,9 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - General (Desktop): Fixed Auth and App Check staying registered with their
+      `App` after being deleted. Previously a deleted `AppCheck` instance could
+      be silently re-created by other products using the same `App`.
     - Database (Desktop): Fixed `Database::set_persistence_enabled()` not being
       preserved across recreated `Database` instances for the same `App` and
       database URL.
