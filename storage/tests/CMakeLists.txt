@@ -23,3 +23,11 @@ firebase_cpp_cc_test(
     firebase_testing
 )
 
+firebase_cpp_cc_test(
+  firebase_storage_desktop_listener_test
+  SOURCES
+    desktop/listener_desktop_test.cc
+  DEPENDS
+    firebase_rest_lib
+    firebase_storage
+)
