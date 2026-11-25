@@ -26,6 +26,7 @@
 
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
+#include "app/src/callback.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
@@ -264,6 +265,35 @@ TEST(AppDesktopTest, TestLoadAppOptionsFromJsonConfigFileInInternationalPath) {
 
   EXPECT_TRUE(ChangeDirectoryUtf8(previous_directory));
   EXPECT_TRUE(RemoveDirectoryUtf8(new_dir));
+}
+
+// app_common::RemoveApp() is also called for Apps that AddApp() never
+// registered (platform initialization failed first). That must not release the
+// callback reference AddApp() took for the Apps that are still registered.
+TEST(AppDesktopTest, RemovingUnregisteredAppKeepsCallbacksInitialized) {
+  AppOptions options;
+  options.set_app_id("fake app id");
+  options.set_api_key("fake api key");
+  options.set_project_id("fake project id");
+
+  std::unique_ptr<App> registered(App::Create(options, "registered"));
+  ASSERT_NE(registered, nullptr);
+  std::unique_ptr<App> unregistered(App::Create(options, "unregistered"));
+  ASSERT_NE(unregistered, nullptr);
+
+  // Unregister the second App the way ~App() does.
+  app_common::RemoveApp(unregistered.get());
+  ASSERT_EQ(App::GetInstance("unregistered"), nullptr);
+  ASSERT_TRUE(callback::IsInitialized());
+
+  // The App is no longer registered, so removing it again must be a no-op.
+  app_common::RemoveApp(unregistered.get());
+  EXPECT_TRUE(callback::IsInitialized());
+
+  unregistered.reset();
+  EXPECT_TRUE(callback::IsInitialized());
+  registered.reset();
+  EXPECT_FALSE(callback::IsInitialized());
 }
 
 static const char kLibraryTestModule[] = "library_test_module";

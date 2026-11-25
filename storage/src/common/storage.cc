@@ -26,6 +26,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "storage/src/common/storage_uri_parser.h"
 
@@ -54,7 +55,13 @@ namespace storage {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseStorage);
 
-Mutex g_storages_lock;  // NOLINT
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; a Storage owned by a static object can still lock it
+// from its destructor during process exit.
+static Mutex& StoragesLock() {
+  static NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 static std::map<std::pair<App*, std::string>, Storage*>* g_storages = nullptr;
 
 Storage* Storage::GetInstance(::firebase::App* app,
@@ -64,7 +71,7 @@ Storage* Storage::GetInstance(::firebase::App* app,
 
 Storage* Storage::GetInstance(::firebase::App* app, const char* url,
                               InitResult* init_result_out) {
-  MutexLock lock(g_storages_lock);
+  MutexLock lock(StoragesLock());
   if (!g_storages) {
     g_storages = new std::map<std::pair<App*, std::string>, Storage*>();
   }
@@ -135,7 +142,7 @@ Storage::Storage(::firebase::App* app, const char* url) {
 }
 
 void Storage::DeleteInternal() {
-  MutexLock lock(g_storages_lock);
+  MutexLock lock(StoragesLock());
   if (!internal_) return;
 
   // An instance whose initialization failed was never registered with the

@@ -22,6 +22,7 @@
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/firestore_resources.h"
 #include "firestore/src/android/aggregate_query_android.h"
@@ -234,8 +235,11 @@ class JavaFirestoreMap {
   Global<HashMap> firestores_;
 };
 
-// init_mutex protects all the globals below.
-Mutex init_mutex;  // NOLINT
+// InitMutex() protects all the globals below.
+Mutex& InitMutex() {
+  static NoDestructor<Mutex> init_mutex;
+  return *init_mutex;
+}
 int initialize_count = 0;
 Loader* global_loader = nullptr;
 
@@ -296,7 +300,7 @@ FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
 
 /* static */
 bool FirestoreInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex);
+  MutexLock init_lock(InitMutex());
   if (initialize_count == 0) {
     jni::Initialize(app->java_vm());
 
@@ -381,7 +385,7 @@ bool FirestoreInternal::Initialize(App* app) {
 
 /* static */
 void FirestoreInternal::ReleaseClassesLocked(Env& env) {
-  // Assumes `init_mutex` is held.
+  // Assumes `InitMutex()` is held.
   String::Terminate(env);
 
   delete global_loader;
@@ -390,7 +394,7 @@ void FirestoreInternal::ReleaseClassesLocked(Env& env) {
 
 /* static */
 void FirestoreInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex);
+  MutexLock init_lock(InitMutex());
   FIREBASE_ASSERT(initialize_count > 0);
   initialize_count--;
   if (initialize_count == 0) {
@@ -676,7 +680,7 @@ void Firestore::set_log_level(LogLevel log_level) {
   bool logging_enabled = log_level < LogLevel::kLogLevelInfo;
 
   {
-    MutexLock lock(init_mutex);
+    MutexLock lock(InitMutex());
 
     // Set the initial_log_state on every invocation, just in case Firestore
     // is terminated for long enough to unload the Firestore classes within

@@ -249,6 +249,7 @@ set(utility_common_HDRS
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
+    src/no_destructor.h
     src/optional.h
     src/path.h
     src/pthread_condvar.h
@@ -301,6 +302,12 @@ if(ANDROID OR IOS)
       ${FLATBUFFERS_SOURCE_DIR}/src/idl_gen_text.cpp
       ${FLATBUFFERS_SOURCE_DIR}/src/reflection.cpp
       ${FLATBUFFERS_SOURCE_DIR}/src/util.cpp)
+  # Third-party FlatBuffers sources define static globals with non-trivial
+  # destructors; exempt them from the SDK's exit-time destructor check below.
+  set_source_files_properties(
+      ${app_flatbuffers_srcs}
+      PROPERTIES COMPILE_OPTIONS
+      "$<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-exit-time-destructors>")
   set(app_flatbuffers_lib)
 else()
   set(app_flatbuffers_srcs)
@@ -330,6 +337,8 @@ if (MSVC)
 else()
   target_compile_options(firebase_app PRIVATE -fno-exceptions)
 endif()
+
+firebase_cpp_reject_exit_time_destructors(firebase_app)
 
 target_include_directories(firebase_app
   PUBLIC

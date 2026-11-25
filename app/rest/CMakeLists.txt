@@ -44,6 +44,8 @@ set(rest_SRCS
 add_library(firebase_rest_lib STATIC
     ${rest_SRCS})
 
+firebase_cpp_reject_exit_time_destructors(firebase_rest_lib)
+
 target_include_directories(firebase_rest_lib
   PUBLIC
     ${FIREBASE_CPP_SDK_ROOT_DIR}

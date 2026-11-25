@@ -25,6 +25,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app_check/src/common/common.h"
 
@@ -63,7 +64,13 @@ namespace app_check {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAppCheck);
 
-Mutex g_app_check_lock;  // NOLINT
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; an AppCheck owned by a static object can still lock
+// it from its destructor during process exit.
+static Mutex& AppCheckLock() {
+  static NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 
 // Define the destructors for the virtual listener/provider/factory classes.
@@ -88,7 +95,7 @@ namespace internal {
 AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
   if (!app) return nullptr;
 
-  MutexLock lock(g_app_check_lock);
+  MutexLock lock(AppCheckLock());
   if (g_app_check_map) {
     auto it = g_app_check_map->find(app);
     if (it != g_app_check_map->end()) {
@@ -103,7 +110,7 @@ AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
 AppCheck* AppCheck::GetInstance(::firebase::App* app) {
   if (!app) return nullptr;
 
-  MutexLock lock(g_app_check_lock);
+  MutexLock lock(AppCheckLock());
   if (!g_app_check_map) {
     g_app_check_map = new std::map<::firebase::App*, AppCheck*>();
   }
@@ -129,7 +136,7 @@ AppCheck::AppCheck(::firebase::App* app) {
 AppCheck::~AppCheck() { DeleteInternal(); }
 
 void AppCheck::DeleteInternal() {
-  MutexLock lock(g_app_check_lock);
+  MutexLock lock(AppCheckLock());
 
   if (!internal_) return;
 

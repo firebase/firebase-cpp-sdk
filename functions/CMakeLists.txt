@@ -82,6 +82,8 @@ target_compile_definitions(firebase_functions
     -DINTERNAL_EXPERIMENTAL=1
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_functions)
+
 if(ANDROID)
   firebase_cpp_proguard_file(functions)
 elseif(IOS)
@@ -103,6 +105,11 @@ elseif(IOS)
       FRAMEWORK TRUE
     )
   endif()
+endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
 endif()
 
 cpp_pack_library(firebase_functions "")

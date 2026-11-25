@@ -34,6 +34,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 
 // strtok_r is strtok_s on Windows.
@@ -170,13 +171,18 @@ const char* kBuildSource = "custom_built";
 const char* kApiClientHeader = "x-firebase-client";
 const char* kXFirebaseGmpIdHeader = "X-Firebase-GMPID";
 
-SystemLogger g_system_logger;  // NOLINT
+// Wrapped in NoDestructor so per-App loggers remain valid if static Firebase
+// instances log during process exit.
+static SystemLogger& GetSystemLogger() {
+  static NoDestructor<SystemLogger> system_logger;
+  return *system_logger;
+}
 
 // Private cross platform data associated with an app.
 struct AppData {
   // TODO(b/140528778): Remove kLogLevelVerbose here and add [GS]etLogLevel
   // member functions to app.
-  AppData() : logger(&g_system_logger, kLogLevelVerbose) {}
+  AppData() : logger(&GetSystemLogger(), kLogLevelVerbose) {}
 
   // App associated with this data.
   App* app;
@@ -376,10 +382,10 @@ void RemoveApp(App* app) {
         delete g_apps;
         g_apps = nullptr;
       }
-    }
-    callback::Terminate(last_app);
-    if (last_app) {
-      LibraryRegistry::Terminate();
+      callback::Terminate(last_app);
+      if (last_app) {
+        LibraryRegistry::Terminate();
+      }
     }
   }
 }

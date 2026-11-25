@@ -31,6 +31,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/no_destructor.h"
 #include "app/src/semaphore.h"
 #include "app/src/util.h"
 #include "auth/src/common.h"
@@ -55,14 +56,29 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAuth);
 // and an Auth requires an App. So, the user acquires the Auth via an App
 // reference.
 // TODO(jsanmiya): Ensure all the Auths are destroyed on shutdown.
-std::map<App*, Auth*> g_auths;
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; an Auth owned by a static (e.g. a static
+// std::unique_ptr<Auth>) can still remove itself during process exit.
+static std::map<App*, Auth*>& Auths() {
+  static NoDestructor<std::map<App*, Auth*>> auths;
+  return *auths;
+}
 Mutex* g_auths_mutex = new Mutex();
+
+// Must be called with *g_auths_mutex held.
+static Auth* FindAuthLocked(App* app) {
+  std::map<App*, Auth*>::iterator it = Auths().find(app);
+  if (it != Auths().end()) {
+    return it->second;
+  }
+  return nullptr;
+}
 
 // static
 Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
   MutexLock lock(*g_auths_mutex);
   // Return the Auth if it already exists.
-  Auth* existing_auth = FindAuth(app);
+  Auth* existing_auth = FindAuthLocked(app);
   if (existing_auth) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     // Log heartbeat data when instance getters are called.
@@ -81,7 +97,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 
   // Stick it in the global map so we remember it, and can delete it on
   // shutdown.
-  g_auths[app] = auth;
+  Auths()[app] = auth;
 
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return auth;
@@ -90,12 +106,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 // static
 Auth* Auth::FindAuth(App* app) {
   MutexLock lock(*g_auths_mutex);
-  // Return the Auth if it already exists.
-  std::map<App*, Auth*>::iterator it = g_auths.find(app);
-  if (it != g_auths.end()) {
-    return it->second;
-  }
-  return nullptr;
+  return FindAuthLocked(app);
 }
 
 // Auth uses the pimpl mechanism to hide internal data types from the interface.
@@ -145,17 +156,15 @@ void Auth::DeleteInternal() {
 
   int num_auths_remaining = 0;
   {
-    // Remove `this` from the g_auths map.
-    // The mapping is 1:1, so we should only ever delete one.
-    for (auto it = g_auths.begin(); it != g_auths.end(); ++it) {
-      if (it->second == this) {
-        LogDebug("Deleting Auth %p for App %p", this, it->first);
-        g_auths.erase(it);
-        break;
-      }
+    // Remove `this` from the Auths map by its owning App key.
+    std::map<App*, Auth*>& auths = Auths();
+    auto it = auths.find(auth_data_->app);
+    if (it != auths.end()) {
+      LogDebug("Deleting Auth %p for App %p", this, it->first);
+      auths.erase(it);
     }
 
-    num_auths_remaining = g_auths.size();
+    num_auths_remaining = auths.size();
   }
 
   auth_data_->ClearListeners();

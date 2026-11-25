@@ -76,3 +76,11 @@ if(ANDROID OR IOS)
     )
 
 endif()
+
+firebase_cpp_cc_test(
+  firebase_messaging_static_destruction_test
+  SOURCES
+    static_destruction_test.cc
+  DEPENDS
+    firebase_messaging
+)

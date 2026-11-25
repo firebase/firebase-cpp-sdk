@@ -65,6 +65,8 @@ target_compile_definitions(firebase_installations
     -DINTERNAL_EXPERIMENTAL=1
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_installations)
+
 if(ANDROID)
   firebase_cpp_proguard_file(installations)
 elseif(IOS)

@@ -27,6 +27,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 
 // QueryInternal is defined in these 3 files, one implementation for each OS.
@@ -56,7 +57,13 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseFunctions);
 
 constexpr const char* kDefaultRegion = "us-central1";
 
-Mutex g_functions_lock;  // NOLINT
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; a Functions owned by a static object can still lock
+// it from its destructor during process exit.
+static Mutex& FunctionsLock() {
+  static NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 static std::map<std::pair<App*, std::string>, Functions*>* g_functions =
     nullptr;
 
@@ -67,7 +74,7 @@ Functions* Functions::GetInstance(::firebase::App* app,
 
 Functions* Functions::GetInstance(::firebase::App* app, const char* region,
                                   InitResult* init_result_out) {
-  MutexLock lock(g_functions_lock);
+  MutexLock lock(FunctionsLock());
   if (!g_functions) {
     g_functions = new std::map<std::pair<App*, std::string>, Functions*>();
   }
@@ -120,7 +127,7 @@ Functions::Functions(::firebase::App* app, const char* region) {
 Functions::~Functions() { DeleteInternal(); }
 
 void Functions::DeleteInternal() {
-  MutexLock lock(g_functions_lock);
+  MutexLock lock(FunctionsLock());
 
   if (!internal_) return;
 

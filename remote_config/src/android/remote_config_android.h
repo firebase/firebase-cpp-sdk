@@ -108,7 +108,6 @@ class RemoteConfigInternal {
   }
 
  private:
-  static firebase::internal::ReferenceCount initializer_;
   // app
   const firebase::App& app_;
 

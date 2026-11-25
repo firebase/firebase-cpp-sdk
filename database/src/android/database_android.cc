@@ -23,6 +23,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
@@ -38,8 +39,6 @@
 namespace firebase {
 namespace database {
 namespace internal {
-
-Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 const char kApiIdentifier[] = "Database";
 
@@ -164,7 +163,10 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/database/internal/cpp/CppChildEventListener",
     CPP_CHILD_EVENT_LISTENER_METHODS)
 
-Mutex DatabaseInternal::init_mutex_;  // NOLINT
+static Mutex& InitMutex() {
+  static NoDestructor<Mutex> init_mutex;
+  return *init_mutex;
+}
 int DatabaseInternal::initialize_count_ = 0;
 std::map<jint, Error>* DatabaseInternal::java_error_to_cpp_ = nullptr;
 
@@ -253,7 +255,7 @@ const char* kCppLogLevelToLoggerLevelName[] = {
 };
 
 bool DatabaseInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex_);
+  MutexLock init_lock(InitMutex());
   if (initialize_count_ == 0) {
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
@@ -385,7 +387,7 @@ void DatabaseInternal::ReleaseClasses(App* app) {
 }
 
 void DatabaseInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex_);
+  MutexLock init_lock(InitMutex());
   assert(initialize_count_ > 0);
   initialize_count_--;
   if (initialize_count_ == 0) {

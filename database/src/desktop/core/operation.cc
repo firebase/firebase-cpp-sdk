@@ -17,6 +17,7 @@
 #include <cassert>
 
 #include "app/src/assert.h"
+#include "app/src/no_destructor.h"
 #include "app/src/path.h"
 #include "database/src/desktop/util_desktop.h"
 
@@ -24,10 +25,17 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-const OperationSource OperationSource::kUser(OperationSource::kSourceUser,
-                                             Optional<QueryParams>(), false);
-const OperationSource OperationSource::kServer(OperationSource::kSourceServer,
-                                               Optional<QueryParams>(), false);
+const OperationSource& OperationSource::User() {
+  static const NoDestructor<OperationSource> user(
+      OperationSource::kSourceUser, Optional<QueryParams>(), false);
+  return *user;
+}
+
+const OperationSource& OperationSource::Server() {
+  static const NoDestructor<OperationSource> server(
+      OperationSource::kSourceServer, Optional<QueryParams>(), false);
+  return *server;
+}
 
 OperationSource OperationSource::ForServerTaggedQuery(
     const QueryParams& params) {
@@ -50,7 +58,7 @@ Operation Operation::Merge(const OperationSource& source, const Path& path,
 Operation Operation::AckUserWrite(const Path& path,
                                   const Tree<bool>& affected_tree,
                                   AckStatus status) {
-  return Operation(Operation::kTypeAckUserWrite, OperationSource::kUser, path,
+  return Operation(Operation::kTypeAckUserWrite, OperationSource::User(), path,
                    Variant(), CompoundWrite(), affected_tree, status);
 }
 

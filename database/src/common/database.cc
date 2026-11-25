@@ -26,6 +26,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 
 // DatabaseInternal is defined in these 3 files, one implementation for each OS.
@@ -58,8 +59,22 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseDatabase);
 using internal::DatabaseInternal;
 
 using DatabaseMap = std::map<std::pair<std::string, std::string>, Database*>;
-Mutex g_databases_lock;  // NOLINT
+
+// Function-local static wrapped in NoDestructor so it is constructed on first
+// use and never destroyed; a Database owned by a static object can still lock
+// it from its destructor during process exit.
+static Mutex& DatabasesLock() {
+  static NoDestructor<Mutex> mutex;
+  return *mutex;
+}
 static DatabaseMap* g_databases = nullptr;
+
+namespace internal {
+Mutex& DatabaseReferenceConstructorMutex() {
+  static NoDestructor<Mutex> mutex;
+  return *mutex;
+}
+}  // namespace internal
 
 namespace {
 DatabaseMap::key_type MakeKey(App* app, const std::string& url) {
@@ -73,7 +88,7 @@ Database* Database::GetInstance(App* app, const char* url,
     LogError("Database::GetInstance(): The app must not be null.");
     return nullptr;
   }
-  MutexLock lock(g_databases_lock);
+  MutexLock lock(DatabasesLock());
   if (!g_databases) {
     g_databases = new DatabaseMap();
   }
@@ -120,7 +135,7 @@ Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
 }
 
 void Database::DeleteInternal() {
-  MutexLock lock(g_databases_lock);
+  MutexLock lock(DatabasesLock());
 
   if (!internal_) return;
 
@@ -140,7 +155,7 @@ void Database::DeleteInternal() {
   app_notifier->UnregisterObject(this);
 
   {
-    MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
+    MutexLock db_ref_lock(internal::DatabaseReferenceConstructorMutex());
     // Force cleanup to happen first.
     internal_->cleanup().CleanupAll();
   }

@@ -14,6 +14,7 @@
 
 #include "installations/src/android/installations_android.h"
 
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "installations/src/common.h"
@@ -55,7 +56,10 @@ METHOD_LOOKUP_DEFINITION(
 using firebase::internal::ReferenceCount;
 using firebase::internal::ReferenceCountLock;
 
-ReferenceCount internal::InstallationsInternal::initializer_;  // NOLINT
+static ReferenceCount& Initializer() {
+  static NoDestructor<ReferenceCount> initializer;
+  return *initializer;
+}
 
 template <typename T>
 struct FISDataHandle {
@@ -134,8 +138,8 @@ void TokenResultCallback(JNIEnv* env, jobject result,
 }
 
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+    : app_(app), future_impl_(kInstallationsFnCount), internal_obj_(nullptr) {
+  ReferenceCountLock<ReferenceCount> lock(&Initializer());
   static const char* kApiIdentifier = "Installations";
   LogDebug("%s API Initializing", kApiIdentifier);
   JNIEnv* env = app_.GetJNIEnv();
@@ -166,10 +170,23 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
   jobject installations_instance_local = env->CallStaticObjectMethod(
       installations_class,
       installations::GetMethodId(installations::kGetInstance), platform_app);
+  env->DeleteLocalRef(platform_app);
+  if (util::CheckAndClearJniExceptions(env)) {
+    installations_instance_local = nullptr;
+  }
   FIREBASE_ASSERT(installations_instance_local);
+  if (!installations_instance_local) {
+    // FIREBASE_ASSERT() does not abort when the application installed its own
+    // log callback. Initialized() is false from here on, so Cleanup() is never
+    // called for this instance: drop the reference taken above.
+    if (lock.RemoveReference() == 1) {
+      ReleaseClasses(env);
+      util::Terminate(env);
+    }
+    return;
+  }
   internal_obj_ = env->NewGlobalRef(installations_instance_local);
   env->DeleteLocalRef(installations_instance_local);
-  env->DeleteLocalRef(platform_app);
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
@@ -183,7 +200,7 @@ bool InstallationsInternal::Initialized() const {
 }
 
 void InstallationsInternal::Cleanup() {
-  ReferenceCountLock<ReferenceCount> lock(&initializer_);
+  ReferenceCountLock<ReferenceCount> lock(&Initializer());
   if (lock.RemoveReference() == 1) {
     JNIEnv* env = app_.GetJNIEnv();
     ReleaseClasses(env);

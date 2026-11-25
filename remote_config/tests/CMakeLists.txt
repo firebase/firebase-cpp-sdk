@@ -72,3 +72,11 @@ firebase_cpp_cc_test(
   DEFINES
     -DFIREBASE_TESTING
 )
+
+firebase_cpp_cc_test(
+  firebase_remote_config_static_destruction_test
+  SOURCES
+    static_destruction_test.cc
+  DEPENDS
+    firebase_remote_config
+)

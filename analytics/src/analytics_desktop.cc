@@ -28,6 +28,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "firebase/log.h"
 
 #if defined(_WIN32)
@@ -48,12 +49,29 @@ static HMODULE g_analytics_module = 0;
 // Future data for analytics.
 // This is initialized in `Initialize()` and cleaned up in `Terminate()`.
 static bool g_initialized = false;
-static LogCallback g_log_callback;
-static std::mutex g_log_callback_mutex;
+
+static LogCallback& GetLogCallback() {
+  static NoDestructor<LogCallback> log_callback;
+  return *log_callback;
+}
+
+static std::mutex& LogCallbackMutex() {
+  static NoDestructor<std::mutex> log_callback_mutex;
+  return *log_callback_mutex;
+}
+
 static int g_fake_instance_id = 0;
 static bool g_analytics_collection_enabled = true;
-static std::string g_app_id;
-static std::string g_package_name;
+
+static std::string& AppId() {
+  static NoDestructor<std::string> app_id;
+  return *app_id;
+}
+
+static std::string& PackageName() {
+  static NoDestructor<std::string> package_name;
+  return *package_name;
+}
 
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
@@ -91,15 +109,15 @@ void Initialize(const App& app) {
         LogInfo("Analytics: Loaded Google Analytics module.");
 
         // Initialize Google Analytics C API
-        g_app_id = app.options().app_id();
-        g_package_name = app.options().package_name();
+        AppId() = app.options().app_id();
+        PackageName() = app.options().package_name();
 
         GoogleAnalytics_Options* c_options = GoogleAnalytics_Options_Create();
         if (!c_options) {
           LogError("Analytics: Failed to create GoogleAnalytics_Options.");
         } else {
-          c_options->app_id = g_app_id.c_str();
-          c_options->package_name = g_package_name.c_str();
+          c_options->app_id = AppId().c_str();
+          c_options->package_name = PackageName().c_str();
           c_options->analytics_collection_enabled_at_first_launch =
               g_analytics_collection_enabled;
 
@@ -416,8 +434,8 @@ void GoogleAnalyticsWrapperLogCallback(int32_t log_level, const char* message) {
   LogCallback callback_to_call;
 
   {
-    std::lock_guard<std::mutex> lock(g_log_callback_mutex);
-    callback_to_call = g_log_callback;
+    std::lock_guard<std::mutex> lock(LogCallbackMutex());
+    callback_to_call = GetLogCallback();
   }
 
   if (callback_to_call) {
@@ -433,8 +451,8 @@ void SetLogCallback(const LogCallback& callback) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   // The C API does not support user data, so we must use a global variable.
   {
-    std::lock_guard<std::mutex> lock(g_log_callback_mutex);
-    g_log_callback = callback;
+    std::lock_guard<std::mutex> lock(LogCallbackMutex());
+    GetLogCallback() = callback;
   }
   if (callback) {
     GoogleAnalytics_SetLogCallback(GoogleAnalyticsWrapperLogCallback);

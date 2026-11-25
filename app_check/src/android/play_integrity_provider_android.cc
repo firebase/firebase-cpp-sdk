@@ -121,8 +121,12 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
 }  // namespace internal
 
 PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
-  static PlayIntegrityProviderFactory g_play_integrity_provider_factory;
-  return &g_play_integrity_provider_factory;
+  // Heap-allocated function-local singleton (PlayIntegrityProviderFactory has a
+  // private constructor) so the factory is never destroyed during exit() while
+  // AppCheckInternal still references it or its created providers.
+  static PlayIntegrityProviderFactory* g_play_integrity_provider_factory =
+      new PlayIntegrityProviderFactory();
+  return g_play_integrity_provider_factory;
 }
 
 PlayIntegrityProviderFactory::PlayIntegrityProviderFactory()

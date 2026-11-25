@@ -12,6 +12,8 @@ on:
 
 env:
   GITHUB_TOKEN: ${{ github.token }}
+  # Fail Clang builds on SDK statics that need an exit-time destructor.
+  FIREBASE_CPP_WERROR_EXIT_TIME_DESTRUCTORS: 1
 
 permissions:
   contents: read

@@ -217,6 +217,8 @@ target_compile_definitions(firebase_database
     ${additional_DEFINES}
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_database)
+
 if(ANDROID)
   firebase_cpp_proguard_file(database)
 elseif(IOS)

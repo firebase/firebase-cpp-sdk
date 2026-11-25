@@ -28,6 +28,7 @@
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/no_destructor.h"
 
 namespace firebase {
 
@@ -42,9 +43,14 @@ static const char* kLogLevelPrefix[] = {
 };
 
 #if FIREBASE_PLATFORM_WINDOWS
-// Guards the log buffer on Windows.
-static Mutex g_log_mutex;  // NOLINT
-#endif                     // FIREBASE_PLATFORM_WINDOWS
+// Guards the OutputDebugString log buffer on Windows. Wrapped in NoDestructor
+// so logging from static destructors at process exit does not lock a closed
+// Windows mutex handle.
+static Mutex& PlatformLogMutex() {
+  static NoDestructor<Mutex> log_mutex;
+  return *log_mutex;
+}
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Initializes the logging module.
 void LogInitialize() {}
@@ -62,7 +68,7 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
   // Platform specific logging.
 #if FIREBASE_PLATFORM_WINDOWS
   {
-    MutexLock lock(g_log_mutex);
+    MutexLock lock(PlatformLogMutex());
     static char log_buffer[1024];
     size_t prefix_length = strlen(prefix);
     strcpy(log_buffer, prefix);  // // NOLINT

@@ -32,6 +32,7 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util_ios.h"
 #include "messaging/src/common.h"
 
@@ -79,11 +80,14 @@ namespace messaging {
 DEFINE_FIREBASE_VERSION_STRING(FirebaseMessaging);
 
 static FIRCppDelegate *g_delegate = nil;
-static Mutex g_delegate_mutex;  // Mutex for g_delegate's properties
+static Mutex& DelegateMutex() {
+  static NoDestructor<Mutex> delegate_mutex;  // Mutex for g_delegate's properties
+  return *delegate_mutex;
+}
 static MessagingOptions g_messaging_options;
 
 static bool MessagingIsInitialized() {
-  MutexLock lock(g_delegate_mutex);
+  MutexLock lock(DelegateMutex());
   return g_delegate.isListenerSet;
 }
 
@@ -126,7 +130,10 @@ static NSDictionary *g_launch_notification;
 
 static bool g_message_notification_opened = false;
 
-static SafeFutureHandle<void> g_permission_prompt_future_handle;
+static SafeFutureHandle<void>& PermissionPromptFutureHandle() {
+  static NoDestructor<SafeFutureHandle<void>> handle;
+  return *handle;
+}
 
 static void RetrieveRegistrationToken();
 
@@ -150,7 +157,7 @@ InitResult Initialize(
   if (!g_app) {
 #if !defined(NDEBUG)
     {
-      MutexLock lock(g_delegate_mutex);
+      MutexLock lock(DelegateMutex());
       assert(!g_delegate.isListenerSet);
     }
 #endif  // !defined(NDEBUG)
@@ -171,7 +178,7 @@ void NotifyListenerSet(Listener* listener) {
   // If no listener is specified, or the API is already initialized, do nothing.
   if (!listener) return;
   {
-    MutexLock lock(g_delegate_mutex);
+    MutexLock lock(DelegateMutex());
     if (g_delegate.isListenerSet) return;
     g_delegate.isListenerSet = YES;
   }
@@ -190,7 +197,7 @@ Future<void> RequestPermission() {
 
   // Create the future.
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  g_permission_prompt_future_handle =
+  PermissionPromptFutureHandle() =
       api->SafeAlloc<void>(kMessagingFnRequestPermission);
   // Run on UI thread.
   dispatch_async(dispatch_get_main_queue(), ^{
@@ -250,7 +257,7 @@ Future<void> RequestPermission() {
       g_launch_notification = nil;
     }
   });
-  return MakeFuture(api, g_permission_prompt_future_handle);
+  return MakeFuture(api, PermissionPromptFutureHandle());
 }
 
 Future<void> RequestPermissionLastResult() {
@@ -280,7 +287,7 @@ void Terminate() {
   // Ensure g_delegate still exists (it cannot be unallocated in case a token is received via a
   // different Firebase library e.g. Invites while Messaging is not enabled).
   {
-    MutexLock lock(g_delegate_mutex);
+    MutexLock lock(DelegateMutex());
     g_delegate.isListenerSet = NO;
     g_delegate.cachedMessaging = nil;
     g_delegate.cachedFCMToken = nil;
@@ -344,9 +351,9 @@ static void CompletePermissionFuture(::firebase::messaging::Error error) {
     ::firebase::ReferenceCountedFutureImpl* api = ::firebase::messaging::FutureData::Get()->api();
     // The ReferenceCountedFutureImpl object should be initialized in Initialize().
     FIREBASE_ASSERT_RETURN_VOID(api != nullptr);
-    if (api->ValidFuture(::firebase::messaging::g_permission_prompt_future_handle) &&
+    if (api->ValidFuture(::firebase::messaging::PermissionPromptFutureHandle()) &&
         RequestPermissionLastResult().status() == kFutureStatusPending) {
-      api->Complete(::firebase::messaging::g_permission_prompt_future_handle, error);
+      api->Complete(::firebase::messaging::PermissionPromptFutureHandle(), error);
     }
   } else {
     LogError("Attempting to complete future before FCM initialized.");
@@ -974,30 +981,30 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 
 @implementation FIRCppDelegate
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
-  ::firebase::messaging::g_delegate_mutex.Acquire();
+  ::firebase::messaging::DelegateMutex().Acquire();
   if (_isListenerSet) {
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::DelegateMutex().Release();
     ::firebase::LogInfo("FCM: new registration token received.");
     ::firebase::messaging::RetrieveRegistrationToken();
   } else {
     _cachedMessaging = messaging;
     _cachedFCMToken = fcmToken;
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::DelegateMutex().Release();
     ::firebase::LogInfo(
         "FCM: registration token received, but no listener set yet - cached the token.");
   }
 }
 
 - (void)messaging:(FIRMessaging *)messaging didReceiveRegistration:(NSString *)installationId {
-  ::firebase::messaging::g_delegate_mutex.Acquire();
+  ::firebase::messaging::DelegateMutex().Acquire();
   if (_isListenerSet) {
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::DelegateMutex().Release();
     ::firebase::LogInfo("FCM: registration installation ID received.");
     ::firebase::messaging::NotifyListenerOnRegistrationReceived(installationId.UTF8String);
   } else {
     _cachedMessaging = messaging;
     _cachedRegistrationId = installationId;
-    ::firebase::messaging::g_delegate_mutex.Release();
+    ::firebase::messaging::DelegateMutex().Release();
     ::firebase::LogInfo(
         "FCM: registration installation ID received, but no listener set yet - cached the ID.");
   }
@@ -1013,7 +1020,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   NSString *token;
   NSString *regId;
   {
-    firebase::MutexLock lock(::firebase::messaging::g_delegate_mutex);
+    firebase::MutexLock lock(::firebase::messaging::DelegateMutex());
     // TODO(butterfield): What if there's no cached message but there is a cached token?
     // The user may never get notified of the old token before a new one is registered.
     if (!_isListenerSet) {

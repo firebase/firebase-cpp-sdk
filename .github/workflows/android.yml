@@ -13,6 +13,8 @@ on:
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   GITHUB_TOKEN: ${{ github.token }}
+  # Fail Clang builds on SDK statics that need an exit-time destructor.
+  FIREBASE_CPP_WERROR_EXIT_TIME_DESTRUCTORS: 1
   xcodeVersion: "26.4"  # Only affects Mac runners, and only for prerequisites.
 
 permissions:

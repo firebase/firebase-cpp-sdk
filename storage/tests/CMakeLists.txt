@@ -23,3 +23,10 @@ firebase_cpp_cc_test(
     firebase_testing
 )
 
+firebase_cpp_cc_test(
+  firebase_storage_static_destruction_test
+  SOURCES
+    static_destruction_test.cc
+  DEPENDS
+    firebase_storage
+)

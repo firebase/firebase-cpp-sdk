@@ -101,6 +101,8 @@ target_compile_definitions(firebase_messaging
     -DINTERNAL_EXPERIMENTAL=1
 )
 
+firebase_cpp_reject_exit_time_destructors(firebase_messaging)
+
 if(ANDROID)
   firebase_cpp_proguard_file(messaging)
 

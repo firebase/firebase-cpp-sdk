@@ -22,6 +22,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/no_destructor.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
@@ -136,7 +137,10 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/storage/internal/cpp/CppByteUploader",
     CPP_BYTE_UPLOADER_METHODS)
 
-Mutex StorageInternal::init_mutex_;  // NOLINT
+static Mutex& InitMutex() {
+  static NoDestructor<Mutex> init_mutex;
+  return *init_mutex;
+}
 int StorageInternal::initialize_count_ = 0;
 std::map<jint, Error>* StorageInternal::java_error_to_cpp_ = nullptr;
 
@@ -206,7 +210,7 @@ static const struct {
 };
 
 bool StorageInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex_);
+  MutexLock init_lock(InitMutex());
   if (initialize_count_ == 0) {
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
@@ -283,7 +287,7 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
 }
 
 void StorageInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex_);
+  MutexLock init_lock(InitMutex());
   FIREBASE_ASSERT_RETURN_VOID(initialize_count_ > 0);
   initialize_count_--;
   if (initialize_count_ == 0) {

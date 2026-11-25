@@ -615,9 +615,19 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - General: Fixed a crash at process exit when an `App` or Firebase product
+      instance (`Analytics`, `AppCheck`, `Auth`, `Database`, `Firestore`,
+      `Functions`, `Installations`, `Messaging`, `RemoteConfig`, `Storage`, or
+      `UMP`) is owned by a static object (for example a static
+      `std::unique_ptr`) and destroyed after the SDK's own globals.
+      ([#110](https://github.com/firebase/firebase-cpp-sdk/issues/110))
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.
+    - Installations: Fixed a crash when an `Installations` object is used
+      after its `App` has been destroyed. Its methods now return an invalid
+      `Future` in that state, and `Installations::GetInstance()` on a newly
+      created `App` returns a new instance instead of the stale one.
 
 ### 14.2.0
 - Changes
