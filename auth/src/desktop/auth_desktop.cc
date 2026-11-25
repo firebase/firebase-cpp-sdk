@@ -543,15 +543,24 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
 User Auth::current_user() {
   if (!auth_data_) return User(nullptr);
 
-  // Add a listener and wait for the first trigger.
-  CurrentUserBlockListener listener;
-  AddAuthStateListener(&listener);
-  // If the persistent cache has not be loaded, this would wait until the
-  // loading is finished and OnAuthStateChanged() is triggered.
-  // If it has been loaded, OnAuthStateChanged() should be triggered recursively
-  // and synchronously when AddAuthStateListener() is called.
-  listener.WaitForEvent();
-  RemoveAuthStateListener(&listener);
+  // Only register a blocking listener while the initial persistent cache load
+  // is still pending. Once loaded, reading `current_user` directly under
+  // `future_impl.mutex()` avoids taking `listeners_mutex`, preventing a
+  // lock-order deadlock when another thread is in Auth::SignOut() notifying
+  // listeners (e.g. Firestore's credentials provider) while a worker thread
+  // asks for the current user.
+  if (auth_data_->persistent_cache_load_pending.load(
+          std::memory_order_acquire)) {
+    // Add a listener and wait for the first trigger.
+    CurrentUserBlockListener listener;
+    AddAuthStateListener(&listener);
+    // If the persistent cache has not been loaded, this waits until
+    // loading finishes and OnAuthStateChanged() is triggered.
+    // If it has been loaded, OnAuthStateChanged() is triggered recursively
+    // and synchronously when AddAuthStateListener() is called.
+    listener.WaitForEvent();
+    RemoveAuthStateListener(&listener);
+  }
 
   {
     MutexLock lock(auth_data_->future_impl.mutex());

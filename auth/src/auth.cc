@@ -220,7 +220,8 @@ void Auth::AddAuthStateListener(AuthStateListener* listener) {
   // If the listener is registered successfully and persistent cache has been
   // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
   // the cache is loaded, through AuthStateListener event.
-  if (added && !auth_data_->persistent_cache_load_pending) {
+  if (added && !auth_data_->persistent_cache_load_pending.load(
+                   std::memory_order_acquire)) {
     listener->OnAuthStateChanged(this);
   }
 }
@@ -239,7 +240,8 @@ void Auth::AddIdTokenListener(IdTokenListener* listener) {
     // If the listener is registered successfully and persistent cache has been
     // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
     // the cache is loaded, through AuthStateListener event
-    if (!auth_data_->persistent_cache_load_pending) {
+    if (!auth_data_->persistent_cache_load_pending.load(
+            std::memory_order_acquire)) {
       listener->OnIdTokenChanged(this);
     }
     EnableTokenAutoRefresh(auth_data_);
@@ -321,7 +323,8 @@ static inline bool VectorContains(const T& entry, const std::vector<T>& v) {
                                                                                \
     /* Auth should have loaded persistent cache if exists when the listener */ \
     /* event is triggered for the first time. */                               \
-    auth_data->persistent_cache_load_pending = false;                          \
+    auth_data->persistent_cache_load_pending.store(                            \
+        false, std::memory_order_release);                                     \
                                                                                \
     /* Make a copy of the listener list in case it gets modified during */     \
     /* notification_method(). Note that modification is possible because */    \

@@ -618,6 +618,9 @@ code.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.
+    - Auth (Desktop): Fixed a deadlock between `Auth::SignOut()` and concurrent
+      `Auth::current_user()` calls (such as Firestore token requests) after
+      persistent cache loading completes.
 
 ### 14.2.0
 - Changes

@@ -14,9 +14,11 @@
 
 #include "auth/src/desktop/auth_desktop.h"
 
+#include <atomic>
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "app/rest/transport_builder.h"
@@ -25,6 +27,7 @@
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/semaphore.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/sign_in_flow.h"
 #include "auth/src/desktop/user_desktop.h"
@@ -891,6 +894,67 @@ TEST_F(AuthDesktopTest, TestSendPasswordResetEmail) {
 
   WaitForFuture(
       firebase_auth_->SendPasswordResetEmail("fake_email@example.com"));
+}
+
+// Regression test for https://github.com/firebase/firebase-cpp-sdk/issues/1972.
+// Models Firestore's FirebaseCppCredentialsProvider: SignOut() notifies
+// listeners while holding `listeners_mutex`, and the listener acquires its own
+// mutex, while a worker thread holding that same mutex queries current_user().
+// Once initial persistent cache loading is done, current_user() must not take
+// `listeners_mutex` and must not deadlock.
+TEST_F(AuthDesktopTest, CurrentUserDoesNotDeadlockWithSignOutListener) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "signupNewUser")] =
+      FakeSuccessfulResponse("SignupNewUserResponse",
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\","
+                             "\"localId\": \"localid123\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] =
+      FakeSuccessfulResponse("GetAccountInfoResponse",
+                             "\"users\": [{\"localId\": \"localid123\","
+                             "\"lastLoginAt\": \"123\","
+                             "\"createdAt\": \"123\"}]");
+  InitializeConfigWithFakes(fakes);
+
+  id_token_listener.ExpectChanges(3);
+  auth_state_listener.ExpectChanges(3);
+
+  AuthResult result = WaitForFuture(firebase_auth_->SignInAnonymously());
+  ASSERT_TRUE(result.user.is_valid());
+
+  struct LockingListener : public AuthStateListener {
+    Mutex provider_mutex;
+    Semaphore listener_entered{0};
+    std::atomic<bool> armed{false};
+
+    void OnAuthStateChanged(Auth* /*auth*/) override {
+      if (!armed.load(std::memory_order_acquire)) return;
+      listener_entered.Post();
+      MutexLock lock(provider_mutex);
+    }
+  };
+
+  LockingListener locking_listener;
+  firebase_auth_->AddAuthStateListener(&locking_listener);
+
+  Semaphore worker_holding_lock{0};
+  std::thread worker([&]() {
+    MutexLock lock(locking_listener.provider_mutex);
+    worker_holding_lock.Post();
+    // Wait until SignOut() is inside OnAuthStateChanged (holding
+    // listeners_mutex) and blocked on provider_mutex.
+    locking_listener.listener_entered.Wait();
+    User user = firebase_auth_->current_user();
+    EXPECT_FALSE(user.is_valid());
+  });
+
+  worker_holding_lock.Wait();
+  locking_listener.armed.store(true, std::memory_order_release);
+  firebase_auth_->SignOut();
+
+  worker.join();
+  firebase_auth_->RemoveAuthStateListener(&locking_listener);
 }
 
 TEST(UserViewTest, TestCopyUserView) {

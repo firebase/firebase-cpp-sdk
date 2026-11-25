@@ -17,6 +17,7 @@
 #ifndef FIREBASE_AUTH_SRC_DATA_H_
 #define FIREBASE_AUTH_SRC_DATA_H_
 
+#include <atomic>
 #include <string>
 
 #include "app/src/include/firebase/internal/mutex.h"
@@ -161,7 +162,8 @@ struct AuthData {
   /// Mutex protecting the `listeners`, `id_token_listeners`, and
   /// `phone_auth_provider.data_->listeners vectors`.
   /// 'listeners' are added and removed and accessed on different threads.
-  /// This is also protecting persistent_cache_load_pending flag.
+  /// Writes to `persistent_cache_load_pending` are also serialized by this
+  /// mutex; readers may check it atomically without locking.
   Mutex listeners_mutex;
 
   // Mutex for changes to the internal token listener state.
@@ -170,8 +172,9 @@ struct AuthData {
   // Tracks if the Id Token listener is expecting a callback to occur.
   bool expect_id_token_listener_callback;
 
-  // Tracks if the persistent cache load is pending.
-  bool persistent_cache_load_pending;
+  // Tracks if the persistent cache load is pending. Cleared once under
+  // `listeners_mutex` with release semantics when initial load completes.
+  std::atomic<bool> persistent_cache_load_pending;
 
   // Mutex protecting `expect_id_token_listener_callback`
   Mutex expect_id_token_mutex;
