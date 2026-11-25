@@ -231,6 +231,9 @@ void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
 }
 
 void AppCheckInternal::InitRegistryCalls() {
+  if (app_ == nullptr) {
+    return;
+  }
   // Each App has its own function registry, so register on every App that
   // has an AppCheck instance.
   app_->function_registry()->RegisterFunction(
@@ -248,6 +251,9 @@ void AppCheckInternal::InitRegistryCalls() {
 }
 
 void AppCheckInternal::CleanupRegistryCalls() {
+  if (app_ == nullptr) {
+    return;
+  }
   app_->function_registry()->UnregisterFunction(
       ::firebase::internal::FnAppCheckGetTokenAsync);
   app_->function_registry()->UnregisterFunction(
