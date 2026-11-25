@@ -35,13 +35,7 @@ bool FunctionRegistry::RegisterFunction(
 
 bool FunctionRegistry::UnregisterFunction(FunctionId id) {
   MutexLock lock(map_mutex_);
-  auto itr = registered_functions_.find(id);
-  if (itr == registered_functions_.end()) {
-    return false;
-  } else {
-    registered_functions_.erase(itr, itr);
-    return true;
-  }
+  return registered_functions_.erase(id) > 0;
 }
 
 bool FunctionRegistry::FunctionExists(FunctionId id) {

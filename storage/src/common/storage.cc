@@ -46,6 +46,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
         // Nothing to tear down.
     },
     false);
+FIREBASE_APP_REGISTER_LIBRARY(storage, "fire-gcs",
+                              FIREBASE_VERSION_NUMBER_STRING);
 
 namespace firebase {
 namespace storage {

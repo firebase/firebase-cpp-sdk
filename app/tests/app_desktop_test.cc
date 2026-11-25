@@ -21,6 +21,7 @@
 #include <codecvt>
 #include <cstdio>
 #include <fstream>
+#include <memory>
 #include <string>
 
 #include "app/src/app_common.h"
@@ -28,6 +29,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -36,6 +38,17 @@
 #else
 #include <unistd.h>
 #endif
+
+// A module that reports a library, used to test that libraries are registered
+// when an App is created.
+FIREBASE_APP_REGISTER_CALLBACKS(
+    library_test_module, { return ::firebase::kInitResultSuccess; },
+    {
+        // Nothing to tear down.
+    },
+    false);
+FIREBASE_APP_REGISTER_LIBRARY(library_test_module, "fire-library-test",
+                              "1.2.3");
 
 namespace firebase {
 
@@ -251,5 +264,54 @@ TEST(AppDesktopTest, TestLoadAppOptionsFromJsonConfigFileInInternationalPath) {
 
   EXPECT_TRUE(ChangeDirectoryUtf8(previous_directory));
   EXPECT_TRUE(RemoveDirectoryUtf8(new_dir));
+}
+
+static const char kLibraryTestModule[] = "library_test_module";
+static const char kLibraryTestUserAgent[] = "fire-library-test/1.2.3";
+
+static std::unique_ptr<App> CreateAppForLibraryTest() {
+  AppOptions options;
+  options.set_app_id("1:1234567890:android:321abc456def7890");
+  options.set_api_key("fake-api-key");
+  options.set_project_id("fake-project-id");
+  return std::unique_ptr<App>(App::Create(options));
+}
+
+struct ScopedCallbackReset {
+  ~ScopedCallbackReset() { AppCallback::ResetAllToDefaults(); }
+};
+
+TEST(AppDesktopTest, TestModuleLibraryRegisteredWhenAppCreated) {
+  EXPECT_FALSE(AppCallback::GetEnabledByName(kLibraryTestModule));
+  std::unique_ptr<App> app = CreateAppForLibraryTest();
+  ASSERT_NE(app, nullptr);
+
+  EXPECT_THAT(std::string(App::GetUserAgent()),
+              ::testing::HasSubstr(kLibraryTestUserAgent));
+}
+
+TEST(AppDesktopTest, TestModuleLibraryNotRegisteredWhenModuleDisabled) {
+  ScopedCallbackReset reset_callbacks;
+  // The Unity SDK links every module and disables the ones that an application
+  // does not use. A disabled module must not be reported.
+  AppCallback::SetEnabledByName(kLibraryTestModule, false);
+  std::unique_ptr<App> app = CreateAppForLibraryTest();
+  ASSERT_NE(app, nullptr);
+
+  EXPECT_THAT(std::string(App::GetUserAgent()),
+              ::testing::Not(::testing::HasSubstr(kLibraryTestUserAgent)));
+}
+
+TEST(AppDesktopTest, TestModuleLibraryRegisteredWhenModuleReenabled) {
+  ScopedCallbackReset reset_callbacks;
+  // This is the sequence the Unity SDK uses before it creates an App: disable
+  // every module, then enable the ones that are in use.
+  AppCallback::SetEnabledAll(false);
+  AppCallback::SetEnabledByName(kLibraryTestModule, true);
+  std::unique_ptr<App> app = CreateAppForLibraryTest();
+  ASSERT_NE(app, nullptr);
+
+  EXPECT_THAT(std::string(App::GetUserAgent()),
+              ::testing::HasSubstr(kLibraryTestUserAgent));
 }
 }  // namespace firebase

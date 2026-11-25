@@ -102,6 +102,7 @@ class AppCallback {
       : module_name_(module_name),
         created_(created),
         destroyed_(destroyed),
+        enabled_by_default_(enabled_by_default),
         enabled_(enabled_by_default) {
     AddCallback(this);
   }
@@ -117,7 +118,41 @@ class AppCallback {
   // a callback *before* any App instances are created otherwise it's possible
   // to get into a state where a module is initialized and will never be torn
   // down.
-  void set_enabled(bool enable) { enabled_ = enable; }
+  //
+  // Disabling a callback also stops its library from being registered (see
+  // SetLibrary()). The Unity SDK links every module into one library and
+  // disables the modules that an application does not use, so a disabled
+  // module must not report itself as in use.
+  void set_enabled(bool enable) {
+    enabled_ = enable;
+    library_registration_enabled_ = enable;
+  }
+
+  // Set the library name and version that this module reports in the Firebase
+  // user agent (see App::RegisterLibrary()). The library is registered each
+  // time an App is created, before the App logs a heartbeat, so that heartbeats
+  // list every module linked into the application.
+  //
+  // This only has an effect on desktop. On Android and iOS the underlying
+  // platform SDKs register their own libraries.
+  //
+  // Both strings must outlive this object.
+  void SetLibrary(const char* name, const char* version) {
+    library_name_ = name;
+    library_version_ = version;
+  }
+
+  // Calls AppCallback::SetLibrary() when constructed, so that a library can be
+  // set from a static initializer. Use FIREBASE_APP_REGISTER_LIBRARY() instead
+  // of instantiating this directly.
+  struct LibraryRegistration {
+    LibraryRegistration(AppCallback* callback, const char* name,
+                        const char* version) {
+      if (callback != nullptr) {
+        callback->SetLibrary(name, version);
+      }
+    }
+  };
 
   // Called by firebase::App when an instance is created.
   static void NotifyAllAppCreated(
@@ -135,6 +170,11 @@ class AppCallback {
   // Enable / disable all callbacks.
   static void SetEnabledAll(bool enable);
 
+  // Restore every callback to its initial enabled_by_default state and
+  // re-enable library registration. Intended for tests that mutate callback
+  // state with SetEnabledByName() or SetEnabledAll().
+  static void ResetAllToDefaults();
+
  private:
   // Called by App when an instance is created.
   InitResult NotifyAppCreated(firebase::App* app) const {
@@ -145,6 +185,10 @@ class AppCallback {
   void NotifyAppDestroyed(firebase::App* app) const {
     if (destroyed_) destroyed_(app);
   }
+
+  // Register this module's library in the Firebase user agent, if one was set
+  // with SetLibrary() and the module has not been disabled.
+  void RegisterLibrary() const;
 
   // Add a callback class to the list.
   // NOTE: This is *not* synchronized as it's not possible to use Mutex
@@ -158,8 +202,16 @@ class AppCallback {
   Created created_;
   // Called when an app is about to be destroyed.
   Destroyed destroyed_;
+  // Initial value of enabled_ passed to the constructor.
+  const bool enabled_by_default_;
   // Whether this callback is enabled.
   bool enabled_;
+  // Library name and version reported in the Firebase user agent, if any.
+  const char* library_name_ = nullptr;
+  const char* library_version_ = nullptr;
+  // Whether the library is registered when an App is created. This is true
+  // until the callback is explicitly disabled with set_enabled().
+  bool library_registration_enabled_ = true;
 
   // Global set of callbacks.
   static std::map<std::string, AppCallback*>* callbacks_;
@@ -203,6 +255,29 @@ class AppCallback {
   void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)          \
       FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;                  \
   } /* namespace firebase */
+
+// Register the library that a module reports in the Firebase user agent on
+// desktop. See AppCallback::SetLibrary().
+//
+// This must follow FIREBASE_APP_REGISTER_CALLBACKS() for the same module in
+// the same source file.
+//
+// For example:
+// FIREBASE_APP_REGISTER_LIBRARY(auth, "fire-auth",
+//                               FIREBASE_VERSION_NUMBER_STRING);
+#if FIREBASE_PLATFORM_DESKTOP
+#define FIREBASE_APP_REGISTER_LIBRARY(module_name, library_name,         \
+                                      library_version)                   \
+  namespace firebase {                                                   \
+  static const ::firebase::AppCallback::LibraryRegistration              \
+      module_name##_library_registration(&module_name##_app_callback,    \
+                                         library_name, library_version); \
+  } /* namespace firebase */
+#else
+// The Android and iOS SDKs register their own libraries.
+#define FIREBASE_APP_REGISTER_LIBRARY(module_name, library_name, \
+                                      library_version)
+#endif  // FIREBASE_PLATFORM_DESKTOP
 
 // Helper class to provide easy management and static access of
 // ReferenceCountedFutureImpls for modules.

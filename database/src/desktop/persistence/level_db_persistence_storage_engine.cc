@@ -409,11 +409,13 @@ static void VariantAddCachedValue(Variant* variant, const Path& path,
   for (const std::string& directory : path.GetDirectories()) {
     // Ensure we're operating on a map.
     if (!variant->is_map()) {
-      // Special case: If we are adding a priority, then ensure we do not blow
-      // away the value, which at this point will be directly in the
-      // variant and not in a .value field. Note that values will never be
-      // stored in a .value peudofield.
-      if (IsPriorityKey(directory)) {
+      // Special case: If we are adding a priority to an existing scalar value,
+      // ensure we do not blow away the value, which at this point will be
+      // directly in the variant and not in a .value field. Note that values
+      // will never be stored in a .value pseudofield. If the variant is null,
+      // this is a map node whose .priority key sorted before its child keys,
+      // so initialize it as an empty map instead of wrapping Null in .value.
+      if (IsPriorityKey(directory) && !variant->is_null()) {
         *variant = std::map<Variant, Variant>{
             std::make_pair(kValueKey, std::move(*variant)),
         };
