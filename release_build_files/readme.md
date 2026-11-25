@@ -618,6 +618,8 @@ code.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.
+    - Firestore (Desktop): Fixed a heap use-after-free when deleting a
+      `Firestore` instance while a write is still pending.
 
 ### 14.2.0
 - Changes

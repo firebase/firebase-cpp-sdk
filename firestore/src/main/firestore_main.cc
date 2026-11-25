@@ -133,6 +133,13 @@ FirestoreInternal::~FirestoreInternal() {
   ClearListeners();
   transaction_executor_->Dispose();
   firestore_core_->Dispose();
+  // Release `firestore_core_` while `cleanup_` and `future_manager_` are still
+  // alive (`firestore_core_` is declared before `cleanup_`). Pending write
+  // callbacks owned by `SyncEngine` may hold `Promise` instances that copied
+  // and re-registered with `cleanup_` between `CleanupAll()` and `Dispose()`,
+  // so destroying `firestore_core_` here ensures `~Promise()` unregisters
+  // before `cleanup_` is freed.
+  firestore_core_.reset();
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
