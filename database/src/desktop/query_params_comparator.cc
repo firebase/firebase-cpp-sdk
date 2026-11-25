@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/no_destructor.h"

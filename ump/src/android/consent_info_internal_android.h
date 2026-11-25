@@ -19,6 +19,8 @@
 
 #include <jni.h>
 
+#include <vector>
+
 #include "app/src/util_android.h"
 #include "firebase/internal/mutex.h"
 #include "ump/src/common/consent_info_internal.h"
