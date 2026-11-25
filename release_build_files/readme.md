@@ -618,6 +618,8 @@ code.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.
+    - Auth (Desktop): Fixed a destructor race in `UserSecureManager` against
+      its shared scheduler when destroying a second `App`'s `Auth` instance.
 
 ### 14.2.0
 - Changes

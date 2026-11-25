@@ -15,12 +15,14 @@
 #include "app/src/secure/user_secure_manager.h"
 
 #include <cstdint>
+#include <memory>
 #include <utility>
 
 #include "app/src/base64.h"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/secure/user_secure_internal.h"
+#include "app/src/semaphore.h"
 
 // Only build this implementation on desktop. If building for iOS or Android,
 // omit it entirely. Until we implement UserSecureInternal for those platforms,
@@ -53,6 +55,23 @@ namespace secure {
 
 using callback::NewCallback;
 
+namespace {
+
+// Waits until all tasks already scheduled or running on `scheduler` have
+// completed and their callback objects have been destroyed on the worker
+// thread. Because Scheduler orders zero-delay tasks by monotonic due timestamp
+// and request id and destroys each request before popping the next, a barrier
+// task runs only after every earlier task's callback destructor has returned.
+void WaitForScheduler(scheduler::Scheduler* scheduler) {
+  auto reached = std::make_shared<Semaphore>(0);
+  scheduler->Schedule(
+      NewCallback([](std::shared_ptr<Semaphore> done) { done->Post(); },
+                  reached));
+  reached->Wait();
+}
+
+}  // namespace
+
 Mutex* UserSecureManager::s_scheduler_mutex_ = new Mutex();
 scheduler::Scheduler* UserSecureManager::s_scheduler_;
 int32_t UserSecureManager::s_scheduler_ref_count_;
@@ -72,10 +91,18 @@ UserSecureManager::UserSecureManager(
 }
 
 UserSecureManager::~UserSecureManager() {
+  const bool had_scheduled_tasks = !operation_handles_.empty();
   CancelScheduledTasks();
   // Clear safe reference immediately so that scheduled callback can skip
   // executing code which requires reference to this.
   safe_this_.ClearReference();
+  // Wait for the shared scheduler thread to destroy any previously scheduled
+  // callbacks (whose UserSecureDataHandle holds a SafeFutureHandle referencing
+  // `future_api_`) before `future_api_` is destroyed. DestroyScheduler() only
+  // joins the worker thread when the last UserSecureManager is destroyed.
+  if (had_scheduled_tasks) {
+    WaitForScheduler(s_scheduler_);
+  }
   DestroyScheduler();
 }
 

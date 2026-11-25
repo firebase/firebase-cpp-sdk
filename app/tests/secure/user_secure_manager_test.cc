@@ -14,6 +14,10 @@
 
 #include "app/src/secure/user_secure_manager.h"
 
+#include <memory>
+#include <string>
+
+#include "app/src/semaphore.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -171,6 +175,36 @@ TEST_F(UserSecureManagerTest, TestHexEncodingAndDecoding) {
   EXPECT_FALSE(UserSecureManager::AsciiToBinary("#*", &u));  // invalid base64
   EXPECT_FALSE(
       UserSecureManager::AsciiToBinary("#AAAA#AAAA", &u));  // bad characters
+}
+
+// Regression test for https://github.com/firebase/firebase-cpp-sdk/issues/1969.
+// When a second UserSecureManager keeps the shared scheduler alive, destroying
+// a manager while its callback is running or pending must wait until the worker
+// thread has destroyed the callback's UserSecureDataHandle before future_api_
+// is torn down.
+TEST_F(UserSecureManagerTest, DestroyWaitsForSharedSchedulerTaskDestruction) {
+  // `manager_` from the fixture keeps the shared scheduler alive across every
+  // destruction of `ephemeral_manager`.
+  for (int i = 0; i < 50; ++i) {
+    Semaphore started(0);
+    auto mock = std::make_unique<testing::NiceMock<UserSecureInternalMock>>();
+    ON_CALL(*mock, DeleteUserData(kAppName1))
+        .WillByDefault([&started](const std::string&) { started.Post(); });
+    ON_CALL(*mock, LoadUserData(kAppName1))
+        .WillByDefault([&started](const std::string&) {
+          started.Post();
+          return kUserData1;
+        });
+
+    auto ephemeral_manager =
+        std::make_unique<UserSecureManager>(std::move(mock));
+    ephemeral_manager->LoadUserData(kAppName1);
+    started.Wait();
+    // Queue another operation right before teardown so both an in-flight
+    // callback and a cancelled queued callback are exercised.
+    ephemeral_manager->DeleteUserData(kAppName1);
+    ephemeral_manager.reset();
+  }
 }
 
 }  // namespace secure
