@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
@@ -40,6 +41,25 @@
 #ifdef __APPLE__
 #include "TargetConditionals.h"
 #endif  // __APPLE__
+
+#if FIREBASE_PLATFORM_DESKTOP
+#include "firebase/firestore/firestore_version.h"
+
+// Register Firestore as a module so that its library is in the Firebase user
+// agent as soon as an App is created. Otherwise the library is only registered
+// when the first Firestore instance is created (see FirestoreInternal), which
+// is after the App has logged the heartbeat for the day.
+FIREBASE_APP_REGISTER_CALLBACKS(
+    firestore,
+    { return ::firebase::kInitResultSuccess; },
+    {
+        // Nothing to tear down.
+    },
+    false);
+FIREBASE_APP_REGISTER_LIBRARY(firestore,
+                              "fire-fst",
+                              ::firebase::firestore::kFirestoreVersionString);
+#endif  // FIREBASE_PLATFORM_DESKTOP
 
 namespace firebase {
 namespace firestore {
