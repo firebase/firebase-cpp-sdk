@@ -615,6 +615,8 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - Remote Config (Android): Fixed an out-of-bounds stack read when converting
+      byte-array config values to `Variant` in `GetAll()`.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.

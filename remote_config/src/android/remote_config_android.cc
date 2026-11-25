@@ -1292,7 +1292,7 @@ static Variant RemoteConfigValueToVariant(JNIEnv* env, jobject from) {
   if (!CheckKeyRetrievalLogError(env, "", "vector")) {
     std::vector<unsigned char> blob =
         util::JniByteArrayToVector(env, value_array);
-    return Variant::FromMutableBlob(&blob, blob.size());
+    return Variant::FromMutableBlob(blob.data(), blob.size());
   }
   // If get here, all conversion fails.
   LogError(
