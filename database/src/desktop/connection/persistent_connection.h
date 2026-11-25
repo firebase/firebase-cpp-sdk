@@ -330,11 +330,13 @@ class PersistentConnection : public ConnectionEventHandler {
   void TryScheduleReconnect();
 
   // Callback function when the Auth future to fetch token is complete.
-  static void OnAuthTokenFutureComplete(const Future<std::string>& auth_future,
-                                        void* user_data);
+  static void OnAuthTokenFutureComplete(
+      const Future<std::string>& auth_future,
+      firebase::internal::SafeReference<PersistentConnection> safe_ref);
   // Callback function when the App Check future to fetch token is complete.
   static void OnAppCheckTokenFutureComplete(
-      const Future<std::string>& app_check_future, void* user_data);
+      const Future<std::string>& app_check_future,
+      firebase::internal::SafeReference<PersistentConnection> safe_ref);
   void HandleTokenFutures();
 
   // Mutex to protect pending_token_future_

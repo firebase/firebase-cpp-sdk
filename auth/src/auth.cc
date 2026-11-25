@@ -169,6 +169,12 @@ Auth AuthData::MakeAuthHandle() {
   return Auth(std::shared_ptr<AuthData>(std::move(state), this));
 }
 
+std::weak_ptr<AuthData> AuthData::MakeWeakHandle() {
+  auto state = app_state.weak_from_this().lock();
+  if (!state) return {};
+  return std::shared_ptr<AuthData>(std::move(state), this);
+}
+
 User AuthData::MakeCurrentUserHandle() {
   auto state = app_state.weak_from_this().lock();
   if (!state) return User();
@@ -267,86 +273,111 @@ App Auth::app() const {
   return auth_data_ ? auth_data_->app_state.TryMakeAppHandle() : App();
 }
 
+namespace {
+struct ActiveAuthListenerGuard {
+  AuthData* auth_data;
+  void* listener;
+  ~ActiveAuthListenerGuard() {
+    if (auth_data && listener) {
+      auth_data->EndListenerCallback(listener);
+    }
+  }
+};
+}  // namespace
+
 void Auth::AddAuthStateListener(AuthStateListener* listener) {
-  if (!auth_data_ || !listener) return;
+  auto pinned = auth_data_;
+  if (!pinned || !listener) return;
   bool should_notify = false;
   // Keep locked AuthData refs alive until after releasing mutexes so another
   // AppState's destructor can never run while holding listeners_mutex.
   std::vector<std::shared_ptr<AuthData>> keep_alive;
   {
-    MutexLock lock(auth_data_->listeners_mutex);
-    const bool listener_added =
-        PushBackIfMissing(listener, &auth_data_->listeners);
+    MutexLock lock(pinned->listeners_mutex);
+    const bool listener_added = PushBackIfMissing(listener, &pinned->listeners);
     bool auth_added = false;
     {
       std::lock_guard<std::mutex> auths_lock(ListenerAuthsMutex());
-      auth_added = AddWeakIfMissing(auth_data_, &listener->auths_, &keep_alive);
+      auth_added = AddWeakIfMissing(pinned, &listener->auths_, &keep_alive);
     }
     FIREBASE_ASSERT_RETURN_VOID(listener_added == auth_added);
     (void)auth_added;
 
-    should_notify =
-        listener_added && !auth_data_->persistent_cache_load_pending;
+    should_notify = listener_added && !pinned->persistent_cache_load_pending;
+    if (should_notify) {
+      pinned->BeginListenerCallbackLocked(listener);
+    }
   }
   keep_alive.clear();
   if (should_notify) {
-    listener->OnAuthStateChanged(*this);
+    Auth auth_handle(pinned);
+    ActiveAuthListenerGuard guard{pinned.get(), listener};
+    listener->OnAuthStateChanged(auth_handle);
   }
 }
 
 void Auth::AddIdTokenListener(IdTokenListener* listener) {
-  if (!auth_data_ || !listener) return;
+  auto pinned = auth_data_;
+  if (!pinned || !listener) return;
   bool listener_added = false;
   bool should_notify = false;
   std::vector<std::shared_ptr<AuthData>> keep_alive;
   {
-    MutexLock lock(auth_data_->listeners_mutex);
-    listener_added =
-        PushBackIfMissing(listener, &auth_data_->id_token_listeners);
+    MutexLock lock(pinned->listeners_mutex);
+    listener_added = PushBackIfMissing(listener, &pinned->id_token_listeners);
     bool auth_added = false;
     {
       std::lock_guard<std::mutex> auths_lock(ListenerAuthsMutex());
-      auth_added = AddWeakIfMissing(auth_data_, &listener->auths_, &keep_alive);
+      auth_added = AddWeakIfMissing(pinned, &listener->auths_, &keep_alive);
     }
     FIREBASE_ASSERT_RETURN_VOID(listener_added == auth_added);
     (void)auth_added;
 
-    should_notify =
-        listener_added && !auth_data_->persistent_cache_load_pending;
+    should_notify = listener_added && !pinned->persistent_cache_load_pending;
+    if (should_notify) {
+      pinned->BeginListenerCallbackLocked(listener);
+    }
   }
   keep_alive.clear();
   if (should_notify) {
-    listener->OnIdTokenChanged(*this);
+    Auth auth_handle(pinned);
+    ActiveAuthListenerGuard guard{pinned.get(), listener};
+    listener->OnIdTokenChanged(auth_handle);
   }
   if (listener_added) {
-    EnableTokenAutoRefresh(auth_data_.get());
+    EnableTokenAutoRefresh(pinned.get());
   }
 }
 
 void Auth::RemoveAuthStateListener(AuthStateListener* listener) {
-  if (!auth_data_ || !listener) return;
+  auto pinned = auth_data_;
+  if (!pinned || !listener) return;
   std::vector<std::shared_ptr<AuthData>> keep_alive;
   {
-    MutexLock lock(auth_data_->listeners_mutex);
-    ReplaceEntryWithBack(listener, &auth_data_->listeners);
+    MutexLock lock(pinned->listeners_mutex);
+    ReplaceEntryWithBack(listener, &pinned->listeners);
     std::lock_guard<std::mutex> auths_lock(ListenerAuthsMutex());
-    PruneAndRemoveWeak(auth_data_.get(), &listener->auths_, &keep_alive);
+    PruneAndRemoveWeak(pinned.get(), &listener->auths_, &keep_alive);
   }
+  keep_alive.clear();
+  pinned->WaitForListenerCallbacks(listener);
 }
 
 void Auth::RemoveIdTokenListener(IdTokenListener* listener) {
-  if (!auth_data_ || !listener) return;
+  auto pinned = auth_data_;
+  if (!pinned || !listener) return;
   bool removed = false;
   std::vector<std::shared_ptr<AuthData>> keep_alive;
   {
-    MutexLock lock(auth_data_->listeners_mutex);
-    removed = ReplaceEntryWithBack(listener, &auth_data_->id_token_listeners);
+    MutexLock lock(pinned->listeners_mutex);
+    removed = ReplaceEntryWithBack(listener, &pinned->id_token_listeners);
     std::lock_guard<std::mutex> auths_lock(ListenerAuthsMutex());
-    PruneAndRemoveWeak(auth_data_.get(), &listener->auths_, &keep_alive);
+    PruneAndRemoveWeak(pinned.get(), &listener->auths_, &keep_alive);
   }
   keep_alive.clear();
+  pinned->WaitForListenerCallbacks(listener);
   if (removed) {
-    DisableTokenAutoRefresh(auth_data_.get());
+    DisableTokenAutoRefresh(pinned.get());
   }
 }
 
@@ -400,7 +431,9 @@ void NotifyAuthStateListeners(AuthData* auth_data) {
     {
       MutexLock lock(auth_data->listeners_mutex);
       if (!VectorContains(listener, auth_data->listeners)) continue;
+      auth_data->BeginListenerCallbackLocked(listener);
     }
+    ActiveAuthListenerGuard guard{auth_data, listener};
     listener->OnAuthStateChanged(auth_handle);
   }
 }
@@ -422,7 +455,9 @@ void NotifyIdTokenListeners(AuthData* auth_data) {
     {
       MutexLock lock(auth_data->listeners_mutex);
       if (!VectorContains(listener, auth_data->id_token_listeners)) continue;
+      auth_data->BeginListenerCallbackLocked(listener);
     }
+    ActiveAuthListenerGuard guard{auth_data, listener};
     listener->OnIdTokenChanged(auth_handle);
   }
 }
@@ -451,7 +486,9 @@ void NotifyAllListeners(AuthData* auth_data) {
     {
       MutexLock lock(auth_data->listeners_mutex);
       if (!VectorContains(listener, auth_data->listeners)) continue;
+      auth_data->BeginListenerCallbackLocked(listener);
     }
+    ActiveAuthListenerGuard guard{auth_data, listener};
     listener->OnAuthStateChanged(auth_handle);
   }
 
@@ -461,7 +498,9 @@ void NotifyAllListeners(AuthData* auth_data) {
     {
       MutexLock lock(auth_data->listeners_mutex);
       if (!VectorContains(listener, auth_data->id_token_listeners)) continue;
+      auth_data->BeginListenerCallbackLocked(listener);
     }
+    ActiveAuthListenerGuard guard{auth_data, listener};
     listener->OnIdTokenChanged(auth_handle);
   }
 }

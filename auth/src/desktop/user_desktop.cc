@@ -215,9 +215,14 @@ Future<ResultT> CallAsyncWithFreshToken(
   auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
         std::unique_ptr<HandleT> handle(raw_auth_data_handle);
+        std::shared_ptr<AuthData> pinned = handle->weak_auth_data.lock();
+        if (!pinned) {
+          FailPromise(&handle->promise, kAuthErrorFailure);
+          return;
+        }
 
         const GetTokenResult get_token_result =
-            EnsureFreshToken(handle->auth_data, false);
+            EnsureFreshToken(pinned.get(), false);
         if (!get_token_result.IsValid()) {
           FailPromise(&handle->promise, get_token_result.error());
           return;
@@ -547,24 +552,28 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
   writer.ResetUserInfos(loaded_provider_data);
 }
 
-void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
-  auto cast_auth_data = static_cast<AuthData*>(auth_data);
-  MutexLock destructing_lock(cast_auth_data->destructing_mutex);
-  if (cast_auth_data->destructing) {
+void HandleLoadedData(const Future<std::string>& future, AuthData* auth_data) {
+  if (auth_data == nullptr) return;
+  MutexLock destructing_lock(auth_data->destructing_mutex);
+  if (auth_data->destructing) {
     // If auth is destructing, abort.
     return;
   }
-  AssignLoadedData(future, cast_auth_data);
+  AssignLoadedData(future, auth_data);
+  auto* weak_holder = new std::weak_ptr<AuthData>(auth_data->MakeWeakHandle());
   auto scheduler_callback = NewCallback(
-      [](AuthData* callback_auth_data) {
+      [](std::weak_ptr<AuthData>* raw_weak_auth) {
+        std::unique_ptr<std::weak_ptr<AuthData>> weak_auth(raw_weak_auth);
+        std::shared_ptr<AuthData> pinned = weak_auth->lock();
+        if (!pinned) return;
         // Don't trigger token listeners if token gets refreshed, since it will
         // get triggered inside LoadFinishTriggerListeners anyway.
-        (void)EnsureFreshToken(callback_auth_data, false, false);
-        LoadFinishTriggerListeners(callback_auth_data);
+        (void)EnsureFreshToken(pinned.get(), false, false);
+        LoadFinishTriggerListeners(pinned.get());
       },
-      cast_auth_data);
+      weak_holder);
 
-  auto auth_impl = static_cast<AuthImpl*>(cast_auth_data->auth_impl);
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->scheduler_.Schedule(scheduler_callback);
 }
 
@@ -575,7 +584,12 @@ Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
 
   Future<std::string> future =
       user_secure_manager_->LoadUserData(auth_data->app_state.name().c_str());
-  future.OnCompletion(HandleLoadedData, auth_data);
+  std::weak_ptr<AuthData> weak_auth = auth_data->MakeWeakHandle();
+  future.OnCompletion([weak_auth](const Future<std::string>& completed) {
+    if (auto pinned = weak_auth.lock()) {
+      HandleLoadedData(completed, pinned.get());
+    }
+  });
   return future;
 }
 

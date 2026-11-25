@@ -22,6 +22,8 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>  // NOLINT
+#include <utility>
 #include <vector>
 
 #include "app/src/app_state.h"
@@ -85,6 +87,10 @@ struct AuthData : public ::firebase::internal::AuthTokenProvider {
   // Creates an aliasing Auth handle sharing AppState's control block, or an
   // invalid Auth if AppState is already tearing down.
   Auth MakeAuthHandle();
+
+  // Creates an aliasing weak_ptr<AuthData> sharing AppState's control block so
+  // async callbacks can pin AuthData across execution without creating cycles.
+  std::weak_ptr<AuthData> MakeWeakHandle();
 
   // Creates a non-owning User handle referring to this AuthData (for storage
   // inside Future<AuthResult> / Future<User>), or an invalid User if no user is
@@ -160,6 +166,48 @@ struct AuthData : public ::firebase::internal::AuthTokenProvider {
   /// Mutex protecting `listeners`, `id_token_listeners`, and
   /// `persistent_cache_load_pending`.
   Mutex listeners_mutex;
+
+  /// Leaf lock + CV tracking in-flight unlocked listener callbacks so
+  /// Remove*Listener() / ~*Listener() wait for callbacks on other threads
+  /// without blocking same-thread re-entrant removal.
+  /// Lock order: `listeners_mutex` -> `listener_dispatch_mutex`.
+  std::mutex listener_dispatch_mutex;
+  std::condition_variable listener_dispatch_cv;
+  std::vector<std::pair<void*, std::thread::id>> active_listener_callbacks;
+
+  void BeginListenerCallbackLocked(void* listener) {
+    std::lock_guard<std::mutex> lock(listener_dispatch_mutex);
+    active_listener_callbacks.emplace_back(listener,
+                                           std::this_thread::get_id());
+  }
+
+  void EndListenerCallback(void* listener) {
+    const std::thread::id self = std::this_thread::get_id();
+    {
+      std::lock_guard<std::mutex> lock(listener_dispatch_mutex);
+      for (auto it = active_listener_callbacks.begin();
+           it != active_listener_callbacks.end(); ++it) {
+        if (it->first == listener && it->second == self) {
+          active_listener_callbacks.erase(it);
+          break;
+        }
+      }
+    }
+    listener_dispatch_cv.notify_all();
+  }
+
+  void WaitForListenerCallbacks(void* listener) {
+    const std::thread::id self = std::this_thread::get_id();
+    std::unique_lock<std::mutex> lock(listener_dispatch_mutex);
+    listener_dispatch_cv.wait(lock, [this, listener, self]() {
+      for (const auto& entry : active_listener_callbacks) {
+        if (entry.first == listener && entry.second != self) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
 
   // Mutex for changes to the internal token listener state.
   Mutex token_listener_mutex;

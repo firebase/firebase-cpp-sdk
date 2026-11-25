@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -598,7 +599,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener) {
 
 InitResult Initialize(const ::firebase::App& app, Listener* listener,
                       const MessagingOptions& options) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return kInitResultSuccess;
   if (!app.is_valid()) return kInitResultFailedMissingDependency;
   FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app);
   SetListenerIfNotNull(listener);
@@ -715,22 +717,22 @@ bool IsInitialized() {
 }  // namespace internal
 
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!internal::IsInitialized()) {
     LogError("Messaging already shut down.");
     return;
   }
-  internal::UnregisterTerminateOnAppDestroy();
-  JNIEnv* env = GetJNIEnv();
-  util::CancelCallbacks(env, kApiIdentifier);
   jobject activity_to_delete = nullptr;
-  // Dereference the app.
   {
     MutexLock lock(GetAppMutex());
     g_initialized = false;
     activity_to_delete = g_activity;
     g_activity = nullptr;
   }
+  internal::UnregisterTerminateOnAppDestroy();
+  JNIEnv* env = GetJNIEnv();
+  util::CancelCallbacks(env, kApiIdentifier);
   TerminateMessageProcessingThread();
   {
     MutexLock lock(GetAppMutex());
@@ -889,10 +891,16 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
   FutureHandle handle(future_id);
   Error error =
       (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
-  MutexLock lock(GetFutureDataMutex());
-  if (FutureData::Get() && FutureData::Get()->api()) {
-    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-    api->Complete(handle, error, status_message);
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core;
+  {
+    MutexLock lock(GetFutureDataMutex());
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      future_core = FutureData::Get()->api()->core();
+    }
+  }
+  if (future_core) {
+    ReferenceCountedFutureImpl::CompleteCore(future_core, handle, error,
+                                             status_message);
   } else {
     LogWarning("Failed to complete Future as it was likely already deleted.");
   }
@@ -908,17 +916,22 @@ static void CompleteStringCallback(JNIEnv* env, jobject result,
   if (success && result) {
     result_value = util::JniStringToString(env, result);
   }
-  SafeFutureHandle<std::string>* handle =
-      reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data);
+  std::unique_ptr<SafeFutureHandle<std::string>> handle(
+      reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data));
   Error error = success ? kErrorNone : kErrorUnknown;
-  MutexLock lock(GetFutureDataMutex());
-  if (FutureData::Get() && FutureData::Get()->api()) {
-    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-    api->CompleteWithResult(*handle, error, status_message, result_value);
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core;
+  {
+    MutexLock lock(GetFutureDataMutex());
+    if (FutureData::Get() && FutureData::Get()->api()) {
+      future_core = FutureData::Get()->api()->core();
+    }
+  }
+  if (future_core) {
+    ReferenceCountedFutureImpl::CompleteCoreWithResult(
+        future_core, *handle, error, status_message, result_value);
   } else {
     LogWarning("Failed to complete Future as it was likely already deleted.");
   }
-  delete handle;
 }
 
 static const char kErrorMessageNoRegistrationToken[] =

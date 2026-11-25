@@ -15,8 +15,11 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 
+#include <condition_variable>
 #include <list>
+#include <mutex>
 #include <string>
+#include <thread>  // NOLINT
 #include <utility>
 #include <vector>
 
@@ -85,9 +88,32 @@ class AppCheckInternal : public ::firebase::internal::AppCheckTokenProvider {
   AppCheckToken cached_token_;
   // List of registered public listeners for token changes.
   std::list<AppCheckListener*> token_listeners_;
+  // Leaf lock + CV tracking in-flight unlocked listener callbacks so
+  // RemoveAppCheckListener() waits for callbacks on other threads without
+  // deadlocking same-thread re-entrant removal. Lock order: mutex_ ->
+  // listener_dispatch_mutex_.
+  std::mutex listener_dispatch_mutex_;
+  std::condition_variable listener_dispatch_cv_;
+  std::vector<std::pair<AppCheckListener*, std::thread::id>>
+      active_listener_callbacks_;
   // Should it automatically get an App Check token if there is not a valid
   // cached token.
   bool is_token_auto_refresh_enabled_ = true;
+
+  struct ActiveListenerGuard {
+    AppCheckInternal* owner;
+    AppCheckListener* listener;
+    ~ActiveListenerGuard() {
+      if (owner && listener) {
+        owner->EndListenerCallback(listener);
+      }
+    }
+  };
+
+  void BeginListenerCallbackLocked(AppCheckListener* listener);
+  void EndListenerCallback(AppCheckListener* listener);
+  void WaitForListenerCallbacks(AppCheckListener* listener);
+  void WaitForAllOtherThreadCallbacks();
 };
 
 }  // namespace internal

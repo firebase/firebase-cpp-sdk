@@ -193,9 +193,10 @@ std::string StripProtocol(std::string s) {
   return s;
 }
 
-// Data structure used by SetupMetadataChain.  (See below.)  Basically all the
-// data that needs to be preserved throughout the chain of OnCompletion calls.
-// Is deleted by the final call.
+// Data structure used by SetupMetadataChain.  (See below.)  Owned by
+// std::shared_ptr inside std::function OnCompletion lambdas so it is
+// automatically destroyed both on normal completion and when
+// FutureImplCore::Shutdown() discards pending callbacks during teardown.
 struct MetadataChainData {
   MetadataChainData(SafeFutureHandle<Metadata> handle_,
                     const Metadata* metadata_, StorageReference storage_ref_,
@@ -206,14 +207,10 @@ struct MetadataChainData {
     if (metadata_) metadata = *metadata_;
     MetadataSetDefaults(&metadata);
   }
-  // Reference to the future that is performing an operation before updating
-  // metadata on the storage object.  We hold a reference to the future here
-  // to stop the future API from being cleaned up by the future manager.
-  Future<Metadata> inner_future;
   SafeFutureHandle<Metadata> handle;
   Metadata metadata;
   // A non-owning internal copy of the storage ref that started the chain so
-  // inner_future -> MetadataChainData does not form a cycle with
+  // OnCompletion -> MetadataChainData does not form a cycle with
   // StorageInternal::future_manager_.
   StorageReference storage_ref;
   // Shared FutureImplCore of the original caller.
@@ -223,31 +220,26 @@ struct MetadataChainData {
 // Convenience function for handling operations that need to update a file
 // on storage, and then update the metadata as well, as part of the same
 // operation.  Both PutFile and PutBytes have a version that needs this.
-// Basically just chains futures together via OnCompletion callbacks, but
-// has a few tricky bits, where it uses a copy of the original reference
-// to hide the internal futures from the user, so the user can just deal with
-// one external future.  (Which is completed by the OnCompletion chain when
-// all of the operations have concluded.)
 void StorageReferenceInternal::SetupMetadataChain(
-    Future<Metadata> starting_future, MetadataChainData* data) {
-  data->inner_future = starting_future;
+    Future<Metadata> starting_future, std::shared_ptr<MetadataChainData> data) {
+  if (starting_future.status() == kFutureStatusInvalid) {
+    ReferenceCountedFutureImpl::CompleteCore(data->original_future_core,
+                                             data->handle, kErrorCancelled,
+                                             "Storage instance was destroyed.");
+    return;
+  }
   starting_future.OnCompletion(
-      [](const Future<Metadata>& result, void* data) {
-        MetadataChainData* on_completion_data =
-            static_cast<MetadataChainData*>(data);
-
+      [on_completion_data = std::move(data)](const Future<Metadata>& result) {
         if (result.error() != 0 ||
             !on_completion_data->storage_ref.is_valid()) {
           // The put failed or Storage was destroyed.  Return with the error.
-          auto core = std::move(on_completion_data->original_future_core);
-          auto handle = on_completion_data->handle;
           const int err =
               result.error() != 0 ? result.error() : kErrorCancelled;
           const std::string err_msg =
               result.error_message() ? result.error_message() : "";
-          delete on_completion_data;
-          ReferenceCountedFutureImpl::CompleteCore(core, handle, err,
-                                                   err_msg.c_str());
+          ReferenceCountedFutureImpl::CompleteCore(
+              on_completion_data->original_future_core,
+              on_completion_data->handle, err, err_msg.c_str());
         } else {
           // The put succeeded.  Now try setting the metadata of the object
           // we just created.
@@ -255,21 +247,14 @@ void StorageReferenceInternal::SetupMetadataChain(
               on_completion_data->storage_ref.internal_->UpdateMetadata(
                   &on_completion_data->metadata);
           if (metadata_future.status() == kFutureStatusInvalid) {
-            auto core = std::move(on_completion_data->original_future_core);
-            auto handle = on_completion_data->handle;
-            delete on_completion_data;
             ReferenceCountedFutureImpl::CompleteCore(
-                core, handle, kErrorCancelled,
+                on_completion_data->original_future_core,
+                on_completion_data->handle, kErrorCancelled,
                 "Storage instance was destroyed.");
             return;
           }
-          on_completion_data->inner_future = metadata_future;
-
           metadata_future.OnCompletion(
-              [](const Future<Metadata>& result, void* data) {
-                auto on_completion_data = static_cast<MetadataChainData*>(data);
-                auto core = std::move(on_completion_data->original_future_core);
-                auto handle = on_completion_data->handle;
+              [on_completion_data](const Future<Metadata>& result) {
                 const int err = result.error();
                 const std::string err_msg =
                     result.error_message() ? result.error_message() : "";
@@ -277,22 +262,22 @@ void StorageReferenceInternal::SetupMetadataChain(
                     (err == 0 && result.result() != nullptr);
                 Metadata metadata_copy =
                     has_result ? *(result.result()) : Metadata();
-                delete on_completion_data;
                 if (!has_result) {
                   // Setting metadata failed.  Return the error.
                   ReferenceCountedFutureImpl::CompleteCore(
-                      core, handle, err != 0 ? err : kErrorUnknown,
-                      err_msg.c_str());
+                      on_completion_data->original_future_core,
+                      on_completion_data->handle,
+                      err != 0 ? err : kErrorUnknown, err_msg.c_str());
                 } else {
                   // Metadata update succeeded.  Return in triumph.
                   ReferenceCountedFutureImpl::CompleteCoreWithResult(
-                      core, handle, kErrorNone, "", metadata_copy);
+                      on_completion_data->original_future_core,
+                      on_completion_data->handle, kErrorNone, "",
+                      metadata_copy);
                 }
-              },
-              data);
+              });
         }
-      },
-      data);
+      });
 }
 
 // Deletes the object at the current path.
@@ -652,7 +637,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   auto* future_api = future();
   if (!future_api) return Future<Metadata>();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
-  MetadataChainData* data = new MetadataChainData(
+  auto data = std::make_shared<MetadataChainData>(
       handle, metadata, AsWeakStorageReference(), future_api->core());
   // This is the future to do the actual putbytes.  Note that it is on a
   // different storage reference than the original, so the caller of this
@@ -662,7 +647,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
           buffer, buffer_size, listener, controller_out,
           metadata ? metadata->content_type() : nullptr);
 
-  SetupMetadataChain(putbytes_internal, data);
+  SetupMetadataChain(putbytes_internal, std::move(data));
 
   return PutBytesLastResult();
 }
@@ -744,7 +729,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   auto* future_api = future();
   if (!future_api) return Future<Metadata>();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
-  MetadataChainData* data = new MetadataChainData(
+  auto data = std::make_shared<MetadataChainData>(
       handle, metadata, AsWeakStorageReference(), future_api->core());
   // This is the future to do the actual putfile.  Note that it is on a
   // different storage reference than the original, so the caller of this
@@ -754,7 +739,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
           path, listener, controller_out,
           metadata ? metadata->content_type() : nullptr);
 
-  SetupMetadataChain(putfile_internal, data);
+  SetupMetadataChain(putfile_internal, std::move(data));
 
   return PutFileLastResult();
 }
@@ -960,41 +945,34 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
   Future<Metadata> metadata_future = GetMetadata();
   auto handle =
       future_api->SafeAlloc<std::string>(kStorageReferenceFnGetDownloadUrl);
+  auto future_core = future_api->core();
 
-  struct GetUrlOnCompletionData {
-    GetUrlOnCompletionData(std::shared_ptr<detail::FutureImplCore> core_,
-                           SafeFutureHandle<std::string> handle_)
-        : future_core(std::move(core_)), handle(handle_) {}
-    std::shared_ptr<detail::FutureImplCore> future_core;
-    SafeFutureHandle<std::string> handle;
-  };
+  if (metadata_future.status() == kFutureStatusInvalid) {
+    ReferenceCountedFutureImpl::CompleteCore(future_core, handle,
+                                             kErrorCancelled,
+                                             "Storage instance was destroyed.");
+    return GetDownloadUrlLastResult();
+  }
 
   // Set the Metadata Callback.  The callback we return to the user is
   // separate from the metadata one, and we just mark the returned future
   // complete in the metadata onCompletion handler.
-  metadata_future.OnCompletion(
-      [](const Future<Metadata>& result, void* data) {
-        auto on_completion_data = std::unique_ptr<GetUrlOnCompletionData>(
-            static_cast<GetUrlOnCompletionData*>(data));
-        if (result.error() != 0 || result.result() == nullptr ||
-            result.result()->internal_ == nullptr) {
-          ReferenceCountedFutureImpl::CompleteCore(
-              on_completion_data->future_core, on_completion_data->handle,
-              result.error() != 0 ? result.error() : kErrorUnknown,
-              result.error_message());
-        } else {
-          // Use MetaDataInternal to retrieve download_url because we are
-          // deprecating public API to get url from Metadata.
-          // Note that GetMetadata() may not generate download_token soon,
-          // which may break the expectation of this function.  More details
-          // in b/78908154
-          ReferenceCountedFutureImpl::CompleteCoreWithResult(
-              on_completion_data->future_core, on_completion_data->handle,
-              kErrorNone, "",
-              std::string(result.result()->internal_->download_url()));
-        }
-      },
-      new GetUrlOnCompletionData(future_api->core(), handle));
+  metadata_future.OnCompletion([future_core = std::move(future_core),
+                                handle](const Future<Metadata>& result) {
+    if (result.error() != 0 || result.result() == nullptr ||
+        result.result()->internal_ == nullptr) {
+      ReferenceCountedFutureImpl::CompleteCore(
+          future_core, handle,
+          result.error() != 0 ? result.error() : kErrorUnknown,
+          result.error_message());
+    } else {
+      // Use MetadataInternal to retrieve download_url because the public
+      // Metadata API no longer exposes download URLs directly.
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(
+          future_core, handle, kErrorNone, "",
+          std::string(result.result()->internal_->download_url()));
+    }
+  });
 
   return GetDownloadUrlLastResult();
 }

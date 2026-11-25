@@ -41,29 +41,36 @@ class Promise {
   // Creates a future backed by LastResults cache.
   Promise(ReferenceCountedFutureImpl* const future_manager,
           const int identifier)
-      : future_manager_(*future_manager),
+      : future_manager_(future_manager),
+        future_core_(future_manager->core()),
         identifier_(identifier),
         handle_(future_manager->SafeAlloc<ResultT>(identifier, ResultT())) {
-    FutureBase future_base(&future_manager_, handle_.get());
+    FutureBase future_base(future_manager_, handle_.get());
     future_ = static_cast<firebase::Future<ResultT>&>(future_base);
   }
 
   void CompleteWithResult(const ResultT& result) {
     if constexpr (std::is_same_v<ResultT, User>) {
-      future_manager_.Complete<User>(
-          handle_, kAuthErrorNone, "",
+      ReferenceCountedFutureImpl::CompleteCoreWithPopulator<User>(
+          future_core_, handle_, kAuthErrorNone, "",
           [&result](User* out) { *out = AuthData::CloneWeakUser(result); });
+    } else if constexpr (std::is_same_v<ResultT, AuthResult>) {
+      ReferenceCountedFutureImpl::CompleteCoreWithPopulator<AuthResult>(
+          future_core_, handle_, kAuthErrorNone, "",
+          [&result](AuthResult* out) {
+            out->user = AuthData::CloneWeakUser(result.user);
+            out->additional_user_info = result.additional_user_info;
+            out->credential = result.credential;
+          });
     } else {
-      future_manager_.CompleteWithResult(handle_, kAuthErrorNone, "", result);
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(
+          future_core_, handle_, kAuthErrorNone, "", result);
     }
   }
 
   void Fail(AuthError error, const char* const message) {
-    if (message) {
-      future_manager_.Complete(handle_, error, message);
-    } else {
-      future_manager_.Complete(handle_, error);
-    }
+    ReferenceCountedFutureImpl::CompleteCore(future_core_, handle_, error,
+                                             message ? message : "");
   }
 
   void Fail(AuthError error, const std::string& message) {
@@ -71,19 +78,20 @@ class Promise {
   }
 
   Future<ResultT> InvalidateLastResult() {
-    future_manager_.InvalidateLastResult(identifier_);
+    future_manager_->InvalidateLastResult(identifier_);
     return LastResult();
   }
 
   Future<ResultT> LastResult() {
     return static_cast<const firebase::Future<ResultT>&>(
-        future_manager_.LastResult(identifier_));
+        future_manager_->LastResult(identifier_));
   }
 
   Future<ResultT> future() { return future_; }
 
  private:
-  ReferenceCountedFutureImpl& future_manager_;
+  ReferenceCountedFutureImpl* future_manager_;
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core_;
   const int identifier_;
   const SafeFutureHandle<ResultT> handle_;
   firebase::Future<ResultT> future_;
@@ -94,21 +102,22 @@ class Promise<void> {
  public:
   Promise(ReferenceCountedFutureImpl* const future_manager,
           const int identifier)
-      : future_manager_(*future_manager),
+      : future_manager_(future_manager),
+        future_core_(future_manager->core()),
         identifier_(identifier),
         handle_(future_manager->SafeAlloc<void>(identifier)) {
-    FutureBase future_base(&future_manager_, handle_.get());
+    FutureBase future_base(future_manager_, handle_.get());
     future_ = static_cast<firebase::Future<void>&>(future_base);
   }
 
-  void Complete() { future_manager_.Complete(handle_, kAuthErrorNone, ""); }
+  void Complete() {
+    ReferenceCountedFutureImpl::CompleteCore(future_core_, handle_,
+                                             kAuthErrorNone, "");
+  }
 
   void Fail(AuthError error, const char* const message) {
-    if (message) {
-      future_manager_.Complete(handle_, error, message);
-    } else {
-      future_manager_.Complete(handle_, error);
-    }
+    ReferenceCountedFutureImpl::CompleteCore(future_core_, handle_, error,
+                                             message ? message : "");
   }
 
   void Fail(AuthError error, const std::string& message) {
@@ -116,19 +125,20 @@ class Promise<void> {
   }
 
   Future<void> InvalidateLastResult() {
-    future_manager_.InvalidateLastResult(identifier_);
+    future_manager_->InvalidateLastResult(identifier_);
     return LastResult();
   }
 
   Future<void> LastResult() {
     return static_cast<const firebase::Future<void>&>(
-        future_manager_.LastResult(identifier_));
+        future_manager_->LastResult(identifier_));
   }
 
   Future<void> future() { return future_; }
 
  private:
-  ReferenceCountedFutureImpl& future_manager_;
+  ReferenceCountedFutureImpl* future_manager_;
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core_;
   const int identifier_;
   const SafeFutureHandle<void> handle_;
   firebase::Future<void> future_;

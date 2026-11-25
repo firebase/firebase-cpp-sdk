@@ -254,11 +254,13 @@ inline FutureBase::FutureBase(detail::FutureApiInterface* api,
     : mutex_(Mutex::Mode::kModeNonRecursive),
       api_(api != nullptr ? api->SharedFromApi() : nullptr),
       handle_(handle) {
-  if (api_ && !api_->ReferenceFuture(handle_)) {
+  if (!api_ || !api_->ReferenceFuture(handle_)) {
     api_.reset();
+    handle_ = FutureHandle();
+  } else {
+    // Once the FutureBase has reference, we don't need extra handle reference.
+    handle_.Detach();
   }
-  // Once the FutureBase has reference, we don't need extra handle reference.
-  handle_.Detach();
 }
 
 inline FutureBase::~FutureBase() { Release(); }

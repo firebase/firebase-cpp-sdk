@@ -18,9 +18,11 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "app/rest/transport_builder.h"
@@ -959,6 +961,10 @@ TEST_F(AuthDesktopTest, AuthHandleKeepsAppStateAliveAfterAppDropped) {
 
   user = User();
   promoted_from_result = User();
+  // Wait briefly for any transient scheduler worker ref to release.
+  for (int i = 0; i < 200 && !weak_state.expired(); ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  }
   // Even while `result` (holding a weak User) is still alive, AppState tears
   // down cleanly with no cycle, and `result.user` reports invalid safely.
   EXPECT_TRUE(weak_state.expired());
@@ -1059,6 +1065,9 @@ TEST_F(AuthDesktopTest, DropLastAuthHandleInsideOnCompletionDoesNotDeadlock) {
     ASSERT_TRUE(done_cv.wait_for(lock, std::chrono::seconds(10),
                                  [&callback_ran]() { return callback_ran; }));
   }
+  for (int i = 0; i < 200 && !weak_state.expired(); ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  }
   EXPECT_TRUE(weak_state.expired());
   EXPECT_NE(kFutureStatusPending, future.status());
 }
@@ -1106,6 +1115,151 @@ TEST_F(AuthDesktopTest, StaticDurationAuthSurvivesProcessExit) {
     return Auth::GetAuth(app);
   }();
   EXPECT_TRUE(static_auth.is_valid());
+}
+
+TEST_F(AuthDesktopTest,
+       ConcurrentRemoveAuthStateListenerBlocksAndAllowsSameThreadReentry) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "signupNewUser")] =
+      FakeSuccessfulResponse("SignupNewUserResponse",
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\","
+                             "\"localId\": \"localid123\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  AppOptions options = testing::MockAppOptions();
+  options.set_app_id("com.firebase.listener_drain");
+  options.set_api_key(API_KEY);
+  App app = App::Create(options, "auth_listener_drain_app");
+  Auth auth = Auth::GetAuth(app);
+  ASSERT_TRUE(auth.is_valid());
+  // Ensure initial persistent-cache load has completed so the next listener
+  // notification comes from SignInAnonymously on the scheduler thread.
+  (void)auth.current_user();
+
+  std::promise<void> entered_promise;
+  std::future<void> entered_future = entered_promise.get_future();
+  std::promise<void> release_promise;
+  std::shared_future<void> release_future =
+      release_promise.get_future().share();
+  std::atomic<bool> callback_exited{false};
+  std::atomic<int> calls{0};
+
+  struct BlockingListener : public AuthStateListener {
+    std::promise<void>* entered;
+    std::shared_future<void> release;
+    std::atomic<bool>* exited;
+    std::atomic<int>* calls;
+    int magic = 0x12345678;
+
+    void OnAuthStateChanged(Auth auth_handle) override {
+      if (!auth_handle.current_user().is_valid()) return;
+      if (calls->fetch_add(1) == 0) {
+        entered->set_value();
+        release.wait();
+        EXPECT_EQ(magic, 0x12345678);
+        exited->store(true, std::memory_order_release);
+      }
+    }
+  };
+
+  auto listener = std::make_unique<BlockingListener>();
+  listener->entered = &entered_promise;
+  listener->release = release_future;
+  listener->exited = &callback_exited;
+  listener->calls = &calls;
+  auth.AddAuthStateListener(listener.get());
+
+  Future<AuthResult> sign_in_future = auth.SignInAnonymously();
+  ASSERT_EQ(entered_future.wait_for(std::chrono::seconds(10)),
+            std::future_status::ready);
+
+  std::atomic<bool> remove_finished{false};
+  std::thread remover([&]() {
+    auth.RemoveAuthStateListener(listener.get());
+    listener.reset();
+    remove_finished.store(true, std::memory_order_release);
+  });
+
+  // RemoveAuthStateListener must remain blocked while OnAuthStateChanged runs
+  // on the scheduler thread.
+  std::this_thread::sleep_for(std::chrono::milliseconds(25));
+  EXPECT_FALSE(remove_finished.load(std::memory_order_acquire));
+
+  release_promise.set_value();
+  remover.join();
+  EXPECT_TRUE(callback_exited.load(std::memory_order_acquire));
+  EXPECT_TRUE(remove_finished.load(std::memory_order_acquire));
+  WaitForFuture(sign_in_future);
+
+  // Part 2: Same-thread re-entrant RemoveAuthStateListener inside
+  // OnAuthStateChanged must not deadlock.
+  struct SelfRemovingListener : public AuthStateListener {
+    std::atomic<int> count{0};
+    void OnAuthStateChanged(Auth auth_handle) override {
+      count.fetch_add(1);
+      auth_handle.RemoveAuthStateListener(this);
+    }
+  };
+  SelfRemovingListener self_remover;
+  auth.AddAuthStateListener(&self_remover);
+  EXPECT_EQ(self_remover.count.load(), 1);
+}
+
+TEST_F(AuthDesktopTest, AuthStateListenerDroppingLastHandleDuringSignInNoUaf) {
+  FakeSetT fakes;
+  fakes[GetUrlForApi(API_KEY, "signupNewUser")] =
+      FakeSuccessfulResponse("SignupNewUserResponse",
+                             "\"idToken\": \"idtoken123\","
+                             "\"refreshToken\": \"refreshtoken123\","
+                             "\"expiresIn\": \"3600\","
+                             "\"localId\": \"localid123\"");
+  fakes[GetUrlForApi(API_KEY, "getAccountInfo")] = CreateGetAccountInfoFake();
+  InitializeConfigWithFakes(fakes);
+
+  AppOptions options = testing::MockAppOptions();
+  options.set_app_id("com.firebase.listener_drop_last");
+  options.set_api_key(API_KEY);
+
+  std::weak_ptr<internal::AppState> weak_state;
+  auto auth_holder = std::make_shared<Auth>();
+  {
+    App app = App::Create(options, "auth_listener_drop_last_app");
+    weak_state = internal::AppState::FromApp(app);
+    *auth_holder = Auth::GetAuth(app);
+    ASSERT_TRUE(auth_holder->is_valid());
+    (void)auth_holder->current_user();
+  }
+
+  struct DroppingListener : public AuthStateListener {
+    std::shared_ptr<Auth> holder;
+    std::atomic<bool> dropped{false};
+    void OnAuthStateChanged(Auth auth_handle) override {
+      if (auth_handle.current_user().is_valid()) {
+        holder.reset();
+        dropped.store(true, std::memory_order_release);
+      }
+    }
+  };
+  DroppingListener listener;
+  listener.holder = auth_holder;
+  auth_holder->AddAuthStateListener(&listener);
+
+  Future<AuthResult> sign_in_future = auth_holder->SignInAnonymously();
+  auth_holder.reset();
+
+  // Wait for completion; CallAsync pins AuthData across listener notification
+  // and post-notification promise completion so dropping the last external
+  // handle in OnAuthStateChanged cannot UAF AuthData or Promise.
+  ASSERT_TRUE(sign_in_future.Wait(10000));
+  EXPECT_TRUE(listener.dropped.load(std::memory_order_acquire));
+  // Wait briefly for scheduler worker thread to release its local pinned ref.
+  for (int i = 0; i < 200 && !weak_state.expired(); ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  }
+  EXPECT_TRUE(weak_state.expired());
 }
 
 }  // namespace auth

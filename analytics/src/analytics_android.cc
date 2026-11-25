@@ -122,7 +122,8 @@ METHOD_LOOKUP_DEFINITION(
 
 // Initialize the Analytics API.
 void Initialize(const ::firebase::App& app) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return;
   if (!app.is_valid()) {
     LogWarning("%s API cannot be initialized with an invalid App",
                internal::kAnalyticsModuleName);
@@ -184,15 +185,16 @@ bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 // Clean up the API.
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!g_initialized.load(std::memory_order_acquire)) {
     LogWarning("%s API already shut down", internal::kAnalyticsModuleName);
     return;
   }
+  g_initialized.store(false, std::memory_order_release);
+  internal::UnregisterTerminateOnAppDestroy();
   JNIEnv* env = GetJNIEnv();
   util::CancelCallbacks(env, internal::kAnalyticsModuleName);
-  internal::UnregisterTerminateOnAppDestroy();
-  g_initialized.store(false, std::memory_order_release);
   internal::FutureData::Destroy();
   g_java_vm = nullptr;
   env->DeleteGlobalRef(g_analytics_class_instance);

@@ -104,7 +104,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener) {
 
 InitResult Initialize(const ::firebase::App& app, Listener* listener,
                       const MessagingOptions& /*options*/) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return kInitResultSuccess;
   if (!app.is_valid()) return kInitResultFailedMissingDependency;
   if (internal::IsInitialized()) return kInitResultSuccess;
   SetListenerIfNotNull(listener);
@@ -133,8 +134,10 @@ bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 }  // namespace internal
 
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!internal::IsInitialized()) return;
+  g_initialized.store(false, std::memory_order_release);
   internal::UnregisterTerminateOnAppDestroy();
 #if FIREBASE_MESSAGING_TEST_ENABLED
   {
@@ -145,7 +148,6 @@ void Terminate() {
   int ret = pthread_join(g_message_thread, nullptr);
   FIREBASE_ASSERT(ret == 0);
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
-  g_initialized.store(false, std::memory_order_release);
   FutureData::Destroy();
 }
 

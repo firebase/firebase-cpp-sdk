@@ -37,11 +37,14 @@ struct AuthDataHandle {
                  std::unique_ptr<RequestT> set_request,
                  const CallbackT set_callback)
       : auth_data(set_auth_data),
+        weak_auth_data(set_auth_data ? set_auth_data->MakeWeakHandle()
+                                     : std::weak_ptr<AuthData>()),
         promise(set_promise),
         request(std::move(set_request)),
         callback(set_callback) {}
 
   AuthData* const auth_data;
+  std::weak_ptr<AuthData> weak_auth_data;
   Promise<ResultT> promise;
 
   std::unique_ptr<RequestT> request;

@@ -316,6 +316,25 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
     CompleteCore(core, handle.get(), error, error_msg);
   }
 
+  /// Completes a typed future handle via a caller-supplied populator lambda
+  /// directly through a pinned `FutureImplCore` (useful when the stored result
+  /// must be constructed/moved in-place, e.g., preserving weak User handles).
+  template <typename T, typename PopulateFn>
+  static void CompleteCoreWithPopulator(
+      const std::shared_ptr<detail::FutureImplCore>& core,
+      SafeFutureHandle<T> handle, int error, const char* error_msg,
+      PopulateFn&& populate_fn) {
+    if (!core) return;
+    using Fn = std::decay_t<PopulateFn>;
+    Fn fn(std::forward<PopulateFn>(populate_fn));
+    CompleteWithPopulator(
+        core, handle.get(), error, error_msg,
+        [](void* raw_data, void* raw_ctx) {
+          (*static_cast<Fn*>(raw_ctx))(static_cast<T*>(raw_data));
+        },
+        &fn);
+  }
+
   /// Completes a typed future handle with `result` directly through a pinned
   /// `FutureImplCore`.
   template <typename T>

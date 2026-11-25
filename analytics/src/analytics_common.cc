@@ -64,9 +64,11 @@ TeardownGuardState& GetTeardownGuardState() {
 
 const char* kAnalyticsModuleName = "analytics";
 
-std::mutex& GetLifecycleMutex() {
-  static ::firebase::internal::NoDestructor<std::mutex> mutex;
-  return *mutex;
+::firebase::internal::ModuleLifecycleGate& GetLifecycleGate() {
+  static ::firebase::internal::NoDestructor<
+      ::firebase::internal::ModuleLifecycleGate>
+      gate;
+  return *gate;
 }
 
 FutureData* FutureData::s_future_data_;

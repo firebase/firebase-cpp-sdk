@@ -15,8 +15,12 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 
+#include <condition_variable>
 #include <cstdint>
+#include <mutex>
 #include <string>
+#include <thread>  // NOLINT
+#include <utility>
 #include <vector>
 
 #include "app/src/app_state.h"
@@ -80,6 +84,30 @@ class AppCheckInternal : public ::firebase::internal::Service {
 
   // Lock object for accessing listeners_.
   Mutex listeners_mutex_;
+
+  // Leaf lock + CV tracking in-flight unlocked listener callbacks so
+  // RemoveAppCheckListener() waits for callbacks on other threads without
+  // deadlocking same-thread re-entrant removal. Lock order: listeners_mutex_ ->
+  // listener_dispatch_mutex_.
+  std::mutex listener_dispatch_mutex_;
+  std::condition_variable listener_dispatch_cv_;
+  std::vector<std::pair<AppCheckListener*, std::thread::id>>
+      active_listener_callbacks_;
+
+  struct ActiveListenerGuard {
+    AppCheckInternal* owner;
+    AppCheckListener* listener;
+    ~ActiveListenerGuard() {
+      if (owner && listener) {
+        owner->EndListenerCallback(listener);
+      }
+    }
+  };
+
+  void BeginListenerCallbackLocked(AppCheckListener* listener);
+  void EndListenerCallback(AppCheckListener* listener);
+  void WaitForListenerCallbacks(AppCheckListener* listener);
+  void WaitForAllOtherThreadCallbacks();
 
   FutureManager future_manager_;
 

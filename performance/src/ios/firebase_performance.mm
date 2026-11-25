@@ -18,7 +18,8 @@ static std::atomic<bool> g_initialized{false};
 
 // Initializes the API.
 InitResult Initialize(const ::firebase::App& app) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return InitResult::kInitResultSuccess;
   if (!app.is_valid()) {
     return InitResult::kInitResultFailedMissingDependency;
   }
@@ -40,12 +41,13 @@ bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 // Terminates the API.
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!g_initialized.load(std::memory_order_acquire)) {
     return;
   }
-  internal::UnregisterTerminateOnAppDestroy();
   g_initialized.store(false, std::memory_order_release);
+  internal::UnregisterTerminateOnAppDestroy();
 }
 
 // Determines if performance collection is enabled.

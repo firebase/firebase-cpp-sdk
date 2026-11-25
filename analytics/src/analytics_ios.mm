@@ -23,6 +23,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include "analytics/src/analytics_common.h"
 #include "analytics/src/include/firebase/analytics.h"
@@ -132,7 +133,8 @@ static AnalyticsDataResetter* g_resetter = nullptr;
 
 // Initialize the API.
 void Initialize(const ::firebase::App& app) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return;
   if (!app.is_valid()) {
     LogWarning("%s API cannot be initialized with an invalid App", internal::kAnalyticsModuleName);
     return;
@@ -159,13 +161,14 @@ bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 
 // Terminate the API.
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!g_initialized.load(std::memory_order_acquire)) {
     return;
   }
+  g_initialized.store(false, std::memory_order_release);
   internal::UnregisterTerminateOnAppDestroy();
   MutexLock lock(GetAnalyticsMutex());
-  g_initialized.store(false, std::memory_order_release);
   internal::FutureData::Destroy();
   delete g_resetter;
   g_resetter = nullptr;
@@ -258,32 +261,38 @@ void LogEvent(const char* name) {
 }
 
 Future<void> LogAppleTransaction(const char* transaction_id) {
-  MutexLock lock(GetAnalyticsMutex());
-  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core;
+  SafeFutureHandle<void> future_handle;
+  Future<void> result_future;
+  {
+    MutexLock lock(GetAnalyticsMutex());
+    FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
 
-  auto* api = internal::FutureData::Get()->api();
-  const auto future_handle = api->SafeAlloc<void>(internal::kAnalyticsFnLogAppleTransaction);
+    auto* api = internal::FutureData::Get()->api();
+    future_core = api->core();
+    future_handle = api->SafeAlloc<void>(internal::kAnalyticsFnLogAppleTransaction);
+    result_future = Future<void>(api, future_handle.get());
+  }
 
   if (!transaction_id) {
-    api->Complete(future_handle, -1, "Transaction ID is null");
-    return Future<void>(api, future_handle.get());
+    ReferenceCountedFutureImpl::CompleteCore(future_core, future_handle, -1,
+                                             "Transaction ID is null");
+    return result_future;
   }
 
   [AppleTransactionVerifier
       verifyWithTransactionId:SafeString(transaction_id)
                    completion:^(BOOL isFound) {
-                     MutexLock lock(GetAnalyticsMutex());
                      if (!internal::IsInitialized()) return;
-
-                     auto* api = internal::FutureData::Get()->api();
                      if (isFound) {
-                       api->Complete(future_handle, 0, "");
+                       ReferenceCountedFutureImpl::CompleteCore(future_core, future_handle, 0, "");
                      } else {
-                       api->Complete(future_handle, -1, "StoreKit 2 transaction not found.");
+                       ReferenceCountedFutureImpl::CompleteCore(
+                           future_core, future_handle, -1, "StoreKit 2 transaction not found.");
                      }
                    }];
 
-  return Future<void>(api, future_handle.get());
+  return result_future;
 }
 
 Future<void> LogAppleTransactionLastResult() {
@@ -491,26 +500,33 @@ Future<std::string> GetAnalyticsInstanceId() {
   MutexLock lock(GetAnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
+  auto future_core = api->core();
   const auto future_handle =
       api->SafeAlloc<std::string>(internal::kAnalyticsFnGetAnalyticsInstanceId);
   static int kPollTimeMs = 100;
+  struct GetIdContext {
+    std::shared_ptr<::firebase::detail::FutureImplCore> core;
+    SafeFutureHandle<std::string> handle;
+  };
   Thread get_id_thread(
-      [](SafeFutureHandle<std::string>* handle) {
+      [](GetIdContext* raw_ctx) {
+        std::unique_ptr<GetIdContext> ctx(raw_ctx);
         for (;;) {
+          std::string instance_id;
           {
             MutexLock lock(GetAnalyticsMutex());
             if (!internal::IsInitialized()) break;
-            std::string instance_id = g_resetter->GetInstanceId();
-            if (!instance_id.empty()) {
-              internal::FutureData::Get()->api()->CompleteWithResult(*handle, 0, "", instance_id);
-              break;
-            }
+            instance_id = g_resetter->GetInstanceId();
+          }
+          if (!instance_id.empty()) {
+            ReferenceCountedFutureImpl::CompleteCoreWithResult(ctx->core, ctx->handle, 0, "",
+                                                               instance_id);
+            break;
           }
           firebase::internal::Sleep(kPollTimeMs);
         }
-        delete handle;
       },
-      new SafeFutureHandle<std::string>(future_handle));
+      new GetIdContext{std::move(future_core), future_handle});
   get_id_thread.Detach();
   return Future<std::string>(api, future_handle.get());
 }
@@ -526,14 +542,17 @@ Future<int64_t> GetSessionId() {
   MutexLock lock(GetAnalyticsMutex());
   FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
+  auto future_core = api->core();
   const auto future_handle = api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
   [FIRAnalytics sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
-    MutexLock lock(GetAnalyticsMutex());
     if (!internal::IsInitialized()) return;
     if (error) {
-      api->Complete(future_handle, -1, util::NSStringToString(error.localizedDescription).c_str());
+      ReferenceCountedFutureImpl::CompleteCore(
+          future_core, future_handle, -1,
+          util::NSStringToString(error.localizedDescription).c_str());
     } else {
-      api->CompleteWithResult(future_handle, 0, "", session_id);
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, future_handle, 0, "",
+                                                         session_id);
     }
   }];
   return MakeFuture<int64_t>(api, future_handle);

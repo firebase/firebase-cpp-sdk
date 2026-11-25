@@ -302,8 +302,8 @@ class FutureImplCore : public FutureApiInterface,
         return;
       }
       FutureBackingData* backing = it->second.get();
-      backing->reference_count = 0;
       if (backing->active_callbacks == 0) {
+        backing->reference_count = 0;
         to_delete = std::move(it->second);
         backings_.erase(it);
         NotifyWaitersLocked();
@@ -623,55 +623,57 @@ class FutureProxyManager
     : public std::enable_shared_from_this<FutureProxyManager> {
  public:
   FutureProxyManager(std::weak_ptr<FutureImplCore> core,
-                     const FutureHandle& subject)
-      : core_(std::move(core)), subject_(subject) {}
+                     FutureHandleId subject_id)
+      : core_(std::move(core)), subject_id_(subject_id) {}
 
   ~FutureProxyManager() {
-    std::vector<FutureHandle> clients_to_release;
+    std::vector<FutureHandleId> clients_to_release;
     {
       MutexLock lock(mutex_);
       clients_to_release.swap(clients_);
     }
     if (auto core = core_.lock()) {
-      for (const FutureHandle& h : clients_to_release) {
-        if (h != ReferenceCountedFutureImpl::kInvalidHandle) {
-          core->ForceReleaseFuture(h);
+      for (FutureHandleId id : clients_to_release) {
+        if (id != kInvalidFutureHandle) {
+          core->ForceReleaseFuture(FutureHandle(id));
         }
       }
     }
   }
 
-  void RegisterClient(const FutureHandle& handle) {
+  void RegisterClient(FutureHandleId client_id) {
     if (auto core = core_.lock()) {
+      // Acquire FutureImplCore::mutex_ before FutureProxyManager::mutex_ to
+      // match MakeProxyForPending() lock order (preventing M0->M1->M0 cycles).
+      core->ReferenceFuture(FutureHandle(subject_id_));
       MutexLock lock(mutex_);
-      core->ReferenceFuture(subject_);
-      clients_.push_back(handle);
+      clients_.push_back(client_id);
     }
   }
 
   struct UnregisterData {
     UnregisterData(std::weak_ptr<FutureProxyManager> proxy,
-                   const FutureHandle& handle)
-        : proxy(std::move(proxy)), handle(handle) {}
+                   FutureHandleId client_id)
+        : proxy(std::move(proxy)), client_id(client_id) {}
     std::weak_ptr<FutureProxyManager> proxy;
-    FutureHandle handle;
+    FutureHandleId client_id;
   };
 
   static void UnregisterCallback(void* data) {
     if (data == nullptr) return;
     std::unique_ptr<UnregisterData> udata(static_cast<UnregisterData*>(data));
     if (auto proxy = udata->proxy.lock()) {
-      proxy->UnregisterClient(udata->handle);
+      proxy->UnregisterClient(udata->client_id);
     }
   }
 
-  void UnregisterClient(const FutureHandle& handle) {
+  void UnregisterClient(FutureHandleId client_id) {
     bool found = false;
     {
       MutexLock lock(mutex_);
-      for (FutureHandle& h : clients_) {
-        if (h == handle) {
-          h = ReferenceCountedFutureImpl::kInvalidHandle;
+      for (FutureHandleId& id : clients_) {
+        if (id == client_id) {
+          id = kInvalidFutureHandle;
           found = true;
           break;
         }
@@ -681,31 +683,31 @@ class FutureProxyManager
       if (auto core = core_.lock()) {
         // Release outside `mutex_` because dropping the last subject reference
         // may destroy `this`.
-        core->ReleaseFuture(subject_);
+        core->ReleaseFuture(FutureHandle(subject_id_));
       }
     }
   }
 
   void CompleteClients(int error, const char* error_msg) {
-    std::vector<FutureHandle> snapshot;
+    std::vector<FutureHandleId> snapshot;
     {
       MutexLock lock(mutex_);
       snapshot = clients_;
     }
     if (auto core = core_.lock()) {
-      for (const FutureHandle& h : snapshot) {
-        if (h != ReferenceCountedFutureImpl::kInvalidHandle) {
+      for (FutureHandleId id : snapshot) {
+        if (id != kInvalidFutureHandle) {
           core->CompleteWithPopulator(
-              h, error, error_msg, [](void*, void*) {}, nullptr);
+              FutureHandle(id), error, error_msg, [](void*, void*) {}, nullptr);
         }
       }
     }
   }
 
  private:
-  std::vector<FutureHandle> clients_;
+  std::vector<FutureHandleId> clients_;
   std::weak_ptr<FutureImplCore> core_;
-  FutureHandle subject_;
+  FutureHandleId subject_id_;
   mutable Mutex mutex_;
 };
 
@@ -727,7 +729,26 @@ void FutureImplCore::CompleteWithPopulator(
   backing->error = error;
   backing->error_msg = error_msg == nullptr ? "" : error_msg;
   if (populate_fn != nullptr) {
+    // Pin `backing` across `populate_fn` so any re-entrant Shutdown() or
+    // ForceReleaseFuture() cannot erase and free `backing` mid-population.
+    ++active_callbacks_;
+    ++backing->active_callbacks;
     populate_fn(backing->data, ctx);
+    --backing->active_callbacks;
+    --active_callbacks_;
+    if (backing->active_callbacks == 0 &&
+        (backing->reference_count == 0 ||
+         backing->invalidated_after_callbacks || is_shut_down_)) {
+      std::unique_ptr<FutureBackingData> to_delete;
+      auto it = backings_.find(handle.id());
+      if (it != backings_.end() && it->second.get() == backing) {
+        to_delete = std::move(it->second);
+        backings_.erase(it);
+        NotifyWaitersLocked();
+      }
+      mutex_.Release();
+      return;
+    }
   }
   backing->status = kFutureStatusComplete;
   proxy = backing->proxy;
@@ -753,29 +774,29 @@ FutureBase FutureImplCore::MakeProxyForPending(
   if (subject_future.status() != kFutureStatusPending) {
     return subject_future;
   }
-  const FutureHandle handle = subject_future.GetHandle();
+  const FutureHandleId subject_id = subject_future.GetHandle().id();
 
   FutureHandle client_handle;
   {
     MutexLock lock(mutex_);
-    FutureBackingData* backing = BackingFromHandleLocked(handle.id());
+    FutureBackingData* backing = BackingFromHandleLocked(subject_id);
     if (backing == nullptr || backing->status != kFutureStatusPending) {
       return subject_future;
     }
     if (!backing->proxy) {
       backing->proxy =
-          std::make_shared<FutureProxyManager>(weak_from_this(), handle);
+          std::make_shared<FutureProxyManager>(weak_from_this(), subject_id);
     }
 
     client_handle = AllocBacking(backing->data, [](void*) {});
     if (client_handle == ReferenceCountedFutureImpl::kInvalidHandle) {
       return subject_future;
     }
-    SetContextData(
-        client_handle,
-        new FutureProxyManager::UnregisterData(backing->proxy, client_handle),
-        FutureProxyManager::UnregisterCallback);
-    backing->proxy->RegisterClient(client_handle);
+    SetContextData(client_handle,
+                   new FutureProxyManager::UnregisterData(backing->proxy,
+                                                          client_handle.id()),
+                   FutureProxyManager::UnregisterCallback);
+    backing->proxy->RegisterClient(client_handle.id());
   }
 
   return FutureBase(this, client_handle);

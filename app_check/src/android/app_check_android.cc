@@ -531,6 +531,7 @@ AppCheckInternal::~AppCheckInternal() {
     MutexLock lock(listeners_mutex_);
     listeners_.clear();
   }
+  WaitForAllOtherThreadCallbacks();
 
   if (initialized_classes_) {
     initialized_classes_ = false;
@@ -627,7 +628,54 @@ Future<AppCheckToken> AppCheckInternal::GetLimitedUseAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetLimitedUseAppCheckToken));
 }
 
+void AppCheckInternal::BeginListenerCallbackLocked(AppCheckListener* listener) {
+  std::lock_guard<std::mutex> lock(listener_dispatch_mutex_);
+  active_listener_callbacks_.emplace_back(listener, std::this_thread::get_id());
+}
+
+void AppCheckInternal::EndListenerCallback(AppCheckListener* listener) {
+  const std::thread::id self = std::this_thread::get_id();
+  {
+    std::lock_guard<std::mutex> lock(listener_dispatch_mutex_);
+    for (auto it = active_listener_callbacks_.begin();
+         it != active_listener_callbacks_.end(); ++it) {
+      if (it->first == listener && it->second == self) {
+        active_listener_callbacks_.erase(it);
+        break;
+      }
+    }
+  }
+  listener_dispatch_cv_.notify_all();
+}
+
+void AppCheckInternal::WaitForListenerCallbacks(AppCheckListener* listener) {
+  const std::thread::id self = std::this_thread::get_id();
+  std::unique_lock<std::mutex> lock(listener_dispatch_mutex_);
+  listener_dispatch_cv_.wait(lock, [this, listener, self]() {
+    for (const auto& entry : active_listener_callbacks_) {
+      if (entry.first == listener && entry.second != self) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+void AppCheckInternal::WaitForAllOtherThreadCallbacks() {
+  const std::thread::id self = std::this_thread::get_id();
+  std::unique_lock<std::mutex> lock(listener_dispatch_mutex_);
+  listener_dispatch_cv_.wait(lock, [this, self]() {
+    for (const auto& entry : active_listener_callbacks_) {
+      if (entry.second != self) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
+  if (!listener) return;
   MutexLock lock(listeners_mutex_);
   auto it = std::find(listeners_.begin(), listeners_.end(), listener);
   if (it == listeners_.end()) {
@@ -636,20 +684,35 @@ void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
 }
 
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
-  MutexLock lock(listeners_mutex_);
-  auto it = std::find(listeners_.begin(), listeners_.end(), listener);
-  if (it != listeners_.end()) {
-    listeners_.erase(it);
+  if (!listener) return;
+  {
+    MutexLock lock(listeners_mutex_);
+    auto it = std::find(listeners_.begin(), listeners_.end(), listener);
+    if (it != listeners_.end()) {
+      listeners_.erase(it);
+    }
   }
+  WaitForListenerCallbacks(listener);
 }
 
 void AppCheckInternal::NotifyTokenChanged(AppCheckToken token) {
+  App keep_alive = app_state_.TryMakeAppHandle();
+  (void)keep_alive;
   std::vector<AppCheckListener*> listeners_copy;
   {
     MutexLock lock(listeners_mutex_);
     listeners_copy = listeners_;
   }
   for (AppCheckListener* listener : listeners_copy) {
+    {
+      MutexLock lock(listeners_mutex_);
+      if (std::find(listeners_.begin(), listeners_.end(), listener) ==
+          listeners_.end()) {
+        continue;
+      }
+      BeginListenerCallbackLocked(listener);
+    }
+    ActiveListenerGuard guard{this, listener};
     listener->OnAppCheckTokenChanged(token);
   }
 }

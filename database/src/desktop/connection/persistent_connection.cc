@@ -566,13 +566,21 @@ void PersistentConnection::TryScheduleReconnect() {
           }
 
           // Note: purposefully wait to add callbacks in case they are called
-          // immediately.
+          // immediately. Capture `ThisRef` by value so pending Auth/AppCheck
+          // futures completing during priority-ordered AppState teardown cannot
+          // dereference a destroyed PersistentConnection.
+          ThisRef safe_ref = connection->safe_this_;
           if (auth_succeeded) {
-            auth_future.OnCompletion(OnAuthTokenFutureComplete, connection);
+            auth_future.OnCompletion(
+                [safe_ref](const Future<std::string>& result_data) {
+                  OnAuthTokenFutureComplete(result_data, safe_ref);
+                });
           }
           if (app_check_succeeded) {
-            app_check_future.OnCompletion(OnAppCheckTokenFutureComplete,
-                                          connection);
+            app_check_future.OnCompletion(
+                [safe_ref](const Future<std::string>& result_data) {
+                  OnAppCheckTokenFutureComplete(result_data, safe_ref);
+                });
           }
         } else {
           // If both failed, assume neither are present, and start the
@@ -585,13 +593,11 @@ void PersistentConnection::TryScheduleReconnect() {
 }
 
 void PersistentConnection::OnAuthTokenFutureComplete(
-    const Future<std::string>& result_data, void* user_data) {
-  FIREBASE_DEV_ASSERT(user_data);
-  PersistentConnection* connection =
-      static_cast<PersistentConnection*>(user_data);
-  ThisRefLock lock(&connection->safe_this_);
+    const Future<std::string>& result_data, ThisRef safe_ref) {
+  ThisRefLock lock(&safe_ref);
+  PersistentConnection* connection = lock.GetReference();
   // If the connection is destroyed or being destroyed, do nothing.
-  if (!lock.GetReference()) return;
+  if (!connection) return;
 
   {
     // Update your own status, and check if App Check is finished.
@@ -619,13 +625,11 @@ void PersistentConnection::OnAuthTokenFutureComplete(
 }
 
 void PersistentConnection::OnAppCheckTokenFutureComplete(
-    const Future<std::string>& result_data, void* user_data) {
-  FIREBASE_DEV_ASSERT(user_data);
-  PersistentConnection* connection =
-      static_cast<PersistentConnection*>(user_data);
-  ThisRefLock lock(&connection->safe_this_);
+    const Future<std::string>& result_data, ThisRef safe_ref) {
+  ThisRefLock lock(&safe_ref);
+  PersistentConnection* connection = lock.GetReference();
   // If the connection is destroyed or being destroyed, do nothing.
-  if (!lock.GetReference()) return;
+  if (!connection) return;
 
   {
     // Update your own status, and check if Auth is finished.

@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
 #define FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
 
+#include <memory>
+
 #include "app/src/embedded_file.h"
 #include "app/src/util_android.h"
 #include "auth/src/common.h"
@@ -76,14 +78,22 @@ struct FutureCallbackData {
                                   bool success, void* void_data);
 
   FutureCallbackData(const SafeFutureHandle<T>& handle, AuthData* auth_data,
-                     ReadFutureResultFn* future_data_read_fn)
+                     ReadFutureResultFn* future_data_read_fn,
+                     bool notify_id_token_listeners = false)
       : handle(handle),
         auth_data(auth_data),
-        future_data_read_fn(future_data_read_fn) {}
+        weak_auth_data(auth_data ? auth_data->MakeWeakHandle()
+                                 : std::weak_ptr<AuthData>()),
+        future_core(auth_data ? auth_data->future_impl.core() : nullptr),
+        future_data_read_fn(future_data_read_fn),
+        notify_id_token_listeners(notify_id_token_listeners) {}
 
   SafeFutureHandle<T> handle;
   AuthData* auth_data;
+  std::weak_ptr<AuthData> weak_auth_data;
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core;
   ReadFutureResultFn* future_data_read_fn;
+  bool notify_id_token_listeners;
 };
 
 // The `ReadFutureResultFn` for `AuthResult` APIs.
@@ -204,24 +214,33 @@ AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
 template <typename T>
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                     const char* status_message, void* callback_data) {
-  FutureCallbackData<T>* data =
-      static_cast<FutureCallbackData<T>*>(callback_data);
+  std::unique_ptr<FutureCallbackData<T>> data(
+      static_cast<FutureCallbackData<T>*>(callback_data));
+  std::shared_ptr<AuthData> pinned_auth = data->weak_auth_data.lock();
+  if (!pinned_auth) {
+    ReferenceCountedFutureImpl::CompleteCore(
+        data->future_core, data->handle, kAuthErrorFailure,
+        status_message ? status_message : "Auth instance was destroyed.");
+    return;
+  }
   bool success = false;
   const AuthError error =
       MapFutureCallbackResultToAuthError(env, result, result_code, &success);
+  // Notify ID token listeners outside FutureImplCore::mutex_ while
+  // `pinned_auth` keeps AuthData and JNI method IDs alive.
+  if (success && data->notify_id_token_listeners &&
+      pinned_auth->ShouldTriggerIdTokenListenerCallback()) {
+    NotifyIdTokenListeners(pinned_auth.get());
+  }
   // Finish off the asynchronous call so that the caller can read it.
-  data->auth_data->future_impl.Complete(
-      data->handle, error, status_message,
-      [result, success, data](void* user_data) {
-        if (data->future_data_read_fn != nullptr) {
-          data->future_data_read_fn(result, data, success, user_data);
+  FutureCallbackData<T>* raw_data = data.get();
+  pinned_auth->future_impl.Complete(
+      raw_data->handle, error, status_message,
+      [result, success, raw_data](void* user_data) {
+        if (raw_data->future_data_read_fn != nullptr) {
+          raw_data->future_data_read_fn(result, raw_data, success, user_data);
         }
       });
-
-  // Remove the callback structure that was allocated when the callback was
-  // created in SetupFuture().
-  delete data;
-  data = nullptr;
 }
 
 // The function called by the Java thread when a result completes.
@@ -230,8 +249,15 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
                                          util::FutureResult result_code,
                                          const char* status_message,
                                          void* callback_data) {
-  FutureCallbackData<T>* data =
-      static_cast<FutureCallbackData<T>*>(callback_data);
+  std::unique_ptr<FutureCallbackData<T>> data(
+      static_cast<FutureCallbackData<T>*>(callback_data));
+  std::shared_ptr<AuthData> pinned_auth = data->weak_auth_data.lock();
+  if (!pinned_auth) {
+    ReferenceCountedFutureImpl::CompleteCore(
+        data->future_core, data->handle, kAuthErrorFailure,
+        status_message ? status_message : "Auth instance was destroyed.");
+    return;
+  }
   bool success = false;
   AuthError error =
       MapFutureCallbackResultToAuthError(env, result, result_code, &success);
@@ -242,18 +268,14 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
     error = kAuthErrorInvalidProviderId;
   }
   // Finish off the asynchronous call so that the caller can read it.
-  data->auth_data->future_impl.Complete(
-      data->handle, error, status_message,
-      [result, success, data](void* user_data) {
-        if (data->future_data_read_fn != nullptr) {
-          data->future_data_read_fn(result, data, success, user_data);
+  FutureCallbackData<T>* raw_data = data.get();
+  pinned_auth->future_impl.Complete(
+      raw_data->handle, error, status_message,
+      [result, success, raw_data](void* user_data) {
+        if (raw_data->future_data_read_fn != nullptr) {
+          raw_data->future_data_read_fn(result, raw_data, success, user_data);
         }
       });
-
-  // Remove the callback structure that was allocated when the callback was
-  // created in SetupFuture().
-  delete data;
-  data = nullptr;
 }
 
 // Ensure `FutureCallback` gets called when `pending_result` completes.
@@ -262,11 +284,13 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
 template <typename T>
 void RegisterCallback(
     jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
-    typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
+    typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn,
+    bool notify_id_token_listeners = false) {
   // The FutureCallbackData structure is deleted in FutureCallback().
   util::RegisterCallbackOnTask(
       Env(auth_data), pending_result, FutureCallback<T>,
-      new FutureCallbackData<T>(handle, auth_data, read_result_fn),
+      new FutureCallbackData<T>(handle, auth_data, read_result_fn,
+                                notify_id_token_listeners),
       auth_data->future_api_id.c_str());
 }
 

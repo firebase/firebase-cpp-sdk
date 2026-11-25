@@ -154,7 +154,8 @@ InitResult Initialize(const ::firebase::App &app, Listener *listener) {
 
 InitResult Initialize(
     const ::firebase::App &app, Listener *listener, const MessagingOptions& options) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return kInitResultSuccess;
   if (!app.is_valid()) return kInitResultFailedMissingDependency;
   if (!g_delegate) {
     g_delegate = [[FIRCppDelegate alloc] init];
@@ -287,13 +288,14 @@ bool IsInitialized() {
 }  // namespace internal
 
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!g_initialized.load(std::memory_order_acquire)) {
     LogError("Messaging already shut down.");
     return;
   }
-  internal::UnregisterTerminateOnAppDestroy();
   g_initialized.store(false, std::memory_order_release);
+  internal::UnregisterTerminateOnAppDestroy();
   FutureData::Destroy();
   // Ensure g_delegate still exists (it cannot be unallocated in case a token is received via a
   // different Firebase library e.g. Invites while Messaging is not enabled).

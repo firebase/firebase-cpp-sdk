@@ -262,7 +262,7 @@ class StorageReferenceInternal {
       const char* url, const char* method, const char* content_type = nullptr);
 
   void SetupMetadataChain(Future<Metadata> starting_future,
-                          MetadataChainData* data);
+                          std::shared_ptr<MetadataChainData> data);
 
   ReferenceCountedFutureImpl* future();
 

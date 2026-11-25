@@ -31,7 +31,8 @@ static JavaVM* g_java_vm = nullptr;
 
 // Initialize the Performance API.
 InitResult Initialize(const ::firebase::App& app) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return kInitResultSuccess;
   if (!app.is_valid()) {
     LogWarning("%s API cannot be initialized with an invalid App",
                internal::kPerformanceModuleName);
@@ -118,15 +119,16 @@ METHOD_LOOKUP_DEFINITION(trace_jni, "com/google/firebase/perf/metrics/Trace",
 
 // Clean up the API.
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!g_initialized.load(std::memory_order_acquire)) {
     LogWarning("%s API already shut down", internal::kPerformanceModuleName);
     return;
   }
+  g_initialized.store(false, std::memory_order_release);
+  internal::UnregisterTerminateOnAppDestroy();
   JNIEnv* env = internal::GetJNIEnv();
   util::CancelCallbacks(env, internal::kPerformanceModuleName);
-  internal::UnregisterTerminateOnAppDestroy();
-  g_initialized.store(false, std::memory_order_release);
   g_java_vm = nullptr;
   env->DeleteGlobalRef(g_performance_class_instance);
   g_performance_class_instance = nullptr;

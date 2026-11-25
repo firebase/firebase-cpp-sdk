@@ -72,7 +72,8 @@ DesktopAnalyticsState& GetDesktopState() {
 // Initializes the Analytics desktop API.
 // This function must be called before any other Analytics methods.
 void Initialize(const App& app) {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterInitialize();
+  if (!transition) return;
   if (!app.is_valid()) {
     LogWarning("%s API cannot be initialized with an invalid App",
                internal::kAnalyticsModuleName);
@@ -163,10 +164,12 @@ bool IsInitialized() { return g_initialized.load(std::memory_order_acquire); }
 // Terminates the Analytics desktop API.
 // Call this function when Analytics is no longer needed to free up resources.
 void Terminate() {
-  std::lock_guard<std::mutex> lifecycle_lock(internal::GetLifecycleMutex());
+  auto transition = internal::GetLifecycleGate().EnterTerminate();
+  if (!transition) return;
   if (!g_initialized.load(std::memory_order_acquire)) {
     return;
   }
+  g_initialized.store(false, std::memory_order_release);
 #if defined(_WIN32)
   if (g_analytics_module) {
     // Make sure to notify the SDK that the analytics is being terminated to
@@ -180,7 +183,6 @@ void Terminate() {
 #endif  // defined(_WIN32)
 
   internal::UnregisterTerminateOnAppDestroy();
-  g_initialized.store(false, std::memory_order_release);
   internal::FutureData::Destroy();
 }
 

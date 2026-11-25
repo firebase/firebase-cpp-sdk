@@ -424,6 +424,97 @@ class TeardownGuardService : public Service {
   std::function<void()> on_destroy_;
 };
 
+// State-machine serialization gate for process-wide singleton modules
+// (analytics, messaging, performance) whose Initialize()/Terminate() perform
+// blocking teardown (CancelCallbacks, pthread_join, FutureData destruction,
+// AppState guard detachment) that may re-enter Terminate() on the same thread
+// or from a worker thread waited on by Terminate().
+//
+// `mutex_` is NEVER held while Initialize()/Terminate() bodies run, preventing
+// single-thread self-deadlocks and ABBA lock inversions with inner module
+// mutexes, `util::CancelCallbacks()`, `pthread_join`, and `~AppState()`.
+class ModuleLifecycleGate {
+ public:
+  class TransitionGuard {
+   public:
+    TransitionGuard() = default;
+    TransitionGuard(ModuleLifecycleGate* gate, bool acquired)
+        : gate_(gate), acquired_(acquired) {}
+    TransitionGuard(const TransitionGuard&) = delete;
+    TransitionGuard& operator=(const TransitionGuard&) = delete;
+    TransitionGuard(TransitionGuard&& other) noexcept
+        : gate_(other.gate_), acquired_(other.acquired_) {
+      other.gate_ = nullptr;
+      other.acquired_ = false;
+    }
+    ~TransitionGuard() { Finish(); }
+
+    explicit operator bool() const noexcept { return acquired_; }
+
+    void Finish() {
+      if (gate_ && acquired_) {
+        gate_->FinishTransition();
+        gate_ = nullptr;
+        acquired_ = false;
+      }
+    }
+
+   private:
+    ModuleLifecycleGate* gate_ = nullptr;
+    bool acquired_ = false;
+  };
+
+  TransitionGuard EnterInitialize() {
+    const std::thread::id self = std::this_thread::get_id();
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (state_ != State::kIdle && transition_thread_ == self) {
+      return TransitionGuard(nullptr, false);
+    }
+    cv_.wait(lock, [this]() { return state_ == State::kIdle; });
+    state_ = State::kInitializing;
+    transition_thread_ = self;
+    return TransitionGuard(this, true);
+  }
+
+  TransitionGuard EnterTerminate() {
+    const std::thread::id self = std::this_thread::get_id();
+    std::unique_lock<std::mutex> lock(mutex_);
+    // If termination is already in progress on ANY thread, return immediately
+    // so a callback thread being drained by CancelCallbacks() / pthread_join
+    // never blocks waiting for the terminating thread (preventing ABBA).
+    if (state_ == State::kTerminating) {
+      return TransitionGuard(nullptr, false);
+    }
+    if (state_ == State::kInitializing && transition_thread_ == self) {
+      return TransitionGuard(nullptr, false);
+    }
+    cv_.wait(lock, [this]() { return state_ != State::kInitializing; });
+    if (state_ == State::kTerminating) {
+      return TransitionGuard(nullptr, false);
+    }
+    state_ = State::kTerminating;
+    transition_thread_ = self;
+    return TransitionGuard(this, true);
+  }
+
+ private:
+  enum class State { kIdle, kInitializing, kTerminating };
+
+  void FinishTransition() {
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      state_ = State::kIdle;
+      transition_thread_ = std::thread::id();
+    }
+    cv_.notify_all();
+  }
+
+  std::mutex mutex_;
+  std::condition_variable cv_;
+  State state_ = State::kIdle;
+  std::thread::id transition_thread_;
+};
+
 }  // namespace internal
 }  // namespace firebase
 

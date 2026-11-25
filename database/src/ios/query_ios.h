@@ -233,7 +233,7 @@ class QueryInternal {
 class SingleValueListener : public ValueListener {
  public:
   SingleValueListener(
-      std::shared_ptr<detail::FutureImplCore> future_core,
+      std::shared_ptr<::firebase::detail::FutureImplCore> future_core,
       const SafeFutureHandle<DataSnapshot>& handle,
       const FIRCPPDatabaseQueryCallbackStatePointer& callback_state);
   // Unregister ourselves from the database.
@@ -242,8 +242,13 @@ class SingleValueListener : public ValueListener {
   virtual void OnCancelled(const Error& error_code,
                            const char* _Nullable error_message);
 
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core() const {
+    return future_core_;
+  }
+  SafeFutureHandle<DataSnapshot> handle() const { return handle_; }
+
  private:
-  std::shared_ptr<detail::FutureImplCore> future_core_;
+  std::shared_ptr<::firebase::detail::FutureImplCore> future_core_;
   SafeFutureHandle<DataSnapshot> handle_;
   std::unique_ptr<FIRCPPDatabaseQueryCallbackStatePointer> callback_state_;
 };

@@ -93,6 +93,11 @@ inline Future<ResultT> CallAsync(
   auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
         std::unique_ptr<HandleT> handle(raw_auth_data_handle);
+        std::shared_ptr<AuthData> pinned = handle->weak_auth_data.lock();
+        if (!pinned) {
+          FailPromise(&handle->promise, kAuthErrorFailure);
+          return;
+        }
         handle->callback(handle.get());
       },
       new HandleT(auth_data, promise, std::move(request), callback));

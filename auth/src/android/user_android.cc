@@ -285,9 +285,6 @@ void ReadTokenResult(jobject result, FutureCallbackData<std::string>* d,
 
   // `result` is of type GetTokenResult when `success` is true.
   if (success) {
-    if (d->auth_data->ShouldTriggerIdTokenListenerCallback()) {
-      NotifyIdTokenListeners(d->auth_data);
-    }
     // This comes from the successfully completed Task in Java, so it should
     // always be valid.
     FIREBASE_ASSERT(result != nullptr);
@@ -314,7 +311,8 @@ Future<std::string> User::GetToken(bool force_refresh) {
       UserImpl(data.get()), user::GetMethodId(user::kToken), force_refresh);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, data.get(), ReadTokenResult);
+    RegisterCallback(pending_result, handle, data.get(), ReadTokenResult,
+                     /*notify_id_token_listeners=*/true);
     env->DeleteLocalRef(pending_result);
   } else {
     data->SetExpectIdTokenListenerCallback(false);
@@ -329,9 +327,6 @@ void ReadIdTokenResult(jobject result, FutureCallbackData<IdTokenResult>* d,
 
   // `result` is of type GetTokenResult when `success` is true.
   if (success) {
-    if (d->auth_data->ShouldTriggerIdTokenListenerCallback()) {
-      NotifyIdTokenListeners(d->auth_data);
-    }
     // This comes from the successfully completed Task in Java, so it should
     // always be valid.
     FIREBASE_ASSERT(result != nullptr);
@@ -390,7 +385,8 @@ Future<IdTokenResult> User::GetIdTokenResult(bool force_refresh) {
       UserImpl(data.get()), user::GetMethodId(user::kToken), force_refresh);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, data.get(), ReadIdTokenResult);
+    RegisterCallback(pending_result, handle, data.get(), ReadIdTokenResult,
+                     /*notify_id_token_listeners=*/true);
     env->DeleteLocalRef(pending_result);
   } else {
     data->SetExpectIdTokenListenerCallback(false);

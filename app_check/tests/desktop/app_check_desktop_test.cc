@@ -16,6 +16,7 @@
 #include <chrono>
 #include <ctime>
 #include <functional>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -223,6 +224,87 @@ TEST_F(AppCheckDesktopTest, StaticStorageDurationSurvivesProcessExit) {
   App app = testing::CreateApp(testing::MockAppOptions(), "static_app_check");
   s_static_app_check = AppCheck::GetInstance(app);
   EXPECT_TRUE(s_static_app_check.is_valid());
+}
+
+TEST_F(AppCheckDesktopTest,
+       ConcurrentRemoveAppCheckListenerBlocksAndAllowsSameThreadReentry) {
+  FakeAppCheckProviderFactory factory;
+  factory.set_defer_completion(true);
+  AppCheck::SetAppCheckProviderFactory(&factory);
+
+  App app = testing::CreateApp(testing::MockAppOptions(), "ac_listener_drain");
+  AppCheck ac = AppCheck::GetInstance(app);
+  ASSERT_TRUE(ac.is_valid());
+
+  std::promise<void> entered_promise;
+  std::future<void> entered_future = entered_promise.get_future();
+  std::promise<void> release_promise;
+  std::shared_future<void> release_future =
+      release_promise.get_future().share();
+  std::atomic<bool> callback_exited{false};
+
+  struct BlockingListener : public AppCheckListener {
+    std::promise<void>* entered;
+    std::shared_future<void> release;
+    std::atomic<bool>* exited;
+    int magic = 0x55aa55aa;
+
+    void OnAppCheckTokenChanged(const AppCheckToken& token) override {
+      EXPECT_EQ(token.token, "tok-barrier");
+      entered->set_value();
+      release.wait();
+      EXPECT_EQ(magic, 0x55aa55aa);
+      exited->store(true, std::memory_order_release);
+    }
+  };
+
+  auto listener = std::make_unique<BlockingListener>();
+  listener->entered = &entered_promise;
+  listener->release = release_future;
+  listener->exited = &callback_exited;
+  ac.AddAppCheckListener(listener.get());
+
+  Future<AppCheckToken> token_future = ac.GetAppCheckToken(true);
+  FakeAppCheckProvider* provider = factory.GetProvider("ac_listener_drain");
+  ASSERT_NE(provider, nullptr);
+
+  std::thread notifier(
+      [provider]() { provider->CompleteAllPending("tok-barrier"); });
+
+  ASSERT_EQ(entered_future.wait_for(std::chrono::seconds(10)),
+            std::future_status::ready);
+
+  std::atomic<bool> remove_finished{false};
+  std::thread remover([&]() {
+    ac.RemoveAppCheckListener(listener.get());
+    listener.reset();
+    remove_finished.store(true, std::memory_order_release);
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(25));
+  EXPECT_FALSE(remove_finished.load(std::memory_order_acquire));
+
+  release_promise.set_value();
+  remover.join();
+  notifier.join();
+  EXPECT_TRUE(callback_exited.load(std::memory_order_acquire));
+  EXPECT_TRUE(remove_finished.load(std::memory_order_acquire));
+  EXPECT_EQ(token_future.status(), kFutureStatusComplete);
+
+  // Part 2: Same-thread re-entrant RemoveAppCheckListener inside immediate
+  // cached-token notification must not deadlock.
+  struct SelfRemovingListener : public AppCheckListener {
+    AppCheck* ac_ptr;
+    int count = 0;
+    void OnAppCheckTokenChanged(const AppCheckToken& /*token*/) override {
+      ++count;
+      ac_ptr->RemoveAppCheckListener(this);
+    }
+  };
+  SelfRemovingListener self_remover;
+  self_remover.ac_ptr = &ac;
+  ac.AddAppCheckListener(&self_remover);
+  EXPECT_EQ(self_remover.count, 1);
 }
 
 }  // namespace

@@ -151,7 +151,7 @@ QueryInternal::~QueryInternal() {
 }
 
 SingleValueListener::SingleValueListener(
-    std::shared_ptr<detail::FutureImplCore> future_core,
+    std::shared_ptr<::firebase::detail::FutureImplCore> future_core,
     const SafeFutureHandle<DataSnapshot>& handle,
     const FIRCPPDatabaseQueryCallbackStatePointer& callback_state)
     : future_core_(std::move(future_core)),
@@ -219,23 +219,56 @@ Future<DataSnapshot> QueryInternal::GetValue() {
   callback_state.valueListener = single_listener;
 
   void (^block)(FIRDataSnapshot* _Nonnull) = ^(FIRDataSnapshot* _Nonnull snapshot_impl) {
-    NotifyValueListener(callback_state, snapshot_impl,
-                        [](DatabaseInternal* _Nonnull database, ValueListener* _Nonnull listener,
-                           const DataSnapshot& snapshot) {
-                          listener->OnValueChanged(snapshot);
-                          database->RemoveSingleValueListener(listener);
-                          delete listener;
-                        });
+    std::shared_ptr<::firebase::detail::FutureImplCore> future_core;
+    SafeFutureHandle<DataSnapshot> handle;
+    DataSnapshot snapshot(nullptr);
+    {
+      [callback_state.lock lock];
+      DatabaseInternal* database = callback_state.databaseInternal;
+      SingleValueListener* listener =
+          static_cast<SingleValueListener*>(callback_state.valueListener);
+      if (database && listener) {
+        snapshot = DataSnapshot(new DataSnapshotInternal(
+            database->MakeWeakHandle(),
+            std::make_unique<FIRDataSnapshotPointer>(snapshot_impl)));
+        future_core = listener->future_core();
+        handle = listener->handle();
+        // Detach and delete the listener BEFORE unlocking and completing the
+        // future so a synchronous OnCompletion callback that drops the last
+        // App/Database/Query handle cannot double-free `listener` or UAF
+        // `database`.
+        database->RemoveSingleValueListener(listener);
+        delete listener;
+      }
+      [callback_state.lock unlock];
+    }
+    if (future_core) {
+      ReferenceCountedFutureImpl::CompleteCoreWithResult(future_core, handle, kErrorNone, "",
+                                                         snapshot);
+    }
   };
 
   void (^cancel_block)(NSError* _Nonnull) = ^(NSError* _Nonnull error) {
-    CancelValueListener(callback_state, error,
-                        [](DatabaseInternal* _Nonnull database, ValueListener* _Nonnull listener,
-                           const Error& error_code, const char* _Nonnull error_string) {
-                          listener->OnCancelled(error_code, error_string);
-                          database->RemoveSingleValueListener(listener);
-                          delete listener;
-                        });
+    Error error_code = NSErrorToErrorCode(error);
+    const char* error_string = GetErrorMessage(error_code);
+    std::shared_ptr<::firebase::detail::FutureImplCore> future_core;
+    SafeFutureHandle<DataSnapshot> handle;
+    {
+      [callback_state.lock lock];
+      DatabaseInternal* database = callback_state.databaseInternal;
+      SingleValueListener* listener =
+          static_cast<SingleValueListener*>(callback_state.valueListener);
+      if (database && listener) {
+        future_core = listener->future_core();
+        handle = listener->handle();
+        database->RemoveSingleValueListener(listener);
+        delete listener;
+      }
+      [callback_state.lock unlock];
+    }
+    if (future_core) {
+      ReferenceCountedFutureImpl::CompleteCore(future_core, handle, error_code, error_string);
+    }
   };
 
   [impl() observeSingleEventOfType:FIRDataEventTypeValue

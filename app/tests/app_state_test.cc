@@ -498,6 +498,54 @@ TEST_F(AppStateTest, FutureWaitInfiniteWakesOnShutdownAndDropInOnCompletion) {
   EXPECT_TRUE(weak_state.expired());
 }
 
+TEST_F(AppStateTest, ExpiredHandleEqualityAndProxyForceReleaseDuringCallback) {
+  // Part 1 (R2-F4): A FutureBase constructed from an expired handle whose
+  // ReferenceFuture() returns false must normalize handle_ so it equals
+  // FutureBase().
+  {
+    ReferenceCountedFutureImpl impl(1);
+    FutureHandleId raw_id = 0;
+    {
+      auto handle = impl.SafeAlloc<void>(0);
+      raw_id = handle.get().id();
+      impl.Complete(handle, 0, "");
+      impl.InvalidateLastResult(0);
+    }
+    // All references to raw_id are now released, so ReferenceFuture() returns
+    // false when constructing FutureBase from a non-owning
+    // FutureHandle(raw_id).
+    FutureBase expired(&impl, FutureHandle(raw_id));
+    EXPECT_EQ(expired.status(), kFutureStatusInvalid);
+    EXPECT_EQ(expired, FutureBase());
+  }
+
+#if defined(INTERNAL_EXPERIMENTAL)
+  // Part 2 (F21): Destroying the impl inside a completed proxy client's
+  // OnCompletion erases the idle subject backing and invokes
+  // ~FutureProxyManager() -> ForceReleaseFuture(proxy) while
+  // proxy->active_callbacks > 0. Must not assert or underflow reference_count.
+  {
+    auto impl = std::make_unique<ReferenceCountedFutureImpl>(1);
+    auto subject_handle = impl->SafeAlloc<void>(0);
+    FutureBase proxy_base = impl->LastResultProxy(0);
+    Future<void> proxy = static_cast<const Future<void>&>(proxy_base);
+    proxy_base.Release();
+    impl->Complete(subject_handle, 0, "");
+    // Subject and proxy are now complete; only subject_backing->proxy owns
+    // FutureProxyManager. Registering OnCompletion on the already-complete
+    // proxy executes the callback immediately with active_callbacks == 1.
+    bool proxy_cb_ran = false;
+    proxy.OnCompletion([&impl, &proxy_cb_ran](const Future<void>& f) {
+      EXPECT_EQ(f.status(), kFutureStatusComplete);
+      impl.reset();
+      proxy_cb_ran = true;
+    });
+    EXPECT_TRUE(proxy_cb_ran);
+    EXPECT_EQ(proxy.status(), kFutureStatusInvalid);
+  }
+#endif  // defined(INTERNAL_EXPERIMENTAL)
+}
+
 }  // namespace
 }  // namespace internal
 }  // namespace firebase

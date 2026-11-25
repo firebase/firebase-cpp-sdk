@@ -42,9 +42,58 @@ AppCheckInternal::AppCheckInternal(::firebase::internal::AppState& app_state)
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
-  MutexLock lock(mutex_);
-  cached_token_.expire_time_millis = 0;
-  token_listeners_.clear();
+  {
+    MutexLock lock(mutex_);
+    cached_token_.expire_time_millis = 0;
+    token_listeners_.clear();
+  }
+  WaitForAllOtherThreadCallbacks();
+}
+
+void AppCheckInternal::BeginListenerCallbackLocked(AppCheckListener* listener) {
+  std::lock_guard<std::mutex> lock(listener_dispatch_mutex_);
+  active_listener_callbacks_.emplace_back(listener, std::this_thread::get_id());
+}
+
+void AppCheckInternal::EndListenerCallback(AppCheckListener* listener) {
+  const std::thread::id self = std::this_thread::get_id();
+  {
+    std::lock_guard<std::mutex> lock(listener_dispatch_mutex_);
+    for (auto it = active_listener_callbacks_.begin();
+         it != active_listener_callbacks_.end(); ++it) {
+      if (it->first == listener && it->second == self) {
+        active_listener_callbacks_.erase(it);
+        break;
+      }
+    }
+  }
+  listener_dispatch_cv_.notify_all();
+}
+
+void AppCheckInternal::WaitForListenerCallbacks(AppCheckListener* listener) {
+  const std::thread::id self = std::this_thread::get_id();
+  std::unique_lock<std::mutex> lock(listener_dispatch_mutex_);
+  listener_dispatch_cv_.wait(lock, [this, listener, self]() {
+    for (const auto& entry : active_listener_callbacks_) {
+      if (entry.first == listener && entry.second != self) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+void AppCheckInternal::WaitForAllOtherThreadCallbacks() {
+  const std::thread::id self = std::this_thread::get_id();
+  std::unique_lock<std::mutex> lock(listener_dispatch_mutex_);
+  listener_dispatch_cv_.wait(lock, [this, self]() {
+    for (const auto& entry : active_listener_callbacks_) {
+      if (entry.second != self) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
 
 ::firebase::App AppCheckInternal::app() const {
@@ -63,6 +112,10 @@ bool AppCheckInternal::HasValidCacheTokenLocked() const {
 }
 
 void AppCheckInternal::UpdateCachedToken(AppCheckToken token) {
+  // Keep AppState/AppCheckInternal alive while listener callbacks run in case
+  // a listener drops the last external App/AppCheck handle.
+  App keep_alive = app_state_.TryMakeAppHandle();
+  (void)keep_alive;
   std::vector<AppCheckListener*> public_listeners;
   {
     MutexLock lock(mutex_);
@@ -70,6 +123,15 @@ void AppCheckInternal::UpdateCachedToken(AppCheckToken token) {
     public_listeners.assign(token_listeners_.begin(), token_listeners_.end());
   }
   for (AppCheckListener* listener : public_listeners) {
+    {
+      MutexLock lock(mutex_);
+      if (std::find(token_listeners_.begin(), token_listeners_.end(),
+                    listener) == token_listeners_.end()) {
+        continue;
+      }
+      BeginListenerCallbackLocked(listener);
+    }
+    ActiveListenerGuard guard{this, listener};
     listener->OnAppCheckTokenChanged(token);
   }
   app_state_.NotifyAppCheckTokenChanged(token.token);
@@ -263,6 +325,8 @@ Future<std::string> AppCheckInternal::GetLimitedUseTokenAsync() {
 
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
   if (!listener) return;
+  App keep_alive = app_state_.TryMakeAppHandle();
+  (void)keep_alive;
   bool notify = false;
   AppCheckToken token_copy;
   {
@@ -271,17 +335,22 @@ void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
     if (HasValidCacheTokenLocked()) {
       notify = true;
       token_copy = cached_token_;
+      BeginListenerCallbackLocked(listener);
     }
   }
   if (notify) {
+    ActiveListenerGuard guard{this, listener};
     listener->OnAppCheckTokenChanged(token_copy);
   }
 }
 
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
   if (!listener) return;
-  MutexLock lock(mutex_);
-  token_listeners_.remove(listener);
+  {
+    MutexLock lock(mutex_);
+    token_listeners_.remove(listener);
+  }
+  WaitForListenerCallbacks(listener);
 }
 
 }  // namespace internal
