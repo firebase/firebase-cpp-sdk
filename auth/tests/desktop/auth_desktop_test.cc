@@ -22,6 +22,7 @@
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_mock.h"
+#include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/tests/include/firebase/app_for_testing.h"
@@ -283,6 +284,38 @@ class AuthDesktopTest : public ::testing::Test {
   test::IdTokenChangesCounter id_token_listener;
   test::AuthStateChangesCounter auth_state_listener;
 };
+
+// Auth exposes itself to other products through its App's function registry.
+// Destroying Auth must remove every function it registered.
+TEST_F(AuthDesktopTest, DestroyingAuthUnregistersRegistryFunctions) {
+  const ::firebase::internal::FunctionId kAuthFunctions[] = {
+      ::firebase::internal::FnAuthGetCurrentToken,
+      ::firebase::internal::FnAuthStartTokenListener,
+      ::firebase::internal::FnAuthStopTokenListener,
+      ::firebase::internal::FnAuthGetTokenAsync,
+      ::firebase::internal::FnAuthGetCurrentUserUid,
+      ::firebase::internal::FnAuthAddAuthStateListener,
+      ::firebase::internal::FnAuthRemoveAuthStateListener,
+  };
+  ::firebase::internal::FunctionRegistry* registry =
+      firebase_app_->function_registry();
+  for (::firebase::internal::FunctionId id : kAuthFunctions) {
+    EXPECT_TRUE(registry->FunctionExists(id)) << id;
+  }
+
+  firebase_auth_.reset();
+  for (::firebase::internal::FunctionId id : kAuthFunctions) {
+    EXPECT_FALSE(registry->FunctionExists(id)) << id;
+  }
+
+  // TearDown() needs an Auth, and a new Auth must register the functions
+  // again.
+  firebase_auth_.reset(Auth::GetAuth(firebase_app_.get()));
+  ASSERT_NE(nullptr, firebase_auth_);
+  for (::firebase::internal::FunctionId id : kAuthFunctions) {
+    EXPECT_TRUE(registry->FunctionExists(id)) << id;
+  }
+}
 
 TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
