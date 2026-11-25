@@ -18,9 +18,10 @@ if(TARGET firestore)
   return()
 endif()
 
-# If the format of the line below changes, then be sure to update
-# https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
-set(version 13.2.0)
+# DO NOT MERGE: temporary pin to firebase/firebase-ios-sdk#17051 head
+# (Windows CryptoAPI TLS + embedded roots.pem removal) with firestore.patch.txt
+# disabled, to verify the full firebase-cpp-sdk Desktop matrix against it.
+set(version e0488344f7d4ae66cfe3415e14f9cc35044b9b52)
 
 function(GetReleasedDep)
   message("Getting released firebase-ios-sdk @ ${version}")
@@ -36,7 +37,6 @@ function(GetReleasedDep)
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     TEST_COMMAND ""
-    PATCH_COMMAND patch -Np1 -i ${CMAKE_CURRENT_LIST_DIR}/firestore.patch.txt
     HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
     )
 endfunction()
@@ -58,7 +58,6 @@ function(GetTag t)
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     TEST_COMMAND ""
-    PATCH_COMMAND patch -Np1 -i ${CMAKE_CURRENT_LIST_DIR}/firestore.patch.txt
     HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
     )
 endfunction()
