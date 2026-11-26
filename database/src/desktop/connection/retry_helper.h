@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <random>
 
 #include "app/src/logger.h"
@@ -33,6 +34,11 @@ namespace connection {
 // Callbacks passed to Retry() execute on the Scheduler worker thread without
 // holding RetryHelper's internal lock and must guard any external lifetimes
 // (e.g., via SafeReference or std::shared_ptr).
+// Thread safety: All public methods (Retry, SignalSuccess, SetMaxDelay, Cancel)
+// are safe to call concurrently from any thread. Destruction (~RetryHelper) is
+// safe concurrently with scheduled or in-flight callbacks on the Scheduler
+// worker thread, but must be externally synchronized with concurrent calls to
+// public methods on other threads.
 // Lifetime: |scheduler| and |logger| must be non-null and outlive RetryHelper.
 class RetryHelper {
  public:
@@ -43,12 +49,17 @@ class RetryHelper {
 
   static constexpr uint64_t kDefaultMinRetryDelayAfterFailureMs = 1000;
   static constexpr uint64_t kDefaultMaxRetryDelayMs = 30000;
+  // Upper bound supported by Scheduler / Semaphore::TimedWait(int).
+  static constexpr uint64_t kMaxSupportedRetryDelayMs =
+      static_cast<uint64_t>(std::numeric_limits<int>::max());
   static constexpr double kDefaultRetryExponent = 1.3;
   static constexpr double kDefaultJitterFactor = 0.7;
 
   struct Options {
     uint64_t min_retry_delay_after_failure_ms =
         kDefaultMinRetryDelayAfterFailureMs;
+    // Must be >= min_retry_delay_after_failure_ms and
+    // <= kMaxSupportedRetryDelayMs.
     uint64_t max_retry_delay_ms = kDefaultMaxRetryDelayMs;
     double retry_exponent = kDefaultRetryExponent;
     double jitter_factor = kDefaultJitterFactor;
@@ -58,8 +69,9 @@ class RetryHelper {
   };
 
   // |scheduler| and |logger| must be non-null and outlive RetryHelper.
-  // Invalid |options| (min > max, non-finite or < 1.0 exponent, or jitter
-  // outside [0.0, 1.0]) fail via release-active FIREBASE_ASSERT.
+  // Invalid |options| (min > max, max > kMaxSupportedRetryDelayMs, non-finite
+  // or < 1.0 exponent, or jitter outside [0.0, 1.0]) fail via release-active
+  // FIREBASE_ASSERT.
   RetryHelper(scheduler::Scheduler* scheduler, Logger* logger);
   RetryHelper(scheduler::Scheduler* scheduler, Logger* logger, Options options);
   ~RetryHelper();
@@ -115,6 +127,7 @@ class RetryHelper {
 
   mutable ThisRef safe_this_;
   scheduler::RequestHandle scheduled_retry_;
+  std::function<void()> scheduled_callback_;
   uint64_t scheduled_retry_id_;
   uint64_t next_task_id_;
   uint64_t current_retry_delay_ms_;

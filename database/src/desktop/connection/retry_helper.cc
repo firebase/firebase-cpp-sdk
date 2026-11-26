@@ -50,6 +50,14 @@ std::minstd_rand::result_type SeedRng(const void* instance_addr) {
       (z % (std::minstd_rand::modulus - 1)) + 1);
 }
 
+// Returns true if |value| is <= 0.0 or NaN. Uses a negated comparison so NaN
+// evaluates to true and never reaches static_cast<uint64_t>.
+bool IsNonPositiveOrNan(double value) { return !(value > 0.0); }
+
+// Returns true if |value| is < 0.0 or NaN. Uses a negated comparison so NaN
+// evaluates to true.
+bool IsNegativeOrNan(double value) { return !(value >= 0.0); }
+
 }  // namespace
 
 RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger)
@@ -82,6 +90,7 @@ RetryHelper::RetryHelper(scheduler::Scheduler* scheduler, Logger* logger,
   FIREBASE_ASSERT(scheduler_ != nullptr);
   FIREBASE_ASSERT(logger_ != nullptr);
   FIREBASE_ASSERT(min_retry_delay_after_failure_ms_ <= max_retry_delay_ms_);
+  FIREBASE_ASSERT(max_retry_delay_ms_ <= kMaxSupportedRetryDelayMs);
   FIREBASE_ASSERT(std::isfinite(retry_exponent_) && retry_exponent_ >= 1.0);
   FIREBASE_ASSERT(jitter_factor_ >= 0.0 && jitter_factor_ <= 1.0);
 }
@@ -94,17 +103,20 @@ RetryHelper::~RetryHelper() {
   if (scheduled_retry_.IsValid()) {
     scheduled_retry_.Cancel();
   }
+  scheduled_callback_ = nullptr;
 }
 
 void RetryHelper::Retry(std::function<void()> callback) {
+  std::function<void()> previous_callback;
   scheduler::RequestHandle previous_retry;
   {
     ThisRefLock lock(&safe_this_);
 
-    // Cancel the in-progress or scheduled retry, if there is one.
+    // Cancel any previously scheduled pending retry.
     if (scheduled_retry_.IsValid()) {
       logger_->LogDebug("[RetryHelper] Cancelling previous scheduled retry");
       std::swap(previous_retry, scheduled_retry_);
+      std::swap(previous_callback, scheduled_callback_);
       scheduled_retry_id_ = 0;
     }
 
@@ -117,20 +129,25 @@ void RetryHelper::Retry(std::function<void()> callback) {
       } else {
         const double new_delay_double =
             static_cast<double>(current_retry_delay_ms_) * retry_exponent_;
-        if (new_delay_double >= static_cast<double>(max_retry_delay_ms_)) {
+        if (!std::isfinite(new_delay_double) ||
+            new_delay_double >= static_cast<double>(max_retry_delay_ms_)) {
           current_retry_delay_ms_ = max_retry_delay_ms_;
+        } else if (IsNonPositiveOrNan(new_delay_double)) {
+          current_retry_delay_ms_ = 0;
         } else {
           current_retry_delay_ms_ = static_cast<uint64_t>(new_delay_double);
         }
       }
-      if (jitter_factor_ == 0.0 || current_retry_delay_ms_ == 0) {
+      // Use <= instead of == to avoid floating-point equality comparison
+      // (-Wfloat-equal) and defensively handle negative values.
+      if (jitter_factor_ <= 0.0 || current_retry_delay_ms_ == 0) {
         delay_ms = current_retry_delay_ms_;
       } else {
         const double random_value = NextRandom();
         const double base_double = static_cast<double>(current_retry_delay_ms_);
         const double jittered = ((1.0 - jitter_factor_) * base_double) +
                                 (jitter_factor_ * base_double * random_value);
-        if (jittered <= 0.0) {
+        if (IsNonPositiveOrNan(jittered)) {
           delay_ms = 0;
         } else if (jittered >= base_double) {
           delay_ms = current_retry_delay_ms_;
@@ -147,9 +164,10 @@ void RetryHelper::Retry(std::function<void()> callback) {
 
     const uint64_t task_id = ++next_task_id_;
     scheduled_retry_id_ = task_id;
+    scheduled_callback_ = std::move(callback);
     scheduled_retry_ = scheduler_->Schedule(
-        [safe_ref = safe_this_, task_id,
-         callback = std::move(callback)]() mutable {
+        [safe_ref = safe_this_, task_id]() mutable {
+          std::function<void()> callback_to_run;
           {
             ThisRefLock callback_lock(&safe_ref);
             RetryHelper* helper = callback_lock.GetReference();
@@ -162,9 +180,10 @@ void RetryHelper::Retry(std::function<void()> callback) {
             // Scheduler::TriggerCallback() holds status->mutex.
             helper->scheduled_retry_ = scheduler::RequestHandle();
             helper->scheduled_retry_id_ = 0;
+            std::swap(callback_to_run, helper->scheduled_callback_);
           }
-          if (callback) {
-            callback();
+          if (callback_to_run) {
+            callback_to_run();
           }
         },
         delay_ms);
@@ -189,12 +208,14 @@ void RetryHelper::SetMaxDelay() {
 }
 
 void RetryHelper::Cancel() {
+  std::function<void()> cancelled_callback;
   scheduler::RequestHandle to_cancel;
   {
     ThisRefLock lock(&safe_this_);
     if (scheduled_retry_.IsValid()) {
       logger_->LogDebug("[RetryHelper] Cancelling existing retry attempt");
       std::swap(to_cancel, scheduled_retry_);
+      std::swap(cancelled_callback, scheduled_callback_);
       scheduled_retry_id_ = 0;
     } else {
       logger_->LogDebug("[RetryHelper] No existing retry attempt to cancel");
@@ -227,7 +248,7 @@ double RetryHelper::NextRandom() {
   // Allow a closed upper bound (<= 1.0) merely to accept buggy standard
   // library implementations (e.g. LWG 2524) that occasionally return 1.0.
   FIREBASE_DEV_ASSERT(std::isfinite(val) && val >= 0.0 && val <= 1.0);
-  if (!std::isfinite(val) || val < 0.0) {
+  if (!std::isfinite(val) || IsNegativeOrNan(val)) {
     return 0.0;
   }
   if (val >= 1.0) {
