@@ -68,16 +68,6 @@ class FirebaseCppCredentialsProvider
   // interface.
   static void OnAuthStateChanged(void* context);
 
-  // Requests an auth token for the currently signed-in user asynchronously; the
-  // given `listener` will eventually be invoked with the token (or an error).
-  // If there is no signed-in user, immediately invokes the `listener` with
-  // `AuthToken::Unauthenticated()`.
-  void RequestToken(
-      firestore::credentials::TokenListener<firestore::credentials::AuthToken>
-          listener);
-
-  bool IsSignedIn() const;
-
   // Wraps the data that is used by `auth::User::GetToken` callback. This
   // credentials provider holds a shared pointer to `Contents`, while the
   // `GetToken` callback stores a weak pointer. This makes safe the case where
@@ -87,13 +77,13 @@ class FirebaseCppCredentialsProvider
     explicit Contents(App& app) : app(app) {}
 
     // FirebaseCppCredentialsProvider may be used by more than one thread. The
-    // mutex is locked in all public member functions and none of the private
-    // member functions (with the exception of `RequestToken` that locks the
-    // mutex in a lambda that gets involved asynchronously later). Therefore,
-    // the invariant is that when a private member function is involved, the
-    // mutex is always already locked. The mutex is recursive to avoid one
-    // potential case of deadlock (attaching a continuation to a `Future` which
-    // may be invoked immediately or asynchronously).
+    // mutex is locked in all public member functions (and asynchronously in
+    // `GetToken`'s completion callback) and none of the private member
+    // functions. Therefore, the invariant is that when a private member
+    // function is invoked, the mutex is always already locked. The mutex is
+    // recursive to avoid one potential case of deadlock (attaching a
+    // continuation to a `Future` which may be invoked immediately or
+    // asynchronously).
     //
     // TODO(b/148688333): make sure not to hold the mutex while calling methods
     // on `app`.
