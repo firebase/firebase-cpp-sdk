@@ -55,8 +55,14 @@ struct SharedTestState {
   std::atomic<int> count{0};
   std::atomic<int> second_count{0};
   std::atomic<int> lock_executed_count{0};
+  std::atomic<uint64_t> cancelled_delay_ms{0};
   std::atomic<bool> flag{false};
   std::atomic<bool> cancelled_cb_ran{false};
+};
+
+struct WorkerGate {
+  Semaphore entered{0};
+  Semaphore release{0};
 };
 
 RetryHelper::Options MakeOptions(
@@ -74,6 +80,20 @@ RetryHelper::Options MakeOptions(
 class RetryHelperTest : public ::testing::Test {
  protected:
   RetryHelperTest() : logger_(nullptr) {}
+
+  // Parks the single Scheduler worker thread on a semaphore so tests can
+  // schedule and cancel/supersede/destroy retries with zero preemption race.
+  std::shared_ptr<WorkerGate> PauseSchedulerWorker() {
+    auto gate = std::make_shared<WorkerGate>();
+    scheduler_.Schedule(
+        [gate]() {
+          gate->entered.Post();
+          gate->release.TimedWait(kWaitTimeoutMs);
+        },
+        0);
+    EXPECT_TRUE(gate->entered.TimedWait(kWaitTimeoutMs));
+    return gate;
+  }
 
   Logger logger_;
   scheduler::Scheduler scheduler_;
@@ -228,65 +248,98 @@ TEST_F(RetryHelperTest, SetMaxDelayJumpsToMaxDelay) {
 
 TEST_F(RetryHelperTest, CancelPreventsPendingTaskAndResetsCurrentDelay) {
   RetryHelper helper(&scheduler_, &logger_,
-                     MakeOptions(20, 1000, 1.3, 0.0, []() { return 0.0; }));
+                     MakeOptions(5, 1000, 1.3, 0.0, []() { return 0.0; }));
 
-  // Cancel when nothing is scheduled should be safe and leave delay at 0.
+  // Cancel when nothing is scheduled should be safe, leave delay at 0, and
+  // preserve last_was_success_ == true.
   helper.Cancel();
   EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 0u);
+  EXPECT_TRUE(RetryHelperTestPeer::last_was_success(helper));
+  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 0u);
 
   // First retry is immediate; wait for it to finish so second retry is delayed.
   auto state = std::make_shared<SharedTestState>();
   helper.Retry([state]() { state->sem.Post(); });
   ASSERT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 
+  auto gate = PauseSchedulerWorker();
   helper.Retry([state]() { state->flag.store(true); });
-  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 20u);
-  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 20u);
+  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 5u);
+  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 5u);
 
   helper.Cancel();
   EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 0u);
+  gate->release.Post();
 
-  // Wait past the 20ms delay via sentinel barrier to verify the cancelled
+  // Wait past the 5ms delay via sentinel barrier to verify the cancelled
   // callback never runs.
-  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 21);
+  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 6);
   ASSERT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
   EXPECT_FALSE(state->flag.load());
 
   // Next Retry() after Cancel() (without SignalSuccess) starts at min delay.
   helper.Retry([]() {});
-  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 20u);
-  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 20u);
+  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 5u);
+  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 5u);
   helper.Cancel();
 }
 
 TEST_F(RetryHelperTest, OverlappingRetryCancelsPreviousTask) {
   RetryHelper helper(&scheduler_, &logger_,
-                     MakeOptions(25, 1000, 1.3, 0.0, []() { return 0.0; }));
+                     MakeOptions(5, 1000, 1.3, 0.0, []() { return 0.0; }));
 
   // Burn the immediate 0ms first attempt.
   auto state = std::make_shared<SharedTestState>();
   helper.Retry([state]() { state->extra_sem.Post(); });
   ASSERT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
 
-  // Schedule a 25ms retry, then immediately supersede it with another Retry().
+  // Park the scheduler worker so the first delayed retry cannot fire before
+  // the superseding Retry() cancels it and advances backoff (5 -> 6 ms).
+  auto gate = PauseSchedulerWorker();
   helper.Retry([state]() { state->count.fetch_add(1); });
-  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 25u);
+  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 5u);
+  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 5u);
 
-  // Reset to 0ms via SignalSuccess so the replacement runs immediately while
-  // ensuring the cancelled 25ms task never fires even after the sentinel
-  // barrier.
-  helper.SignalSuccess();
   helper.Retry([state]() {
     state->second_count.fetch_add(1);
     state->sem.Post();
   });
-  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 0u);
+  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 6u);
+  EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 6u);
+  gate->release.Post();
+
   ASSERT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 
-  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 26);
+  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 7);
   ASSERT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
   EXPECT_EQ(state->count.load(), 0);
   EXPECT_EQ(state->second_count.load(), 1);
+}
+
+TEST_F(RetryHelperTest, SignalSuccessDoesNotCancelPendingRetry) {
+  RetryHelper helper(&scheduler_, &logger_,
+                     MakeOptions(5, 1000, 1.3, 0.0, []() { return 0.0; }));
+
+  auto state = std::make_shared<SharedTestState>();
+  helper.Retry([state]() { state->extra_sem.Post(); });
+  ASSERT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
+
+  auto gate = PauseSchedulerWorker();
+  helper.Retry([state]() {
+    state->count.fetch_add(1);
+    state->sem.Post();
+  });
+  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 5u);
+
+  // Matching Android's RetryHelper, SignalSuccess() resets backoff state but
+  // does NOT cancel an already-scheduled pending retry.
+  helper.SignalSuccess();
+  EXPECT_TRUE(RetryHelperTestPeer::last_was_success(helper));
+  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 0u);
+  gate->release.Post();
+
+  ASSERT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
+  EXPECT_EQ(state->count.load(), 1);
 }
 
 TEST_F(RetryHelperTest, ReentrantRetryInsideCallbackDoesNotDeadlock) {
@@ -319,12 +372,19 @@ TEST_F(RetryHelperTest, ReentrantCancelInsideCallbackDoesNotDeadlock) {
   auto state = std::make_shared<SharedTestState>();
   auto helper = std::make_shared<RetryHelper>(
       &scheduler_, &logger_,
-      MakeOptions(20, 100, 1.3, 0.0, []() { return 0.0; }));
+      MakeOptions(10, 100, 1.3, 0.0, []() { return 0.0; }));
   std::weak_ptr<RetryHelper> weak_helper = helper;
+
+  // Prime a non-zero current_retry_delay_ms so the assertion after Cancel()
+  // verifies Cancel() actually reset it.
+  helper->SetMaxDelay();
+  EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(*helper), 100u);
 
   helper->Retry([weak_helper, state]() {
     if (auto locked_helper = weak_helper.lock()) {
       state->lock_executed_count.fetch_add(1);
+      EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(*locked_helper),
+                100u);
       locked_helper->Cancel();
     }
     state->extra_sem.Post();
@@ -338,6 +398,8 @@ TEST_F(RetryHelperTest, ReentrantCancelInsideCallbackDoesNotDeadlock) {
       state->lock_executed_count.fetch_add(1);
       // Re-entrantly schedule and then cancel inside the active callback.
       locked_helper->Retry([state]() { state->cancelled_cb_ran.store(true); });
+      state->cancelled_delay_ms.store(
+          RetryHelperTestPeer::last_scheduled_delay_ms(*locked_helper));
       locked_helper->Cancel();
     }
     state->sem.Post();
@@ -346,8 +408,11 @@ TEST_F(RetryHelperTest, ReentrantCancelInsideCallbackDoesNotDeadlock) {
   ASSERT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
   EXPECT_EQ(state->lock_executed_count.load(), 2);
   EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(*helper), 0u);
+  const uint64_t cancelled_delay = state->cancelled_delay_ms.load();
+  ASSERT_GT(cancelled_delay, 0u);
 
-  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 27);
+  scheduler_.Schedule([state]() { state->extra_sem.Post(); },
+                      cancelled_delay + 1);
   ASSERT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
   EXPECT_FALSE(state->cancelled_cb_ran.load());
 }
@@ -357,18 +422,92 @@ TEST_F(RetryHelperTest, DestructorCancelsPendingTaskWithoutUaf) {
   {
     auto helper = std::make_unique<RetryHelper>(
         &scheduler_, &logger_,
-        MakeOptions(20, 1000, 1.3, 0.0, []() { return 0.0; }));
+        MakeOptions(5, 1000, 1.3, 0.0, []() { return 0.0; }));
 
     helper->Retry([state]() { state->sem.Post(); });
     ASSERT_TRUE(state->sem.TimedWait(kWaitTimeoutMs));
 
+    auto gate = PauseSchedulerWorker();
     helper->Retry([state]() { state->flag.store(true); });
-    EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(*helper), 20u);
-  }  // Destroy RetryHelper while 20ms task is queued.
+    EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(*helper), 5u);
+    helper.reset();  // Destroy RetryHelper while 5ms task is queued.
+    gate->release.Post();
+  }
 
-  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 21);
+  scheduler_.Schedule([state]() { state->extra_sem.Post(); }, 6);
   ASSERT_TRUE(state->extra_sem.TimedWait(kWaitTimeoutMs));
   EXPECT_FALSE(state->flag.load());
+}
+
+TEST_F(RetryHelperTest,
+       CancelSupersedeAndDestructionReleaseCapturedCallbackImmediately) {
+  auto gate = PauseSchedulerWorker();
+  std::weak_ptr<int> weak3;
+  {
+    RetryHelper helper(
+        &scheduler_, &logger_,
+        MakeOptions(30000, 30000, 1.3, 0.0, []() { return 0.0; }));
+
+    // Cancel() immediately destroys the captured callback.
+    auto resource1 = std::make_shared<int>(1);
+    std::weak_ptr<int> weak1 = resource1;
+    helper.Retry([resource1]() {});
+    resource1.reset();
+    ASSERT_FALSE(weak1.expired());
+    helper.Cancel();
+    EXPECT_TRUE(weak1.expired());
+
+    // Superseding Retry() immediately destroys the previous callback.
+    auto resource2 = std::make_shared<int>(2);
+    std::weak_ptr<int> weak2 = resource2;
+    helper.Retry([resource2]() {});
+    resource2.reset();
+    ASSERT_FALSE(weak2.expired());
+
+    auto resource3 = std::make_shared<int>(3);
+    weak3 = resource3;
+    helper.Retry([resource3]() {});
+    resource3.reset();
+    EXPECT_TRUE(weak2.expired());
+    ASSERT_FALSE(weak3.expired());
+  }
+  // Destruction immediately releases the pending callback even while the
+  // Scheduler worker is still paused.
+  EXPECT_TRUE(weak3.expired());
+  gate->release.Post();
+}
+
+TEST_F(RetryHelperTest, NextRandomClampsClosedUpperBoundAndSupportsFullJitter) {
+  // rng == 1.0 (e.g., LWG 2524 buggy stdlib) is clamped strictly below 1.0.
+  {
+    RetryHelper helper(
+        &scheduler_, &logger_,
+        MakeOptions(1000, 30000, 1.3, 0.7, []() { return 1.0; }));
+    helper.Retry([]() {});  // 0 ms
+    helper.Retry([]() {});  // 1000 ms, rng == 1.0 clamped without asserting
+    EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 1000u);
+    EXPECT_GE(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 999u);
+    EXPECT_LE(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 1000u);
+    helper.Cancel();
+  }
+
+  // jitter_factor == 1.0 spans [0, base) from rng == 0.0 to rng == 1.0.
+  {
+    double rng_value = 0.0;
+    RetryHelper helper(&scheduler_, &logger_,
+                       MakeOptions(1000, 30000, 1.3, 1.0,
+                                   [&rng_value]() { return rng_value; }));
+    helper.Retry([]() {});  // 0 ms
+    helper.Retry([]() {});  // 1000 ms * 0.0 -> 0 ms
+    EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 1000u);
+    EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 0u);
+
+    rng_value = 1.0;
+    helper.Retry([]() {});  // 1300 ms * nextafter(1.0, 0.0) -> 1299 ms
+    EXPECT_EQ(RetryHelperTestPeer::current_retry_delay_ms(helper), 1300u);
+    EXPECT_EQ(RetryHelperTestPeer::last_scheduled_delay_ms(helper), 1299u);
+    helper.Cancel();
+  }
 }
 
 TEST_F(RetryHelperTest,
