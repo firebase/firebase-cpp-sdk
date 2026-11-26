@@ -14,10 +14,15 @@
 
 #include "database/src/desktop/database_desktop.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cctype>
+#include <map>
 #include <memory>
 #include <queue>
 #include <stack>
+#include <unordered_map>
+#include <utility>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -42,6 +47,40 @@ namespace database {
 namespace internal {
 
 Mutex g_database_reference_constructor_mutex;  // NOLINT
+
+namespace {
+
+struct AppPersistenceState {
+  explicit AppPersistenceState(App* app) : app(app) {}
+  App* app;
+  std::unordered_map<std::string, bool> by_url;
+};
+
+std::string NormalizeDatabaseUrl(const std::string& url) {
+  ParseUrl parser;
+  if (parser.Parse(url) != ParseUrl::kParseOk) {
+    return url;
+  }
+  std::string normalized_host = parser.hostname;
+  std::transform(
+      normalized_host.begin(), normalized_host.end(), normalized_host.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return std::string(parser.secure ? "https://" : "http://") + normalized_host;
+}
+
+// Leaf lock guarding GetPersistenceEnabledMap(). Never acquire another lock
+// while holding g_persistence_enabled_mutex. Intentionally leaked so it
+// outlives static teardown.
+Mutex* g_persistence_enabled_mutex = new Mutex();
+
+std::unordered_map<App*, std::unique_ptr<AppPersistenceState>>*
+GetPersistenceEnabledMap() {
+  static auto* persistence_enabled_map =
+      new std::unordered_map<App*, std::unique_ptr<AppPersistenceState>>();
+  return persistence_enabled_map;
+}
+
+}  // namespace
 
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
                                          const QuerySpec& query_spec,
@@ -78,6 +117,21 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
       repo_(nullptr) {
   assert(app);
   assert(url);
+
+  {
+    // Restore persistence_enabled_ for this (App, URL) if it was configured
+    // on a prior Database instance.
+    MutexLock lock(*g_persistence_enabled_mutex);
+    auto* persistence_map = GetPersistenceEnabledMap();
+    auto app_it = persistence_map->find(app_);
+    if (app_it != persistence_map->end()) {
+      const auto& by_url = app_it->second->by_url;
+      auto url_it = by_url.find(NormalizeDatabaseUrl(database_url_));
+      if (url_it != by_url.end()) {
+        persistence_enabled_ = url_it->second;
+      }
+    }
+  }
 
   // Spin up the token auto-update thread in Auth.
   app_->function_registry()->CallFunction(
@@ -180,10 +234,38 @@ const char* DatabaseInternal::GetSdkVersion() {
 }
 
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
-  MutexLock lock(repo_mutex_);
-  // Only set persistence if the repo has not yet been initialized.
-  if (!repo_) {
+  AppPersistenceState* state_to_register = nullptr;
+  {
+    MutexLock lock(repo_mutex_);
+    // Only set persistence if the repo has not yet been initialized.
+    if (repo_) {
+      return;
+    }
     persistence_enabled_ = enabled;
+    MutexLock persistence_lock(*g_persistence_enabled_mutex);
+    auto* persistence_map = GetPersistenceEnabledMap();
+    auto it = persistence_map->find(app_);
+    if (it == persistence_map->end()) {
+      auto state = std::make_unique<AppPersistenceState>(app_);
+      state_to_register = state.get();
+      it = persistence_map->emplace(app_, std::move(state)).first;
+    }
+    it->second->by_url[NormalizeDatabaseUrl(database_url_)] = enabled;
+  }
+
+  // Register cleanup outside repo_mutex_ and g_persistence_enabled_mutex so
+  // CleanupNotifier::CleanupAll() (which holds its own mutex while invoking
+  // callbacks) cannot invert lock order with g_persistence_enabled_mutex.
+  if (state_to_register != nullptr) {
+    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app_);
+    if (app_notifier != nullptr) {
+      app_notifier->RegisterObject(state_to_register, [](void* object) {
+        auto* state = static_cast<AppPersistenceState*>(object);
+        App* app = state->app;
+        MutexLock lock(*g_persistence_enabled_mutex);
+        GetPersistenceEnabledMap()->erase(app);
+      });
+    }
   }
 }
 
