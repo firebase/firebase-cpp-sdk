@@ -15,6 +15,8 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 #define FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 
+#include <utility>
+
 #include "firebase/functions/common.h"
 #include "firebase/variant.h"
 
@@ -50,7 +52,6 @@ class HttpsCallableResult {
     return *this;
   }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor. Moving is an efficient operation for
   /// HttpsCallableResult instances.
   ///
@@ -70,8 +71,6 @@ class HttpsCallableResult {
     return *this;
   }
 
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-
   /// @brief Returns the data that is the result of a Call.
   ///
   /// @returns The variant containing the data.
@@ -82,9 +81,7 @@ class HttpsCallableResult {
   // Only functions are allowed to construct results.
   friend class ::firebase::functions::internal::HttpsCallableReferenceInternal;
   HttpsCallableResult(const Variant& data) : data_(data) {}
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
   HttpsCallableResult(Variant&& data) : data_(std::move(data)) {}
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   Variant data_;
   /// @endcond

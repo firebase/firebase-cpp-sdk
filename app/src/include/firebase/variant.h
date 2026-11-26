@@ -229,8 +229,6 @@ class Variant {
   /// @param[in] other Source Variant to copy from.
   Variant& operator=(const Variant& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-
   /// @brief Move constructor. Efficiently moves  the more complex data types by
   /// simply reassigning pointer ownership.
   ///
@@ -245,7 +243,6 @@ class Variant {
   /// @param[in] other Source Variant to move from.
   Variant& operator=(Variant&& other) noexcept;
 
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 #endif  // SWIG
 
   /// Destructor. Frees the memory that this Variant owns.

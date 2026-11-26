@@ -52,11 +52,9 @@ class MetadataInternal {
 
   MetadataInternal& operator=(const MetadataInternal& metadata);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   MetadataInternal(MetadataInternal&& other);
 
   MetadataInternal& operator=(MetadataInternal&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   ~MetadataInternal();
 

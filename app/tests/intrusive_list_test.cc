@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -1024,7 +1025,6 @@ TEST_F(intrusive_list_test, merge_other_this) {
   EXPECT_EQ(other_list.end(), iter);
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 TEST_F(intrusive_list_test, move_constructor) {
   list_.push_back(one_);
   list_.push_back(two_);
@@ -1083,7 +1083,61 @@ TEST_F(intrusive_list_test, move_assignment) {
   ++iter;
   EXPECT_EQ(other.end(), iter);
 }
-#endif
+
+TEST_F(intrusive_list_test, move_assignment_non_empty_destination) {
+  list_.push_back(one_);
+  list_.push_back(two_);
+
+  firebase::intrusive_list<IntegerListNode> other(&IntegerListNode::node);
+  other.push_back(three_);
+  other.push_back(four_);
+  other.push_back(five_);
+
+  other = std::move(list_);
+
+  EXPECT_TRUE(list_.empty());
+  EXPECT_TRUE(one_.node.in_list());
+  EXPECT_TRUE(two_.node.in_list());
+  EXPECT_FALSE(three_.node.in_list());
+  EXPECT_FALSE(four_.node.in_list());
+  EXPECT_FALSE(five_.node.in_list());
+
+  auto iter = other.begin();
+  EXPECT_EQ(1, iter->value());
+  ++iter;
+  EXPECT_EQ(2, iter->value());
+  ++iter;
+  EXPECT_EQ(other.end(), iter);
+
+  // Previously evicted elements must be safe to re-insert.
+  list_.push_back(three_);
+  list_.push_back(four_);
+  EXPECT_TRUE(three_.node.in_list());
+  EXPECT_TRUE(four_.node.in_list());
+}
+
+TEST_F(intrusive_list_test, move_assignment_self) {
+  list_.push_back(one_);
+  list_.push_back(two_);
+  list_.push_back(three_);
+
+  firebase::intrusive_list<IntegerListNode>& self_ref = list_;
+  list_ = std::move(self_ref);
+
+  EXPECT_FALSE(list_.empty());
+  EXPECT_TRUE(one_.node.in_list());
+  EXPECT_TRUE(two_.node.in_list());
+  EXPECT_TRUE(three_.node.in_list());
+
+  auto iter = list_.begin();
+  EXPECT_EQ(1, iter->value());
+  ++iter;
+  EXPECT_EQ(2, iter->value());
+  ++iter;
+  EXPECT_EQ(3, iter->value());
+  ++iter;
+  EXPECT_EQ(list_.end(), iter);
+}
 
 TEST_F(intrusive_list_test, swap) {
   list_.push_back(one_);

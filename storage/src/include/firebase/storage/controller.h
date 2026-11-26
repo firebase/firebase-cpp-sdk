@@ -71,7 +71,7 @@ class Controller {
   /// @returns Reference to the destination Controller.
   Controller& operator=(const Controller& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+#ifndef SWIG
   /// @brief Move constructor. Moving is an efficient operation for
   /// Controller instances.
   ///
@@ -85,7 +85,7 @@ class Controller {
   ///
   /// @returns Reference to the destination Controller.
   Controller& operator=(Controller&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+#endif  // SWIG
 
   /// @brief Pauses the operation currently in progress.
   ///

@@ -19,13 +19,11 @@
 
 /// @cond FIREBASE_APP_INTERNAL
 
+#include <utility>
+
 // You shouldn't include future_impl.h directly, since its just the inline
 // implementation of the functions in future.h. Include future.h instead.
 #include "firebase/future.h"
-
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
-#include <utility>
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 namespace firebase {
 
@@ -93,7 +91,6 @@ class FutureApiInterface {
   virtual void RemoveCompletionCallback(
       const FutureHandle& handle, CompletionCallbackHandle callback_handle) = 0;
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   /// Register a callback that will be called when this future's status is set
   /// to Complete.
   ///
@@ -109,7 +106,6 @@ class FutureApiInterface {
       const FutureHandle& handle,
       std::function<void(const FutureBase&)> callback,
       bool clear_existing_callbacks) = 0;
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   /// Register this Future instance to be cleaned up.
   virtual void RegisterFutureForCleanup(FutureBase* future) = 0;
@@ -194,7 +190,6 @@ void Future<T>::OnCompletion(TypedCompletionCallback callback,
   }
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
 template <class ResultType>
 inline void Future<ResultType>::OnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
@@ -206,7 +201,6 @@ inline void Future<ResultType>::OnCompletion(
     });
   }
 }
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 #if defined(INTERNAL_EXPERIMENTAL)
 template <class T>
@@ -227,7 +221,6 @@ FutureBase::CompletionCallbackHandle Future<T>::AddOnCompletion(
   return CompletionCallbackHandle();
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
 template <class ResultType>
 inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
@@ -238,7 +231,6 @@ inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
     callback(static_cast<const Future<ResultType>&>(future));
   });
 }
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
@@ -290,7 +282,6 @@ inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 inline FutureBase::FutureBase(FutureBase&& rhs) noexcept
     : mutex_(Mutex::Mode::kModeNonRecursive),
       api_(NULL)  // NOLINT
@@ -317,7 +308,6 @@ inline FutureBase& FutureBase::operator=(FutureBase&& rhs) noexcept {
   detail::RegisterForCleanup(api_, this);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 inline void FutureBase::Release() {
   MutexLock lock(mutex_);
@@ -379,7 +369,6 @@ inline void FutureBase::RemoveOnCompletion(
 }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
 inline void FutureBase::OnCompletion(
     std::function<void(const FutureBase&)> callback) const {
   MutexLock lock(mutex_);
@@ -401,8 +390,6 @@ inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
   return CompletionCallbackHandle();
 }
 #endif  // defined(INTERNAL__EXPERIMENTAL)
-
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase

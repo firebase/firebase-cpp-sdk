@@ -119,7 +119,6 @@ QueryInternal& QueryInternal::operator=(const QueryInternal& src) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 QueryInternal::QueryInternal(QueryInternal&& src) : db_(src.db_) {
   obj_ = src.obj_;
   src.obj_ = nullptr;
@@ -134,7 +133,6 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& src) {
   query_spec_ = src.query_spec_;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 QueryInternal::~QueryInternal() {
   if (obj_ != nullptr) {

@@ -98,7 +98,6 @@ MetadataInternal& MetadataInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 MetadataInternal::MetadataInternal(MetadataInternal&& other) {
   *this = std::move(other);
 }
@@ -126,7 +125,6 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
   download_url_ = std::move(other.download_url_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 const char* MetadataInternal::download_url() const {
   return download_url_.c_str();

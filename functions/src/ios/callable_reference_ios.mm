@@ -82,7 +82,6 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other)
     : functions_(other.functions_), impl_(std::move(other.impl_)) {
@@ -100,7 +99,6 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   functions_->future_manager().MoveFutureApi(&other, this);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Functions* HttpsCallableReferenceInternal::functions() {
   return Functions::GetInstance(functions_->app());

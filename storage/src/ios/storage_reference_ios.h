@@ -60,7 +60,6 @@ class StorageReferenceInternal {
   StorageReferenceInternal& operator=(
       const StorageReferenceInternal& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   // Move constructor. Moving is an efficient operation for
   // StorageReferenceInternal instances.
   StorageReferenceInternal(StorageReferenceInternal&& other);
@@ -68,7 +67,6 @@ class StorageReferenceInternal {
   // Move assignment operator. Moving is an efficient operation for
   // StorageReferenceInternal instances.
   StorageReferenceInternal& operator=(StorageReferenceInternal&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   // Gets the storage to which we refer.
   Storage* _Nonnull storage();

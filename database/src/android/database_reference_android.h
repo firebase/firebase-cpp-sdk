@@ -47,11 +47,9 @@ class DatabaseReferenceInternal : public QueryInternal {
   DatabaseReferenceInternal& operator=(
       const DatabaseReferenceInternal& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   DatabaseReferenceInternal(DatabaseReferenceInternal&& reference);
 
   DatabaseReferenceInternal& operator=(DatabaseReferenceInternal&& reference);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   Database* GetDatabase() const;
 

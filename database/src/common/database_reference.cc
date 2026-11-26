@@ -109,7 +109,6 @@ DatabaseReference& DatabaseReference::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReference::DatabaseReference(DatabaseReference&& reference)
     : Query(), internal_(reference.internal_) {
   MutexLock lock(internal::g_database_reference_constructor_mutex);
@@ -129,7 +128,6 @@ DatabaseReference& DatabaseReference::operator=(DatabaseReference&& reference) {
 
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DatabaseReference::~DatabaseReference() {
   SwitchCleanupRegistrationBackToQuery();

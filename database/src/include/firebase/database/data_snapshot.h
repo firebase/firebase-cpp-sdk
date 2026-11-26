@@ -72,7 +72,7 @@ class DataSnapshot {
   /// @returns Reference to the destination DataSnapshot.
   DataSnapshot& operator=(const DataSnapshot& snapshot);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+#ifndef SWIG
   /// @brief Move constructor. DataSnapshots are immutable, so they can be
   /// efficiently moved.
   ///
@@ -86,7 +86,7 @@ class DataSnapshot {
   ///
   /// @returns Reference to this destination DataSnapshot.
   DataSnapshot& operator=(DataSnapshot&& snapshot);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
+#endif  // SWIG
 
   /// Destructor.
   ~DataSnapshot();

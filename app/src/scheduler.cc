@@ -113,13 +113,11 @@ RequestHandle Scheduler::Schedule(callback::Callback* callback,
   return handler;
 }
 
-#ifdef FIREBASE_USE_STD_FUNCTION
 RequestHandle Scheduler::Schedule(const std::function<void(void)>& callback,
                                   ScheduleTimeMs delay /* = 0 */,
                                   ScheduleTimeMs repeat /* = 0 */) {
   return Schedule(new callback::CallbackStdFunction(callback), delay, repeat);
 }
-#endif
 
 void Scheduler::WorkerThreadRoutine(void* data) {
   Scheduler* scheduler = static_cast<Scheduler*>(data);

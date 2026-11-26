@@ -89,7 +89,6 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReference::HttpsCallableReference(HttpsCallableReference&& other) {
   UnregisterForCleanup(&other, other.internal_);
   internal_ = other.internal_;
@@ -107,7 +106,6 @@ HttpsCallableReference& HttpsCallableReference::operator=(
   RegisterForCleanup(this, internal_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 HttpsCallableReference::~HttpsCallableReference() {
   UnregisterForCleanup(this, internal_);

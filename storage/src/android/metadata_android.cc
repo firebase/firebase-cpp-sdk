@@ -148,7 +148,6 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& src) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 MetadataInternal::MetadataInternal(MetadataInternal&& src)
     : storage_(src.storage_) {
   obj_ = src.obj_;
@@ -182,7 +181,6 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& src) {
   constants_ = src.constants_;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 void MetadataInternal::CopyJavaMetadataObject(JNIEnv* env, jobject src_obj) {
   // Use StorageMetadata.Builder to create a copy of the existing object.

@@ -94,7 +94,6 @@ TEST_F(SchedulerTest, Basic) {
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
 }
 
-#ifdef FIREBASE_USE_STD_FUNCTION
 TEST_F(SchedulerTest, BasicStdFunction) {
   std::function<void(void)> func = [this]() { callback_sem1_.Post(); };
 
@@ -104,7 +103,6 @@ TEST_F(SchedulerTest, BasicStdFunction) {
   scheduler_.Schedule(func, 1);
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
 }
-#endif
 
 TEST_F(SchedulerTest, TriggerOrderNoDelay) {
   std::vector<int> expected;

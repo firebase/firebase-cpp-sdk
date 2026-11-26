@@ -80,7 +80,6 @@ MetadataInternal& MetadataInternal::operator=(const MetadataInternal& metadata) 
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 MetadataInternal::MetadataInternal(MetadataInternal&& other) {
   storage_ = other.storage_;
   other.storage_ = nullptr;
@@ -98,7 +97,6 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
   custom_metadata_ = std::move(other.custom_metadata_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 MetadataInternal::~MetadataInternal() {
   if (custom_metadata_) {

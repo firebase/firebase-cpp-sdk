@@ -61,7 +61,6 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(
     DatabaseReferenceInternal&& internal) {
   if (database_) {
@@ -80,7 +79,6 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
   QueryInternal::operator=(std::move(internal));
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Database* DatabaseReferenceInternal::GetDatabase() const {
   return database_ ? Database::GetInstance(database_->GetApp()) : nullptr;

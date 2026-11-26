@@ -69,7 +69,6 @@ class HttpsCallableReferenceInternal {
   HttpsCallableReferenceInternal& operator=(
       const HttpsCallableReferenceInternal& other);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   // Move constructor. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal(HttpsCallableReferenceInternal&& other);
@@ -78,7 +77,6 @@ class HttpsCallableReferenceInternal {
   // HttpsCallableReferenceInternal instances.
   HttpsCallableReferenceInternal& operator=(
       HttpsCallableReferenceInternal&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   // Gets the functions to which we refer.
   // TODO(klimt): Do we really need this method?

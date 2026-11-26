@@ -278,14 +278,12 @@ TEST_F(VariantTest, TestSmallString) {
               Eq(VariantInternal::kInternalTypeSmallString));
   EXPECT_THAT(v1c.string_value(), StrEq(small_str.c_str()));
 
-#ifdef FIREBASE_USE_MOVE_OPERATORS
   // Test move constructor
   Variant temp(small_str);
   Variant v2(std::move(temp));
   EXPECT_THAT(VariantInternal::type(v2),
               Eq(VariantInternal::kInternalTypeSmallString));
   EXPECT_THAT(v2.string_value(), StrEq(small_str.c_str()));
-#endif
 
   // Test construction of string bigger than max
   Variant v3(max_small_str);

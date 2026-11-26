@@ -52,7 +52,6 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& internal) {
   database_ = internal.database_;
   data_ = std::move(internal.data_);
@@ -66,7 +65,6 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
   query_spec_ = std::move(internal.query_spec_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DataSnapshotInternal::~DataSnapshotInternal() {}
 
