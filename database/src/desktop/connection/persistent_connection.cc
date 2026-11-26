@@ -723,7 +723,8 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
     if (app_check_token.status == kCompletedTokenFuture &&
         app_check_token.future.error() != 0) {
       const char* app_check_error = app_check_token.future.error_message();
-      logger_->LogDebug("%s Error fetching App Check token: %s", log_id_.c_str(),
+      logger_->LogDebug("%s Error fetching App Check token: %s",
+                        log_id_.c_str(),
                         app_check_error ? app_check_error : "");
     }
     const std::string* app_check_result =
