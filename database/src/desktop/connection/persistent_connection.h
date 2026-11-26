@@ -349,7 +349,8 @@ class PersistentConnection : public ConnectionEventHandler {
   void HandleTokenFutures(uint64_t get_token_attempt);
   void ClearPendingTokenFutures();
 
-  // Mutex to protect pending_auth_token_ and pending_app_check_token_.
+  // Mutex to protect pending_auth_token_, pending_app_check_token_, and
+  // pending_get_token_attempt_.
   Mutex pending_token_future_mutex_;
   PendingToken pending_auth_token_;
   PendingToken pending_app_check_token_;

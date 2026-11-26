@@ -508,6 +508,8 @@ void PersistentConnection::InterruptInternal(InterruptReason reason) {
   interrupt_reasons_.insert(reason);
   ++current_get_token_attempt_;
   ClearPendingTokenFutures();
+  retry_helper_.Cancel();
+  retry_helper_.SignalSuccess();
 
   if (realtime_) {
     realtime_->Close();
@@ -515,8 +517,6 @@ void PersistentConnection::InterruptInternal(InterruptReason reason) {
   } else {
     connection_state_ = kDisconnected;
   }
-  retry_helper_.Cancel();
-  retry_helper_.SignalSuccess();
 }
 
 void PersistentConnection::ResumeInternal(InterruptReason reason) {
@@ -570,22 +570,28 @@ void PersistentConnection::TryScheduleReconnect() {
 
     if (auth_succeeded || app_check_succeeded) {
       // If either succeeded, we need to wait for the successful one(s) to
-      // finish.
+      // finish. Swap any prior futures out so they are released after
+      // unlocking pending_token_future_mutex_.
+      PendingToken previous_auth_token;
+      PendingToken previous_app_check_token;
       {
         MutexLock future_lock(connection->pending_token_future_mutex_);
+        previous_auth_token = std::move(connection->pending_auth_token_);
+        previous_app_check_token =
+            std::move(connection->pending_app_check_token_);
         connection->pending_get_token_attempt_ = attempt;
         if (auth_succeeded) {
           connection->pending_auth_token_.future = auth_future;
           connection->pending_auth_token_.status = kWaitingForTokenFuture;
         } else {
-          connection->pending_auth_token_ = PendingToken();
+          connection->pending_auth_token_.status = kInvalidTokenFuture;
         }
 
         if (app_check_succeeded) {
           connection->pending_app_check_token_.future = app_check_future;
           connection->pending_app_check_token_.status = kWaitingForTokenFuture;
         } else {
-          connection->pending_app_check_token_ = PendingToken();
+          connection->pending_app_check_token_.status = kInvalidTokenFuture;
         }
       }
 
@@ -704,17 +710,29 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
   } else {
     logger_->LogDebug("%s Successfully fetched token, opening connection",
                       log_id_.c_str());
-    if (auth_token.status == kCompletedTokenFuture &&
-        auth_token.future.error() == 0 &&
-        auth_token.future.result() != nullptr) {
-      auth_token_ = *auth_token.future.result();
+    const std::string* auth_result =
+        (auth_token.status == kCompletedTokenFuture &&
+         auth_token.future.error() == 0)
+            ? auth_token.future.result()
+            : nullptr;
+    if (auth_result != nullptr) {
+      auth_token_ = *auth_result;
     } else {
       auth_token_.clear();
     }
     if (app_check_token.status == kCompletedTokenFuture &&
-        app_check_token.future.error() == 0 &&
-        app_check_token.future.result() != nullptr) {
-      app_check_token_ = *app_check_token.future.result();
+        app_check_token.future.error() != 0) {
+      const char* app_check_error = app_check_token.future.error_message();
+      logger_->LogDebug("%s Error fetching App Check token: %s", log_id_.c_str(),
+                        app_check_error ? app_check_error : "");
+    }
+    const std::string* app_check_result =
+        (app_check_token.status == kCompletedTokenFuture &&
+         app_check_token.future.error() == 0)
+            ? app_check_token.future.result()
+            : nullptr;
+    if (app_check_result != nullptr) {
+      app_check_token_ = *app_check_result;
     } else {
       app_check_token_.clear();
     }
@@ -723,10 +741,16 @@ void PersistentConnection::HandleTokenFutures(uint64_t get_token_attempt) {
 }
 
 void PersistentConnection::ClearPendingTokenFutures() {
-  MutexLock lock(pending_token_future_mutex_);
-  pending_auth_token_ = PendingToken();
-  pending_app_check_token_ = PendingToken();
-  pending_get_token_attempt_ = 0;
+  PendingToken auth_token;
+  PendingToken app_check_token;
+  {
+    MutexLock lock(pending_token_future_mutex_);
+    auth_token = std::move(pending_auth_token_);
+    app_check_token = std::move(pending_app_check_token_);
+    pending_auth_token_.status = kInvalidTokenFuture;
+    pending_app_check_token_.status = kInvalidTokenFuture;
+    pending_get_token_attempt_ = 0;
+  }
 }
 
 void PersistentConnection::OpenNetworkConnection() {
