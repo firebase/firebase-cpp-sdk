@@ -68,7 +68,6 @@ class StorageReference {
   /// @returns Reference to the destination StorageReference.
   StorageReference& operator=(const StorageReference& reference);
 
-#ifndef SWIG
   /// @brief Move constructor. Moving is an efficient operation for
   /// StorageReference instances.
   ///
@@ -82,7 +81,6 @@ class StorageReference {
   ///
   /// @returns Reference to the destination StorageReference.
   StorageReference& operator=(StorageReference&& other);
-#endif  // SWIG
 
   /// @brief Gets the firebase::storage::Storage instance to which we refer.
   ///

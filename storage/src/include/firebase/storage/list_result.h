@@ -51,7 +51,6 @@ class StorageListResult {
   /// @returns Reference to the destination StorageListResult.
   StorageListResult& operator=(const StorageListResult& other);
 
-#ifndef SWIG
   /// @brief Move constructor.
   ///
   /// @param[in] other StorageListResult to move data from.
@@ -63,7 +62,6 @@ class StorageListResult {
   ///
   /// @returns Reference to the destination StorageListResult.
   StorageListResult& operator=(StorageListResult&& other);
-#endif  // SWIG
 
   /// @brief Returns the prefixes (folders) returned by the List operation.
   ///

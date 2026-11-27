@@ -81,7 +81,6 @@ typedef TransactionResult (*DoTransaction)(MutableData* data);
 typedef TransactionResult (*DoTransactionWithContext)(MutableData* data,
                                                       void* context);
 
-#ifndef SWIG
 /// Your own transaction handler function or lambda, which the Firebase Realtime
 /// Database library may call multiple times to apply changes to the data, and
 /// should return success or failure depending on whether it succeeds.
@@ -89,7 +88,6 @@ typedef TransactionResult (*DoTransactionWithContext)(MutableData* data,
 /// @see DoTransactionWithContext for more information.
 typedef std::function<TransactionResult(MutableData* data)>
     DoTransactionFunction;
-#endif  // SWIG
 
 }  // namespace database
 }  // namespace firebase

@@ -71,7 +71,6 @@ class Controller {
   /// @returns Reference to the destination Controller.
   Controller& operator=(const Controller& other);
 
-#ifndef SWIG
   /// @brief Move constructor. Moving is an efficient operation for
   /// Controller instances.
   ///
@@ -85,7 +84,6 @@ class Controller {
   ///
   /// @returns Reference to the destination Controller.
   Controller& operator=(Controller&& other);
-#endif  // SWIG
 
   /// @brief Pauses the operation currently in progress.
   ///

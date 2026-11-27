@@ -69,7 +69,6 @@ class DatabaseReference : public Query {
   /// @returns Reference to the destination DatabaseReference.
   DatabaseReference& operator=(const DatabaseReference& reference);
 
-#ifndef SWIG
   /// @brief Move constructor. Moving is an efficient operation for
   /// DatabaseReference instances.
   ///
@@ -83,7 +82,6 @@ class DatabaseReference : public Query {
   ///
   /// @returns Reference to the destination DatabaseReference.
   DatabaseReference& operator=(DatabaseReference&& reference);
-#endif  // SWIG
 
   /// @brief Gets the database to which we refer.
   ///
@@ -203,7 +201,6 @@ class DatabaseReference : public Query {
       DoTransactionWithContext transaction_function, void* context,
       bool trigger_local_events = true);
 
-#ifndef SWIG
   /// @brief Run a user-supplied callback, possibly multiple times, to perform
   /// an atomic transaction on the database.
   ///
@@ -234,7 +231,6 @@ class DatabaseReference : public Query {
   Future<DataSnapshot> RunTransaction(
       DoTransactionFunction transaction_function,
       bool trigger_local_events = true);
-#endif  // SWIG
 
   /// @brief Get the result of the most recent call to RunTransaction().
   ///

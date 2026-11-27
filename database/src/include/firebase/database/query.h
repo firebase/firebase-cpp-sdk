@@ -48,12 +48,10 @@ class Query {
   /// independently of each other.
   Query& operator=(const Query& query);
 
-#ifndef SWIG
   /// Move constructor.
   Query(Query&& query);
   /// Move assignment operator.
   Query& operator=(Query&& query);
-#endif  // SWIG
 
   /// @brief Required virtual destructor.
   virtual ~Query();

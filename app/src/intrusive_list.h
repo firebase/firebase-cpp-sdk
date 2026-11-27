@@ -131,11 +131,9 @@ class intrusive_list_node {
   // Move assignment operator.
   intrusive_list_node& operator=(intrusive_list_node&& other)
       FIREBASE_NOEXCEPT {
-    if (this != &other) {
-      next_->previous_ = previous_;
-      previous_->next_ = next_;
-      move(other);
-    }
+    next_->previous_ = previous_;
+    previous_->next_ = next_;
+    move(other);
     return *this;
   }
 
@@ -249,15 +247,11 @@ class intrusive_list {
   explicit intrusive_list(intrusive_list_node T::*node_member)
       : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {}
 
-  intrusive_list(this_type&& other) noexcept
-      : data_(std::move(other.data_)), node_offset_(other.node_offset_) {}
+  intrusive_list(this_type&& other) noexcept { *this = std::move(other); }
 
   intrusive_list& operator=(this_type&& other) noexcept {
-    if (this != &other) {
-      clear();
-      data_ = std::move(other.data_);
-      node_offset_ = other.node_offset_;
-    }
+    data_ = std::move(other.data_);
+    node_offset_ = std::move(other.node_offset_);
     return *this;
   }
 

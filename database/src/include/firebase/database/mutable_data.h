@@ -34,7 +34,6 @@ class Repo;
 #endif  // SWIG
 class MutableData {
  public:
-#ifndef SWIG
   /// Move constructor.
   /// Move is more efficient than copy and delete.
   MutableData(MutableData&& rhs);
@@ -42,7 +41,6 @@ class MutableData {
   /// Move assignment operator.
   /// Move is more efficient than copy and delete.
   MutableData& operator=(MutableData&& rhs);
-#endif  // SWIG
 
   /// Destructor.
   ~MutableData();

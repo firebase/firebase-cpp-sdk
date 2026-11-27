@@ -63,7 +63,6 @@ class Metadata {
   /// @returns Reference to the destination Metadata.
   Metadata& operator=(const Metadata& other);
 
-#ifndef SWIG
   /// @brief Move constructor. Moving is an efficient operation for Metadata.
   ///
   /// @param[in] other Metadata to move from.
@@ -76,7 +75,6 @@ class Metadata {
   ///
   /// @returns Reference to the destination Metadata.
   Metadata& operator=(Metadata&& other);
-#endif  // SWIG
 
   ~Metadata();
 
