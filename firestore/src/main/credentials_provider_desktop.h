@@ -77,11 +77,11 @@ class FirebaseCppCredentialsProvider
     explicit Contents(App& app) : app(app) {}
 
     // FirebaseCppCredentialsProvider may be used by more than one thread. The
-    // mutex is locked in all public member functions (and asynchronously in
-    // `GetToken`'s completion callback) and none of the private member
-    // functions. Therefore, the invariant is that when a private member
-    // function is invoked, the mutex is always already locked. The mutex is
-    // recursive to avoid one potential case of deadlock (attaching a
+    // mutex guards `change_listener_` and `token_generation` in
+    // `SetCredentialChangeListener`, `GetToken`, `GetToken`'s completion
+    // callback, and `OnAuthStateChanged` (`AddAuthStateListener` and
+    // `RemoveAuthStateListener` do not acquire the mutex themselves). The mutex
+    // is recursive to avoid one potential case of deadlock (attaching a
     // continuation to a `Future` which may be invoked immediately or
     // asynchronously).
     //

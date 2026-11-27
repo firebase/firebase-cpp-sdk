@@ -93,8 +93,9 @@ User GetCurrentUser(App& app) {
       ::firebase::internal::FnAuthGetCurrentUserUid, &app, /* args= */ nullptr,
       &uid);
 
-  // If Auth is unavailable, treat the user as unauthenticated.
-  if (!success) return {};
+  // If Auth is unavailable or no user is signed in (including if sign-out
+  // raced with reading the UID), treat the user as unauthenticated.
+  if (!success || uid.empty()) return {};
 
   return User(uid);
 }
