@@ -37,6 +37,8 @@ namespace firebase {
 namespace http {
 namespace {
 
+using ::firebase::rest::curl::ApplyOpt;
+
 bool HasHeaderIgnoreCase(
     const std::vector<std::pair<std::string, std::string>>& headers,
     std::string_view target) {
@@ -62,6 +64,53 @@ std::string_view FindHeaderValueIgnoreCase(
 bool IsRedirectStatus(int32_t status) {
   return status == 301 || status == 302 || status == 303 || status == 307 ||
          status == 308;
+}
+
+bool AppendSList(::firebase::rest::curl::UniqueSList* list, const char* line) {
+  curl_slist* next = curl_slist_append(list->get(), line);
+  if (next == nullptr) {
+    return false;
+  }
+  list->release();
+  list->reset(next);
+  return true;
+}
+
+HttpErrorClass ClassifyCurlError(CURLcode code, bool canceled) {
+  if (canceled) {
+    return kHttpErrorCanceled;
+  }
+  switch (code) {
+    case CURLE_OPERATION_TIMEDOUT:
+      return kHttpErrorTimeout;
+    case CURLE_SSL_CONNECT_ERROR:
+    case CURLE_PEER_FAILED_VERIFICATION:
+    case CURLE_SSL_ENGINE_NOTFOUND:
+    case CURLE_SSL_ENGINE_SETFAILED:
+    case CURLE_SSL_CERTPROBLEM:
+    case CURLE_SSL_CIPHER:
+    case CURLE_SSL_CACERT_BADFILE:
+    case CURLE_SSL_SHUTDOWN_FAILED:
+    case CURLE_SSL_CRL_BADFILE:
+    case CURLE_SSL_ISSUER_ERROR:
+    case CURLE_SSL_PINNEDPUBKEYNOTMATCH:
+    case CURLE_SSL_INVALIDCERTSTATUS:
+    case CURLE_USE_SSL_FAILED:
+    case CURLE_SSL_ENGINE_INITFAILED:
+    case CURLE_SSL_CLIENTCERT:
+      return kHttpErrorTls;
+    case CURLE_COULDNT_RESOLVE_PROXY:
+    case CURLE_COULDNT_RESOLVE_HOST:
+    case CURLE_COULDNT_CONNECT:
+    case CURLE_GOT_NOTHING:
+    case CURLE_SEND_ERROR:
+    case CURLE_RECV_ERROR:
+    case CURLE_PARTIAL_FILE:
+    case CURLE_INTERFACE_FAILED:
+      return kHttpErrorConnect;
+    default:
+      return kHttpErrorOther;
+  }
 }
 
 struct CurlTransfer {
@@ -319,20 +368,35 @@ class CurlHttpEngine {
       std::vector<std::pair<std::string, std::string>> request_headers,
       int64_t content_length, int redirect_count) {
     if (!IsHttpOrHttpsUrl(target_url)) {
-      op->MarkFailed(
-          "Unsupported URI scheme; only http and https are allowed.");
+      op->MarkFailed("Unsupported URI scheme; only http and https are allowed.",
+                     kHttpErrorOther);
+      return nullptr;
+    }
+
+    if (!op->proxy_url.empty() && !ParseProxyHostPort(op->proxy_url)) {
+      op->MarkFailed("Invalid or unsupported proxy URL.", kHttpErrorOther);
+      return nullptr;
+    }
+
+    bool is_get = AsciiEqualsIgnoreCase(method, "GET");
+    bool is_head = AsciiEqualsIgnoreCase(method, "HEAD");
+    if ((is_get || is_head) &&
+        (content_length > 0 || content_length == kChunkedRequestContent)) {
+      op->MarkFailed("GET and HEAD requests cannot send a request body.",
+                     kHttpErrorOther);
       return nullptr;
     }
 
     ::firebase::rest::curl::UniqueEasy easy(curl_easy_init());
     if (easy == nullptr) {
-      op->MarkFailed("Failed to initialize native libcurl handle.");
+      op->MarkFailed("Failed to initialize native libcurl handle.",
+                     kHttpErrorOther);
       return nullptr;
     }
 
     CURLcode tls_rc = ::firebase::rest::curl::ApplyTlsPolicy(easy.get());
     if (tls_rc != CURLE_OK) {
-      op->MarkFailed(curl_easy_strerror(tls_rc));
+      op->MarkFailed(curl_easy_strerror(tls_rc), kHttpErrorTls);
       return nullptr;
     }
 
@@ -346,30 +410,31 @@ class CurlHttpEngine {
     transfer->error_buf[0] = '\0';
 
     CURL* raw_easy = easy.get();
-    curl_easy_setopt(raw_easy, CURLOPT_ERRORBUFFER, transfer->error_buf);
-    curl_easy_setopt(raw_easy, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(raw_easy, CURLOPT_PROTOCOLS_STR, "http,https");
-    curl_easy_setopt(raw_easy, CURLOPT_UNRESTRICTED_AUTH, 0L);
+    CURLcode opt_err = CURLE_OK;
+    ApplyOpt(raw_easy, CURLOPT_ERRORBUFFER, transfer->error_buf, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_NOSIGNAL, 1L, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_PROTOCOLS_STR, "http,https", &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_UNRESTRICTED_AUTH, 0L, &opt_err);
     // Redirects are followed manually via HandleRedirect so method rewrites,
     // redirect limits, HTTPS downgrade blocking, and cross-origin header
     // stripping stay consistent with Android and Apple.
-    curl_easy_setopt(raw_easy, CURLOPT_FOLLOWLOCATION, 0L);
-    curl_easy_setopt(raw_easy, CURLOPT_SUPPRESS_CONNECT_HEADERS, 1L);
-    curl_easy_setopt(raw_easy, CURLOPT_TCP_NODELAY, 1L);
-    curl_easy_setopt(raw_easy, CURLOPT_BUFFERSIZE, 256L * 1024L);
-    curl_easy_setopt(raw_easy, CURLOPT_UPLOAD_BUFFERSIZE, 256L * 1024L);
-    curl_easy_setopt(raw_easy, CURLOPT_CONNECTTIMEOUT_MS, 60000L);
-    curl_easy_setopt(raw_easy, CURLOPT_TIMEOUT_MS, 0L);
+    ApplyOpt(raw_easy, CURLOPT_FOLLOWLOCATION, 0L, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_SUPPRESS_CONNECT_HEADERS, 1L, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_TCP_NODELAY, 1L, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_BUFFERSIZE, 256L * 1024L, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_UPLOAD_BUFFERSIZE, 256L * 1024L, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_CONNECTTIMEOUT_MS, 60000L, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_TIMEOUT_MS, 0L, &opt_err);
 
-    curl_easy_setopt(raw_easy, CURLOPT_URL, transfer->current_url.c_str());
-    curl_easy_setopt(raw_easy, CURLOPT_PRIVATE, transfer.get());
-    curl_easy_setopt(raw_easy, CURLOPT_HEADERFUNCTION, OnCurlHeader);
-    curl_easy_setopt(raw_easy, CURLOPT_HEADERDATA, transfer.get());
-    curl_easy_setopt(raw_easy, CURLOPT_WRITEFUNCTION, OnCurlWrite);
-    curl_easy_setopt(raw_easy, CURLOPT_WRITEDATA, transfer.get());
+    ApplyOpt(raw_easy, CURLOPT_URL, transfer->current_url.c_str(), &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_PRIVATE, transfer.get(), &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_HEADERFUNCTION, OnCurlHeader, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_HEADERDATA, transfer.get(), &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_WRITEFUNCTION, OnCurlWrite, &opt_err);
+    ApplyOpt(raw_easy, CURLOPT_WRITEDATA, transfer.get(), &opt_err);
 
     if (!op->proxy_url.empty()) {
-      curl_easy_setopt(raw_easy, CURLOPT_PROXY, op->proxy_url.c_str());
+      ApplyOpt(raw_easy, CURLOPT_PROXY, op->proxy_url.c_str(), &opt_err);
     }
 
     bool has_expect = HasHeaderIgnoreCase(transfer->active_headers, "Expect");
@@ -378,56 +443,94 @@ class CurlHttpEngine {
     bool has_content_length =
         HasHeaderIgnoreCase(transfer->active_headers, "Content-Length");
 
-    curl_slist* raw_headers = nullptr;
+    ::firebase::rest::curl::UniqueSList header_list;
     for (const auto& kv : transfer->active_headers) {
       std::string line;
       line.reserve(kv.first.size() + kv.second.size() + 2);
       line.append(kv.first);
       line.append(": ");
       line.append(kv.second);
-      raw_headers = curl_slist_append(raw_headers, line.c_str());
+      if (!AppendSList(&header_list, line.c_str())) {
+        op->MarkFailed("Out of memory building request headers.",
+                       kHttpErrorOther);
+        return nullptr;
+      }
     }
     if (!has_expect) {
       // Disable libcurl's automatic "Expect: 100-continue" wait on uploads.
-      raw_headers = curl_slist_append(raw_headers, "Expect:");
+      if (!AppendSList(&header_list, "Expect:")) {
+        op->MarkFailed("Out of memory building request headers.",
+                       kHttpErrorOther);
+        return nullptr;
+      }
     }
 
-    if (content_length == kNoRequestContent) {
-      if (AsciiEqualsIgnoreCase(transfer->active_method, "HEAD")) {
-        curl_easy_setopt(raw_easy, CURLOPT_NOBODY, 1L);
-      } else if (AsciiEqualsIgnoreCase(transfer->active_method, "GET")) {
-        curl_easy_setopt(raw_easy, CURLOPT_HTTPGET, 1L);
+    bool no_body = content_length == kNoRequestContent ||
+                   ((is_get || is_head) && content_length == 0);
+    if (no_body) {
+      if (is_head) {
+        ApplyOpt(raw_easy, CURLOPT_NOBODY, 1L, &opt_err);
+      } else if (is_get) {
+        ApplyOpt(raw_easy, CURLOPT_HTTPGET, 1L, &opt_err);
       } else {
-        curl_easy_setopt(raw_easy, CURLOPT_CUSTOMREQUEST,
-                         transfer->active_method.c_str());
+        ApplyOpt(raw_easy, CURLOPT_CUSTOMREQUEST,
+                 transfer->active_method.c_str(), &opt_err);
         if (!has_content_length &&
             (AsciiEqualsIgnoreCase(transfer->active_method, "POST") ||
              AsciiEqualsIgnoreCase(transfer->active_method, "PUT") ||
              AsciiEqualsIgnoreCase(transfer->active_method, "PATCH"))) {
-          raw_headers = curl_slist_append(raw_headers, "Content-Length: 0");
+          if (!AppendSList(&header_list, "Content-Length: 0")) {
+            op->MarkFailed("Out of memory building request headers.",
+                           kHttpErrorOther);
+            return nullptr;
+          }
         }
       }
     } else {
-      curl_easy_setopt(raw_easy, CURLOPT_UPLOAD, 1L);
-      curl_easy_setopt(raw_easy, CURLOPT_CUSTOMREQUEST,
-                       transfer->active_method.c_str());
-      curl_easy_setopt(raw_easy, CURLOPT_READFUNCTION, OnCurlRead);
-      curl_easy_setopt(raw_easy, CURLOPT_READDATA, transfer.get());
+      ApplyOpt(raw_easy, CURLOPT_UPLOAD, 1L, &opt_err);
+      ApplyOpt(raw_easy, CURLOPT_CUSTOMREQUEST, transfer->active_method.c_str(),
+               &opt_err);
+      ApplyOpt(raw_easy, CURLOPT_READFUNCTION, OnCurlRead, &opt_err);
+      ApplyOpt(raw_easy, CURLOPT_READDATA, transfer.get(), &opt_err);
       if (content_length >= 0) {
-        curl_easy_setopt(raw_easy, CURLOPT_INFILESIZE_LARGE,
-                         static_cast<curl_off_t>(content_length));
+        ApplyOpt(raw_easy, CURLOPT_INFILESIZE_LARGE,
+                 static_cast<curl_off_t>(content_length), &opt_err);
       } else if (!has_transfer_encoding) {
-        raw_headers =
-            curl_slist_append(raw_headers, "Transfer-Encoding: chunked");
+        if (!AppendSList(&header_list, "Transfer-Encoding: chunked")) {
+          op->MarkFailed("Out of memory building request headers.",
+                         kHttpErrorOther);
+          return nullptr;
+        }
       }
     }
 
-    transfer->headers.reset(raw_headers);
+    transfer->headers = std::move(header_list);
     if (transfer->headers != nullptr) {
-      curl_easy_setopt(raw_easy, CURLOPT_HTTPHEADER, transfer->headers.get());
+      ApplyOpt(raw_easy, CURLOPT_HTTPHEADER, transfer->headers.get(), &opt_err);
     }
+
+    if (opt_err != CURLE_OK) {
+      op->MarkFailed(curl_easy_strerror(opt_err),
+                     ClassifyCurlError(opt_err, op->IsCanceled()));
+      return nullptr;
+    }
+
     transfer->easy = std::move(easy);
     return transfer;
+  }
+
+  void FailAllActive(CURLMcode mc) {
+    std::string err = curl_multi_strerror(mc);
+    std::unordered_map<int64_t, std::unique_ptr<CurlTransfer>> failed;
+    failed.swap(active_);
+    for (auto& kv : failed) {
+      if (kv.second) {
+        curl_multi_remove_handle(multi_.get(), kv.second->easy.get());
+        if (!kv.second->op->IsCanceled()) {
+          kv.second->op->MarkFailed(err, kHttpErrorOther);
+        }
+      }
+    }
   }
 
   void RunLoop() {
@@ -464,7 +567,8 @@ class CurlHttpEngine {
           continue;
         }
         if (multi_ == nullptr) {
-          op->MarkFailed("Native libcurl multi engine failed to initialize.");
+          op->MarkFailed("Native libcurl multi engine failed to initialize.",
+                         kHttpErrorOther);
           continue;
         }
         auto transfer =
@@ -476,7 +580,7 @@ class CurlHttpEngine {
         CURLMcode mc =
             curl_multi_add_handle(multi_.get(), transfer->easy.get());
         if (mc != CURLM_OK) {
-          op->MarkFailed(curl_multi_strerror(mc));
+          op->MarkFailed(curl_multi_strerror(mc), kHttpErrorOther);
           continue;
         }
         active_.emplace(op->id, std::move(transfer));
@@ -509,7 +613,11 @@ class CurlHttpEngine {
       }
 
       int still_running = 0;
-      curl_multi_perform(multi_.get(), &still_running);
+      CURLMcode perform_rc = curl_multi_perform(multi_.get(), &still_running);
+      if (perform_rc != CURLM_OK && perform_rc != CURLM_CALL_MULTI_PERFORM) {
+        FailAllActive(perform_rc);
+        continue;
+      }
 
       bool added_redirect = false;
       int msgs_left = 0;
@@ -543,7 +651,7 @@ class CurlHttpEngine {
         if (!owned_transfer->op->IsCanceled()) {
           if (!owned_transfer->redirect_blocked_error.empty()) {
             owned_transfer->op->MarkFailed(
-                owned_transfer->redirect_blocked_error);
+                owned_transfer->redirect_blocked_error, kHttpErrorOther);
           } else if (!owned_transfer->redirect_url.empty()) {
             if (HandleRedirect(std::move(owned_transfer))) {
               added_redirect = true;
@@ -563,7 +671,8 @@ class CurlHttpEngine {
             std::string err = owned_transfer->error_buf[0] != '\0'
                                   ? std::string(owned_transfer->error_buf)
                                   : std::string(curl_easy_strerror(result));
-            owned_transfer->op->MarkFailed(err);
+            owned_transfer->op->MarkFailed(
+                err, ClassifyCurlError(result, owned_transfer->op->IsCanceled()));
           }
         }
       }
@@ -577,7 +686,11 @@ class CurlHttpEngine {
 
       if (!active_.empty()) {
         int numfds = 0;
-        curl_multi_poll(multi_.get(), nullptr, 0, 1000, &numfds);
+        CURLMcode poll_rc =
+            curl_multi_poll(multi_.get(), nullptr, 0, 1000, &numfds);
+        if (poll_rc != CURLM_OK) {
+          FailAllActive(poll_rc);
+        }
       }
     }
   }
@@ -588,20 +701,24 @@ class CurlHttpEngine {
     }
     auto op = prev->op;
     if (prev->redirect_count >= kMaxRedirects) {
-      op->MarkFailed("Maximum HTTP redirects exceeded.");
+      op->MarkFailed("Maximum HTTP redirects exceeded.", kHttpErrorOther);
       return false;
     }
 
     int32_t status = prev->redirect_status;
     std::string next_method = prev->active_method;
     int64_t next_content_len = prev->active_content_length;
-    if (status == 303 || ((status == 301 || status == 302) &&
-                          !AsciiEqualsIgnoreCase(next_method, "GET") &&
-                          !AsciiEqualsIgnoreCase(next_method, "HEAD"))) {
+    if ((status == 301 || status == 302 || status == 303) &&
+        !AsciiEqualsIgnoreCase(next_method, "GET") &&
+        !AsciiEqualsIgnoreCase(next_method, "HEAD")) {
       next_method = "GET";
       next_content_len = kNoRequestContent;
+      op->MarkRequestWriteClosed();
+    } else if (status == 303 && AsciiEqualsIgnoreCase(next_method, "HEAD")) {
+      next_content_len = kNoRequestContent;
     } else if (next_content_len != kNoRequestContent && next_content_len != 0) {
-      op->MarkFailed("Cannot replay streamed request body across redirect.");
+      op->MarkFailed("Cannot replay streamed request body across redirect.",
+                     kHttpErrorOther);
       return false;
     }
 
@@ -632,7 +749,7 @@ class CurlHttpEngine {
     CURLMcode mc =
         curl_multi_add_handle(multi_.get(), next_transfer->easy.get());
     if (mc != CURLM_OK) {
-      op->MarkFailed(curl_multi_strerror(mc));
+      op->MarkFailed(curl_multi_strerror(mc), kHttpErrorOther);
       return false;
     }
     active_.emplace(op->id, std::move(next_transfer));
