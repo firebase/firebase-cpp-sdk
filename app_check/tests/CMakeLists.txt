@@ -25,6 +25,7 @@ firebase_cpp_cc_test(
 firebase_cpp_cc_test(
   firebase_app_check_test
   SOURCES
+    desktop/app_check_desktop_test.cc
     desktop/debug_provider_desktop_test.cc
     ${FIREBASE_CPP_SDK_ROOT_DIR}/app/rest/transport_mock.cc
   DEPENDS

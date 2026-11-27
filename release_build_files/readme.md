@@ -626,6 +626,8 @@ code.
     - Database (Desktop): Fixed cached objects with priorities set (via
       `SetPriority()` or `SetValueAndPriority()`) being read back from the
       offline persistence cache as corrupted or null values.
+    - App Check (Desktop): Fixed requests from any `App` other than the first
+      one created being sent without an App Check token.
 
 ### 14.2.0
 - Changes
