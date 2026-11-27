@@ -16,6 +16,7 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
 #include <stdint.h>
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <string>
@@ -122,7 +123,7 @@ class RemoteConfigInternal {
   // Saved default keys.
   std::vector<std::string> default_keys_;
 
-  int64_t throttled_end_time_in_sec_;
+  std::atomic<int64_t> throttled_end_time_in_sec_{0};
 };
 }  // namespace internal
 }  // namespace remote_config

@@ -290,6 +290,18 @@ TEST_F(RemoteConfigDesktopTest, GetInfo) {
   EXPECT_EQ(info.throttled_end_time, 1498758888);
 }
 
+TEST_F(RemoteConfigDesktopTest, EnsureInitialized) {
+  Future<ConfigInfo> future = instance_->EnsureInitialized();
+  EXPECT_EQ(future.status(), kFutureStatusComplete);
+  EXPECT_EQ(future.error(), kFutureStatusSuccess);
+  ASSERT_NE(future.result(), nullptr);
+  const ConfigInfo& info = *future.result();
+  EXPECT_EQ(info.fetch_time, 1498757224u);
+  EXPECT_EQ(info.last_fetch_status, kLastFetchStatusPending);
+  EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonThrottled);
+  EXPECT_EQ(info.throttled_end_time, 1498758888u);
+}
+
 TEST_F(RemoteConfigDesktopTest, ActivateFetched) {
   {
     SetUpInstance();

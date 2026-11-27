@@ -200,9 +200,10 @@ void RemoteConfigREST::FetchFailure(FetchFailureReason reason) {
 }
 
 uint64_t RemoteConfigREST::MillisecondsSinceEpoch() {
-  return std::chrono::duration_cast<std::chrono::milliseconds>(
-             std::chrono::system_clock::now().time_since_epoch())
-      .count();
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::system_clock::now().time_since_epoch())
+                      .count();
+  return ms > 0 ? static_cast<uint64_t>(ms) : 0;
 }
 
 }  // namespace internal
