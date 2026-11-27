@@ -41,11 +41,9 @@ class StorageReferenceInternal {
 
   StorageReferenceInternal& operator=(const StorageReferenceInternal& ref);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   StorageReferenceInternal(StorageReferenceInternal&& ref);
 
   StorageReferenceInternal& operator=(StorageReferenceInternal&& ref);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   ~StorageReferenceInternal();
 

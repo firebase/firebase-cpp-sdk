@@ -49,7 +49,6 @@ Controller& Controller::operator=(const Controller& other) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 Controller::Controller(Controller&& other) {
   internal_ = other.internal_;
   other.internal_ = nullptr;
@@ -61,7 +60,6 @@ Controller& Controller::operator=(Controller&& other) {
   other.internal_ = nullptr;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Controller::~Controller() {
   if (internal_) delete internal_;

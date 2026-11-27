@@ -93,11 +93,9 @@ class QueryInternal {
 
   QueryInternal& operator=(const QueryInternal& query);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   QueryInternal(QueryInternal&& query);
 
   QueryInternal& operator=(QueryInternal&& query);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   virtual ~QueryInternal();
 

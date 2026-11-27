@@ -42,7 +42,6 @@ StorageListResult& StorageListResult::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 StorageListResult::StorageListResult(StorageListResult&& other)
     : internal_(other.internal_) {
   other.internal_ = nullptr;
@@ -56,7 +55,6 @@ StorageListResult& StorageListResult::operator=(StorageListResult&& other) {
   }
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 const std::vector<StorageReference>& StorageListResult::prefixes() const {
   static const std::vector<StorageReference> empty_vector;

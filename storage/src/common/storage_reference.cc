@@ -100,7 +100,6 @@ StorageReference& StorageReference::operator=(const StorageReference& other) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 StorageReference::StorageReference(StorageReference&& other) {
   StorageReferenceInternalCommon::UnregisterForCleanup(&other, other.internal_);
   internal_ = other.internal_;
@@ -116,7 +115,6 @@ StorageReference& StorageReference::operator=(StorageReference&& other) {
   StorageReferenceInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 StorageReference::~StorageReference() {
   StorageReferenceInternalCommon::DeleteInternal(this);

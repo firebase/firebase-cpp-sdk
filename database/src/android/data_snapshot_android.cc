@@ -66,7 +66,6 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& src)
     : db_(src.db_) {
   obj_ = src.obj_;
@@ -80,7 +79,6 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
   src.obj_ = nullptr;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DataSnapshotInternal::~DataSnapshotInternal() {
   if (obj_ != nullptr) {

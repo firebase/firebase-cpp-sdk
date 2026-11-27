@@ -161,7 +161,6 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 StorageReferenceInternal::StorageReferenceInternal(
     StorageReferenceInternal&& src)
     : storage_(src.storage_) {
@@ -177,7 +176,6 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   storage_->future_manager().MoveFutureApi(&src, this);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 StorageReferenceInternal::~StorageReferenceInternal() {
   if (obj_ != nullptr) {

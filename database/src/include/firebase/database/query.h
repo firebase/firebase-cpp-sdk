@@ -48,12 +48,10 @@ class Query {
   /// independently of each other.
   Query& operator=(const Query& query);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// Move constructor.
   Query(Query&& query);
   /// Move assignment operator.
   Query& operator=(Query&& query);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief Required virtual destructor.
   virtual ~Query();

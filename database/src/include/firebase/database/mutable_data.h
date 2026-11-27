@@ -34,14 +34,13 @@ class Repo;
 #endif  // SWIG
 class MutableData {
  public:
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
-  /// Move constructor
+  /// Move constructor.
   /// Move is more efficient than copy and delete.
   MutableData(MutableData&& rhs);
 
-  // MutableData may be moved.
+  /// Move assignment operator.
+  /// Move is more efficient than copy and delete.
   MutableData& operator=(MutableData&& rhs);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   /// Destructor.
   ~MutableData();

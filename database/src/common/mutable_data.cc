@@ -54,7 +54,6 @@ MutableData::MutableData(MutableDataInternal* internal) : internal_(internal) {
   CleanupFnMutableData::Register(this, internal_);
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 MutableData::MutableData(MutableData&& rhs) : internal_(rhs.internal_) {
   rhs.internal_ = nullptr;
   CleanupFnMutableData::Unregister(&rhs, internal_);
@@ -70,7 +69,6 @@ MutableData& MutableData::operator=(MutableData&& rhs) {
   CleanupFnMutableData::Register(this, internal_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 MutableData::~MutableData() {
   CleanupFnMutableData::Unregister(this, internal_);

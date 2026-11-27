@@ -97,7 +97,6 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& src)
     : functions_(src.functions_) {
@@ -113,7 +112,6 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
   functions_->future_manager().MoveFutureApi(&src, this);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
   if (obj_ != nullptr) {

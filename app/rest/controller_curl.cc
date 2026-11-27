@@ -46,7 +46,6 @@ ControllerCurl::~ControllerCurl() {
   }
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 ControllerCurl::ControllerCurl(ControllerCurl&& other) noexcept {
   *this = std::move(other);
 }
@@ -69,7 +68,6 @@ ControllerCurl& ControllerCurl::operator=(ControllerCurl&& other) noexcept {
   other.transport_ = nullptr;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 bool ControllerCurl::Pause() {
   if (this_handle_mutex_) {

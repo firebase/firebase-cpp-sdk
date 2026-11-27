@@ -635,8 +635,6 @@ void ReferenceCountedFutureImpl::RemoveCompletionCallback(
   }
 }
 
-#ifdef FIREBASE_USE_STD_FUNCTION
-
 static void CallStdFunction(const FutureBase& future, void* function_void) {
   if (function_void) {
     std::function<void(const FutureBase&)>* function =
@@ -699,8 +697,6 @@ ReferenceCountedFutureImpl::AddCompletionCallbackLambda(
         completion_callback_data->callback_user_data_delete_fn);
   }
 }
-
-#endif  // FIREBASE_USE_STD_FUNCTION
 
 bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
   MutexLock lock(mutex_);
@@ -861,7 +857,6 @@ FutureHandle& FutureHandle::operator=(const FutureHandle& rhs) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 FutureHandle::FutureHandle(FutureHandle&& rhs) noexcept {
   this->id_ = rhs.id_;
   this->api_ = rhs.api_;
@@ -890,7 +885,6 @@ FutureHandle& FutureHandle::operator=(FutureHandle&& rhs) noexcept {
   rhs.api_ = nullptr;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 void FutureHandle::Detach() {
   if (api_ != nullptr) {

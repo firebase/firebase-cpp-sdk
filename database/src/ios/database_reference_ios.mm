@@ -62,7 +62,6 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseReferenceInternal&& other)
     : QueryInternal(std::move(other)), impl_(std::move(other.impl_)) {
   other.impl_ = std::make_unique<FIRDatabaseReferencePointer>(nil);
@@ -76,7 +75,6 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(DatabaseReferenc
   database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Database* DatabaseReferenceInternal::GetDatabase() const {
   return Database::GetInstance(database_->GetApp());

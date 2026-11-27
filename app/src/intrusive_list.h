@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstddef>
 #include <functional>
+#include <utility>
 
 #if defined(_MSC_FULL_VER)
 #pragma warning(push)
@@ -246,7 +247,6 @@ class intrusive_list {
   explicit intrusive_list(intrusive_list_node T::*node_member)
       : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {}
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
   intrusive_list(this_type&& other) noexcept { *this = std::move(other); }
 
   intrusive_list& operator=(this_type&& other) noexcept {
@@ -254,7 +254,6 @@ class intrusive_list {
     node_offset_ = std::move(other.node_offset_);
     return *this;
   }
-#endif
 
 #if defined(_MSC_VER)
   // Normally we need to disallow copying. Ideally we'd put this in the

@@ -105,7 +105,6 @@ Metadata& Metadata::operator=(const Metadata& src) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 Metadata::Metadata(Metadata&& other) : internal_(other.internal_) {
   MetadataInternalCommon::UnregisterForCleanup(&other, other.internal_);
   other.internal_ = nullptr;
@@ -120,7 +119,6 @@ Metadata& Metadata::operator=(Metadata&& other) {
   MetadataInternalCommon::RegisterForCleanup(this, internal_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Metadata::~Metadata() { MetadataInternalCommon::DeleteInternal(this); }
 

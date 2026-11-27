@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -1024,7 +1025,6 @@ TEST_F(intrusive_list_test, merge_other_this) {
   EXPECT_EQ(other_list.end(), iter);
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 TEST_F(intrusive_list_test, move_constructor) {
   list_.push_back(one_);
   list_.push_back(two_);
@@ -1083,7 +1083,6 @@ TEST_F(intrusive_list_test, move_assignment) {
   ++iter;
   EXPECT_EQ(other.end(), iter);
 }
-#endif
 
 TEST_F(intrusive_list_test, swap) {
   list_.push_back(one_);

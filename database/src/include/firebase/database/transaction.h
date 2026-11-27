@@ -15,15 +15,13 @@
 #ifndef FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_TRANSACTION_H_
 #define FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_TRANSACTION_H_
 
+#include <functional>
+
 #include "firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
 #include "firebase/database/mutable_data.h"
 #include "firebase/internal/common.h"
 #include "firebase/variant.h"
-
-#if defined(FIREBASE_USE_STD_FUNCTION)
-#include <functional>
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 namespace firebase {
 namespace database {
@@ -83,7 +81,6 @@ typedef TransactionResult (*DoTransaction)(MutableData* data);
 typedef TransactionResult (*DoTransactionWithContext)(MutableData* data,
                                                       void* context);
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 /// Your own transaction handler function or lambda, which the Firebase Realtime
 /// Database library may call multiple times to apply changes to the data, and
 /// should return success or failure depending on whether it succeeds.
@@ -91,7 +88,6 @@ typedef TransactionResult (*DoTransactionWithContext)(MutableData* data,
 /// @see DoTransactionWithContext for more information.
 typedef std::function<TransactionResult(MutableData* data)>
     DoTransactionFunction;
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 }  // namespace database
 }  // namespace firebase

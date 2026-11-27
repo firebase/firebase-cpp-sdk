@@ -139,14 +139,12 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   void RemoveCompletionCallback(
       const FutureHandle& handle,
       detail::CompletionCallbackHandle callback_handle) override;
-#ifdef FIREBASE_USE_STD_FUNCTION
   // std::function version of AddCompletionCallback, which supports lambda
   // capture.
   detail::CompletionCallbackHandle AddCompletionCallbackLambda(
       const FutureHandle& handle,
       std::function<void(const FutureBase&)> callback,
       bool single_completion) override;
-#endif  // FIREBASE_USE_STD_FUNCTION
   // When a Future instance is created, register it with the cleanup manager so
   // it will be properly invalidated upon destruction of
   // ReferenceCountedFutureImpl.

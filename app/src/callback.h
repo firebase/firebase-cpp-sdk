@@ -17,14 +17,11 @@
 #ifndef FIREBASE_APP_SRC_CALLBACK_H_
 #define FIREBASE_APP_SRC_CALLBACK_H_
 
+#include <functional>
 #include <tuple>
 #include <utility>
 
 #include "firebase/internal/common.h"
-
-#ifdef FIREBASE_USE_STD_FUNCTION
-#include <functional>
-#endif
 
 /// @cond FIREBASE_APP_INTERNAL
 
@@ -276,7 +273,6 @@ class CallbackMoveValue1 : public Callback {
   UserCallback user_callback_;
 };
 
-#ifdef FIREBASE_USE_STD_FUNCTION
 /// Callback implementation that wraps std::function
 class CallbackStdFunction : public Callback {
  public:
@@ -288,7 +284,6 @@ class CallbackStdFunction : public Callback {
  private:
   std::function<void()> func_;
 };
-#endif
 
 template <int...>
 struct IntegerSequence {};

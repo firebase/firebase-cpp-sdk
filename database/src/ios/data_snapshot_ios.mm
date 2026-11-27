@@ -45,7 +45,6 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(const DataSnapshotInternal
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& other) {
   database_ = std::move(other.database_);
   impl_ = std::move(other.impl_);
@@ -58,7 +57,6 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(DataSnapshotInternal&& oth
   other.impl_ = std::make_unique<FIRDataSnapshotPointer>(nil);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DataSnapshotInternal::~DataSnapshotInternal() {}
 

@@ -20,14 +20,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <functional>
 #include <utility>
 
 #include "firebase/internal/common.h"
 #include "firebase/internal/mutex.h"
-
-#ifdef FIREBASE_USE_STD_FUNCTION
-#include <functional>
-#endif
 
 namespace firebase {
 
@@ -70,11 +67,9 @@ class FutureHandle {
   FutureHandle(const FutureHandle& rhs);
   FutureHandle& operator=(const FutureHandle& rhs);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
   // Move constructor and assignment operator.
   FutureHandle(FutureHandle&& rhs) noexcept;
   FutureHandle& operator=(FutureHandle&& rhs) noexcept;
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   // Comparison operators.
   bool operator!=(const FutureHandle& rhs) const { return !(*this == rhs); }
@@ -159,15 +154,13 @@ class FutureBase {
   /// Copy an untyped future.
   FutureBase& operator=(const FutureBase& rhs);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
-  /// Move constructor and operator.
+  /// Move constructor.
   /// Move is more efficient than copy and delete because we don't touch the
   /// reference counting in the API.
   FutureBase(FutureBase&& rhs) noexcept;
 
-  /// Copy an untyped future.
+  /// Move an untyped future.
   FutureBase& operator=(FutureBase&& rhs) noexcept;
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   /// Explicitly release the internal resources for a future.
   /// Future will become invalid.
@@ -236,7 +229,6 @@ class FutureBase {
   /// callback.
   void OnCompletion(CompletionCallback callback, void* user_data) const;
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Register a single callback that will be called at most once, when the
   /// future is completed.
   ///
@@ -254,7 +246,6 @@ class FutureBase {
   ///
   /// @param[in] callback Function or lambda to call.
   void OnCompletion(std::function<void(const FutureBase&)> callback) const;
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 #if defined(INTERNAL_EXPERIMENTAL)
   /// Like OnCompletion, but allows adding multiple callbacks.
@@ -275,7 +266,6 @@ class FutureBase {
   CompletionCallbackHandle AddOnCompletion(CompletionCallback callback,
                                            void* user_data) const;
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Like OnCompletion, but allows adding multiple callbacks.
   ///
   /// If you call AddCompletion() more than once, all of the completions that
@@ -291,8 +281,6 @@ class FutureBase {
   /// @return A handle that can be passed to RemoveOnCompletion.
   CompletionCallbackHandle AddOnCompletion(
       std::function<void(const FutureBase&)> callback) const;
-
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /// Unregisters a callback that was previously registered with
   /// AddOnCompletion.
@@ -458,7 +446,6 @@ class Future : public FutureBase {
   inline void OnCompletion(TypedCompletionCallback callback,
                            void* user_data) const;
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Register a single callback that will be called at most once, when the
   /// future is completed.
   ///
@@ -472,7 +459,6 @@ class Future : public FutureBase {
   /// registered one will run.
   inline void OnCompletion(
       std::function<void(const Future<ResultType>&)> callback) const;
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 #if defined(INTERNAL_EXPERIMENTAL)
   /// Like OnCompletion, but allows adding multiple callbacks.
@@ -493,7 +479,6 @@ class Future : public FutureBase {
   inline CompletionCallbackHandle AddOnCompletion(
       TypedCompletionCallback callback, void* user_data) const;
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Like OnCompletion, but allows adding multiple callbacks.
   ///
   /// If you call AddCompletion() more than once, all of the completions that
@@ -509,7 +494,6 @@ class Future : public FutureBase {
   /// @return A handle that can be passed to RemoveOnCompletion.
   inline CompletionCallbackHandle AddOnCompletion(
       std::function<void(const Future<ResultType>&)> callback) const;
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 };
 

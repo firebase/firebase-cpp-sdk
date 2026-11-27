@@ -21,11 +21,6 @@
 
 #include <utility>
 
-// TODO(b/582384770): Remove these always-defined macros and unwrap their
-// remaining #if/#ifdef guards across the codebase in a follow-up cleanup.
-#define FIREBASE_USE_MOVE_OPERATORS
-#define FIREBASE_USE_STD_FUNCTION
-
 #if !defined(DOXYGEN) && !defined(SWIG)
 #if !defined(_WIN32) && !defined(__CYGWIN__)
 // Prevent GCC & Clang from stripping a symbol.

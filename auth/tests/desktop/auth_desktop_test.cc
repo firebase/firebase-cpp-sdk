@@ -917,7 +917,6 @@ TEST(UserViewTest, TestCopyUserView) {
   EXPECT_EQ("dangerm", view3.user_data().uid);
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
 TEST(UserViewTest, TestMoveUserView) {
   UserData user1;
   user1.uid = "mrsspoon";
@@ -933,7 +932,6 @@ TEST(UserViewTest, TestMoveUserView) {
   view2 = std::move(view1);
   EXPECT_EQ("mrsspoon", view2.user_data().uid);
 }
-#endif  // defined(defined(FIREBASE_USE_MOVE_OPERATORS)
 
 }  // namespace auth
 }  // namespace firebase

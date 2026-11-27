@@ -114,11 +114,9 @@ class Scheduler {
   RequestHandle Schedule(callback::Callback* callback, ScheduleTimeMs delay = 0,
                          ScheduleTimeMs repeat = 0);
 
-#ifdef FIREBASE_USE_STD_FUNCTION
   // std::function version of Schedule(callback, delay, repeat)
   RequestHandle Schedule(const std::function<void(void)>& callback,
                          ScheduleTimeMs delay = 0, ScheduleTimeMs repeat = 0);
-#endif  // FIREBASE_USE_STD_FUNCTION
 
   // Cancel all scheduled callbacks and shut down the worker thread.
   void CancelAllAndShutdownWorkerThread();

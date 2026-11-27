@@ -19,6 +19,7 @@
 #include <jni.h>
 
 #include <cassert>
+#include <utility>
 
 #include "app/src/assert.h"
 // util_android.h is included for GetThreadsafeJNIEnv()
@@ -40,11 +41,9 @@ JObjectReference::JObjectReference(const JObjectReference& reference) {
   Initialize(reference.java_vm_, reference.GetJNIEnv(), reference.object());
 }
 
-#ifdef FIREBASE_USE_MOVE_OPERATORS
 JObjectReference::JObjectReference(JObjectReference&& reference) noexcept {
   operator=(std::move(reference));
 }
-#endif  // FIREBASE_USE_MOVE_OPERATORS
 
 JObjectReference::~JObjectReference() { Set(nullptr); }
 
@@ -54,7 +53,6 @@ JObjectReference& JObjectReference::operator=(
   return *this;
 }
 
-#ifdef FIREBASE_USE_MOVE_OPERATORS
 JObjectReference& JObjectReference::operator=(
     JObjectReference&& reference) noexcept {
   java_vm_ = reference.java_vm_;
@@ -63,7 +61,6 @@ JObjectReference& JObjectReference::operator=(
   reference.object_ = nullptr;
   return *this;
 }
-#endif  // FIREBASE_USE_MOVE_OPERATORS
 
 void JObjectReference::Set(jobject jobject_reference) {
   JNIEnv* env = GetJNIEnv();

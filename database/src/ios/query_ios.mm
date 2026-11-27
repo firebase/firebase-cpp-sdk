@@ -105,7 +105,6 @@ QueryInternal& QueryInternal::operator=(const QueryInternal& other) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 QueryInternal::QueryInternal(QueryInternal&& other) : database_(other.database_) {
   impl_ = std::move(other.impl_);
   other.impl_ = std::make_unique<FIRDatabaseQueryPointer>(nil);
@@ -120,7 +119,6 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& other) {
   query_spec_ = other.query_spec_;
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 QueryInternal::~QueryInternal() { database_->future_manager().ReleaseFutureApi(&future_api_id_); }
 

@@ -81,7 +81,6 @@ Query& Query::operator=(const Query& src) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 Query::Query(Query&& query) : internal_(query.internal_) {
   query.UnregisterCleanup();
   query.internal_ = nullptr;
@@ -95,7 +94,6 @@ Query& Query::operator=(Query&& query) {
   SetInternal(internal);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 bool operator==(const Query& lhs, const Query& rhs) {
   if (!lhs.is_valid() && !rhs.is_valid()) return true;   // both invalid

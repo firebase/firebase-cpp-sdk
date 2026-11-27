@@ -75,7 +75,6 @@ class HttpsCallableReference {
   /// @returns Reference to the destination HttpsCallableReference.
   HttpsCallableReference& operator=(const HttpsCallableReference& reference);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor. Moving is an efficient operation for
   /// HttpsCallableReference instances.
   ///
@@ -89,7 +88,6 @@ class HttpsCallableReference {
   ///
   /// @returns Reference to the destination HttpsCallableReference.
   HttpsCallableReference& operator=(HttpsCallableReference&& other);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   /// @brief Gets the firebase::functions::Functions instance to which we refer.
   ///

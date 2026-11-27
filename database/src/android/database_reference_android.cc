@@ -90,7 +90,6 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(
     DatabaseReferenceInternal&& src)
     : QueryInternal(std::move(src)), cached_disconnection_handler_(nullptr) {
@@ -103,7 +102,6 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
   db_->future_manager().MoveFutureApi(&src.future_api_id_, &future_api_id_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DatabaseReferenceInternal::~DatabaseReferenceInternal() {
   if (cached_disconnection_handler_ != nullptr) {

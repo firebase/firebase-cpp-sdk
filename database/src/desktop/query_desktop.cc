@@ -111,7 +111,6 @@ QueryInternal& QueryInternal::operator=(const QueryInternal& internal) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 QueryInternal::QueryInternal(QueryInternal&& internal)
     : database_(internal.database_),
       query_spec_(std::move(internal.query_spec_)) {
@@ -130,7 +129,6 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& internal) {
   }
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 QueryInternal::~QueryInternal() {}
 

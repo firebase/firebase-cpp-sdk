@@ -71,7 +71,6 @@ DataSnapshot& DataSnapshot::operator=(const DataSnapshot& src) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DataSnapshot::DataSnapshot(DataSnapshot&& snapshot) {
   CleanupFnDataSnapshot::Unregister(&snapshot, snapshot.internal_);
   internal_ = snapshot.internal_;
@@ -88,7 +87,6 @@ DataSnapshot& DataSnapshot::operator=(DataSnapshot&& snapshot) {
   CleanupFnDataSnapshot::Register(this, internal_);
   return *this;
 }
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 DataSnapshot::~DataSnapshot() {
   CleanupFnDataSnapshot::Unregister(this, internal_);

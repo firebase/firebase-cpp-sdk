@@ -87,8 +87,6 @@ Variant& Variant::operator=(const Variant& other) {
   return *this;
 }
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS)
-
 Variant& Variant::operator=(Variant&& other) noexcept {
   if (this != &other) {
     Clear();
@@ -155,8 +153,6 @@ Variant& Variant::operator=(Variant&& other) noexcept {
   }
   return *this;
 }
-
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
 bool Variant::operator==(const Variant& other) const {
   // If types don't match and we aren't both strings or blobs, fail.

@@ -44,11 +44,9 @@ class DataSnapshotInternal {
 
   DataSnapshotInternal& operator=(const DataSnapshotInternal& snapshot);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   DataSnapshotInternal(DataSnapshotInternal&& snapshot);
 
   DataSnapshotInternal& operator=(DataSnapshotInternal&& snapshot);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   ~DataSnapshotInternal();
 

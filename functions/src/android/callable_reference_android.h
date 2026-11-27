@@ -43,12 +43,10 @@ class HttpsCallableReferenceInternal {
   HttpsCallableReferenceInternal& operator=(
       const HttpsCallableReferenceInternal& ref);
 
-#if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   HttpsCallableReferenceInternal(HttpsCallableReferenceInternal&& ref);
 
   HttpsCallableReferenceInternal& operator=(
       HttpsCallableReferenceInternal&& ref);
-#endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   ~HttpsCallableReferenceInternal();
 
