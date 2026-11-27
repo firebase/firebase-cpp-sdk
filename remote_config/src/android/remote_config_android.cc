@@ -745,7 +745,7 @@ bool RemoteConfigInternal::Initialized() const {
 
 void RemoteConfigInternal::Cleanup() {
   JNIEnv* env = app_.GetJNIEnv();
-  // Drain pending JNI task callbacks before releasing cached JNI classes or
+  // Cancel pending JNI task callbacks before releasing cached JNI classes or
   // terminating util, and before acquiring ReferenceCountLock to avoid lock
   // inversion with completion callbacks.
   if (!callbacks_cancelled_) {

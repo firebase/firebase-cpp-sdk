@@ -252,9 +252,15 @@ static void UpdateThrottledEndTimeFromError(NSError *error,
   if (error.userInfo) {
     id throttled_value = error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey];
     if ([throttled_value isKindOfClass:[NSNumber class]]) {
-      int64_t throttled_end_time = static_cast<NSNumber *>(throttled_value).longLongValue;
-      if (throttled_end_time > 0) {
-        throttled_end_time_in_sec->store(throttled_end_time, std::memory_order_relaxed);
+      double throttled_end_time_sec = static_cast<NSNumber *>(throttled_value).doubleValue;
+      if (std::isfinite(throttled_end_time_sec) && throttled_end_time_sec > 0.0) {
+        int64_t throttled_end_time =
+            throttled_end_time_sec >= static_cast<double>(std::numeric_limits<int64_t>::max())
+                ? std::numeric_limits<int64_t>::max()
+                : static_cast<int64_t>(throttled_end_time_sec);
+        if (throttled_end_time > 0) {
+          throttled_end_time_in_sec->store(throttled_end_time, std::memory_order_relaxed);
+        }
       }
     }
   }

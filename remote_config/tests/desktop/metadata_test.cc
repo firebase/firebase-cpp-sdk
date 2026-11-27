@@ -14,7 +14,9 @@
 
 #include "remote_config/src/desktop/metadata.h"
 
+#include <cstring>
 #include <map>
+#include <new>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -52,11 +54,14 @@ TEST(RemoteConfigMetadataTest, Serialization) {
 }
 
 TEST(RemoteConfigMetadataTest, ConfigInfoDefaultInitialized) {
-  ConfigInfo info;
-  EXPECT_EQ(info.fetch_time, 0u);
-  EXPECT_EQ(info.last_fetch_status, kLastFetchStatusPending);
-  EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonInvalid);
-  EXPECT_EQ(info.throttled_end_time, 0u);
+  alignas(ConfigInfo) unsigned char storage[sizeof(ConfigInfo)];
+  std::memset(storage, 0xAA, sizeof(storage));
+  ConfigInfo* info = new (storage) ConfigInfo;
+  EXPECT_EQ(info->fetch_time, 0u);
+  EXPECT_EQ(info->last_fetch_status, kLastFetchStatusPending);
+  EXPECT_EQ(info->last_fetch_failure_reason, kFetchFailureReasonInvalid);
+  EXPECT_EQ(info->throttled_end_time, 0u);
+  info->~ConfigInfo();
 }
 
 TEST(RemoteConfigMetadataTest, GetInfoDefaultValues) {
