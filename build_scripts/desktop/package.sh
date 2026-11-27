@@ -207,6 +207,7 @@ fi
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
 */${prefix}firebase_rest_lib.${ext}
+*/${prefix}firebase_http_transport.${ext}
 "
 readonly deps_hidden_firebase_app="
 */curl-build/lib/${subdir}libcurl${suffix}.${ext}

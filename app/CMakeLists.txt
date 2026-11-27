@@ -390,6 +390,10 @@ if (NOT ANDROID AND NOT IOS)
   add_subdirectory(rest)
 endif()
 
+# Cross-platform native streaming HTTP transport (Desktop libcurl, iOS/tvOS
+# NSURLSession, Android JNI HttpURLConnection).
+add_subdirectory(http)
+
 if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
