@@ -51,6 +51,14 @@ TEST(RemoteConfigMetadataTest, Serialization) {
   EXPECT_EQ(remote_config_metadata, new_remote_config_metadata);
 }
 
+TEST(RemoteConfigMetadataTest, ConfigInfoDefaultInitialized) {
+  ConfigInfo info;
+  EXPECT_EQ(info.fetch_time, 0u);
+  EXPECT_EQ(info.last_fetch_status, kLastFetchStatusPending);
+  EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonInvalid);
+  EXPECT_EQ(info.throttled_end_time, 0u);
+}
+
 TEST(RemoteConfigMetadataTest, GetInfoDefaultValues) {
   RemoteConfigMetadata m;
   ExpectEqualConfigInfo(m.info(), ConfigInfo({0, kLastFetchStatusSuccess,

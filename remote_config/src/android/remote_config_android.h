@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <string>
 #include <utility>
 
@@ -99,7 +100,13 @@ class RemoteConfigInternal {
   CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
   void set_throttled_end_time(int64_t end_time) {
-    throttled_end_time_ = end_time;
+    throttled_end_time_.store(
+        end_time > 0 ? static_cast<uint64_t>(end_time) : 0,
+        std::memory_order_relaxed);
+  }
+
+  uint64_t throttled_end_time() const {
+    return throttled_end_time_.load(std::memory_order_relaxed);
   }
 
   void SaveTmpKeysToDefault(std::vector<std::string> tmp_default_keys) {
@@ -125,10 +132,12 @@ class RemoteConfigInternal {
 
   // If a fetch was throttled, this is set to the time when throttling is
   // finished, in milliseconds since epoch.
-  int64_t throttled_end_time_ = 0;
+  std::atomic<uint64_t> throttled_end_time_{0};
 
   // String to be used when registering for JNI task callbacks.
   std::string jni_task_id_;
+
+  bool callbacks_cancelled_ = false;
 };
 
 }  // namespace internal

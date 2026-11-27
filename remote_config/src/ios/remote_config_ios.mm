@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include "remote_config/src/ios/remote_config_ios.h"
 
 #include <map>
@@ -142,17 +144,36 @@ std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
   return std::vector<unsigned char>(bytes, bytes + size);
 }
 
+static uint64_t ThrottledEndTimeSecondsToMillis(int64_t throttled_end_time) {
+  // The C++ throttled_end_time is a uint64_t, so if we are given a negative number,
+  // use 0 instead, to prevent getting a very large number.
+  if (throttled_end_time <= 0) {
+    return 0;
+  }
+  const uint64_t max_seconds =
+      std::numeric_limits<uint64_t>::max() / ::firebase::internal::kMillisecondsPerSecond;
+  const uint64_t throttled_seconds = static_cast<uint64_t>(throttled_end_time);
+  return throttled_seconds > max_seconds
+             ? std::numeric_limits<uint64_t>::max()
+             : throttled_seconds * ::firebase::internal::kMillisecondsPerSecond;
+}
+
 static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo *out_info,
                                        int64_t throttled_end_time) {
   FIREBASE_DEV_ASSERT(out_info != nullptr);
-  out_info->fetch_time = round(rc_instance.lastFetchTime.timeIntervalSince1970 *
-                               ::firebase::internal::kMillisecondsPerSecond);
-  // The C++ throttled_end_time is a uint64_t, so if we are given a negative number,
-  // use 0 instead, to prevent getting a very large number.
-  if (throttled_end_time < 0) {
-    throttled_end_time = 0;
+  NSTimeInterval fetch_time_sec =
+      rc_instance.lastFetchTime ? rc_instance.lastFetchTime.timeIntervalSince1970 : 0.0;
+  double fetch_time_ms = fetch_time_sec * ::firebase::internal::kMillisecondsPerSecond;
+  // The C++ fetch_time is a uint64_t, so clamp negative or non-finite values
+  // (e.g. a device clock set before 1970) to 0 instead of wrapping.
+  if (!std::isfinite(fetch_time_ms) || fetch_time_ms <= 0.0) {
+    out_info->fetch_time = 0;
+  } else if (fetch_time_ms >= static_cast<double>(std::numeric_limits<int64_t>::max())) {
+    out_info->fetch_time = static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+  } else {
+    out_info->fetch_time = static_cast<uint64_t>(std::llround(fetch_time_ms));
   }
-  out_info->throttled_end_time = throttled_end_time * ::firebase::internal::kMillisecondsPerSecond;
+  out_info->throttled_end_time = ThrottledEndTimeSecondsToMillis(throttled_end_time);
   switch (rc_instance.lastFetchStatus) {
     case FIRRemoteConfigFetchStatusNoFetchYet:
       out_info->last_fetch_status = kLastFetchStatusPending;
@@ -226,31 +247,39 @@ bool RemoteConfigInternal::Initialized() const{
 
 void RemoteConfigInternal::Cleanup() {}
 
-template <typename THandle, typename TResult>
-static int64_t FutureCompleteWithError(NSError *error, ReferenceCountedFutureImpl *future_impl,
-                                       THandle handle, TResult result) {
-  int64_t throttled_end_time = 0;
+static void UpdateThrottledEndTimeFromError(NSError *error,
+                                            std::atomic<int64_t> *throttled_end_time_in_sec) {
   if (error.userInfo) {
-    throttled_end_time =
-        ((NSNumber *)error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey]).longLongValue;
+    id throttled_value = error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey];
+    if ([throttled_value isKindOfClass:[NSNumber class]]) {
+      int64_t throttled_end_time = static_cast<NSNumber *>(throttled_value).longLongValue;
+      if (throttled_end_time > 0) {
+        throttled_end_time_in_sec->store(throttled_end_time, std::memory_order_relaxed);
+      }
+    }
   }
+}
+
+template <typename THandle, typename TResult>
+static void FutureCompleteWithError(NSError *error, ReferenceCountedFutureImpl *future_impl,
+                                    THandle handle, TResult result) {
   // If we got an error code back, return that, with the associated string.
   future_impl->CompleteWithResult(handle, kFutureStatusFailure,
                                   util::NSStringToString(error.localizedDescription).c_str(),
                                   result);
-  return throttled_end_time;
 }
 
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
   const auto handle = future_impl_.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
   [impl() ensureInitializedWithCompletionHandler:^(NSError *error) {
     ConfigInfo config_info;
+    int64_t throttled_end_time_sec = throttled_end_time_in_sec_.load(std::memory_order_relaxed);
     if (error) {
-      throttled_end_time_in_sec_ =
-          FutureCompleteWithError<SafeFutureHandle<ConfigInfo>, ConfigInfo>(error, &future_impl_,
-                                                                            handle, config_info);
+      config_info.throttled_end_time = ThrottledEndTimeSecondsToMillis(throttled_end_time_sec);
+      FutureCompleteWithError<SafeFutureHandle<ConfigInfo>, ConfigInfo>(error, &future_impl_,
+                                                                        handle, config_info);
     } else {
-      GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_in_sec_);
+      GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_sec);
       future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", config_info);
     }
   }];
@@ -266,8 +295,7 @@ Future<bool> RemoteConfigInternal::Activate() {
   const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
   [impl() activateWithCompletion:^(BOOL changed, NSError *error) {
     if (error) {
-      throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
-          error, &future_impl_, handle, false);
+      FutureCompleteWithError<SafeFutureHandle<bool>, bool>(error, &future_impl_, handle, false);
     } else {
       future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", changed ? true : false);
     }
@@ -284,8 +312,8 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   [impl() fetchAndActivateWithCompletionHandler:^(FIRRemoteConfigFetchAndActivateStatus status,
                                                   NSError *error) {
     if (error) {
-      throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
-          error, &future_impl_, handle, false);
+      UpdateThrottledEndTimeFromError(error, &throttled_end_time_in_sec_);
+      FutureCompleteWithError<SafeFutureHandle<bool>, bool>(error, &future_impl_, handle, false);
 
     } else if (status == FIRRemoteConfigFetchAndActivateStatusSuccessUsingPreFetchedData) {
       future_impl_.CompleteWithResult(
@@ -310,11 +338,7 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
       fetchWithExpirationDuration:cache_expiration_in_seconds
                 completionHandler:^(FIRRemoteConfigFetchStatus status, NSError *error) {
                   if (error) {
-                    if (error.userInfo) {
-                      throttled_end_time_in_sec_ =
-                          ((NSNumber *)error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey])
-                              .longLongValue;
-                    }
+                    UpdateThrottledEndTimeFromError(error, &throttled_end_time_in_sec_);
                     // If we got an error code back, return that, with the associated string.
                     future_impl_.Complete(
                         handle, kFutureStatusFailure,
@@ -571,7 +595,8 @@ std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
 
 const ConfigInfo RemoteConfigInternal::GetInfo() const {
   ConfigInfo config_info;
-  GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_in_sec_);
+  GetInfoFromFIRRemoteConfig(impl(), &config_info,
+                             throttled_end_time_in_sec_.load(std::memory_order_relaxed));
   return config_info;
 }
 

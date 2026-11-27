@@ -615,6 +615,11 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - Remote Config: Fixed `ConfigInfo::throttled_end_time` being left
+      uninitialized in `RemoteConfig::EnsureInitialized()` on Android, added
+      default member initializers to `ConfigInfo`, captured throttle end times
+      from Android `FetchAndActivate()`, and clamped negative/out-of-range
+      timestamps across Android, iOS, and Desktop.
     - Database (Desktop): Added exponential backoff to Realtime Database
       reconnection attempts to prevent tight reconnect loops.
     - General (Desktop): Fixed Auth and App Check staying registered with their

@@ -606,20 +606,31 @@ static RemoteConfigError RemoteConfigErrorFromJavaErrorCode(int error_code) {
   }
 
 static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
+                                    uint64_t throttled_end_time,
                                     ConfigInfo* info) {
+  FIREBASE_DEV_ASSERT(info != nullptr);
+  info->throttled_end_time = throttled_end_time;
+  if (!jinfo) {
+    return;
+  }
   FIREBASE_DEV_ASSERT(env->IsInstanceOf(jinfo, config_info::GetClass()));
 
   int64_t fetch_time = env->CallLongMethod(
       jinfo, config_info::GetMethodId(config_info::kGetFetchTimeMillis));
-  // The C++ fetch_time is a uint64_t, so if we are given a negative number,
-  // use 0 instead, to prevent getting a very large number.
-  if (fetch_time < 0) {
+  // The C++ fetch_time is a uint64_t, so if we are given a negative number
+  // (e.g. -1 before any fetch) or a JNI exception occurs, use 0 instead to
+  // prevent wrapping to a very large number.
+  if (util::CheckAndClearJniExceptions(env) || fetch_time < 0) {
     fetch_time = 0;
   }
-  info->fetch_time = fetch_time;
-  util::CheckAndClearJniExceptions(env);
-  int64_t status_code = env->CallIntMethod(
+  info->fetch_time = static_cast<uint64_t>(fetch_time);
+  int32_t status_code = env->CallIntMethod(
       jinfo, config_info::GetMethodId(config_info::kGetLastFetchStatus));
+  if (util::CheckAndClearJniExceptions(env)) {
+    info->last_fetch_status = kLastFetchStatusFailure;
+    info->last_fetch_failure_reason = kFetchFailureReasonError;
+    return;
+  }
   switch (status_code) {
     case -1:  // FirebaseRemoteConfig.LAST_FETCH_STATUS_SUCCESS
       info->last_fetch_status = kLastFetchStatusSuccess;
@@ -643,7 +654,6 @@ static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
       info->last_fetch_failure_reason = kFetchFailureReasonInvalid;
       break;
   }
-  util::CheckAndClearJniExceptions(env);
 }
 
 template <typename T>
@@ -722,8 +732,11 @@ RemoteConfigInternal::~RemoteConfigInternal() {
   // ConfigUpdateListenerRegistration instances to no longer point to the
   // corresponding internal objects.
   cleanup_notifier().CleanupAll();
-  JNIEnv* env = app_.GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_.c_str());
+  if (!callbacks_cancelled_) {
+    callbacks_cancelled_ = true;
+    JNIEnv* env = app_.GetJNIEnv();
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+  }
 }
 
 bool RemoteConfigInternal::Initialized() const {
@@ -731,11 +744,33 @@ bool RemoteConfigInternal::Initialized() const {
 }
 
 void RemoteConfigInternal::Cleanup() {
+  JNIEnv* env = app_.GetJNIEnv();
+  // Drain pending JNI task callbacks before releasing cached JNI classes or
+  // terminating util, and before acquiring ReferenceCountLock to avoid lock
+  // inversion with completion callbacks.
+  if (!callbacks_cancelled_) {
+    callbacks_cancelled_ = true;
+    util::CancelCallbacks(env, jni_task_id_.c_str());
+  }
   ReferenceCountLock<ReferenceCount> lock(&initializer_);
   if (lock.RemoveReference() == 1) {
-    JNIEnv* env = app_.GetJNIEnv();
     ReleaseClasses(env);
     util::Terminate(env);
+  }
+}
+
+static void UpdateThrottledEndTimeFromResult(
+    JNIEnv* env, jobject result, util::FutureResult result_code,
+    RemoteConfigInternal* rc_internal) {
+  jclass throttled_class = throttled_exception::GetClass();
+  if (result_code != util::kFutureResultSuccess && result && rc_internal &&
+      throttled_class && env->IsInstanceOf(result, throttled_class)) {
+    int64_t throttle_end_time = static_cast<int64_t>(env->CallLongMethod(
+        result, throttled_exception::GetMethodId(
+                    throttled_exception::kGetThrottleEndTimeMillis)));
+    if (!util::CheckAndClearJniExceptions(env) && throttle_end_time > 0) {
+      rc_internal->set_throttled_end_time(throttle_end_time);
+    }
   }
 }
 
@@ -743,13 +778,18 @@ void EnsureInitializedCallback(JNIEnv* env, jobject result,
                                util::FutureResult result_code,
                                const char* status_message,
                                void* callback_data) {
-  bool success = (result_code == util::kFutureResultSuccess);
-  ConfigInfo info;
-  if (success && result) {
-    JConfigInfoToConfigInfo(env, result, &info);
-  }
   auto* data_handle =
       reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
+  bool success = (result_code == util::kFutureResultSuccess);
+  uint64_t throttled_end_time =
+      data_handle->rc_internal ? data_handle->rc_internal->throttled_end_time()
+                               : 0;
+  ConfigInfo info;
+  if (success && result) {
+    JConfigInfoToConfigInfo(env, result, throttled_end_time, &info);
+  } else {
+    info.throttled_end_time = throttled_end_time;
+  }
 
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
@@ -777,6 +817,15 @@ void BoolResultCallback(JNIEnv* env, jobject result,
   delete data_handle;
 }
 
+void FetchAndActivateCallback(JNIEnv* env, jobject result,
+                              util::FutureResult result_code,
+                              const char* status_message, void* callback_data) {
+  auto* data_handle = reinterpret_cast<RCDataHandle<bool>*>(callback_data);
+  UpdateThrottledEndTimeFromResult(env, result, result_code,
+                                   data_handle->rc_internal);
+  BoolResultCallback(env, result, result_code, status_message, callback_data);
+}
+
 void CompleteVoidCallback(JNIEnv* env, jobject result,
                           util::FutureResult result_code,
                           const char* status_message, void* callback_data) {
@@ -790,20 +839,9 @@ void CompleteVoidCallback(JNIEnv* env, jobject result,
 
 void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                    const char* status_message, void* callback_data) {
-  bool success = (result_code == util::kFutureResultSuccess);
-  int64_t throttle_end_time = 0;
-  if (!success && result) {
-    if (env->IsInstanceOf(result, throttled_exception::GetClass())) {
-      throttle_end_time = static_cast<int64_t>(env->CallLongMethod(
-          result, throttled_exception::GetMethodId(
-                      throttled_exception::kGetThrottleEndTimeMillis)));
-    }
-  }
-  auto data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
-  if (throttle_end_time > 0) {
-    data_handle->rc_internal->set_throttled_end_time(throttle_end_time);
-  }
-
+  auto* data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
+  UpdateThrottledEndTimeFromResult(env, result, result_code,
+                                   data_handle->rc_internal);
   CompleteVoidCallback(env, result, result_code, status_message, callback_data);
 }
 
@@ -882,7 +920,7 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
                           "FetchAndActivate native function fails");
   } else {
     auto data_handle = new RCDataHandle<bool>(&future_impl_, handle, this);
-    util::RegisterCallbackOnTask(env, task, BoolResultCallback,
+    util::RegisterCallbackOnTask(env, task, FetchAndActivateCallback,
                                  reinterpret_cast<void*>(data_handle),
                                  jni_task_id_.c_str());
   }
@@ -1353,13 +1391,12 @@ std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
 const ConfigInfo RemoteConfigInternal::GetInfo() const {
   JNIEnv* env = app_.GetJNIEnv();
   ConfigInfo info;
-  info.throttled_end_time = throttled_end_time_;
 
   jobject jinfo = env->CallObjectMethod(internal_obj_,
                                         config::GetMethodId(config::kGetInfo));
   if (util::CheckAndClearJniExceptions(env)) jinfo = nullptr;
-  JConfigInfoToConfigInfo(env, jinfo, &info);
-  env->DeleteLocalRef(jinfo);
+  JConfigInfoToConfigInfo(env, jinfo, throttled_end_time(), &info);
+  if (jinfo) env->DeleteLocalRef(jinfo);
   return info;
 }
 

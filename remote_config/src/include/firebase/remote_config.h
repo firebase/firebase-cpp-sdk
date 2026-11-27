@@ -95,17 +95,17 @@ struct ConfigUpdate {
 struct ConfigInfo {
   /// @brief The time (in milliseconds since the epoch) that the last fetch
   /// operation completed. 0 if no fetch attempt has been made yet.
-  uint64_t fetch_time;
+  uint64_t fetch_time = 0;
 
   /// @brief The status of the last fetch request.
-  LastFetchStatus last_fetch_status;
+  LastFetchStatus last_fetch_status = kLastFetchStatusPending;
 
   /// @brief The reason the most recent fetch failed.
-  FetchFailureReason last_fetch_failure_reason;
+  FetchFailureReason last_fetch_failure_reason = kFetchFailureReasonInvalid;
 
   /// @brief The time (in milliseconds since the epoch) when the refreshing of
   /// Remote Config data is throttled.
-  uint64_t throttled_end_time;
+  uint64_t throttled_end_time = 0;
 };
 
 /// @brief Describes the source a config value was retrieved from.

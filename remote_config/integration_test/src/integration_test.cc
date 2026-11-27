@@ -507,6 +507,25 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
   FLAKY_TEST_SECTION_END();
 }
 
+TEST_F(FirebaseRemoteConfigTest, TestEnsureInitialized) {
+  ASSERT_NE(rc_, nullptr);
+
+  Future<firebase::remote_config::ConfigInfo> future = rc_->EnsureInitialized();
+  EXPECT_TRUE(WaitForCompletion(future, "EnsureInitialized"));
+  EXPECT_EQ(rc_->EnsureInitializedLastResult().error(), 0);
+  ASSERT_NE(future.result(), nullptr);
+
+  // Max milliseconds past Unix epoch representable by .NET DateTime
+  // (9999-12-31T23:59:59.999Z); uninitialized stack values typically exceed
+  // this bound.
+  constexpr uint64_t kMaxValidEpochMillis = 253402300799999ULL;
+  const firebase::remote_config::ConfigInfo& info = *future.result();
+  const firebase::remote_config::ConfigInfo current_info = rc_->GetInfo();
+  EXPECT_LE(info.fetch_time, kMaxValidEpochMillis);
+  EXPECT_LE(info.throttled_end_time, kMaxValidEpochMillis);
+  EXPECT_EQ(info.throttled_end_time, current_info.throttled_end_time);
+}
+
 TEST_F(FirebaseRemoteConfigTest, TestSetCustomSignals) {
   ASSERT_NE(rc_, nullptr);
 
