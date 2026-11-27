@@ -44,8 +44,8 @@ int64_t HttpCreateRequestInternal(const char* method, const char* url,
 void HttpStartRequestInternal(int64_t handle);
 
 // Non-blocking write of up to `length` request body bytes into the bounded
-// upload pipe. Returns bytes accepted (`0` when full), or `-1` on failure or
-// cancellation.
+// upload pipe. Returns bytes accepted (`0` when full), or `-1` on failure,
+// invalid arguments, early server response, or cancellation.
 int32_t HttpTryWriteRequestBodyInternal(int64_t handle, void* data,
                                         int32_t length);
 
@@ -63,18 +63,32 @@ std::string HttpGetResponseHeadersInternal(int64_t handle);
 
 // Non-blocking read of up to `max_length` response body bytes. Returns bytes
 // copied (`> 0`), `0` on clean EOF, `-2` if no bytes are buffered yet (arming
-// a body-available event), or `-1` on transport error or cancellation.
+// a body-available event), or `-1` on invalid arguments, transport error, or
+// cancellation.
 int32_t HttpTryReadResponseBodyInternal(int64_t handle, void* dest,
                                         int32_t max_length);
 
 // Returns the terminal transport error message for `handle`, if any.
 std::string HttpGetErrorInternal(int64_t handle);
 
+// Returns the structured error class for `handle`:
+//   0 = None
+//   1 = Canceled
+//   2 = Connect (DNS, refused, reset, unreachable, I/O abort)
+//   3 = TLS (certificate verification, handshake, SSL policy failure)
+//   4 = Timeout (connect or transfer timeout)
+//   5 = Other (invalid request/arguments, redirect policy, protocol, unknown)
+int32_t HttpGetErrorClassInternal(int64_t handle);
+
 // Cancels an in-flight HTTP operation immediately and wakes any armed waiters.
 void HttpCancelRequestInternal(int64_t handle);
 
 // Cancels (if active) and removes `handle` from the operation registry.
 void HttpDestroyRequestInternal(int64_t handle);
+
+// Cancels and removes all active HTTP operations from the registry and wakes
+// the event pump (for example on Editor domain reload or shutdown).
+void HttpCancelAllRequestsInternal();
 
 // Waits up to `timeout_ms` (`< 0` for infinite, `0` for non-blocking poll) for
 // the next completion event. Returns `(handle << 8) | event_kind`, or `0` on

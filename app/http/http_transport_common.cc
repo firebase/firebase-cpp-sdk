@@ -68,11 +68,133 @@ bool HasControlChars(std::string_view s) {
   return false;
 }
 
+// Trims only HTTP OWS (SP and HTAB) so control characters like CR/LF/VT/FF
+// remain visible to header validation instead of being silently stripped.
+std::string_view TrimHttpOws(std::string_view s) {
+  while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) {
+    s.remove_prefix(1);
+  }
+  while (!s.empty() && (s.back() == ' ' || s.back() == '\t')) {
+    s.remove_suffix(1);
+  }
+  return s;
+}
+
+bool IsHttpTchar(unsigned char ch) {
+  if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+      (ch >= '0' && ch <= '9')) {
+    return true;
+  }
+  switch (ch) {
+    case '!':
+    case '#':
+    case '$':
+    case '%':
+    case '&':
+    case '\'':
+    case '*':
+    case '+':
+    case '-':
+    case '.':
+    case '^':
+    case '_':
+    case '`':
+    case '|':
+    case '~':
+      return true;
+    default:
+      return false;
+  }
+}
+
+void CancelOperationObject(const std::shared_ptr<HttpOperation>& op) {
+  if (!op) {
+    return;
+  }
+  bool expected = false;
+  if (!op->canceled.compare_exchange_strong(expected, true,
+                                            std::memory_order_acq_rel)) {
+    return;
+  }
+
+  int64_t handle = op->id;
+  std::function<void()> cancel_hook;
+  bool notify_req = false;
+  bool notify_headers = false;
+  bool notify_body = false;
+  {
+    std::lock_guard<std::mutex> lock(op->mutex);
+    if (!op->failed && op->error_class == kHttpErrorNone) {
+      op->error_class = kHttpErrorCanceled;
+    }
+    cancel_hook = std::move(op->on_cancel);
+    op->on_cancel = nullptr;
+    op->on_request_data_changed = nullptr;
+    op->on_response_space_available = nullptr;
+    if (op->req_space_armed) {
+      op->req_space_armed = false;
+      notify_req = true;
+    }
+    if (op->resp_headers_armed) {
+      op->resp_headers_armed = false;
+      notify_headers = true;
+    }
+    if (op->resp_read_armed) {
+      op->resp_read_armed = false;
+      notify_body = true;
+    }
+  }
+  op->req_cv.notify_all();
+  op->resp_cv.notify_all();
+  if (cancel_hook) {
+    cancel_hook();
+  }
+  if (notify_req) {
+    PostCompletionEvent(handle, kHttpEventRequestSpaceAvailable);
+  }
+  if (notify_headers) {
+    PostCompletionEvent(handle, kHttpEventResponseHeadersReady);
+  }
+  if (notify_body) {
+    PostCompletionEvent(handle, kHttpEventResponseBodyAvailable);
+  }
+}
+
 }  // namespace
 
-std::vector<std::pair<std::string, std::string>> ParsePackedHeaders(
-    std::string_view packed) {
-  std::vector<std::pair<std::string, std::string>> result;
+bool IsValidHeaderName(std::string_view name) {
+  if (name.empty()) {
+    return false;
+  }
+  for (unsigned char ch : name) {
+    if (!IsHttpTchar(ch)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool IsValidHeaderValue(std::string_view value) {
+  for (unsigned char ch : value) {
+    if (ch == '\0' || ch == '\r' || ch == '\n' ||
+        (ch < 0x20 && ch != '\t') || ch == 0x7F) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool TryParsePackedHeaders(
+    std::string_view packed,
+    std::vector<std::pair<std::string, std::string>>* out) {
+  if (out == nullptr) {
+    return false;
+  }
+  out->clear();
+  if (packed.find('\0') != std::string_view::npos) {
+    return false;
+  }
+
   size_t pos = 0;
   while (pos < packed.size()) {
     size_t nl = packed.find('\n', pos);
@@ -86,18 +208,35 @@ std::vector<std::pair<std::string, std::string>> ParsePackedHeaders(
     if (line.empty()) {
       continue;
     }
+    // Reject any interior CR (header injection).
+    if (line.find('\r') != std::string_view::npos) {
+      out->clear();
+      return false;
+    }
     size_t sep = line.find('\t');
     if (sep == std::string_view::npos) {
       sep = line.find(':');
     }
     if (sep == std::string_view::npos || sep == 0) {
-      continue;
+      out->clear();
+      return false;
     }
-    std::string_view name = TrimAsciiWhitespace(line.substr(0, sep));
-    std::string_view value = TrimAsciiWhitespace(line.substr(sep + 1));
-    if (!name.empty()) {
-      result.emplace_back(std::string(name), std::string(value));
+    std::string_view name = line.substr(0, sep);
+    std::string_view value = TrimHttpOws(line.substr(sep + 1));
+    if (!IsValidHeaderName(name) || !IsValidHeaderValue(value)) {
+      out->clear();
+      return false;
     }
+    out->emplace_back(std::string(name), std::string(value));
+  }
+  return true;
+}
+
+std::vector<std::pair<std::string, std::string>> ParsePackedHeaders(
+    std::string_view packed) {
+  std::vector<std::pair<std::string, std::string>> result;
+  if (!TryParsePackedHeaders(packed, &result)) {
+    result.clear();
   }
   return result;
 }
@@ -150,16 +289,14 @@ std::optional<UrlOrigin> ParseUrlOrigin(std::string_view url) {
   size_t path_pos = rest.find_first_of("/?#");
   std::string_view authority =
       path_pos == std::string_view::npos ? rest : rest.substr(0, path_pos);
-  // Reject backslashes (which WHATWG/OkHttp treat as path delimiters, enabling
-  // `https://evil.com\@trusted.com` authority confusion) and control/whitespace
-  // characters inside authority.
-  if (authority.find('\\') != std::string_view::npos ||
+  // Reject userinfo (`@`, where parsers disagree on first vs. last `@`),
+  // backslashes (which WHATWG/OkHttp treat as path delimiters, enabling
+  // `https://evil.com\@trusted.com` authority confusion), and control or
+  // whitespace characters inside authority.
+  if (authority.find('@') != std::string_view::npos ||
+      authority.find('\\') != std::string_view::npos ||
       HasControlOrWhitespace(authority)) {
     return std::nullopt;
-  }
-  size_t at_pos = authority.rfind('@');
-  if (at_pos != std::string_view::npos) {
-    authority = authority.substr(at_pos + 1);
   }
   if (authority.empty()) {
     return std::nullopt;
@@ -241,6 +378,7 @@ bool IsSameOrigin(std::string_view url_a, std::string_view url_b) {
 bool IsSensitiveRedirectHeader(std::string_view header_name) {
   return AsciiEqualsIgnoreCase(header_name, "Authorization") ||
          AsciiEqualsIgnoreCase(header_name, "Proxy-Authorization") ||
+         AsciiEqualsIgnoreCase(header_name, "Cookie") ||
          AsciiEqualsIgnoreCase(header_name, "X-Firebase-AppCheck") ||
          AsciiEqualsIgnoreCase(header_name, "x-goog-api-key");
 }
@@ -322,6 +460,23 @@ std::optional<std::string> ResolveRedirectUrl(std::string_view current_url,
   if (base_origin->scheme == "https" && next_origin->scheme != "https") {
     return std::nullopt;
   }
+
+  // Percent-encode ASCII spaces in the path/query/fragment so libcurl
+  // (`CURLOPT_URL`), NSURL, and java.net.URL all handle redirect targets
+  // containing spaces identically (spaces in the authority were already
+  // rejected by `ParseUrlOrigin` above).
+  if (candidate.find(' ') != std::string::npos) {
+    std::string encoded;
+    encoded.reserve(candidate.size() + 8);
+    for (char ch : candidate) {
+      if (ch == ' ') {
+        encoded.append("%20");
+      } else {
+        encoded.push_back(ch);
+      }
+    }
+    candidate = std::move(encoded);
+  }
   return candidate;
 }
 
@@ -374,11 +529,29 @@ int64_t CreateOperation(HttpRequestOptions options) {
     op->req_eof = true;
   }
 
+  std::string validation_error;
+  if (op->content_length < kNoRequestContent) {
+    validation_error = "Invalid request content_length.";
+  } else {
+    for (const auto& kv : op->request_headers) {
+      if (!IsValidHeaderName(kv.first) || !IsValidHeaderValue(kv.second)) {
+        validation_error = "Invalid HTTP request header.";
+        break;
+      }
+    }
+  }
+
   auto& reg = GetRegistry();
-  std::lock_guard<std::mutex> lock(reg.mutex);
-  int64_t id = reg.next_id++;
-  op->id = id;
-  reg.operations.emplace(id, std::move(op));
+  int64_t id = 0;
+  {
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    id = reg.next_id++;
+    op->id = id;
+    reg.operations.emplace(id, op);
+  }
+  if (!validation_error.empty()) {
+    op->MarkFailed(validation_error, kHttpErrorOther);
+  }
   return id;
 }
 
@@ -397,57 +570,17 @@ void StartOperation(int64_t handle) {
   if (op->started.exchange(true, std::memory_order_acq_rel)) {
     return;
   }
+  {
+    std::lock_guard<std::mutex> lock(op->mutex);
+    if (op->failed || op->IsCanceled()) {
+      return;
+    }
+  }
   StartPlatformHttpOperation(op);
 }
 
 void CancelOperation(int64_t handle) {
-  auto op = FindOperation(handle);
-  if (!op) {
-    return;
-  }
-  bool expected = false;
-  if (!op->canceled.compare_exchange_strong(expected, true,
-                                            std::memory_order_acq_rel)) {
-    return;
-  }
-
-  std::function<void()> cancel_hook;
-  bool notify_req = false;
-  bool notify_headers = false;
-  bool notify_body = false;
-  {
-    std::lock_guard<std::mutex> lock(op->mutex);
-    cancel_hook = std::move(op->on_cancel);
-    op->on_cancel = nullptr;
-    op->on_request_data_changed = nullptr;
-    op->on_response_space_available = nullptr;
-    if (op->req_space_armed) {
-      op->req_space_armed = false;
-      notify_req = true;
-    }
-    if (op->resp_headers_armed) {
-      op->resp_headers_armed = false;
-      notify_headers = true;
-    }
-    if (op->resp_read_armed) {
-      op->resp_read_armed = false;
-      notify_body = true;
-    }
-  }
-  op->req_cv.notify_all();
-  op->resp_cv.notify_all();
-  if (cancel_hook) {
-    cancel_hook();
-  }
-  if (notify_req) {
-    PostCompletionEvent(handle, kHttpEventRequestSpaceAvailable);
-  }
-  if (notify_headers) {
-    PostCompletionEvent(handle, kHttpEventResponseHeadersReady);
-  }
-  if (notify_body) {
-    PostCompletionEvent(handle, kHttpEventResponseBodyAvailable);
-  }
+  CancelOperationObject(FindOperation(handle));
 }
 
 void DestroyOperation(int64_t handle) {
@@ -455,6 +588,23 @@ void DestroyOperation(int64_t handle) {
   auto& reg = GetRegistry();
   std::lock_guard<std::mutex> lock(reg.mutex);
   reg.operations.erase(handle);
+}
+
+void CancelAllOperations() {
+  std::vector<std::shared_ptr<HttpOperation>> snapshot;
+  {
+    auto& reg = GetRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    snapshot.reserve(reg.operations.size());
+    for (auto& kv : reg.operations) {
+      snapshot.push_back(std::move(kv.second));
+    }
+    reg.operations.clear();
+  }
+  for (const auto& op : snapshot) {
+    CancelOperationObject(op);
+  }
+  HttpWakeEventPumpInternal();
 }
 
 void HttpOperation::CommitResponseHeaders(
@@ -477,6 +627,25 @@ void HttpOperation::CommitResponseHeaders(
   }
   if (notify) {
     PostCompletionEvent(id, kHttpEventResponseHeadersReady);
+  }
+}
+
+void HttpOperation::MarkRequestWriteClosed() {
+  bool notify_req = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    req_write_closed = true;
+    req_chunks.clear();
+    req_buffered_bytes = 0;
+    on_request_data_changed = nullptr;
+    if (req_space_armed) {
+      req_space_armed = false;
+      notify_req = true;
+    }
+  }
+  req_cv.notify_all();
+  if (notify_req) {
+    PostCompletionEvent(id, kHttpEventRequestSpaceAvailable);
   }
 }
 
@@ -516,6 +685,7 @@ void HttpOperation::MarkResponseComplete() {
   {
     std::lock_guard<std::mutex> lock(mutex);
     resp_eof = true;
+    req_write_closed = true;
     req_chunks.clear();
     req_buffered_bytes = 0;
     on_request_data_changed = nullptr;
@@ -546,7 +716,8 @@ void HttpOperation::MarkResponseComplete() {
   }
 }
 
-void HttpOperation::MarkFailed(std::string_view message) {
+void HttpOperation::MarkFailed(std::string_view message,
+                               HttpErrorClass err_class) {
   bool notify_req = false;
   bool notify_headers = false;
   bool notify_body = false;
@@ -554,8 +725,10 @@ void HttpOperation::MarkFailed(std::string_view message) {
     std::lock_guard<std::mutex> lock(mutex);
     if (!failed) {
       failed = true;
+      error_class = err_class == kHttpErrorNone ? kHttpErrorOther : err_class;
       error_message.assign(message.data(), message.size());
     }
+    req_write_closed = true;
     on_request_data_changed = nullptr;
     on_response_space_available = nullptr;
     on_cancel = nullptr;
@@ -625,33 +798,51 @@ int64_t HttpCreateRequestInternal(const char* method, const char* url,
   http::HttpRequestOptions options;
   options.method = method != nullptr ? method : "GET";
   options.url = url != nullptr ? url : "";
+  bool invalid_headers = false;
   if (headers_packed != nullptr && headers_packed[0] != '\0') {
-    options.headers = http::ParsePackedHeaders(headers_packed);
+    if (!http::TryParsePackedHeaders(headers_packed, &options.headers)) {
+      invalid_headers = true;
+    }
   }
   if (proxy_url != nullptr && proxy_url[0] != '\0') {
     options.proxy_url = proxy_url;
   }
   options.content_length = content_length;
-  return http::CreateOperation(std::move(options));
+  int64_t handle = http::CreateOperation(std::move(options));
+  if (invalid_headers) {
+    if (auto op = http::FindOperation(handle)) {
+      op->MarkFailed("Invalid HTTP request header.", http::kHttpErrorOther);
+    }
+  }
+  return handle;
 }
 
 void HttpStartRequestInternal(int64_t handle) { http::StartOperation(handle); }
 
 int32_t HttpTryWriteRequestBodyInternal(int64_t handle, void* data,
                                         int32_t length) {
-  if (length <= 0 || data == nullptr) {
-    return 0;
+  if (length < 0 || data == nullptr) {
+    return -1;
   }
   auto op = http::FindOperation(handle);
   if (!op) {
     return -1;
+  }
+  if (length == 0) {
+    std::lock_guard<std::mutex> lock(op->mutex);
+    if (op->failed || op->resp_eof || op->req_write_closed ||
+        op->IsCanceled()) {
+      return -1;
+    }
+    return 0;
   }
 
   std::function<void()> notify_backend;
   int32_t to_write = 0;
   {
     std::lock_guard<std::mutex> lock(op->mutex);
-    if (op->failed || op->resp_eof || op->IsCanceled()) {
+    if (op->failed || op->resp_eof || op->req_write_closed ||
+        op->IsCanceled()) {
       return -1;
     }
     size_t available =
@@ -738,7 +929,7 @@ std::string HttpGetResponseHeadersInternal(int64_t handle) {
 int32_t HttpTryReadResponseBodyInternal(int64_t handle, void* dest,
                                         int32_t max_length) {
   if (max_length <= 0 || dest == nullptr) {
-    return 0;
+    return http::kHttpReadErrorOrCanceled;
   }
   auto op = http::FindOperation(handle);
   if (!op) {
@@ -805,6 +996,18 @@ std::string HttpGetErrorInternal(int64_t handle) {
   return op->error_message;
 }
 
+int32_t HttpGetErrorClassInternal(int64_t handle) {
+  auto op = http::FindOperation(handle);
+  if (!op) {
+    return http::kHttpErrorOther;
+  }
+  std::lock_guard<std::mutex> lock(op->mutex);
+  if (op->IsCanceled() && !op->failed) {
+    return http::kHttpErrorCanceled;
+  }
+  return static_cast<int32_t>(op->error_class);
+}
+
 void HttpCancelRequestInternal(int64_t handle) {
   http::CancelOperation(handle);
 }
@@ -812,6 +1015,8 @@ void HttpCancelRequestInternal(int64_t handle) {
 void HttpDestroyRequestInternal(int64_t handle) {
   http::DestroyOperation(handle);
 }
+
+void HttpCancelAllRequestsInternal() { http::CancelAllOperations(); }
 
 int64_t HttpWaitNextEventInternal(int32_t timeout_ms) {
   auto& q = http::GetCompletionQueue();

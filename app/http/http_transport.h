@@ -20,9 +20,35 @@
 //   - Apple mobile (iOS / tvOS): ARC NSURLSession with bound-stream uploads.
 //   - Android: JNI HttpURLConnection on a bounded worker thread pool.
 //
-// Supports full-duplex streaming uploads and downloads with bounded socket
-// backpressure, immediate incremental delivery for Server-Sent Events (SSE),
-// deterministic cancellation, and uniform RFC 3986 redirect/credential policy.
+// Streaming and platform behavioral guarantees:
+//   - Bounded backpressure in both directions (`kMaxRequestBufferBytes` upload
+//     pipe, `kMaxResponseBufferBytes` download buffer) and immediate
+//     incremental delivery for Server-Sent Events (SSE) on all three backends.
+//   - Desktop (libcurl) and Apple (NSURLSession) stream request uploads and
+//     response downloads concurrently (full-duplex). Android's
+//     `HttpURLConnection` is half-duplex (streams the request body before
+//     reading response headers), and on upload write failure it still reads and
+//     delivers an early HTTP 4xx/5xx response when the server sent one.
+//   - Uniform redirect and credential policy across all three backends:
+//     up to `kMaxRedirects`, RFC 3986 relative resolution (percent-encoding
+//     spaces in path/query/fragment), rejection of non-HTTP(S) targets,
+//     URL userinfo, and `https` -> `http` downgrades, 301/302/303 method
+//     rewrite to `GET` (keeping `GET` and `HEAD`), rejection of non-replayable
+//     streamed request bodies across 307/308, and cross-origin stripping of
+//     `Authorization`, `Proxy-Authorization`, `Cookie`, `X-Firebase-AppCheck`,
+//     `x-goog-api-key`, and `Host`.
+//   - Connect timeout: Desktop (libcurl) and Android (`HttpURLConnection`)
+//     enforce a 60-second connect timeout. Apple (`NSURLSession`) does not
+//     expose a connect-only timeout separate from idle read timeout, so it
+//     relies on the OS TCP connect timeout while keeping
+//     `timeoutIntervalForRequest` high so idle SSE streams are not terminated.
+//   - Response headers and reason phrases: Desktop and Android return the
+//     server-sent reason phrase and preserve duplicate response headers as
+//     separate entries. Apple's `NSHTTPURLResponse` does not expose raw
+//     HTTP/1.1 reason phrases or unmerged header lists, so Apple returns
+//     canonical RFC 9110 English reason phrases (falling back to
+//     `localizedStringForStatusCode:`) and coalesces duplicate response headers
+//     per `NSHTTPURLResponse.allHeaderFields`.
 
 #ifndef FIREBASE_APP_HTTP_HTTP_TRANSPORT_H_
 #define FIREBASE_APP_HTTP_HTTP_TRANSPORT_H_
@@ -57,6 +83,17 @@ enum HttpEventKind : int32_t {
   kHttpEventRequestSpaceAvailable = 1,
   kHttpEventResponseHeadersReady = 2,
   kHttpEventResponseBodyAvailable = 3,
+};
+
+// Structured terminal failure categories returned by
+// `HttpGetErrorClassInternal`.
+enum HttpErrorClass : int32_t {
+  kHttpErrorNone = 0,
+  kHttpErrorCanceled = 1,
+  kHttpErrorConnect = 2,
+  kHttpErrorTls = 3,
+  kHttpErrorTimeout = 4,
+  kHttpErrorOther = 5,
 };
 
 // Bounded buffer limits per in-flight operation to preserve socket-level
@@ -113,6 +150,7 @@ struct HttpOperation {
   std::deque<ByteChunk> req_chunks;
   size_t req_buffered_bytes = 0;
   bool req_eof = false;
+  bool req_write_closed = false;
   bool req_space_armed = false;
 
   // Response header state (native backend -> caller).
@@ -132,6 +170,7 @@ struct HttpOperation {
   std::atomic<bool> started{false};
   std::atomic<bool> canceled{false};
   bool failed = false;
+  HttpErrorClass error_class = kHttpErrorNone;
   std::string error_message;
 
   // Platform backend hooks invoked outside `mutex` when state changes.
@@ -146,6 +185,12 @@ struct HttpOperation {
       int32_t status, std::string_view reason,
       std::vector<std::pair<std::string, std::string>> headers);
 
+  // Called by the platform backend when it stops consuming request body bytes
+  // (for example on an early 4xx response or a 301-303 redirect to GET) so a
+  // caller blocked in `HttpTryWriteRequestBodyInternal` wakes promptly without
+  // failing the response.
+  void MarkRequestWriteClosed();
+
   // Called by the platform backend as response body bytes arrive.
   // Returns true if buffered bytes are now >= `kMaxResponseBufferBytes`,
   // telling the backend to pause socket reads until
@@ -156,7 +201,8 @@ struct HttpOperation {
   void MarkResponseComplete();
 
   // Called by the platform backend when a transport error aborts the transfer.
-  void MarkFailed(std::string_view message);
+  void MarkFailed(std::string_view message,
+                  HttpErrorClass err_class = kHttpErrorOther);
 
   // Non-blocking drain of up to `max_bytes` from the request body queue.
   // Sets `out_eof` to true when the queue is empty and the caller finished
@@ -171,6 +217,7 @@ std::shared_ptr<HttpOperation> FindOperation(int64_t handle);
 void StartOperation(int64_t handle);
 void CancelOperation(int64_t handle);
 void DestroyOperation(int64_t handle);
+void CancelAllOperations();
 
 // Enqueues an event onto the global completion queue consumed by
 // `HttpWaitNextEventInternal`.
@@ -193,8 +240,21 @@ bool AsciiEqualsIgnoreCase(std::string_view a, std::string_view b);
 // Trims leading and trailing ASCII whitespace.
 std::string_view TrimAsciiWhitespace(std::string_view s);
 
+// Validates an RFC 9110 HTTP header field-name (non-empty `tchar` token).
+bool IsValidHeaderName(std::string_view name);
+
+// Validates an HTTP header field-value (rejects CR, LF, NUL, and non-HTAB
+// control characters).
+bool IsValidHeaderValue(std::string_view value);
+
 // Parses `Name\tValue\n` (or `Name: Value\n`) header lines into ordered pairs,
-// preserving duplicate header names.
+// preserving duplicate header names. Returns false if any line contains CR,
+// LF, NUL, an invalid header token name, or an invalid header value.
+bool TryParsePackedHeaders(
+    std::string_view packed,
+    std::vector<std::pair<std::string, std::string>>* out);
+
+// Convenience wrapper returning parsed headers, or an empty vector if invalid.
 std::vector<std::pair<std::string, std::string>> ParsePackedHeaders(
     std::string_view packed);
 
@@ -205,7 +265,8 @@ struct UrlOrigin {
 };
 
 // Parses scheme (`http` or `https` only), lowercased host, and effective port
-// (`80` / `443` when omitted) from an absolute HTTP(S) URL.
+// (`80` / `443` when omitted) from an absolute HTTP(S) URL. Rejects URLs whose
+// authority contains userinfo (`@`), backslashes, whitespace, or controls.
 std::optional<UrlOrigin> ParseUrlOrigin(std::string_view url);
 
 bool IsHttpOrHttpsUrl(std::string_view url);
@@ -213,12 +274,14 @@ bool IsHttpsUrl(std::string_view url);
 bool IsSameOrigin(std::string_view url_a, std::string_view url_b);
 
 // Returns true for headers that must never be forwarded across a cross-origin
-// redirect (`Authorization`, `Proxy-Authorization`, `X-Firebase-AppCheck`,
-// `x-goog-api-key`).
+// redirect (`Authorization`, `Proxy-Authorization`, `Cookie`,
+// `X-Firebase-AppCheck`, `x-goog-api-key`).
 bool IsSensitiveRedirectHeader(std::string_view header_name);
 
 // Resolves an HTTP `Location` header against `current_url`, rejecting
-// non-HTTP(S) schemes and `https` -> `http` scheme downgrades.
+// non-HTTP(S) schemes, userinfo, and `https` -> `http` scheme downgrades, and
+// percent-encoding ASCII spaces in the path/query/fragment so all backends
+// behave identically.
 std::optional<std::string> ResolveRedirectUrl(std::string_view current_url,
                                               std::string_view location);
 
