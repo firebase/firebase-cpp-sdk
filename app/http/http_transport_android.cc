@@ -54,6 +54,14 @@ JavaVM* ResolveJavaVM() {
   return nullptr;
 }
 
+JNIEnv* ResolveThreadsafeJNIEnv() {
+  JavaVM* vm = ResolveJavaVM();
+  if (vm == nullptr) {
+    return nullptr;
+  }
+  return ::firebase::util::GetThreadsafeJNIEnv(vm);
+}
+
 std::string ToLowerAscii(std::string_view s) {
   std::string out(s.size(), '\0');
   for (size_t i = 0; i < s.size(); ++i) {
@@ -98,6 +106,11 @@ class LocalRef {
  private:
   JNIEnv* env_ = nullptr;
   T ref_ = nullptr;
+};
+
+struct JniExceptionInfo {
+  std::string message;
+  HttpErrorClass error_class = kHttpErrorOther;
 };
 
 struct JniCache {
@@ -163,6 +176,17 @@ struct JniCache {
 
   jclass throwable_cls = nullptr;
   jmethodID throwable_to_string = nullptr;
+  jmethodID throwable_get_cause = nullptr;
+
+  // Optional exception classes for structured error classification (S4).
+  jclass ssl_ex_cls = nullptr;
+  jclass cert_ex_cls = nullptr;
+  jclass socket_timeout_ex_cls = nullptr;
+  jclass connect_ex_cls = nullptr;
+  jclass unknown_host_ex_cls = nullptr;
+  jclass no_route_ex_cls = nullptr;
+  jclass socket_ex_cls = nullptr;
+  jclass eof_ex_cls = nullptr;
 };
 
 JniCache& GetJniCache() {
@@ -170,30 +194,87 @@ JniCache& GetJniCache() {
   return *cache;
 }
 
-std::string JStringToStdString(JNIEnv* env, jstring jstr) {
-  if (jstr == nullptr) {
-    return std::string();
+HttpErrorClass ClassifyJavaException(JNIEnv* env, jthrowable root_ex) {
+  auto& c = GetJniCache();
+  if (root_ex == nullptr) {
+    return kHttpErrorOther;
   }
-  const char* chars = env->GetStringUTFChars(jstr, nullptr);
-  if (chars == nullptr) {
+
+  HttpErrorClass best = kHttpErrorOther;
+  LocalRef<jobject> current(env, env->NewLocalRef(root_ex));
+  for (int depth = 0; current && depth < 8; ++depth) {
+    if ((c.ssl_ex_cls != nullptr &&
+         env->IsInstanceOf(current.get(), c.ssl_ex_cls) == JNI_TRUE) ||
+        (c.cert_ex_cls != nullptr &&
+         env->IsInstanceOf(current.get(), c.cert_ex_cls) == JNI_TRUE)) {
+      return kHttpErrorTls;
+    }
+    if (c.socket_timeout_ex_cls != nullptr &&
+        env->IsInstanceOf(current.get(), c.socket_timeout_ex_cls) == JNI_TRUE) {
+      if (best == kHttpErrorOther) {
+        best = kHttpErrorTimeout;
+      }
+    } else if ((c.connect_ex_cls != nullptr &&
+                env->IsInstanceOf(current.get(), c.connect_ex_cls) ==
+                    JNI_TRUE) ||
+               (c.unknown_host_ex_cls != nullptr &&
+                env->IsInstanceOf(current.get(), c.unknown_host_ex_cls) ==
+                    JNI_TRUE) ||
+               (c.no_route_ex_cls != nullptr &&
+                env->IsInstanceOf(current.get(), c.no_route_ex_cls) ==
+                    JNI_TRUE) ||
+               (c.socket_ex_cls != nullptr &&
+                env->IsInstanceOf(current.get(), c.socket_ex_cls) ==
+                    JNI_TRUE) ||
+               (c.eof_ex_cls != nullptr &&
+                env->IsInstanceOf(current.get(), c.eof_ex_cls) == JNI_TRUE)) {
+      if (best == kHttpErrorOther) {
+        best = kHttpErrorConnect;
+      }
+    }
+
+    if (c.throwable_get_cause == nullptr) {
+      break;
+    }
+    jobject next = env->CallObjectMethod(current.get(), c.throwable_get_cause);
     if (env->ExceptionCheck()) {
       env->ExceptionClear();
+      break;
     }
-    return std::string();
+    if (next == nullptr || env->IsSameObject(current.get(), next) == JNI_TRUE) {
+      if (next != nullptr) {
+        env->DeleteLocalRef(next);
+      }
+      break;
+    }
+    current.reset(next);
   }
-  std::string out(chars);
-  env->ReleaseStringUTFChars(jstr, chars);
-  return out;
+  return best;
 }
 
-std::optional<std::string> TakeJniException(JNIEnv* env) {
+std::optional<JniExceptionInfo> TakeJniException(JNIEnv* env) {
   if (!env->ExceptionCheck()) {
     return std::nullopt;
   }
   LocalRef<jthrowable> ex(env, env->ExceptionOccurred());
   env->ExceptionClear();
+  JniExceptionInfo info;
   if (!ex) {
-    return std::string("Unknown JNI exception");
+    info.message = "Unknown JNI exception";
+    return info;
+  }
+  info.error_class = ClassifyJavaException(env, ex.get());
+
+  // Reuse firebase::util::GetMessageFromException when util_android has been
+  // initialized, falling back to cached Throwable.toString() if HTTP is used
+  // before FirebaseApp initialization.
+  if (::firebase::util::throwable::GetClass() != nullptr &&
+      ::firebase::util::throwable::GetMethodId(
+          ::firebase::util::throwable::kToString) != nullptr) {
+    info.message = ::firebase::util::GetMessageFromException(env, ex.get());
+    if (!info.message.empty()) {
+      return info;
+    }
   }
   auto& c = GetJniCache();
   if (c.throwable_to_string != nullptr) {
@@ -201,11 +282,16 @@ std::optional<std::string> TakeJniException(JNIEnv* env) {
                                    ex.get(), c.throwable_to_string)));
     if (env->ExceptionCheck()) {
       env->ExceptionClear();
-      return std::string("Java exception thrown during HTTP request");
+      info.message = "Java exception thrown during HTTP request";
+      return info;
     }
-    return JStringToStdString(env, msg.get());
+    info.message = ::firebase::util::JStringToString(env, msg.get());
+    if (!info.message.empty()) {
+      return info;
+    }
   }
-  return std::string("Java exception thrown during HTTP request");
+  info.message = "Java exception thrown during HTTP request";
+  return info;
 }
 
 jclass CacheGlobalClass(JNIEnv* env, const char* name) {
@@ -249,9 +335,25 @@ bool EnsureJniInitialized(JNIEnv* env) {
   c.throwable_cls = CacheGlobalClass(env, "java/lang/Throwable");
   c.throwable_to_string = CacheMethod(env, c.throwable_cls, "toString",
                                       "()Ljava/lang/String;", &ok);
+  c.throwable_get_cause = CacheMethod(env, c.throwable_cls, "getCause",
+                                      "()Ljava/lang/Throwable;", &ok);
   if (!ok) {
     return false;
   }
+
+  // Exception classes for structured error classification (best-effort; all
+  // exist on Android API 1+).
+  c.ssl_ex_cls = CacheGlobalClass(env, "javax/net/ssl/SSLException");
+  c.cert_ex_cls =
+      CacheGlobalClass(env, "java/security/cert/CertificateException");
+  c.socket_timeout_ex_cls =
+      CacheGlobalClass(env, "java/net/SocketTimeoutException");
+  c.connect_ex_cls = CacheGlobalClass(env, "java/net/ConnectException");
+  c.unknown_host_ex_cls =
+      CacheGlobalClass(env, "java/net/UnknownHostException");
+  c.no_route_ex_cls = CacheGlobalClass(env, "java/net/NoRouteToHostException");
+  c.socket_ex_cls = CacheGlobalClass(env, "java/net/SocketException");
+  c.eof_ex_cls = CacheGlobalClass(env, "java/io/EOFException");
 
   c.url_cls = CacheGlobalClass(env, "java/net/URL");
   c.proxy_cls = CacheGlobalClass(env, "java/net/Proxy");
@@ -397,6 +499,14 @@ struct AndroidCancelHandle {
     }
   }
 
+  void ClearOutputStream(JNIEnv* env) {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (out_stream_global != nullptr) {
+      env->DeleteGlobalRef(out_stream_global);
+      out_stream_global = nullptr;
+    }
+  }
+
   void AbortNow(JNIEnv* env) {
     if (env == nullptr) {
       return;
@@ -467,34 +577,8 @@ class AndroidCancelDispatcher {
   }
 
  private:
-  static JNIEnv* AttachCancelThread(JavaVM** out_vm, bool* out_attached) {
-    JavaVM* vm = ResolveJavaVM();
-    if (vm == nullptr) {
-      return nullptr;
-    }
-    JNIEnv* env = nullptr;
-    jint status = vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
-    if (status == JNI_EDETACHED) {
-      JavaVMAttachArgs args{};
-      args.version = JNI_VERSION_1_6;
-      args.name = const_cast<char*>("FirebaseHttpCancel");
-      args.group = nullptr;
-      if (vm->AttachCurrentThread(&env, &args) == JNI_OK) {
-        *out_vm = vm;
-        *out_attached = true;
-      } else {
-        return nullptr;
-      }
-    } else if (status == JNI_OK) {
-      *out_vm = vm;
-    }
-    return env;
-  }
-
   void RunLoop() {
-    JavaVM* vm = nullptr;
-    bool attached = false;
-    JNIEnv* env = AttachCancelThread(&vm, &attached);
+    JNIEnv* env = ResolveThreadsafeJNIEnv();
     while (true) {
       std::shared_ptr<AndroidCancelHandle> next;
       {
@@ -504,7 +588,7 @@ class AndroidCancelDispatcher {
         queue_.pop_front();
       }
       if (env == nullptr) {
-        env = AttachCancelThread(&vm, &attached);
+        env = ResolveThreadsafeJNIEnv();
       }
       if (env != nullptr && next) {
         next->AbortNow(env);
@@ -534,14 +618,613 @@ std::string_view FindHeaderValueIgnoreCase(
   return {};
 }
 
+struct AndroidHopState {
+  std::string current_url;
+  std::string active_method;
+  std::vector<std::pair<std::string, std::string>> active_headers;
+  int64_t active_content_len = kNoRequestContent;
+};
+
+struct AndroidResponseHead {
+  int32_t status_code = 0;
+  std::string reason;
+  std::vector<std::pair<std::string, std::string>> headers;
+};
+
+// Opens and configures a Java HttpURLConnection for one request hop.
+LocalRef<jobject> BuildAndroidRequestConnection(
+    JNIEnv* env, const std::shared_ptr<HttpOperation>& op,
+    const std::shared_ptr<AndroidCancelHandle>& cancel_handle,
+    const AndroidHopState& hop) {
+  auto& c = GetJniCache();
+  LocalRef<jobject> empty(env, nullptr);
+
+  LocalRef<jstring> jurl_str(env, env->NewStringUTF(hop.current_url.c_str()));
+  if (auto ex = TakeJniException(env); ex || !jurl_str) {
+    op->MarkFailed(ex ? ex->message : "Failed to allocate JNI URL string",
+                   ex ? ex->error_class : kHttpErrorOther);
+    return empty;
+  }
+  LocalRef<jobject> jurl(
+      env, env->NewObject(c.url_cls, c.url_ctor, jurl_str.get()));
+  if (auto ex = TakeJniException(env); ex || !jurl) {
+    op->MarkFailed(ex ? ex->message : "Invalid URL",
+                   ex ? ex->error_class : kHttpErrorOther);
+    return empty;
+  }
+
+  LocalRef<jobject> conn(env, nullptr);
+  if (!op->proxy_url.empty()) {
+    auto proxy_hp = ParseProxyHostPort(op->proxy_url);
+    if (!proxy_hp) {
+      op->MarkFailed("Invalid or unsupported proxy URL.", kHttpErrorOther);
+      return empty;
+    }
+    LocalRef<jstring> jhost(env, env->NewStringUTF(proxy_hp->first.c_str()));
+    if (auto ex = TakeJniException(env); ex || !jhost) {
+      op->MarkFailed(ex ? ex->message : "Failed to allocate proxy host string",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return empty;
+    }
+    LocalRef<jobject> jsock_addr(
+        env, env->NewObject(c.inet_sock_addr_cls, c.inet_sock_addr_ctor,
+                            jhost.get(), static_cast<jint>(proxy_hp->second)));
+    if (auto ex = TakeJniException(env); ex || !jsock_addr) {
+      op->MarkFailed(
+          ex ? ex->message : "Failed to construct proxy socket address",
+          ex ? ex->error_class : kHttpErrorOther);
+      return empty;
+    }
+    LocalRef<jobject> jproxy(
+        env, env->NewObject(c.proxy_cls, c.proxy_ctor, c.proxy_type_http,
+                            jsock_addr.get()));
+    if (auto ex = TakeJniException(env); ex || !jproxy) {
+      op->MarkFailed(ex ? ex->message : "Failed to construct Java Proxy",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return empty;
+    }
+    conn.reset(env->CallObjectMethod(jurl.get(), c.url_open_conn_proxy,
+                                     jproxy.get()));
+  } else {
+    conn.reset(env->CallObjectMethod(jurl.get(), c.url_open_conn));
+  }
+  if (auto ex = TakeJniException(env); ex || !conn) {
+    op->MarkFailed(ex ? ex->message : "Failed to open HttpURLConnection",
+                   ex ? ex->error_class : kHttpErrorConnect);
+    return empty;
+  }
+  if (env->IsInstanceOf(conn.get(), c.http_conn_cls) != JNI_TRUE) {
+    op->MarkFailed(
+        "Unsupported URI scheme; URLConnection is not an HttpURLConnection.",
+        kHttpErrorOther);
+    return empty;
+  }
+
+  {
+    jobject g_conn = env->NewGlobalRef(conn.get());
+    if (auto ex = TakeJniException(env); ex || g_conn == nullptr) {
+      op->MarkFailed(ex ? ex->message : "Failed to retain HttpURLConnection",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return empty;
+    }
+    std::lock_guard<std::mutex> lock(cancel_handle->mutex);
+    cancel_handle->conn_global = g_conn;
+  }
+  if (op->IsCanceled()) {
+    return empty;
+  }
+
+  env->CallVoidMethod(conn.get(), c.set_use_caches, JNI_FALSE);
+  if (auto ex = TakeJniException(env)) {
+    op->MarkFailed(ex->message, ex->error_class);
+    return empty;
+  }
+  env->CallVoidMethod(conn.get(), c.set_connect_timeout, 60000);
+  if (auto ex = TakeJniException(env)) {
+    op->MarkFailed(ex->message, ex->error_class);
+    return empty;
+  }
+  env->CallVoidMethod(conn.get(), c.set_read_timeout, 0);
+  if (auto ex = TakeJniException(env)) {
+    op->MarkFailed(ex->message, ex->error_class);
+    return empty;
+  }
+  // Handle redirects explicitly so cross-origin redirects strip sensitive
+  // Firebase credentials and HTTPS -> HTTP downgrades are rejected.
+  env->CallVoidMethod(conn.get(), c.set_instance_follow_redirects, JNI_FALSE);
+  if (auto ex = TakeJniException(env)) {
+    op->MarkFailed(ex->message, ex->error_class);
+    return empty;
+  }
+
+  LocalRef<jstring> jmethod(env, env->NewStringUTF(hop.active_method.c_str()));
+  if (auto ex = TakeJniException(env); ex || !jmethod) {
+    op->MarkFailed(ex ? ex->message : "Failed to allocate HTTP method string",
+                   ex ? ex->error_class : kHttpErrorOther);
+    return empty;
+  }
+  env->CallVoidMethod(conn.get(), c.set_request_method, jmethod.get());
+  if (auto ex = TakeJniException(env)) {
+    if (AsciiEqualsIgnoreCase(hop.active_method, "PATCH")) {
+      // Fallback for HttpURLConnection implementations that reject PATCH.
+      LocalRef<jstring> jpost(env, env->NewStringUTF("POST"));
+      LocalRef<jstring> joverride_k(
+          env, env->NewStringUTF("X-HTTP-Method-Override"));
+      LocalRef<jstring> joverride_v(env, env->NewStringUTF("PATCH"));
+      if (auto ex_alloc = TakeJniException(env);
+          ex_alloc || !jpost || !joverride_k || !joverride_v) {
+        op->MarkFailed(
+            ex_alloc ? ex_alloc->message : "Failed to allocate PATCH override",
+            ex_alloc ? ex_alloc->error_class : kHttpErrorOther);
+        return empty;
+      }
+      env->CallVoidMethod(conn.get(), c.set_request_method, jpost.get());
+      if (auto ex2 = TakeJniException(env)) {
+        op->MarkFailed(ex2->message, ex2->error_class);
+        return empty;
+      }
+      env->CallVoidMethod(conn.get(), c.set_request_property,
+                          joverride_k.get(), joverride_v.get());
+      if (auto ex3 = TakeJniException(env)) {
+        op->MarkFailed(ex3->message, ex3->error_class);
+        return empty;
+      }
+    } else {
+      op->MarkFailed(ex->message, ex->error_class);
+      return empty;
+    }
+  }
+
+  bool has_accept_encoding = false;
+  std::unordered_set<std::string> seen_headers;
+  for (const auto& kv : hop.active_headers) {
+    if (AsciiEqualsIgnoreCase(kv.first, "Accept-Encoding")) {
+      has_accept_encoding = true;
+    }
+    LocalRef<jstring> jk(env, env->NewStringUTF(kv.first.c_str()));
+    if (auto ex = TakeJniException(env); ex || !jk) {
+      op->MarkFailed(ex ? ex->message : "Failed to allocate header name",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return empty;
+    }
+    LocalRef<jstring> jv(env, env->NewStringUTF(kv.second.c_str()));
+    if (auto ex = TakeJniException(env); ex || !jv) {
+      op->MarkFailed(ex ? ex->message : "Failed to allocate header value",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return empty;
+    }
+    jmethodID header_mid = seen_headers.insert(ToLowerAscii(kv.first)).second
+                               ? c.set_request_property
+                               : c.add_request_property;
+    env->CallVoidMethod(conn.get(), header_mid, jk.get(), jv.get());
+    if (auto ex = TakeJniException(env)) {
+      op->MarkFailed(ex->message, ex->error_class);
+      return empty;
+    }
+  }
+  if (!has_accept_encoding) {
+    // Match .NET HttpClientHandler (AutomaticDecompression = None) and
+    // Desktop libcurl so Android's OkHttp BridgeInterceptor does not inject
+    // `Accept-Encoding: gzip`, strip Content-Length, buffer SSE frames, or
+    // corrupt Range ETag / byte offsets.
+    LocalRef<jstring> jae_k(env, env->NewStringUTF("Accept-Encoding"));
+    LocalRef<jstring> jae_v(env, env->NewStringUTF("identity"));
+    if (auto ex = TakeJniException(env); ex || !jae_k || !jae_v) {
+      op->MarkFailed(ex ? ex->message : "Failed to allocate Accept-Encoding",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return empty;
+    }
+    env->CallVoidMethod(conn.get(), c.set_request_property, jae_k.get(),
+                        jae_v.get());
+    if (auto ex = TakeJniException(env)) {
+      op->MarkFailed(ex->message, ex->error_class);
+      return empty;
+    }
+  }
+
+  return conn;
+}
+
+// Streams request body bytes when the HTTP method permits a body.
+// Returns true if the caller should proceed to ReadAndroidResponseHeaders
+// (including when an upload write failed mid-stream and an early 4xx response
+// may be readable via getResponseCode()), or false if the operation already
+// failed or was canceled.
+bool SendAndroidRequestBody(
+    JNIEnv* env, const std::shared_ptr<HttpOperation>& op,
+    const std::shared_ptr<AndroidCancelHandle>& cancel_handle, jobject conn,
+    const AndroidHopState& hop, std::optional<JniExceptionInfo>* out_write_err) {
+  auto& c = GetJniCache();
+
+  // Never call setDoOutput(true) on GET or HEAD because HttpURLConnection
+  // silently rewrites GET into POST (A1).
+  bool is_get_or_head = AsciiEqualsIgnoreCase(hop.active_method, "GET") ||
+                        AsciiEqualsIgnoreCase(hop.active_method, "HEAD");
+  if (is_get_or_head) {
+    if (hop.active_content_len > 0 ||
+        hop.active_content_len == kChunkedRequestContent) {
+      op->MarkFailed("GET and HEAD requests cannot send a request body.",
+                     kHttpErrorOther);
+      return false;
+    }
+    return true;
+  }
+
+  bool send_body =
+      hop.active_content_len >= 0 ||
+      hop.active_content_len == kChunkedRequestContent ||
+      (hop.active_content_len == kNoRequestContent &&
+       (AsciiEqualsIgnoreCase(hop.active_method, "POST") ||
+        AsciiEqualsIgnoreCase(hop.active_method, "PUT") ||
+        AsciiEqualsIgnoreCase(hop.active_method, "PATCH")));
+  if (!send_body) {
+    return true;
+  }
+
+  env->CallVoidMethod(conn, c.set_do_output, JNI_TRUE);
+  if (auto ex = TakeJniException(env)) {
+    op->MarkFailed(ex->message, ex->error_class);
+    return false;
+  }
+  if (hop.active_content_len == kNoRequestContent ||
+      hop.active_content_len == 0) {
+    env->CallVoidMethod(conn, c.set_fixed_len_streaming, static_cast<jlong>(0));
+  } else if (hop.active_content_len > 0) {
+    env->CallVoidMethod(conn, c.set_fixed_len_streaming,
+                        static_cast<jlong>(hop.active_content_len));
+  } else {
+    env->CallVoidMethod(conn, c.set_chunked_streaming, static_cast<jint>(65536));
+  }
+  if (auto ex = TakeJniException(env)) {
+    op->MarkFailed(ex->message, ex->error_class);
+    return false;
+  }
+
+  LocalRef<jobject> out_stream(env,
+                               env->CallObjectMethod(conn, c.get_output_stream));
+  if (auto ex = TakeJniException(env); ex || !out_stream) {
+    if (!op->IsCanceled()) {
+      op->MarkFailed(ex ? ex->message : "Failed to open request OutputStream",
+                     ex ? ex->error_class : kHttpErrorConnect);
+    }
+    return false;
+  }
+  {
+    jobject g_out = env->NewGlobalRef(out_stream.get());
+    if (auto ex = TakeJniException(env); ex || g_out == nullptr) {
+      op->MarkFailed(ex ? ex->message : "Failed to retain request OutputStream",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return false;
+    }
+    std::lock_guard<std::mutex> lock(cancel_handle->mutex);
+    cancel_handle->out_stream_global = g_out;
+  }
+
+  bool write_failed = false;
+  if (hop.active_content_len > 0 ||
+      hop.active_content_len == kChunkedRequestContent) {
+    constexpr size_t kWriteSlice = 64 * 1024;
+    LocalRef<jbyteArray> jwrite_buf(
+        env, env->NewByteArray(static_cast<jsize>(kWriteSlice)));
+    if (auto ex = TakeJniException(env); ex || !jwrite_buf) {
+      cancel_handle->ClearOutputStream(env);
+      op->MarkFailed(ex ? ex->message : "Failed to allocate JNI write buffer",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return false;
+    }
+    std::vector<uint8_t> scratch(kWriteSlice);
+    while (!op->IsCanceled()) {
+      bool eof = false;
+      size_t n = op->PopRequestBytes(scratch.data(), kWriteSlice, &eof);
+      if (n > 0) {
+        env->SetByteArrayRegion(jwrite_buf.get(), 0, static_cast<jsize>(n),
+                                reinterpret_cast<const jbyte*>(scratch.data()));
+        if (auto ex = TakeJniException(env)) {
+          cancel_handle->ClearOutputStream(env);
+          op->MarkFailed(ex->message, ex->error_class);
+          return false;
+        }
+        env->CallVoidMethod(out_stream.get(), c.output_write, jwrite_buf.get(),
+                            0, static_cast<jsize>(n));
+        if (auto ex = TakeJniException(env)) {
+          if (op->IsCanceled()) {
+            cancel_handle->ClearOutputStream(env);
+            return false;
+          }
+          // The server may have sent an early 4xx (such as 413) and closed
+          // its read side. Save the write exception, close the upload pipe so
+          // the caller stops writing, and fall through to try getResponseCode()
+          // before failing the operation (A2).
+          *out_write_err = std::move(*ex);
+          write_failed = true;
+          op->MarkRequestWriteClosed();
+          break;
+        }
+      } else if (eof) {
+        break;
+      } else {
+        std::unique_lock<std::mutex> lock(op->mutex);
+        op->req_cv.wait(lock, [&op]() {
+          return !op->req_chunks.empty() || op->req_eof || op->failed ||
+                 op->IsCanceled();
+        });
+      }
+    }
+  }
+
+  if (!write_failed) {
+    env->CallVoidMethod(out_stream.get(), c.output_flush);
+    if (env->ExceptionCheck()) env->ExceptionClear();
+  }
+  env->CallVoidMethod(out_stream.get(), c.output_close);
+  if (auto ex = TakeJniException(env)) {
+    if (!write_failed && !op->IsCanceled()) {
+      *out_write_err = std::move(*ex);
+      op->MarkRequestWriteClosed();
+    }
+  }
+  cancel_handle->ClearOutputStream(env);
+  return !op->IsCanceled();
+}
+
+// Reads HTTP status code, reason phrase, and response headers from `conn`.
+bool ReadAndroidResponseHeaders(
+    JNIEnv* env, const std::shared_ptr<HttpOperation>& op, jobject conn,
+    const std::optional<JniExceptionInfo>& write_err,
+    AndroidResponseHead* out_head) {
+  auto& c = GetJniCache();
+
+  jint status_code = env->CallIntMethod(conn, c.get_response_code);
+  if (auto ex = TakeJniException(env)) {
+    if (!op->IsCanceled()) {
+      if (write_err && ex->error_class == kHttpErrorOther &&
+          write_err->error_class != kHttpErrorOther) {
+        op->MarkFailed(write_err->message, write_err->error_class);
+      } else {
+        op->MarkFailed(ex->message, ex->error_class);
+      }
+    }
+    return false;
+  }
+  if (status_code <= 0) {
+    if (!op->IsCanceled()) {
+      if (write_err) {
+        op->MarkFailed(write_err->message, write_err->error_class);
+      } else {
+        op->MarkFailed("HttpURLConnection returned invalid HTTP status code.",
+                       kHttpErrorOther);
+      }
+    }
+    return false;
+  }
+
+  out_head->status_code = static_cast<int32_t>(status_code);
+  LocalRef<jstring> jreason(
+      env,
+      static_cast<jstring>(env->CallObjectMethod(conn, c.get_response_message)));
+  if (env->ExceptionCheck()) env->ExceptionClear();
+  out_head->reason = ::firebase::util::JStringToString(env, jreason.get());
+  out_head->headers.clear();
+
+  LocalRef<jobject> header_map(env,
+                               env->CallObjectMethod(conn, c.get_header_fields));
+  if (!TakeJniException(env) && header_map) {
+    LocalRef<jobject> entry_set(
+        env, env->CallObjectMethod(header_map.get(), c.map_entry_set));
+    if (!TakeJniException(env) && entry_set) {
+      LocalRef<jobject> iter(
+          env, env->CallObjectMethod(entry_set.get(), c.set_iterator));
+      if (!TakeJniException(env) && iter) {
+        while (true) {
+          jboolean has_next =
+              env->CallBooleanMethod(iter.get(), c.iter_has_next);
+          if (TakeJniException(env) || has_next != JNI_TRUE) {
+            break;
+          }
+          LocalRef<jobject> entry(env,
+                                  env->CallObjectMethod(iter.get(), c.iter_next));
+          if (TakeJniException(env) || !entry) break;
+          LocalRef<jstring> jkey(
+              env, static_cast<jstring>(
+                       env->CallObjectMethod(entry.get(), c.entry_get_key)));
+          if (TakeJniException(env) || !jkey) {
+            // HttpURLConnection maps the status line under a null key.
+            continue;
+          }
+          std::string key_str =
+              ::firebase::util::JStringToString(env, jkey.get());
+          if (key_str.empty()) continue;
+
+          LocalRef<jobject> val_list(
+              env, env->CallObjectMethod(entry.get(), c.entry_get_value));
+          if (TakeJniException(env) || !val_list) continue;
+          jint count = env->CallIntMethod(val_list.get(), c.list_size);
+          if (TakeJniException(env)) continue;
+          for (jint i = 0; i < count; ++i) {
+            LocalRef<jstring> jval(env,
+                                   static_cast<jstring>(env->CallObjectMethod(
+                                       val_list.get(), c.list_get, i)));
+            if (TakeJniException(env)) break;
+            if (jval) {
+              out_head->headers.emplace_back(
+                  key_str, ::firebase::util::JStringToString(env, jval.get()));
+            }
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+// Updates `hop` for a 3xx redirect response. Returns true to continue to the
+// next redirect hop, or false after marking `op` failed.
+bool ApplyAndroidRedirect(JNIEnv* env, const std::shared_ptr<HttpOperation>& op,
+                          jobject conn, int redirect_count, int32_t status_code,
+                          std::string_view location, AndroidHopState* hop) {
+  auto& c = GetJniCache();
+
+  // Close the redirect response stream so Android's ConnectionPool can reuse
+  // the socket before following the redirect.
+  LocalRef<jobject> redir_stream(
+      env, env->CallObjectMethod(conn, c.get_input_stream));
+  if (env->ExceptionCheck()) env->ExceptionClear();
+  if (redir_stream) {
+    env->CallVoidMethod(redir_stream.get(), c.input_close);
+    if (env->ExceptionCheck()) env->ExceptionClear();
+  }
+
+  if (redirect_count == kMaxRedirects) {
+    op->MarkFailed("Maximum HTTP redirects exceeded.", kHttpErrorOther);
+    return false;
+  }
+  auto resolved = ResolveRedirectUrl(hop->current_url, location);
+  if (!resolved || (IsHttpsUrl(op->url) && !IsHttpsUrl(*resolved))) {
+    op->MarkFailed("Blocked unsafe or scheme-downgraded HTTP redirect.",
+                   kHttpErrorOther);
+    return false;
+  }
+  bool same_origin =
+      IsSameOrigin(op->url, *resolved) && IsSameOrigin(hop->current_url, *resolved);
+  if ((status_code == 301 || status_code == 302 || status_code == 303) &&
+      !AsciiEqualsIgnoreCase(hop->active_method, "GET") &&
+      !AsciiEqualsIgnoreCase(hop->active_method, "HEAD")) {
+    hop->active_method = "GET";
+    hop->active_content_len = kNoRequestContent;
+    op->MarkRequestWriteClosed();
+  } else if (status_code == 303 &&
+             AsciiEqualsIgnoreCase(hop->active_method, "HEAD")) {
+    hop->active_content_len = kNoRequestContent;
+  } else if (hop->active_content_len != kNoRequestContent &&
+             hop->active_content_len != 0) {
+    op->MarkFailed("Cannot replay streamed request body across redirect.",
+                   kHttpErrorOther);
+    return false;
+  }
+
+  if (!same_origin || hop->active_content_len == kNoRequestContent) {
+    std::vector<std::pair<std::string, std::string>> filtered;
+    filtered.reserve(hop->active_headers.size());
+    for (const auto& kv : hop->active_headers) {
+      if (!same_origin && (IsSensitiveRedirectHeader(kv.first) ||
+                           AsciiEqualsIgnoreCase(kv.first, "Host"))) {
+        continue;
+      }
+      if (hop->active_content_len == kNoRequestContent &&
+          (AsciiEqualsIgnoreCase(kv.first, "Content-Type") ||
+           AsciiEqualsIgnoreCase(kv.first, "Content-Length") ||
+           AsciiEqualsIgnoreCase(kv.first, "Transfer-Encoding"))) {
+        continue;
+      }
+      filtered.push_back(kv);
+    }
+    hop->active_headers = std::move(filtered);
+  }
+  hop->current_url = std::move(*resolved);
+  return true;
+}
+
+// Streams response body bytes from `conn` into `op` with bounded backpressure.
+// Returns true on clean EOF.
+bool ReadAndroidResponseBody(
+    JNIEnv* env, const std::shared_ptr<HttpOperation>& op,
+    const std::shared_ptr<AndroidCancelHandle>& cancel_handle, jobject conn) {
+  auto& c = GetJniCache();
+
+  LocalRef<jobject> in_stream(env,
+                              env->CallObjectMethod(conn, c.get_input_stream));
+  if (env->ExceptionCheck() || !in_stream) {
+    env->ExceptionClear();
+    in_stream.reset(env->CallObjectMethod(conn, c.get_error_stream));
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+      in_stream.reset(nullptr);
+    }
+  }
+
+  if (!in_stream) {
+    op->MarkResponseComplete();
+    return true;
+  }
+
+  {
+    jobject g_in = env->NewGlobalRef(in_stream.get());
+    if (auto ex = TakeJniException(env); ex || g_in == nullptr) {
+      op->MarkFailed(ex ? ex->message : "Failed to retain response InputStream",
+                     ex ? ex->error_class : kHttpErrorOther);
+      return false;
+    }
+    std::lock_guard<std::mutex> lock(cancel_handle->mutex);
+    cancel_handle->in_stream_global = g_in;
+  }
+  if (op->IsCanceled()) {
+    return false;
+  }
+
+  constexpr size_t kReadSlice = 64 * 1024;
+  LocalRef<jbyteArray> jread_buf(
+      env, env->NewByteArray(static_cast<jsize>(kReadSlice)));
+  if (auto ex = TakeJniException(env); ex || !jread_buf) {
+    op->MarkFailed(ex ? ex->message : "Failed to allocate JNI read buffer",
+                   ex ? ex->error_class : kHttpErrorOther);
+    return false;
+  }
+  std::vector<uint8_t> read_scratch(kReadSlice);
+
+  while (!op->IsCanceled()) {
+    jint n = env->CallIntMethod(in_stream.get(), c.input_read, jread_buf.get(),
+                                0, static_cast<jsize>(kReadSlice));
+    if (auto ex = TakeJniException(env)) {
+      if (!op->IsCanceled()) {
+        op->MarkFailed(ex->message, ex->error_class);
+      }
+      return false;
+    }
+    if (n < 0) {
+      break;
+    }
+    if (n == 0) {
+      continue;
+    }
+    env->GetByteArrayRegion(jread_buf.get(), 0, n,
+                            reinterpret_cast<jbyte*>(read_scratch.data()));
+    if (auto ex = TakeJniException(env)) {
+      op->MarkFailed(ex->message, ex->error_class);
+      return false;
+    }
+    bool over_high_water =
+        op->PushResponseBytes(read_scratch.data(), static_cast<size_t>(n));
+    if (over_high_water && !op->IsCanceled()) {
+      std::unique_lock<std::mutex> lock(op->mutex);
+      op->resp_cv.wait(lock, [&op]() {
+        return op->resp_buffered_bytes <= kLowWaterResponseBytes ||
+               op->IsCanceled() || op->failed;
+      });
+    }
+  }
+
+  if (op->IsCanceled()) {
+    return false;
+  }
+
+  // Close the response stream so Android's ConnectionPool can reuse the live
+  // TLS connection; do not call conn.disconnect() on normal completion.
+  env->CallVoidMethod(in_stream.get(), c.input_close);
+  if (env->ExceptionCheck()) env->ExceptionClear();
+  op->MarkResponseComplete();
+  return true;
+}
+
 void ExecuteAndroidOperation(JNIEnv* env,
                              const std::shared_ptr<HttpOperation>& op) {
   if (!EnsureJniInitialized(env)) {
-    op->MarkFailed("Failed to initialize Android JNI HTTP bindings.");
+    op->MarkFailed("Failed to initialize Android JNI HTTP bindings.",
+                   kHttpErrorOther);
     return;
   }
   if (!IsHttpOrHttpsUrl(op->url)) {
-    op->MarkFailed("Unsupported URI scheme; only http and https are allowed.");
+    op->MarkFailed("Unsupported URI scheme; only http and https are allowed.",
+                   kHttpErrorOther);
     return;
   }
 
@@ -569,502 +1252,51 @@ void ExecuteAndroidOperation(JNIEnv* env,
     }
   } guard{env, cancel_handle, &completed_cleanly};
 
-  auto& c = GetJniCache();
-  std::string current_url = op->url;
-  std::string active_method = op->method;
-  std::vector<std::pair<std::string, std::string>> active_headers =
-      op->request_headers;
-  int64_t active_content_len = op->content_length;
+  AndroidHopState hop;
+  hop.current_url = op->url;
+  hop.active_method = op->method;
+  hop.active_headers = op->request_headers;
+  hop.active_content_len = op->content_length;
 
   for (int redirect_count = 0; redirect_count <= kMaxRedirects;
        ++redirect_count) {
     cancel_handle->ClearAll(env);
 
-    LocalRef<jstring> jurl_str(env, env->NewStringUTF(current_url.c_str()));
-    if (auto ex = TakeJniException(env); ex || !jurl_str) {
-      op->MarkFailed(ex.value_or("Failed to allocate JNI URL string"));
-      return;
-    }
-    LocalRef<jobject> jurl(
-        env, env->NewObject(c.url_cls, c.url_ctor, jurl_str.get()));
-    if (auto ex = TakeJniException(env); ex || !jurl) {
-      op->MarkFailed(ex.value_or("Invalid URL"));
+    LocalRef<jobject> conn =
+        BuildAndroidRequestConnection(env, op, cancel_handle, hop);
+    if (!conn) {
       return;
     }
 
-    LocalRef<jobject> conn(env, nullptr);
-    if (auto proxy_hp = ParseProxyHostPort(op->proxy_url)) {
-      LocalRef<jstring> jhost(env, env->NewStringUTF(proxy_hp->first.c_str()));
-      if (auto ex = TakeJniException(env); ex || !jhost) {
-        op->MarkFailed(ex.value_or("Failed to allocate proxy host string"));
-        return;
-      }
-      LocalRef<jobject> jsock_addr(
-          env,
-          env->NewObject(c.inet_sock_addr_cls, c.inet_sock_addr_ctor,
-                         jhost.get(), static_cast<jint>(proxy_hp->second)));
-      if (auto ex = TakeJniException(env); ex || !jsock_addr) {
-        op->MarkFailed(ex.value_or("Failed to construct proxy socket address"));
-        return;
-      }
-      LocalRef<jobject> jproxy(
-          env, env->NewObject(c.proxy_cls, c.proxy_ctor, c.proxy_type_http,
-                              jsock_addr.get()));
-      if (auto ex = TakeJniException(env); ex || !jproxy) {
-        op->MarkFailed(ex.value_or("Failed to construct Java Proxy"));
-        return;
-      }
-      conn.reset(env->CallObjectMethod(jurl.get(), c.url_open_conn_proxy,
-                                       jproxy.get()));
-    } else {
-      conn.reset(env->CallObjectMethod(jurl.get(), c.url_open_conn));
-    }
-    if (auto ex = TakeJniException(env); ex || !conn) {
-      op->MarkFailed(ex.value_or("Failed to open HttpURLConnection"));
-      return;
-    }
-    if (env->IsInstanceOf(conn.get(), c.http_conn_cls) != JNI_TRUE) {
-      op->MarkFailed(
-          "Unsupported URI scheme; URLConnection is not an HttpURLConnection.");
+    std::optional<JniExceptionInfo> write_err;
+    if (!SendAndroidRequestBody(env, op, cancel_handle, conn.get(), hop,
+                                &write_err)) {
       return;
     }
 
-    {
-      jobject g_conn = env->NewGlobalRef(conn.get());
-      if (auto ex = TakeJniException(env); ex || g_conn == nullptr) {
-        op->MarkFailed(ex.value_or("Failed to retain HttpURLConnection"));
-        return;
-      }
-      std::lock_guard<std::mutex> lock(cancel_handle->mutex);
-      cancel_handle->conn_global = g_conn;
-    }
-    if (op->IsCanceled()) {
+    AndroidResponseHead head;
+    if (!ReadAndroidResponseHeaders(env, op, conn.get(), write_err, &head)) {
       return;
-    }
-
-    env->CallVoidMethod(conn.get(), c.set_use_caches, JNI_FALSE);
-    if (auto ex = TakeJniException(env)) {
-      op->MarkFailed(*ex);
-      return;
-    }
-    env->CallVoidMethod(conn.get(), c.set_connect_timeout, 60000);
-    if (auto ex = TakeJniException(env)) {
-      op->MarkFailed(*ex);
-      return;
-    }
-    env->CallVoidMethod(conn.get(), c.set_read_timeout, 0);
-    if (auto ex = TakeJniException(env)) {
-      op->MarkFailed(*ex);
-      return;
-    }
-    // Handle redirects explicitly so cross-origin redirects strip sensitive
-    // Firebase credentials and HTTPS -> HTTP downgrades are rejected.
-    env->CallVoidMethod(conn.get(), c.set_instance_follow_redirects, JNI_FALSE);
-    if (auto ex = TakeJniException(env)) {
-      op->MarkFailed(*ex);
-      return;
-    }
-
-    LocalRef<jstring> jmethod(env, env->NewStringUTF(active_method.c_str()));
-    if (auto ex = TakeJniException(env); ex || !jmethod) {
-      op->MarkFailed(ex.value_or("Failed to allocate HTTP method string"));
-      return;
-    }
-    env->CallVoidMethod(conn.get(), c.set_request_method, jmethod.get());
-    if (auto ex = TakeJniException(env)) {
-      if (AsciiEqualsIgnoreCase(active_method, "PATCH")) {
-        // Fallback for HttpURLConnection implementations that reject PATCH.
-        LocalRef<jstring> jpost(env, env->NewStringUTF("POST"));
-        if (auto ex_post = TakeJniException(env); ex_post || !jpost) {
-          op->MarkFailed(ex_post.value_or("Failed to allocate POST string"));
-          return;
-        }
-        LocalRef<jstring> joverride_k(
-            env, env->NewStringUTF("X-HTTP-Method-Override"));
-        if (auto ex_k = TakeJniException(env); ex_k || !joverride_k) {
-          op->MarkFailed(ex_k.value_or("Failed to allocate override header"));
-          return;
-        }
-        LocalRef<jstring> joverride_v(env, env->NewStringUTF("PATCH"));
-        if (auto ex_v = TakeJniException(env); ex_v || !joverride_v) {
-          op->MarkFailed(ex_v.value_or("Failed to allocate PATCH string"));
-          return;
-        }
-        env->CallVoidMethod(conn.get(), c.set_request_method, jpost.get());
-        if (auto ex2 = TakeJniException(env)) {
-          op->MarkFailed(*ex2);
-          return;
-        }
-        env->CallVoidMethod(conn.get(), c.set_request_property,
-                            joverride_k.get(), joverride_v.get());
-        if (auto ex3 = TakeJniException(env)) {
-          op->MarkFailed(*ex3);
-          return;
-        }
-      } else {
-        op->MarkFailed(*ex);
-        return;
-      }
-    }
-
-    bool has_accept_encoding = false;
-    std::unordered_set<std::string> seen_headers;
-    for (const auto& kv : active_headers) {
-      if (AsciiEqualsIgnoreCase(kv.first, "Accept-Encoding")) {
-        has_accept_encoding = true;
-      }
-      LocalRef<jstring> jk(env, env->NewStringUTF(kv.first.c_str()));
-      if (auto ex = TakeJniException(env); ex || !jk) {
-        op->MarkFailed(ex.value_or("Failed to allocate header name"));
-        return;
-      }
-      LocalRef<jstring> jv(env, env->NewStringUTF(kv.second.c_str()));
-      if (auto ex = TakeJniException(env); ex || !jv) {
-        op->MarkFailed(ex.value_or("Failed to allocate header value"));
-        return;
-      }
-      jmethodID header_mid = seen_headers.insert(ToLowerAscii(kv.first)).second
-                                 ? c.set_request_property
-                                 : c.add_request_property;
-      env->CallVoidMethod(conn.get(), header_mid, jk.get(), jv.get());
-      if (auto ex = TakeJniException(env)) {
-        op->MarkFailed(*ex);
-        return;
-      }
-    }
-    if (!has_accept_encoding) {
-      // Match .NET HttpClientHandler (AutomaticDecompression = None) and
-      // Desktop libcurl so Android's OkHttp BridgeInterceptor does not inject
-      // `Accept-Encoding: gzip`, strip Content-Length, buffer SSE frames, or
-      // corrupt Range ETag / byte offsets.
-      LocalRef<jstring> jae_k(env, env->NewStringUTF("Accept-Encoding"));
-      if (auto ex = TakeJniException(env); ex || !jae_k) {
-        op->MarkFailed(ex.value_or("Failed to allocate Accept-Encoding key"));
-        return;
-      }
-      LocalRef<jstring> jae_v(env, env->NewStringUTF("identity"));
-      if (auto ex = TakeJniException(env); ex || !jae_v) {
-        op->MarkFailed(ex.value_or("Failed to allocate identity value"));
-        return;
-      }
-      env->CallVoidMethod(conn.get(), c.set_request_property, jae_k.get(),
-                          jae_v.get());
-      if (auto ex = TakeJniException(env)) {
-        op->MarkFailed(*ex);
-        return;
-      }
-    }
-
-    // Stream request body if present. Never call setDoOutput(true) on bodyless
-    // GET/HEAD/DELETE requests because HttpURLConnection rewrites GET -> POST.
-    bool send_body = active_content_len >= 0 ||
-                     active_content_len == kChunkedRequestContent ||
-                     (active_content_len == kNoRequestContent &&
-                      (AsciiEqualsIgnoreCase(active_method, "POST") ||
-                       AsciiEqualsIgnoreCase(active_method, "PUT") ||
-                       AsciiEqualsIgnoreCase(active_method, "PATCH")));
-    if (send_body) {
-      env->CallVoidMethod(conn.get(), c.set_do_output, JNI_TRUE);
-      if (auto ex = TakeJniException(env)) {
-        op->MarkFailed(*ex);
-        return;
-      }
-      if (active_content_len == kNoRequestContent || active_content_len == 0) {
-        env->CallVoidMethod(conn.get(), c.set_fixed_len_streaming,
-                            static_cast<jlong>(0));
-      } else if (active_content_len > 0) {
-        env->CallVoidMethod(conn.get(), c.set_fixed_len_streaming,
-                            static_cast<jlong>(active_content_len));
-      } else {
-        env->CallVoidMethod(conn.get(), c.set_chunked_streaming,
-                            static_cast<jint>(65536));
-      }
-      if (auto ex = TakeJniException(env)) {
-        op->MarkFailed(*ex);
-        return;
-      }
-
-      LocalRef<jobject> out_stream(
-          env, env->CallObjectMethod(conn.get(), c.get_output_stream));
-      if (auto ex = TakeJniException(env); ex || !out_stream) {
-        if (!op->IsCanceled()) {
-          op->MarkFailed(ex.value_or("Failed to open request OutputStream"));
-        }
-        return;
-      }
-      {
-        jobject g_out = env->NewGlobalRef(out_stream.get());
-        if (auto ex = TakeJniException(env); ex || g_out == nullptr) {
-          op->MarkFailed(ex.value_or("Failed to retain request OutputStream"));
-          return;
-        }
-        std::lock_guard<std::mutex> lock(cancel_handle->mutex);
-        cancel_handle->out_stream_global = g_out;
-      }
-
-      if (active_content_len > 0 ||
-          active_content_len == kChunkedRequestContent) {
-        constexpr size_t kWriteSlice = 64 * 1024;
-        LocalRef<jbyteArray> jwrite_buf(
-            env, env->NewByteArray(static_cast<jsize>(kWriteSlice)));
-        if (auto ex = TakeJniException(env); ex || !jwrite_buf) {
-          op->MarkFailed(ex.value_or("Failed to allocate JNI write buffer"));
-          return;
-        }
-        std::vector<uint8_t> scratch(kWriteSlice);
-        while (!op->IsCanceled()) {
-          bool eof = false;
-          size_t n = op->PopRequestBytes(scratch.data(), kWriteSlice, &eof);
-          if (n > 0) {
-            env->SetByteArrayRegion(
-                jwrite_buf.get(), 0, static_cast<jsize>(n),
-                reinterpret_cast<const jbyte*>(scratch.data()));
-            if (auto ex = TakeJniException(env)) {
-              op->MarkFailed(*ex);
-              return;
-            }
-            env->CallVoidMethod(out_stream.get(), c.output_write,
-                                jwrite_buf.get(), 0, static_cast<jsize>(n));
-            if (auto ex = TakeJniException(env)) {
-              if (!op->IsCanceled()) op->MarkFailed(*ex);
-              return;
-            }
-          } else if (eof) {
-            break;
-          } else {
-            std::unique_lock<std::mutex> lock(op->mutex);
-            op->req_cv.wait(lock, [&op]() {
-              return !op->req_chunks.empty() || op->req_eof || op->failed ||
-                     op->IsCanceled();
-            });
-          }
-        }
-      }
-
-      env->CallVoidMethod(out_stream.get(), c.output_flush);
-      if (env->ExceptionCheck()) env->ExceptionClear();
-      env->CallVoidMethod(out_stream.get(), c.output_close);
-      if (auto ex = TakeJniException(env)) {
-        if (!op->IsCanceled()) op->MarkFailed(*ex);
-        return;
-      }
-      {
-        std::lock_guard<std::mutex> lock(cancel_handle->mutex);
-        if (cancel_handle->out_stream_global != nullptr) {
-          env->DeleteGlobalRef(cancel_handle->out_stream_global);
-          cancel_handle->out_stream_global = nullptr;
-        }
-      }
-    }
-
-    if (op->IsCanceled()) {
-      return;
-    }
-
-    jint status_code = env->CallIntMethod(conn.get(), c.get_response_code);
-    if (auto ex = TakeJniException(env)) {
-      if (!op->IsCanceled()) op->MarkFailed(*ex);
-      return;
-    }
-    LocalRef<jstring> jreason(env, static_cast<jstring>(env->CallObjectMethod(
-                                       conn.get(), c.get_response_message)));
-    if (env->ExceptionCheck()) env->ExceptionClear();
-    std::string reason = JStringToStdString(env, jreason.get());
-
-    std::vector<std::pair<std::string, std::string>> resp_headers;
-    LocalRef<jobject> header_map(
-        env, env->CallObjectMethod(conn.get(), c.get_header_fields));
-    if (!TakeJniException(env) && header_map) {
-      LocalRef<jobject> entry_set(
-          env, env->CallObjectMethod(header_map.get(), c.map_entry_set));
-      if (!TakeJniException(env) && entry_set) {
-        LocalRef<jobject> iter(
-            env, env->CallObjectMethod(entry_set.get(), c.set_iterator));
-        if (!TakeJniException(env) && iter) {
-          while (true) {
-            jboolean has_next =
-                env->CallBooleanMethod(iter.get(), c.iter_has_next);
-            if (TakeJniException(env) || has_next != JNI_TRUE) {
-              break;
-            }
-            LocalRef<jobject> entry(
-                env, env->CallObjectMethod(iter.get(), c.iter_next));
-            if (TakeJniException(env) || !entry) break;
-            LocalRef<jstring> jkey(
-                env, static_cast<jstring>(
-                         env->CallObjectMethod(entry.get(), c.entry_get_key)));
-            if (TakeJniException(env) || !jkey) {
-              // HttpURLConnection maps the status line under a null key.
-              continue;
-            }
-            std::string key_str = JStringToStdString(env, jkey.get());
-            if (key_str.empty()) continue;
-
-            LocalRef<jobject> val_list(
-                env, env->CallObjectMethod(entry.get(), c.entry_get_value));
-            if (TakeJniException(env) || !val_list) continue;
-            jint count = env->CallIntMethod(val_list.get(), c.list_size);
-            if (TakeJniException(env)) continue;
-            for (jint i = 0; i < count; ++i) {
-              LocalRef<jstring> jval(env,
-                                     static_cast<jstring>(env->CallObjectMethod(
-                                         val_list.get(), c.list_get, i)));
-              if (TakeJniException(env)) break;
-              if (jval) {
-                resp_headers.emplace_back(key_str,
-                                          JStringToStdString(env, jval.get()));
-              }
-            }
-          }
-        }
-      }
     }
 
     std::string_view location =
-        FindHeaderValueIgnoreCase(resp_headers, "Location");
-    if (IsRedirectStatus(static_cast<int32_t>(status_code)) &&
-        !location.empty()) {
-      // Drain/close response stream on the redirect hop so the pooled socket
-      // stays reusable before following.
-      LocalRef<jobject> redir_stream(
-          env, env->CallObjectMethod(conn.get(), c.get_input_stream));
-      if (env->ExceptionCheck()) env->ExceptionClear();
-      if (redir_stream) {
-        env->CallVoidMethod(redir_stream.get(), c.input_close);
-        if (env->ExceptionCheck()) env->ExceptionClear();
-      }
-
-      if (redirect_count == kMaxRedirects) {
-        op->MarkFailed("Maximum HTTP redirects exceeded.");
+        FindHeaderValueIgnoreCase(head.headers, "Location");
+    if (IsRedirectStatus(head.status_code) && !location.empty()) {
+      if (!ApplyAndroidRedirect(env, op, conn.get(), redirect_count,
+                                head.status_code, location, &hop)) {
         return;
       }
-      auto resolved = ResolveRedirectUrl(current_url, location);
-      if (!resolved || (IsHttpsUrl(op->url) && !IsHttpsUrl(*resolved))) {
-        op->MarkFailed("Blocked unsafe or scheme-downgraded HTTP redirect.");
-        return;
-      }
-      bool same_origin = IsSameOrigin(op->url, *resolved) &&
-                         IsSameOrigin(current_url, *resolved);
-      if (status_code == 303 ||
-          ((status_code == 301 || status_code == 302) &&
-           !AsciiEqualsIgnoreCase(active_method, "GET") &&
-           !AsciiEqualsIgnoreCase(active_method, "HEAD"))) {
-        active_method = "GET";
-        active_content_len = kNoRequestContent;
-      } else if (active_content_len != kNoRequestContent &&
-                 active_content_len != 0) {
-        op->MarkFailed("Cannot replay streamed request body across redirect.");
-        return;
-      }
-
-      if (!same_origin || active_content_len == kNoRequestContent) {
-        std::vector<std::pair<std::string, std::string>> filtered;
-        filtered.reserve(active_headers.size());
-        for (const auto& kv : active_headers) {
-          if (!same_origin && (IsSensitiveRedirectHeader(kv.first) ||
-                               AsciiEqualsIgnoreCase(kv.first, "Host"))) {
-            continue;
-          }
-          if (active_content_len == kNoRequestContent &&
-              (AsciiEqualsIgnoreCase(kv.first, "Content-Type") ||
-               AsciiEqualsIgnoreCase(kv.first, "Content-Length") ||
-               AsciiEqualsIgnoreCase(kv.first, "Transfer-Encoding"))) {
-            continue;
-          }
-          filtered.push_back(kv);
-        }
-        active_headers = std::move(filtered);
-      }
-      current_url = std::move(*resolved);
       continue;
     }
 
-    op->CommitResponseHeaders(static_cast<int32_t>(status_code), reason,
-                              std::move(resp_headers));
+    op->CommitResponseHeaders(head.status_code, head.reason,
+                              std::move(head.headers));
     if (op->IsCanceled()) {
       return;
     }
 
-    LocalRef<jobject> in_stream(
-        env, env->CallObjectMethod(conn.get(), c.get_input_stream));
-    if (env->ExceptionCheck() || !in_stream) {
-      env->ExceptionClear();
-      in_stream.reset(env->CallObjectMethod(conn.get(), c.get_error_stream));
-      if (env->ExceptionCheck()) {
-        env->ExceptionClear();
-        in_stream.reset(nullptr);
-      }
-    }
-
-    if (!in_stream) {
-      completed_cleanly = true;
-      op->MarkResponseComplete();
-      return;
-    }
-
-    {
-      jobject g_in = env->NewGlobalRef(in_stream.get());
-      if (auto ex = TakeJniException(env); ex || g_in == nullptr) {
-        op->MarkFailed(ex.value_or("Failed to retain response InputStream"));
-        return;
-      }
-      std::lock_guard<std::mutex> lock(cancel_handle->mutex);
-      cancel_handle->in_stream_global = g_in;
-    }
-    if (op->IsCanceled()) {
-      return;
-    }
-
-    constexpr size_t kReadSlice = 64 * 1024;
-    LocalRef<jbyteArray> jread_buf(
-        env, env->NewByteArray(static_cast<jsize>(kReadSlice)));
-    if (auto ex = TakeJniException(env); ex || !jread_buf) {
-      op->MarkFailed(ex.value_or("Failed to allocate JNI read buffer"));
-      return;
-    }
-    std::vector<uint8_t> read_scratch(kReadSlice);
-
-    while (!op->IsCanceled()) {
-      jint n =
-          env->CallIntMethod(in_stream.get(), c.input_read, jread_buf.get(), 0,
-                             static_cast<jsize>(kReadSlice));
-      if (auto ex = TakeJniException(env)) {
-        if (!op->IsCanceled()) op->MarkFailed(*ex);
-        return;
-      }
-      if (n < 0) {
-        break;
-      }
-      if (n == 0) {
-        continue;
-      }
-      env->GetByteArrayRegion(jread_buf.get(), 0, n,
-                              reinterpret_cast<jbyte*>(read_scratch.data()));
-      if (auto ex = TakeJniException(env)) {
-        op->MarkFailed(*ex);
-        return;
-      }
-      bool over_high_water =
-          op->PushResponseBytes(read_scratch.data(), static_cast<size_t>(n));
-      if (over_high_water && !op->IsCanceled()) {
-        std::unique_lock<std::mutex> lock(op->mutex);
-        op->resp_cv.wait(lock, [&op]() {
-          return op->resp_buffered_bytes <= kLowWaterResponseBytes ||
-                 op->IsCanceled() || op->failed;
-        });
-      }
-    }
-
-    if (op->IsCanceled()) {
-      return;
-    }
-
-    // Close the response stream so Android's ConnectionPool can reuse the live
-    // TLS connection; do not call conn.disconnect() on normal completion.
-    env->CallVoidMethod(in_stream.get(), c.input_close);
-    if (env->ExceptionCheck()) env->ExceptionClear();
-    completed_cleanly = true;
-    op->MarkResponseComplete();
+    completed_cleanly =
+        ReadAndroidResponseBody(env, op, cancel_handle, conn.get());
     return;
   }
 }
@@ -1102,34 +1334,8 @@ class AndroidHttpThreadPool {
   // SSE / GetStreamAsync() streams never starve short requests.
   static constexpr size_t kMaxWorkers = 64;
 
-  static JNIEnv* AttachWorkerThread(JavaVM** out_vm, bool* out_attached) {
-    JavaVM* vm = ResolveJavaVM();
-    if (vm == nullptr) {
-      return nullptr;
-    }
-    JNIEnv* env = nullptr;
-    jint status = vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
-    if (status == JNI_EDETACHED) {
-      JavaVMAttachArgs args{};
-      args.version = JNI_VERSION_1_6;
-      args.name = const_cast<char*>("FirebaseHttpWorker");
-      args.group = nullptr;
-      if (vm->AttachCurrentThread(&env, &args) == JNI_OK) {
-        *out_vm = vm;
-        *out_attached = true;
-      } else {
-        return nullptr;
-      }
-    } else if (status == JNI_OK) {
-      *out_vm = vm;
-    }
-    return env;
-  }
-
   void WorkerLoop() {
-    JavaVM* vm = nullptr;
-    bool attached = false;
-    JNIEnv* env = AttachWorkerThread(&vm, &attached);
+    JNIEnv* env = ResolveThreadsafeJNIEnv();
 
     {
       std::lock_guard<std::mutex> lock(mutex_);
@@ -1155,17 +1361,14 @@ class AndroidHttpThreadPool {
       }
 
       if (env == nullptr) {
-        env = AttachWorkerThread(&vm, &attached);
+        env = ResolveThreadsafeJNIEnv();
       }
       if (env == nullptr) {
-        next->MarkFailed("Android JavaVM / JNIEnv is unavailable.");
+        next->MarkFailed("Android JavaVM / JNIEnv is unavailable.",
+                         kHttpErrorOther);
       } else {
         ExecuteAndroidOperation(env, next);
       }
-    }
-
-    if (attached && vm != nullptr) {
-      vm->DetachCurrentThread();
     }
   }
 
