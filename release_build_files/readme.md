@@ -626,6 +626,8 @@ code.
     - Database (Desktop): Fixed cached objects with priorities set (via
       `SetPriority()` or `SetValueAndPriority()`) being read back from the
       offline persistence cache as corrupted or null values.
+    - Firestore (Desktop): Fixed an assertion abort when `Auth::SignOut()`
+      races a Firestore token request.
 
 ### 14.2.0
 - Changes
