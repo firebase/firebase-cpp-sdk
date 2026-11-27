@@ -615,9 +615,17 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - Database (Desktop): Added exponential backoff to Realtime Database
+      reconnection attempts to prevent tight reconnect loops.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.
+    - Database (Desktop): Fixed `Database::set_persistence_enabled()` not being
+      preserved across recreated `Database` instances for the same `App` and
+      database URL.
+    - Database (Desktop): Fixed cached objects with priorities set (via
+      `SetPriority()` or `SetValueAndPriority()`) being read back from the
+      offline persistence cache as corrupted or null values.
     - App Check (Desktop): Fixed requests from any `App` other than the first
       one created being sent without an App Check token.
 

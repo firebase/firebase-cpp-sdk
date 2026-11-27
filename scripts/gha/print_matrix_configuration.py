@@ -202,10 +202,9 @@ TEST_DEVICES = {
   "emulator_32bit": [ {"type": "virtual", "image":"system-images;android-30;google_apis;x86"} ],
   "ios_target": [
       # Slightly different OS versions because of limited FTL selection.
-      {"type": "ftl", "device": "model=iphone14pro,version=16.6"},
-      {"type": "ftl", "device": "model=iphone11pro,version=16.6"},
-      {"type": "ftl", "device": "model=iphone8,version=16.6"},
-      {"type": "ftl", "device": "model=ipad10,version=16.6"},
+      {"type": "ftl", "device": "model=iphone16pro,version=18.3"},  # iPhone 16 Pro
+      {"type": "ftl", "device": "model=iphonese3,version=18.4"},  # iPhone SE 3
+      # TODO: Consider also adding {"type": "ftl", "device": "model=iphonese3,version=26.3"}.
   ],
   "simulator_target": [ {"type": "virtual", "name":"iPhone 17 Pro Max", "version":"26.4.1"} ],
   "tvos_simulator": [ {"type": "virtual", "name":"Apple TV", "version":"26.4.1"} ],

@@ -14,15 +14,19 @@
 
 #include "database/src/desktop/persistence/level_db_persistence_storage_engine.h"
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <streambuf>
+#include <string>
 
 #include "app/src/logger.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/persistence/flatbuffer_conversions.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "testing/base/public/gmock.h"
+#include "leveldb/db.h"
+#include "leveldb/options.h"
 
 using testing::Eq;
 using testing::Pointwise;
@@ -32,36 +36,22 @@ namespace database {
 namespace internal {
 namespace {
 
-// TODO(amablue): Consider refactoring this into a common location.
-#if defined(_WIN32)
-static const char kDirectorySeparator[] = "\\";
-#else
-static const char kDirectorySeparator[] = "/";
-#endif  // defined(_WIN32)
-
-static std::string GetTestTmpDir(const char test_namespace[]) {
-#if defined(_WIN32)
-  char buf[MAX_PATH + 1];
-  if (GetEnvironmentVariableA("TEST_TMPDIR", buf, sizeof(buf))) {
-    return std::string(buf) + kDirectorySeparator + test_namespace;
-  }
-#else
-  // Linux and OS X should either have the TEST_TMPDIR environment variable set.
-  if (const char* value = getenv("TEST_TMPDIR")) {
-    return std::string(value) + kDirectorySeparator + test_namespace;
-  }
-#endif  // defined(_WIN32)
-  // If we weren't able to get TEST_TMPDIR, just use a subdirectory.
-  return test_namespace;
+static std::string GetTestTmpDir(const ::testing::TestInfo* test_info) {
+  return testing::TempDir() + "level_db_persistence_storage_engine_test_" +
+         test_info->test_suite_name() + "_" + test_info->name();
 }
 
 TEST(LevelDbPersistenceStorageEngine, ConstructorBasic) {
-  const std::string kDatabaseFilename = GetTestTmpDir(test_info_->name());
+  const std::string kDatabaseFilename = GetTestTmpDir(test_info_);
+  leveldb::DestroyDB(kDatabaseFilename, leveldb::Options());
 
   // Just ensure that nothing crashes.
-  SystemLogger logger;
-  LevelDbPersistenceStorageEngine engine(&logger);
-  engine.Initialize(kDatabaseFilename);
+  {
+    SystemLogger logger;
+    LevelDbPersistenceStorageEngine engine(&logger);
+    engine.Initialize(kDatabaseFilename);
+  }
+  leveldb::DestroyDB(kDatabaseFilename, leveldb::Options());
 }
 
 class LevelDbPersistenceStorageEngineTest : public ::testing::Test {
@@ -70,13 +60,21 @@ class LevelDbPersistenceStorageEngineTest : public ::testing::Test {
     engine_ = new LevelDbPersistenceStorageEngine(&logger_);
   }
 
-  void TearDown() override { delete engine_; }
+  void TearDown() override {
+    delete engine_;
+    engine_ = nullptr;
+    if (!database_path_.empty()) {
+      leveldb::DestroyDB(database_path_, leveldb::Options());
+    }
+  }
 
   // All tests should start with this. This sets the path Level DB should read
   // from and write to, and caches that path so that when we re-start Level DB
   // we have the path we used on the previous run.
-  void InitializeLevelDb(const std::string& test_name) {
-    database_path_ = GetTestTmpDir(test_name.c_str());
+  void InitializeLevelDb(const std::string& /*test_name*/) {
+    database_path_ =
+        GetTestTmpDir(::testing::UnitTest::GetInstance()->current_test_info());
+    leveldb::DestroyDB(database_path_, leveldb::Options());
     engine_->Initialize(database_path_);
   }
 
@@ -86,8 +84,8 @@ class LevelDbPersistenceStorageEngineTest : public ::testing::Test {
   template <typename Func>
   void RunTwice(const Func& func) {
     func();
-    TearDown();
-    SetUp();
+    delete engine_;
+    engine_ = new LevelDbPersistenceStorageEngine(&logger_);
     engine_->Initialize(database_path_);
     func();
   }
@@ -249,6 +247,122 @@ TEST_F(LevelDbPersistenceStorageEngineTest, OverwriteServerCache) {
   });
 }
 
+TEST_F(LevelDbPersistenceStorageEngineTest,
+       OverwriteServerCacheMapWithPriorityAndLaterKeys) {
+  InitializeLevelDb(test_info_->name());
+
+  // ".priority" sorts lexicographically before child keys like "subkey" and
+  // "value", and after keys starting with '-' (e.g., push IDs). Reconstructing
+  // maps from LevelDB must not wrap the empty Variant::Null() placeholder into
+  // {".value": Null}, while scalars with ".priority" (including falsy values
+  // like 0, false, and "") must preserve their {".value", ".priority"} form.
+  // clang-format off
+  Variant data = std::map<Variant, Variant>{
+      std::make_pair("cranberry", std::map<Variant, Variant>{
+          std::make_pair(".priority", 100),
+          std::make_pair("subkey", 500),
+          std::make_pair("value", 9),
+      }),
+      std::make_pair("mixed_order", std::map<Variant, Variant>{
+          std::make_pair("-push_id_before_dot", "first"),
+          std::make_pair(".priority", 200),
+          std::make_pair("after_dot", "second"),
+      }),
+      std::make_pair("nested", std::map<Variant, Variant>{
+          std::make_pair(".priority", 1),
+          std::make_pair("inner", std::map<Variant, Variant>{
+              std::make_pair(".priority", 2),
+              std::make_pair("child", "val"),
+              std::make_pair("scalar_child", std::map<Variant, Variant>{
+                  std::make_pair(".value", 123),
+                  std::make_pair(".priority", "p"),
+              }),
+          }),
+      }),
+      std::make_pair("scalar_with_priority", std::map<Variant, Variant>{
+          std::make_pair(".value", "hello"),
+          std::make_pair(".priority", 42),
+      }),
+      std::make_pair("zero_with_priority", std::map<Variant, Variant>{
+          std::make_pair(".value", 0),
+          std::make_pair(".priority", 1),
+      }),
+      std::make_pair("false_with_priority", std::map<Variant, Variant>{
+          std::make_pair(".value", false),
+          std::make_pair(".priority", 2),
+      }),
+      std::make_pair("empty_string_with_priority", std::map<Variant, Variant>{
+          std::make_pair(".value", ""),
+          std::make_pair(".priority", 3),
+      }),
+  };
+  // clang-format on
+
+  engine_->BeginTransaction();
+  engine_->OverwriteServerCache(Path(), data);
+  engine_->SetTransactionSuccessful();
+  engine_->EndTransaction();
+
+  RunTwice([this, &data]() {
+    EXPECT_EQ(engine_->ServerCache(Path()), data);
+    EXPECT_EQ(engine_->ServerCache(Path("cranberry")),
+              data.map().at("cranberry"));
+    EXPECT_EQ(engine_->ServerCache(Path("mixed_order")),
+              data.map().at("mixed_order"));
+    EXPECT_EQ(engine_->ServerCache(Path("nested")), data.map().at("nested"));
+    EXPECT_EQ(engine_->ServerCache(Path("nested/inner")),
+              data.map().at("nested").map().at("inner"));
+    EXPECT_EQ(
+        engine_->ServerCache(Path("nested/inner/scalar_child")),
+        data.map().at("nested").map().at("inner").map().at("scalar_child"));
+    EXPECT_EQ(engine_->ServerCache(Path("scalar_with_priority")),
+              data.map().at("scalar_with_priority"));
+    EXPECT_EQ(engine_->ServerCache(Path("zero_with_priority")),
+              data.map().at("zero_with_priority"));
+    EXPECT_EQ(engine_->ServerCache(Path("false_with_priority")),
+              data.map().at("false_with_priority"));
+    EXPECT_EQ(engine_->ServerCache(Path("empty_string_with_priority")),
+              data.map().at("empty_string_with_priority"));
+  });
+}
+
+TEST_F(LevelDbPersistenceStorageEngineTest,
+       OverwriteServerCachePriorityScalarAndMapTransitions) {
+  InitializeLevelDb(test_info_->name());
+
+  // clang-format off
+  Variant scalar_with_priority = std::map<Variant, Variant>{
+      std::make_pair(".value", "initial"),
+      std::make_pair(".priority", 10),
+  };
+  Variant map_with_priority = std::map<Variant, Variant>{
+      std::make_pair(".priority", 20),
+      std::make_pair("child", "value"),
+  };
+  // clang-format on
+
+  // Scalar with priority -> overwrite with map with priority.
+  engine_->BeginTransaction();
+  engine_->OverwriteServerCache(Path("node"), scalar_with_priority);
+  engine_->OverwriteServerCache(Path("node"), map_with_priority);
+  engine_->SetTransactionSuccessful();
+  engine_->EndTransaction();
+
+  RunTwice([this, &map_with_priority]() {
+    EXPECT_EQ(engine_->ServerCache(Path("node")), map_with_priority);
+  });
+
+  // Map with priority -> overwrite with scalar with priority.
+  engine_->BeginTransaction();
+  engine_->OverwriteServerCache(Path("node"), scalar_with_priority);
+  engine_->SetTransactionSuccessful();
+  engine_->EndTransaction();
+
+  RunTwice([this, &scalar_with_priority]() {
+    EXPECT_EQ(engine_->ServerCache(Path("node")), scalar_with_priority);
+  });
+}
+
 TEST_F(LevelDbPersistenceStorageEngineTest, OverwriteServerCache_Overwrite) {
   InitializeLevelDb(test_info_->name());
 
@@ -388,8 +502,8 @@ TEST_F(LevelDbPersistenceStorageEngineTest, ServerCacheEstimatedSizeInBytes) {
   engine_->EndTransaction();
 
   RunTwice([this]() {
-    uint64 result = engine_->ServerCacheEstimatedSizeInBytes();
-    uint64 expected = 1024 + strlen("aaa");
+    uint64_t result = engine_->ServerCacheEstimatedSizeInBytes();
+    uint64_t expected = 1024 + strlen("aaa");
 
     // This is only an estimate, so as long as we're within a few bytes it's
     // okay.

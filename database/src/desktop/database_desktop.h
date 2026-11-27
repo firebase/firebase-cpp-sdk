@@ -94,6 +94,8 @@ class DatabaseInternal {
 
   void SetPersistenceEnabled(bool enabled);
 
+  bool persistence_enabled() const { return persistence_enabled_; }
+
   // Set the logging verbosity.
   void set_log_level(LogLevel log_level);
 

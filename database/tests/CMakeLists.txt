@@ -201,6 +201,16 @@ firebase_cpp_cc_test(
 )
 
 firebase_cpp_cc_test(
+  firebase_rtdb_desktop_level_db_persistence_storage_engine_test
+  SOURCES
+    desktop/persistence/level_db_persistence_storage_engine_test.cc
+  DEPENDS
+    firebase_database
+    firebase_testing
+    leveldb
+)
+
+firebase_cpp_cc_test(
   firebase_rtdb_desktop_flatbuffer_conversion_test
   SOURCES
     desktop/persistence/flatbuffer_conversions_test.cc
@@ -328,6 +338,16 @@ firebase_cpp_cc_test(
 )
 
 firebase_cpp_cc_test(
+  firebase_rtdb_desktop_database_desktop_test
+  SOURCES
+    desktop/database_desktop_test.cc
+  DEPENDS
+    firebase_app_for_testing
+    firebase_database
+    firebase_testing
+)
+
+firebase_cpp_cc_test(
   firebase_rtdb_common_database_reference_test
   SOURCES
     common/database_reference_test.cc
@@ -368,6 +388,15 @@ if(MSVC)
       ws2_32
   )
 endif()
+
+firebase_cpp_cc_test(
+  firebase_rtdb_desktop_connection_retry_helper_test
+  SOURCES
+    desktop/connection/retry_helper_test.cc
+  DEPENDS
+    firebase_database
+    firebase_testing
+)
 
 firebase_cpp_cc_test(
   firebase_rtdb_desktop_connection_connection_test

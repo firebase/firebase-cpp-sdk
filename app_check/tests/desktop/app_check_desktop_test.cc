@@ -108,6 +108,52 @@ TEST_F(AppCheckDesktopTest, EachAppGetsItsOwnTokenThroughItsRegistry) {
   }
 }
 
+TEST_F(AppCheckDesktopTest,
+       DestroyingAppCheckUnregistersOnlyItsAppsRegistryFunctions) {
+  const ::firebase::internal::FunctionId kAppCheckFunctions[] = {
+      ::firebase::internal::FnAppCheckGetTokenAsync,
+      ::firebase::internal::FnAppCheckGetLimitedUseTokenAsync,
+      ::firebase::internal::FnAppCheckAddListener,
+      ::firebase::internal::FnAppCheckRemoveListener,
+  };
+  std::unique_ptr<App> default_app(testing::CreateApp());
+  std::unique_ptr<App> second_app(
+      testing::CreateApp(testing::MockAppOptions(), "second"));
+  std::unique_ptr<AppCheck> default_app_check(
+      AppCheck::GetInstance(default_app.get()));
+  std::unique_ptr<AppCheck> second_app_check(
+      AppCheck::GetInstance(second_app.get()));
+
+  default_app_check.reset();
+
+  for (::firebase::internal::FunctionId id : kAppCheckFunctions) {
+    EXPECT_FALSE(default_app->function_registry()->FunctionExists(id)) << id;
+    EXPECT_TRUE(second_app->function_registry()->FunctionExists(id)) << id;
+  }
+
+  Future<std::string> unregistered_token;
+  EXPECT_FALSE(default_app->function_registry()->CallFunction(
+      ::firebase::internal::FnAppCheckGetTokenAsync, default_app.get(), nullptr,
+      &unregistered_token));
+  for (::firebase::internal::FunctionId id : kAppCheckFunctions) {
+    EXPECT_FALSE(default_app->function_registry()->FunctionExists(id)) << id;
+  }
+
+  Future<std::string> second_token;
+  ASSERT_TRUE(second_app->function_registry()->CallFunction(
+      ::firebase::internal::FnAppCheckGetTokenAsync, second_app.get(), nullptr,
+      &second_token));
+  ASSERT_EQ(second_token.status(), kFutureStatusComplete);
+  ASSERT_EQ(second_token.error(), kAppCheckErrorNone);
+  EXPECT_EQ(*second_token.result(), "token-for-second");
+
+  default_app_check.reset(AppCheck::GetInstance(default_app.get()));
+  ASSERT_NE(default_app_check, nullptr);
+  for (::firebase::internal::FunctionId id : kAppCheckFunctions) {
+    EXPECT_TRUE(default_app->function_registry()->FunctionExists(id)) << id;
+  }
+}
+
 }  // namespace
 }  // namespace app_check
 }  // namespace firebase
