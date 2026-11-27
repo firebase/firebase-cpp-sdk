@@ -15,8 +15,12 @@
  */
 
 #include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <cstdint>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -50,11 +54,6 @@ TEST(HttpTransportCommonTest, ParseUrlOriginStandardAndDefaults) {
   ASSERT_TRUE(ipv6.has_value());
   EXPECT_EQ(ipv6->host, "[::1]");
   EXPECT_EQ(ipv6->port, 8443);
-
-  auto userinfo = ParseUrlOrigin("https://user:pass@Example.COM/p");
-  ASSERT_TRUE(userinfo.has_value());
-  EXPECT_EQ(userinfo->host, "example.com");
-  EXPECT_EQ(userinfo->port, 443);
 }
 
 TEST(HttpTransportCommonTest, ParseUrlOriginRejectsUnsafeInputs) {
@@ -62,6 +61,10 @@ TEST(HttpTransportCommonTest, ParseUrlOriginRejectsUnsafeInputs) {
   EXPECT_FALSE(ParseUrlOrigin("file:///etc/passwd").has_value());
   EXPECT_FALSE(ParseUrlOrigin("ftp://example.com/a").has_value());
   EXPECT_FALSE(ParseUrlOrigin("https://evil.com\\@trusted.com/p").has_value());
+  // Userinfo must be rejected (S1) because parsers disagree on multiple `@`.
+  EXPECT_FALSE(ParseUrlOrigin("https://user:pass@Example.COM/p").has_value());
+  EXPECT_FALSE(ParseUrlOrigin("https://a@b@c.example.com/p").has_value());
+  EXPECT_FALSE(ParseUrlOrigin("https://@example.com/p").has_value());
   EXPECT_FALSE(ParseUrlOrigin("https://bad host/p").has_value());
   EXPECT_FALSE(ParseUrlOrigin("https://example.com:0/p").has_value());
   EXPECT_FALSE(ParseUrlOrigin("https://example.com:70000/p").has_value());
@@ -86,6 +89,8 @@ TEST(HttpTransportCommonTest, SensitiveRedirectHeadersMatchCaseInsensitively) {
   EXPECT_TRUE(IsSensitiveRedirectHeader("Authorization"));
   EXPECT_TRUE(IsSensitiveRedirectHeader("authorization"));
   EXPECT_TRUE(IsSensitiveRedirectHeader("Proxy-Authorization"));
+  EXPECT_TRUE(IsSensitiveRedirectHeader("Cookie"));
+  EXPECT_TRUE(IsSensitiveRedirectHeader("cookie"));
   EXPECT_TRUE(IsSensitiveRedirectHeader("X-Firebase-AppCheck"));
   EXPECT_TRUE(IsSensitiveRedirectHeader("x-firebase-appcheck"));
   EXPECT_TRUE(IsSensitiveRedirectHeader("x-goog-api-key"));
@@ -113,6 +118,9 @@ TEST(HttpTransportCommonTest, ResolveRedirectUrlRfc3986Forms) {
   EXPECT_EQ(ResolveRedirectUrl(base, "next?redir=http://ignored.example/x"),
             "https://storage.example.com/v0/b/my-bucket/next?redir=http://"
             "ignored.example/x");
+  // Spaces in path/query are percent-encoded (C3).
+  EXPECT_EQ(ResolveRedirectUrl(base, "/my folder/file name.txt?q=a b"),
+            "https://storage.example.com/my%20folder/file%20name.txt?q=a%20b");
 }
 
 TEST(HttpTransportCommonTest, ResolveRedirectUrlBlocksDowngradesAndConfusion) {
@@ -128,6 +136,11 @@ TEST(HttpTransportCommonTest, ResolveRedirectUrlBlocksDowngradesAndConfusion) {
   EXPECT_FALSE(ResolveRedirectUrl(https_base, "\\\\evil.com/x").has_value());
   EXPECT_FALSE(ResolveRedirectUrl(https_base, "/\\evil.com/x").has_value());
   EXPECT_FALSE(ResolveRedirectUrl(https_base, "/bad\r\nHeader: 1").has_value());
+  EXPECT_FALSE(
+      ResolveRedirectUrl(https_base, "https://user:pass@example.com/x")
+          .has_value());
+  EXPECT_FALSE(
+      ResolveRedirectUrl(https_base, "https://bad host/x").has_value());
   EXPECT_FALSE(ResolveRedirectUrl(https_base, "").has_value());
   EXPECT_FALSE(ResolveRedirectUrl(https_base, ":no-scheme").has_value());
 
@@ -157,14 +170,17 @@ TEST(HttpTransportCommonTest, ParseProxyHostPort) {
 
   EXPECT_FALSE(ParseProxyHostPort("").has_value());
   EXPECT_FALSE(ParseProxyHostPort("socks5://127.0.0.1:1080").has_value());
+  EXPECT_FALSE(ParseProxyHostPort("http://user:pass@proxy:8080").has_value());
 }
 
 TEST(HttpTransportCommonTest, ParsePackedHeadersPreservesDuplicates) {
-  auto headers = ParsePackedHeaders(
+  std::vector<std::pair<std::string, std::string>> headers;
+  ASSERT_TRUE(TryParsePackedHeaders(
       "Authorization\tBearer tok\n"
       "X-Multi\tfirst\r\n"
       "X-Multi\tsecond\n"
-      "Content-Type: application/json\n");
+      "Content-Type: application/json\n",
+      &headers));
   ASSERT_EQ(headers.size(), 4u);
   EXPECT_EQ(headers[0], std::make_pair(std::string("Authorization"),
                                        std::string("Bearer tok")));
@@ -174,6 +190,123 @@ TEST(HttpTransportCommonTest, ParsePackedHeadersPreservesDuplicates) {
             std::make_pair(std::string("X-Multi"), std::string("second")));
   EXPECT_EQ(headers[3], std::make_pair(std::string("Content-Type"),
                                        std::string("application/json")));
+}
+
+TEST(HttpTransportCommonTest, HeaderValidationRejectsCrLfNulAndBadTokens) {
+  EXPECT_TRUE(IsValidHeaderName("X-Custom-Token_1"));
+  EXPECT_FALSE(IsValidHeaderName(""));
+  EXPECT_FALSE(IsValidHeaderName("Bad Name"));
+  EXPECT_FALSE(IsValidHeaderName("Bad:Name"));
+  EXPECT_FALSE(IsValidHeaderName("Bad\rName"));
+  EXPECT_FALSE(IsValidHeaderName("Bad\nName"));
+  EXPECT_FALSE(IsValidHeaderName(std::string_view("Bad\0Name", 8)));
+
+  EXPECT_TRUE(IsValidHeaderValue("application/json; charset=utf-8"));
+  EXPECT_TRUE(IsValidHeaderValue("tab\tok"));
+  EXPECT_FALSE(IsValidHeaderValue("bad\rvalue"));
+  EXPECT_FALSE(IsValidHeaderValue("bad\nvalue"));
+  EXPECT_FALSE(IsValidHeaderValue(std::string_view("bad\0value", 9)));
+  EXPECT_FALSE(IsValidHeaderValue("bad\x01value"));
+
+  std::vector<std::pair<std::string, std::string>> out;
+  EXPECT_FALSE(TryParsePackedHeaders("X-Foo\tbar\rInjected: 1\n", &out));
+  EXPECT_FALSE(
+      TryParsePackedHeaders(std::string_view("X-Foo\tbar\0baz\n", 14), &out));
+  EXPECT_FALSE(TryParsePackedHeaders("Bad Name\tval\n", &out));
+  EXPECT_FALSE(TryParsePackedHeaders("X-Foo\tbar\nno-separator-line\n", &out));
+
+  // Direct C++ CreateOperation also rejects CR/LF in header values.
+  HttpRequestOptions opts;
+  opts.method = "GET";
+  opts.url = "http://127.0.0.1:80/test";
+  opts.headers.emplace_back("X-Test", "val\r\nInjected: 1");
+  int64_t h = CreateOperation(std::move(opts));
+  EXPECT_EQ(HttpPollResponseHeadersInternal(h), -1);
+  EXPECT_EQ(HttpGetErrorClassInternal(h), kHttpErrorOther);
+  HttpDestroyRequestInternal(h);
+}
+
+TEST(HttpTransportCommonTest, InvalidReadWriteArgsAndContentLength) {
+  int64_t bad_len = HttpCreateRequestInternal(
+      "POST", "http://127.0.0.1:80/bad-len", "", "", -3);
+  EXPECT_EQ(HttpPollResponseHeadersInternal(bad_len), -1);
+  EXPECT_EQ(HttpGetErrorClassInternal(bad_len), kHttpErrorOther);
+  EXPECT_FALSE(HttpGetErrorInternal(bad_len).empty());
+  HttpDestroyRequestInternal(bad_len);
+
+  int64_t h = HttpCreateRequestInternal("POST", "http://127.0.0.1:80/args", "",
+                                        "", 16);
+  ASSERT_GT(h, 0);
+  uint8_t buf[16] = {};
+  // S5: invalid read arguments must return error (-1), never 0 (EOF).
+  EXPECT_EQ(HttpTryReadResponseBodyInternal(h, nullptr, 16),
+            kHttpReadErrorOrCanceled);
+  EXPECT_EQ(HttpTryReadResponseBodyInternal(h, buf, 0),
+            kHttpReadErrorOrCanceled);
+  EXPECT_EQ(HttpTryReadResponseBodyInternal(h, buf, -4),
+            kHttpReadErrorOrCanceled);
+
+  // Invalid write arguments return -1.
+  EXPECT_EQ(HttpTryWriteRequestBodyInternal(h, nullptr, 16), -1);
+  EXPECT_EQ(HttpTryWriteRequestBodyInternal(h, buf, -1), -1);
+  EXPECT_EQ(HttpTryWriteRequestBodyInternal(h, buf, 0), 0);
+
+  HttpDestroyRequestInternal(h);
+}
+
+TEST(HttpTransportCommonTest, ErrorClassAndCancelAllOperations) {
+  int64_t h1 = HttpCreateRequestInternal("GET", "http://127.0.0.1:80/a", "", "",
+                                         kNoRequestContent);
+  int64_t h2 = HttpCreateRequestInternal("GET", "http://127.0.0.1:80/b", "", "",
+                                         kNoRequestContent);
+  ASSERT_GT(h1, 0);
+  ASSERT_GT(h2, 0);
+
+  auto op1 = FindOperation(h1);
+  ASSERT_NE(op1, nullptr);
+  op1->MarkFailed("certificate verify failed", kHttpErrorTls);
+  EXPECT_EQ(HttpGetErrorClassInternal(h1), kHttpErrorTls);
+
+  HttpCancelRequestInternal(h2);
+  EXPECT_EQ(HttpGetErrorClassInternal(h2), kHttpErrorCanceled);
+
+  int64_t h3 = HttpCreateRequestInternal("GET", "http://127.0.0.1:80/c", "", "",
+                                         kNoRequestContent);
+  auto op3 = FindOperation(h3);
+  ASSERT_NE(op3, nullptr);
+  HttpCancelAllRequestsInternal();
+  EXPECT_TRUE(op3->IsCanceled());
+  EXPECT_EQ(FindOperation(h1), nullptr);
+  EXPECT_EQ(FindOperation(h2), nullptr);
+  EXPECT_EQ(FindOperation(h3), nullptr);
+}
+
+TEST(HttpTransportCommonTest, WakeEventPumpUnblocksInfiniteWait) {
+  // Drain any stale events left by earlier unit tests.
+  while (HttpWaitNextEventInternal(0) != 0) {
+  }
+
+  std::mutex mu;
+  std::condition_variable cv;
+  bool thread_started = false;
+  std::atomic<int64_t> wait_result{-1};
+
+  std::thread waiter([&]() {
+    {
+      std::lock_guard<std::mutex> lock(mu);
+      thread_started = true;
+    }
+    cv.notify_one();
+    wait_result.store(HttpWaitNextEventInternal(-1), std::memory_order_release);
+  });
+
+  {
+    std::unique_lock<std::mutex> lock(mu);
+    cv.wait(lock, [&]() { return thread_started; });
+  }
+  HttpWakeEventPumpInternal();
+  waiter.join();
+  EXPECT_EQ(wait_result.load(std::memory_order_acquire), 0);
 }
 
 TEST(HttpTransportCommonTest, RequestAndResponsePipeWatermarksAndCancel) {
@@ -231,6 +364,8 @@ TEST(HttpTransportCommonTest, RequestAndResponsePipeWatermarksAndCancel) {
 }
 
 TEST(HttpTransportCommonTest, MarkResponseCompleteWakesBlockedUploader) {
+  while (HttpWaitNextEventInternal(0) != 0) {
+  }
   int64_t handle = HttpCreateRequestInternal(
       "PUT", "http://127.0.0.1:80/early-413", "", "",
       static_cast<int64_t>(kMaxRequestBufferBytes * 2));
@@ -251,18 +386,10 @@ TEST(HttpTransportCommonTest, MarkResponseCompleteWakesBlockedUploader) {
 
   // Completion queue must wake the armed uploader and subsequent writes fail
   // immediately instead of blocking forever.
-  bool saw_req_space_event = false;
-  for (int i = 0; i < 8; ++i) {
-    int64_t ev = HttpWaitNextEventInternal(0);
-    if (ev == 0) {
-      break;
-    }
-    if ((ev >> 8) == handle && static_cast<HttpEventKind>(ev & 0xFF) ==
-                                   kHttpEventRequestSpaceAvailable) {
-      saw_req_space_event = true;
-    }
-  }
-  EXPECT_TRUE(saw_req_space_event);
+  int64_t ev = HttpWaitNextEventInternal(1000);
+  EXPECT_EQ(ev >> 8, handle);
+  EXPECT_EQ(static_cast<HttpEventKind>(ev & 0xFF),
+            kHttpEventRequestSpaceAvailable);
   EXPECT_EQ(HttpTryWriteRequestBodyInternal(handle, chunk.data(), 64), -1);
 
   HttpDestroyRequestInternal(handle);
