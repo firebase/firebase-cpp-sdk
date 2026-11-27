@@ -97,6 +97,7 @@ set(desktop_SRCS
     src/desktop/connection/connection.cc
     src/desktop/connection/host_info.cc
     src/desktop/connection/persistent_connection.cc
+    src/desktop/connection/retry_helper.cc
     src/desktop/connection/util_connection.cc
     src/desktop/connection/web_socket_client_impl.cc
     src/desktop/core/cache_policy.cc

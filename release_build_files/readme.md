@@ -615,6 +615,8 @@ code.
 ## Release Notes
 ### Upcoming
 - Changes
+    - Database (Desktop): Added exponential backoff to Realtime Database
+      reconnection attempts to prevent tight reconnect loops.
     - General (Desktop): Fixed Auth and App Check staying registered with their
       `App` after being deleted. Previously a deleted `AppCheck` instance could
       be silently re-created by other products using the same `App`.

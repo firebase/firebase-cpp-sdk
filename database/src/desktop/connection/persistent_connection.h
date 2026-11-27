@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <queue>
@@ -37,6 +38,7 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/connection.h"
 #include "database/src/desktop/connection/host_info.h"
+#include "database/src/desktop/connection/retry_helper.h"
 #include "database/src/desktop/core/tag.h"
 #include "database/src/include/firebase/database/common.h"
 
@@ -324,29 +326,35 @@ class PersistentConnection : public ConnectionEventHandler {
 
   bool ShouldReconnect() { return interrupt_reasons_.empty(); }
 
-  // Try to reconnect to RT DB server.
+  // Try to reconnect to RTDB server.
   void TryScheduleReconnect();
 
-  // Callback function when the Auth future to fetch token is complete.
-  static void OnAuthTokenFutureComplete(const Future<std::string>& auth_future,
-                                        void* user_data);
-  // Callback function when the App Check future to fetch token is complete.
-  static void OnAppCheckTokenFutureComplete(
-      const Future<std::string>& app_check_future, void* user_data);
-  void HandleTokenFutures();
+  typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<PersistentConnection>
+      ThisRefLock;
 
-  // Mutex to protect pending_token_future_
-  Mutex pending_token_future_mutex_;
   enum TokenFutureStatus {
     kInvalidTokenFuture = 0,
     kWaitingForTokenFuture,
     kCompletedTokenFuture,
   };
-  // Pending future to fetch the auth token.
-  Future<std::string> pending_auth_token_future_;
-  TokenFutureStatus auth_token_future_status_;
-  Future<std::string> pending_app_check_token_future_;
-  TokenFutureStatus app_check_token_future_status_;
+  struct PendingToken {
+    Future<std::string> future;
+    TokenFutureStatus status = kInvalidTokenFuture;
+  };
+
+  static void OnTokenFutureComplete(
+      ThisRef safe_ref, PendingToken PersistentConnection::*token_member,
+      const Future<std::string>& result_data);
+  void HandleTokenFutures(uint64_t get_token_attempt);
+  void ClearPendingTokenFutures();
+
+  // Mutex to protect pending_auth_token_, pending_app_check_token_, and
+  // pending_get_token_attempt_.
+  Mutex pending_token_future_mutex_;
+  PendingToken pending_auth_token_;
+  PendingToken pending_app_check_token_;
+  uint64_t pending_get_token_attempt_;
 
   // Start to establish connection to RT DB server.
   void OpenNetworkConnection();
@@ -506,9 +514,6 @@ class PersistentConnection : public ConnectionEventHandler {
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
-  typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
-  typedef firebase::internal::SafeReferenceLock<PersistentConnection>
-      ThisRefLock;
   ThisRef safe_this_;
 
   // Scheduler to make sure all Connection events are handled in worker
@@ -526,6 +531,9 @@ class PersistentConnection : public ConnectionEventHandler {
   // States
   ConnectionState connection_state_;
   bool is_first_connection_;
+  Optional<std::chrono::steady_clock::time_point>
+      last_connection_established_time_;
+  uint64_t current_get_token_attempt_;
 
   // Session
   std::string last_session_id_;
@@ -575,6 +583,8 @@ class PersistentConnection : public ConnectionEventHandler {
   uint64_t next_write_id_;
 
   Logger* logger_;
+
+  RetryHelper retry_helper_;
 };
 
 class PersistentConnectionEventHandler {

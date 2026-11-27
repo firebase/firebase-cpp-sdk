@@ -390,6 +390,15 @@ if(MSVC)
 endif()
 
 firebase_cpp_cc_test(
+  firebase_rtdb_desktop_connection_retry_helper_test
+  SOURCES
+    desktop/connection/retry_helper_test.cc
+  DEPENDS
+    firebase_database
+    firebase_testing
+)
+
+firebase_cpp_cc_test(
   firebase_rtdb_desktop_connection_connection_test
   SOURCES
     desktop/connection/connection_test.cc
